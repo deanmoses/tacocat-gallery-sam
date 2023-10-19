@@ -1,0 +1,96 @@
+# -----------------------------------------------------------------------------
+# State Machine Stack
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# This is an AWS Serverless Application Model (SAM) template
+# It defines the "stack" of AWS resources needed to run the SAM app
+# -----------------------------------------------------------------------------
+AWSTemplateFormatVersion: '2010-09-09'
+
+# -----------------------------------------------------------------------------
+# This file is written in SAM syntax, and gets transfomed and expanded into a  
+# CloudFormation template.  The CloudFormation template is what actually gets 
+# deployed.  The main point is that SAM syntax is much simpler, with a lot less
+# boilerplate around declaring resources like Lambda functions and their 
+# accompanying execution roles.
+# -----------------------------------------------------------------------------
+Transform: AWS::Serverless-2016-10-31
+
+# -----------------------------------------------------------------------------
+# This particular template defines the state machine that does image processing
+# for the Tacocat Gallery
+# -----------------------------------------------------------------------------
+Description: Tacocat Gallery State Machine
+
+# -----------------------------------------------------------------------------
+# Resources are the actual assets that will be provisioned on AWS
+# -----------------------------------------------------------------------------
+Resources:
+
+  # ---------------------------------------------------------------------------
+  # Image processing Step Functions state machine
+  # ---------------------------------------------------------------------------
+  StateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      # State machine files MUST live at the root of the project.  
+      #
+      # sam build has weird behavior: when transforming to a CloudFormation template, 
+      # it ignores any path given to DefinitionUri and instead transforms to:
+      # ../../the_name_of_the_template.asl.yaml.   
+      # You can see this in transformed template at .aws-sam/build/template.yaml
+      # That ../../ resolves to the root of the project, so that's the only place
+      # you can stick state machine files.
+      #
+      # This will probably break when we do a build via a CI/CD process where the
+      # build directory isn't within the root of the project.
+      DefinitionUri: state_machine.asl.yaml
+      # We want the Express workload type
+      # Express is for event processing workloads and can run for up to 5 minutes
+      # Standard is for long-running (up to one year)
+      Type: EXPRESS
+      DefinitionSubstitutions:
+        HelloWorldFunctionArn: !GetAtt HelloWorldFunction.Arn
+      Policies:
+        - CloudWatchLogsFullAccess
+        - LambdaInvokePolicy:
+            FunctionName: !Ref HelloWorldFunction
+      Logging:
+        Level: ALL
+        IncludeExecutionData: FALSE
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt  StateMachineLogGroup.Arn
+
+  StateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /stepfunctions/${AWS::StackName}-Logs
+
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: state_machine_app/src/lambda_functions/
+      Handler: helloWorld.lambdaHandler
+      Runtime: nodejs18.x
+      Layers:
+        - !Ref LayerCommons
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+        - helloWorld.ts
+
+  LayerCommons:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: state_machine_app/src/layers/commons/
+      CompatibleRuntimes:
+        - nodejs18.x
+      RetentionPolicy: Delete
+    Metadata:
+      BuildMethod: makefile

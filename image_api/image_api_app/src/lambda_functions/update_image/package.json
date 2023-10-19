@@ -1,0 +1,10 @@
+{
+	"name": "update_image",
+	"version": "1.0.0",
+	"private": true,
+	"dependencies": {
+		"http-response-utils": "1.0.0",
+		"gallery-path-utils": "1.0.0",
+		"dynamo-utils": "1.0.0"
+	}
+}

@@ -1,0 +1,63 @@
+# -----------------------------------------------------------------------------
+# Database Stack
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# This is a AWS Serverless Application Model (SAM) template
+# It defines the "stack" of AWS resources needed to run the SAM app
+# -----------------------------------------------------------------------------
+AWSTemplateFormatVersion: '2010-09-09'
+
+# -----------------------------------------------------------------------------
+# This file is written in SAM syntax, and gets transfomed and expanded into a  
+# CloudFormation template.  The CloudFormation template is what actually gets 
+# deployed.  The main point is that SAM syntax is much simpler, with a lot less
+# boilerplate around declaring resources like Lambda functions and their 
+# accompanying execution roles.
+# -----------------------------------------------------------------------------
+Transform: AWS::Serverless-2016-10-31
+
+# -----------------------------------------------------------------------------
+# This particular template defines the database for the Tacocat photo gallery system
+# -----------------------------------------------------------------------------
+Description: Tacocat Gallery DynamoDB Database
+
+# -----------------------------------------------------------------------------
+# Outputs are for use after the stack is created, such as to:
+#  - Import into other stacks (to create cross-stack references)
+#  - Return in response (to describe stack calls)
+#  - View on the AWS CloudFormation console
+# -----------------------------------------------------------------------------
+Outputs:
+  DDBGalleryItemTable:
+    Description: DynamoDB table containing gallery albums and images
+    Value:
+      Ref: "GalleryItemDDBTable"
+
+
+# -----------------------------------------------------------------------------
+# Resources are the actual assets that will be provisioned on AWS
+# -----------------------------------------------------------------------------
+Resources:
+
+  # -----------------------------------------------------------------------------
+  # DynamoDB table containing both albums and images
+  # -----------------------------------------------------------------------------
+  GalleryItemDDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: parentPath
+          AttributeType: S
+        - AttributeName: itemName
+          AttributeType: S
+      KeySchema:
+        - AttributeName: parentPath
+          KeyType: HASH
+        - AttributeName: itemName
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 3
+        WriteCapacityUnits: 3
+      #StreamSpecification: # enable streaming so that the SearchIndexerFunction lambda can send the stream to be indexed by search engine
+        #StreamViewType: "NEW_IMAGE"

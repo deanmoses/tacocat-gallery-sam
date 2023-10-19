@@ -1,0 +1,97 @@
+# -----------------------------------------------------------------------------
+# Image API Stack
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# This is an AWS Serverless Application Model (SAM) template
+# It defines the "stack" of AWS resources needed to run the SAM app
+# -----------------------------------------------------------------------------
+AWSTemplateFormatVersion: '2010-09-09'
+
+# -----------------------------------------------------------------------------
+# This file is written in SAM syntax, and gets transfomed and expanded into a  
+# CloudFormation template.  The CloudFormation template is what actually gets 
+# deployed.  The main point is that SAM syntax is much simpler, with a lot less
+# boilerplate around declaring resources like Lambda functions and their 
+# accompanying execution roles.
+# -----------------------------------------------------------------------------
+Transform: AWS::Serverless-2016-10-31
+
+# -----------------------------------------------------------------------------
+# This particular template defines the API to work with the web gallery images
+# -----------------------------------------------------------------------------
+Description: Tacocat Gallery Image API
+
+# -----------------------------------------------------------------------------
+# Output values for use after AWS creates the stack, such as to:
+#  - Import into other stacks (to create cross-stack references)
+#  - Return in response (to describe stack calls)
+#  - View on the AWS CloudFormation console
+# -----------------------------------------------------------------------------
+Outputs:
+  HelloWorldApi:
+    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
+    # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+  HelloWorldFunction:
+    Description: "Hello World Lambda Function ARN"
+    Value: !GetAtt HelloWorldFunction.Arn
+  HelloWorldFunctionIamRole:
+    Description: "Implicit IAM Role created for Hello World function"
+    Value: !GetAtt HelloWorldFunctionRole.Arn
+
+# ------------------------------------------------------------------------------
+# Configuration inheritable by all Lambda functions and other Resources
+# ------------------------------------------------------------------------------
+Globals:
+  Api:
+    Name: Tacocat Gallery Image API
+  Function:
+    Runtime: nodejs18.x
+    MemorySize: 256
+    Timeout: 100
+    Handler: index.handler
+
+# -----------------------------------------------------------------------------
+# Resources are the AWS assets that will be provisioned
+# -----------------------------------------------------------------------------
+Resources:
+
+  # ---------------------------------------------------------------------------
+  # Sample function to prove life
+  # ---------------------------------------------------------------------------
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: image_api_app/src/lambda_functions/
+      Handler: helloWorld.lambdaHandler
+      Layers:
+        - !Ref LayerCommons
+      Events:
+        Hello:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: get      
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints: 
+        - helloWorld.ts
+
+  # ---------------------------------------------------------------------------
+  # A Layer is a set of files that gets zipped up and included with a Lambda
+  # This Layer contains TypeScript lib modules for the Lambdas to use
+  # ---------------------------------------------------------------------------
+  LayerCommons:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: image_api_app/src/layers/commons/
+      CompatibleRuntimes:
+        - nodejs18.x
+      RetentionPolicy: Delete
+    Metadata:
+      BuildMethod: makefile

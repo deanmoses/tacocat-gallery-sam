@@ -1,0 +1,4 @@
+# Configuration for the AWS Cloudformation linter
+# I run it via 'sam validate --lint'
+ignore_checks:
+    - W3002 # There's a warning when running a nested stack that it can only be deployed via packages.  Yes, I know.

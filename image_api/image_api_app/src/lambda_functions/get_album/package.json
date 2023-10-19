@@ -1,0 +1,8 @@
+{
+	"name": "get_album",
+	"version": "1.0.0",
+	"private": true,
+	"dependencies": {
+		"gallery-path-utils": "1.0.0"
+	}
+}
