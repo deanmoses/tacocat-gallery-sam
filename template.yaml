@@ -28,19 +28,19 @@ Description: Tacocat Gallery Root SAM App
 # -----------------------------------------------------------------------------
 Resources:
 
-  # Nested SAM app for the image database
+  # Nested SAM app for the AWS DynamoDB database containing album and image metadata
   Database:
     Type: AWS::Serverless::Application
     Properties:
       Location: db/db_stack.yaml
 
-  # Nested SAM app for API to work with images 
+  # Nested SAM app for AWS API Gateway API to work with images 
   ImageAPI:
     Type: AWS::Serverless::Application
     Properties:
       Location: image_api/image_api_stack.yaml
 
-  # Nested SAM app with the image processing Step Functions state machine
+  # Nested SAM app with the AWS Step Functions image processing state machine
   StateMachine:
     Type: AWS::Serverless::Application
     Properties:
