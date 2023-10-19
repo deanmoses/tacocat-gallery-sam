@@ -1,7 +1,7 @@
 # tacocat-gallery-sam
 Tacocat Gallery back end APIs and image processing.  Implemented on Amazon AWS Serverless Application Model (SAM).
 
-# Installation
+# Install
 Run `npm install` on each nested SAM app, such as:
 ```
     cd image_api/image_api_app
