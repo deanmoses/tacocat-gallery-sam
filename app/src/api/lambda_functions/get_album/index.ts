@@ -1,10 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { getAlbumAndChildren } from './getAlbumAndChildren';
-
-const ddbClient = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(ddbClient);
 
 /**
  * A Lambda function that gets an album and its child images and child albums from DynamoDB
@@ -18,7 +13,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
     // event.path is passed in from the API Gateway and represents the full
     // path of the HTTP request, which starts with "/albums/..."
     const albumPath = event.path.replace('/album', '');
-    const album = await getAlbumAndChildren(docClient, tableName, albumPath);
+    const album = await getAlbumAndChildren(tableName, albumPath);
     if (!album) {
         return {
             isBase64Encoded: false,

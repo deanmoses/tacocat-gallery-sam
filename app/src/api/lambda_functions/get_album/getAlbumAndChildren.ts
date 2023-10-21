@@ -1,4 +1,3 @@
-import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { getAlbum } from './getAlbum';
 import { getChildren } from './getChildren';
 import { getPrevAndNextItem } from './getPrevAndNextItem';
@@ -11,11 +10,7 @@ import { getPrevAndNextItem } from './getPrevAndNextItem';
  * @param {*} path path of the album to get, like /2001/12-31/
  * @returns the albums or null if no such album
  */
-export async function getAlbumAndChildren(
-    docClient: DynamoDBDocumentClient,
-    tableName: string,
-    path: string,
-): Promise<AlbumResponse | null> {
+export async function getAlbumAndChildren(tableName: string, path: string): Promise<AlbumResponse | null> {
     // ensure albumId starts with a "/"
     if (path.lastIndexOf('/', 0) !== 0) path = '/' + path;
 
@@ -29,20 +24,26 @@ export async function getAlbumAndChildren(
             title: 'Dean, Lucie, Felix and Milo Moses',
         };
     } else {
-        response.album = await getAlbum(docClient, tableName, path);
+        response.album = await getAlbum(tableName, path);
         if (!response.album) return null; // TODO: throw exception?
-        const prevAndNext = await getPrevAndNextItem(docClient, tableName, path);
+        const prevAndNext = await getPrevAndNextItem(tableName, path);
         response.nextAlbum = prevAndNext.next;
         response.prevAlbum = prevAndNext.prev;
     }
-    response.children = await getChildren(docClient, tableName, path);
+    response.children = await getChildren(tableName, path);
 
     return response;
 }
 
 type AlbumResponse = {
-    album?;
+    album?: Album;
     nextAlbum?: string;
     prevAlbum?: string;
-    children?;
+    children?: Album[];
+};
+
+type Album = {
+    title?: string;
+    itemName?: string;
+    parentPath?: string;
 };
