@@ -1,21 +1,25 @@
+# The AWS Serverless Application Model (SAM) CLI configuration file
 version = 0.1
 
 [default]
 [default.global]
 [default.global.parameters]
-stack_name = "tacocat-gallery-sam"
+stack_name = "tacocat-gallery-sam-dev"
+
+[prod]
+[prod.global]
+[prod.global.parameters]
+stack_name = "tacocat-gallery-sam-prod"
 
 [default.validate.parameters]
 lint = true
 
-[default.deploy.parameters]
-stack_name = "tacocat-gallery-sam"
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.package.parameters]
 resolve_s3 = true
-s3_prefix = "tacocat-gallery-sam"
-region = "us-east-1"
-confirm_changeset = true
-capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
-image_repositories = []
 
 [default.sync.parameters]
 watch = true
@@ -25,3 +29,17 @@ warm_containers = "EAGER"
 
 [default.local_start_lambda.parameters]
 warm_containers = "EAGER"
+
+[default.deploy.parameters]
+s3_prefix = "tacocat-gallery-sam/dev"
+resolve_s3 = true
+confirm_changeset = true
+region = "us-east-1"
+image_repositories = []
+capabilities = "CAPABILITY_IAM"
+
+[prod.deploy.parameters]
+s3_prefix = "tacocat-gallery-sam/prod"
+region = "eu-west-1"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Environment=prod"
