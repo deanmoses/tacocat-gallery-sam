@@ -48,17 +48,19 @@ Globals:
     Runtime: nodejs18.x
     MemorySize: 256
     Timeout: 100
+    Handler: index.handler
 
 # -----------------------------------------------------------------------------
 # Resources are the actual assets that will be provisioned on AWS
 # -----------------------------------------------------------------------------
 Resources:
+  # ---------------------------------------------------------------------------
   # Lambda function that retrieves an album and its children from DynamoDB
+  # ---------------------------------------------------------------------------
   GetAlbumFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: app/src/api/lambda_functions/get_album/
-      Handler: index.handler
       Description: API Gateway function that returns an album and its children from DynamoDB
       Events:
         GetAlbumEvent:
@@ -71,6 +73,35 @@ Resources:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
       Policies:
         - DynamoDBReadPolicy:
+            TableName: !Ref GalleryItemDDBTable
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - index.ts
+
+  # ---------------------------------------------------------------------------
+  # Lambda function that creates an album and its children from DynamoDB
+  # ---------------------------------------------------------------------------
+  CreateAlbumFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/src/api/lambda_functions/create_album/
+      Description: API Gateway function that creates an album in DynamoDB
+      Events:
+        GetAlbumEvent:
+          Type: Api
+          Properties:
+            Path: /album/{albumPath+}
+            Method: put
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+      Policies:
+        - DynamoDBWritePolicy:
             TableName: !Ref GalleryItemDDBTable
     Metadata:
       BuildMethod: esbuild
