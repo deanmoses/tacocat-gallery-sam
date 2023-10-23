@@ -21,21 +21,17 @@ export async function createAlbum(tableName: string, albumPath: string) {
     const pathParts = getParentAndNameFromPath(albumPath);
     const now = new Date().toISOString();
 
-    const dynamoAlbumItem = {
-        parentPath: pathParts.parent,
-        itemName: pathParts.name,
-        itemType: 'album',
-        createdOn: now,
-        updatedOn: now,
-    };
-
-    const ddbparams = {
+    const ddbCommand = new PutCommand({
         TableName: tableName,
-        Item: dynamoAlbumItem,
+        Item: {
+            parentPath: pathParts.parent,
+            itemName: pathParts.name,
+            itemType: 'album',
+            createdOn: now,
+            updatedOn: now,
+        },
         ConditionExpression: 'attribute_not_exists (itemName)',
-    };
-
-    const ddbCommand = new PutCommand(ddbparams);
+    });
     const result = await docClient.send(ddbCommand);
 
     console.info(`DynamoDB result for creating album [${albumPath}]: `, result);
