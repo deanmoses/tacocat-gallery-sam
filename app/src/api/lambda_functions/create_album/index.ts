@@ -12,7 +12,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
 
     // event.path is passed in from the API Gateway and represents the full
     // path of the HTTP request, which starts with "/albums/..."
-    const albumPath = event.path.replace('/album', '');
+    const albumPath = event.path.replace('/albums', '');
 
     try {
         const results = await createAlbum(tableName, albumPath);
