@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
-import { getAlbumAndChildren } from './getAlbumAndChildren';
+import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChildren';
 
 /**
  * A Lambda function that gets an album and its child images and child albums from DynamoDB

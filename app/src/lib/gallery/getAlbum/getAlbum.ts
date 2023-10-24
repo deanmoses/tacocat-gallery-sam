@@ -1,6 +1,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
-import { getParentAndNameFromPath } from '../../../lib/gallery_path_utils/getParentAndNameFromPath';
+import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 
 /**
  * Retrieve an album from DynamoDB.  Does not retrieve any child photos or child albums.

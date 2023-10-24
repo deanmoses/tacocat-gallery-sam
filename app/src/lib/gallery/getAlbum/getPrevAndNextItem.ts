@@ -1,5 +1,5 @@
 import { getChildren } from './getChildren';
-import { getParentAndNameFromPath } from '../../../lib/gallery_path_utils/getParentAndNameFromPath';
+import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 
 /**
  * Given an album or image, retrieve both the previous and next album or image from DynamoDB.

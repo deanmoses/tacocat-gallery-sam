@@ -49,7 +49,6 @@ Globals:
     Runtime: nodejs18.x
     MemorySize: 256
     Timeout: 100
-    Handler: index.handler
 
 # -----------------------------------------------------------------------------
 # Resources are the actual assets that will be provisioned on AWS
@@ -61,7 +60,8 @@ Resources:
   GetAlbumFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: app/src/api/lambda_functions/get_album/
+      CodeUri: app/src/api/lambdas/
+      Handler: getAlbumLambda.handler
       Description: API Gateway function that returns an album and its children from DynamoDB
       Events:
         ApiEvent:
@@ -83,7 +83,7 @@ Resources:
         Target: "es2020"
         Sourcemap: true
         EntryPoints:
-          - index.ts
+          - getAlbumLambda.ts
 
   # ---------------------------------------------------------------------------
   # Lambda function that creates an album and its children from DynamoDB
@@ -91,7 +91,8 @@ Resources:
   CreateAlbumFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: app/src/api/lambda_functions/create_album/
+      CodeUri: app/src/api/lambdas/
+      Handler: createAlbumLambda.handler
       Description: API Gateway function that creates an album in DynamoDB
       Events:
         ApiEvent:
@@ -115,7 +116,7 @@ Resources:
         Target: "es2020"
         Sourcemap: true
         EntryPoints:
-          - index.ts
+          - createAlbumLambda.ts
 
   # ---------------------------------------------------------------------------
   # API Gateway Image API

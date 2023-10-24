@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
-import { createAlbum } from './createAlbum';
+import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
 
 /**
  * A Lambda function that creates the album in DynamoDB

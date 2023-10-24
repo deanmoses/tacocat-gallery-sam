@@ -1,7 +1,7 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { getParentAndNameFromPath } from '../../../lib/gallery_path_utils/getParentAndNameFromPath';
-import { isValidAlbumPath } from '../../../lib/gallery_path_utils/pathValidator';
+import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
+import { isValidAlbumPath } from '../../gallery_path_utils/pathValidator';
 
 /**
  * Create album in DynamoDB
