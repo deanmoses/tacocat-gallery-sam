@@ -22,7 +22,11 @@ Description: Tacocat Gallery SAM App
 # Parameters that can be specified when deploying this stack
 # This is the only way to define constants for use elsewhere in the template
 # -----------------------------------------------------------------------------
-#Parameters:
+Parameters:
+  CognitoUserPoolArn:
+    Type: String
+    Description: ARN of the Cognito User Pool for Tacocat Gallery Admins
+    Default: arn:aws:cognito-idp:us-east-1:010410881828:userpool/us-east-1_DdPFtamLz
 
 # -----------------------------------------------------------------------------
 # Outputs for use after the stack is created, such as to:
@@ -32,8 +36,7 @@ Description: Tacocat Gallery SAM App
 Outputs:
   ImageApi:
     Description: API Gateway endpoint URL for Prod stage for Image API
-    # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+    Value: !Sub "https://${ImageApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
   GalleryItemDDBTable:
     Description: DynamoDB table containing gallery album and image metadata
     Value: !Ref GalleryItemDDBTable
@@ -42,8 +45,6 @@ Outputs:
 # Configuration properties inherited by all resources, such as Lambda functions
 # -----------------------------------------------------------------------------
 Globals:
-  Api:
-    Name: Tacocat Gallery Image API
   Function:
     Runtime: nodejs18.x
     MemorySize: 256
@@ -63,11 +64,12 @@ Resources:
       CodeUri: app/src/api/lambda_functions/get_album/
       Description: API Gateway function that returns an album and its children from DynamoDB
       Events:
-        GetAlbumEvent:
+        ApiEvent:
           Type: Api
           Properties:
             Path: /album/{albumPath+}
-            Method: get
+            Method: GET
+            RestApiId: !Ref ImageApi
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -92,11 +94,14 @@ Resources:
       CodeUri: app/src/api/lambda_functions/create_album/
       Description: API Gateway function that creates an album in DynamoDB
       Events:
-        GetAlbumEvent:
+        ApiEvent:
           Type: Api
           Properties:
             Path: /album/{albumPath+}
-            Method: put
+            Method: PUT
+            RestApiId: !Ref ImageApi
+            Auth:
+              Authorizer: CognitoAuthorizer
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -111,6 +116,19 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - index.ts
+
+  # ---------------------------------------------------------------------------
+  # API Gateway Image API
+  # ---------------------------------------------------------------------------
+  ImageApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: Tacocat Gallery Image API
+      StageName: Prod
+      Auth:
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !Ref CognitoUserPoolArn
 
   # ---------------------------------------------------------------------------
   # Step Functions state machine that processes images
