@@ -5,7 +5,6 @@ import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndN
 /**
  * Retrieve an album from DynamoDB.  Does not retrieve any child photos or child albums.
  *
- * @param {*} docClient AWS DynamoDB DocumentClient
  * @param {*} tableName Name of the table in DynamoDB containing gallery items
  * @param {*} path Path of the album to retrieve, like /2001/12-31/
  */

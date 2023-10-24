@@ -55,6 +55,37 @@ Globals:
 # -----------------------------------------------------------------------------
 Resources:
   # ---------------------------------------------------------------------------
+  # Lambda function that gets latest album
+  # ---------------------------------------------------------------------------
+  GetLatestAlbumFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/src/api/lambdas/
+      Handler: getLatestAlbumLambda.handler
+      Description: API Gateway lambda function that gets the latest album from DynamoDB
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /latest-album
+            Method: GET
+            RestApiId: !Ref ImageApi
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref GalleryItemDDBTable
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - getLatestAlbumLambda.ts
+
+  # ---------------------------------------------------------------------------
   # Lambda function that retrieves an album and its children from DynamoDB
   # ---------------------------------------------------------------------------
   GetAlbumFunction:

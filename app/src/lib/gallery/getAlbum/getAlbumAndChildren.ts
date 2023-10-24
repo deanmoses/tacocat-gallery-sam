@@ -1,3 +1,4 @@
+import { AlbumResponse } from '../galleryTypes';
 import { getAlbum } from './getAlbum';
 import { getChildren } from './getChildren';
 import { getPrevAndNextItem } from './getPrevAndNextItem';
@@ -5,10 +6,8 @@ import { getPrevAndNextItem } from './getPrevAndNextItem';
 /**
  * Retrieve an album and its children (images and subalbums) from DynamoDB.
  *
- * @param {*} docClient AWS DynamoDB DocumentClient
  * @param {*} tableName name of the Album table in DynamoDB
  * @param {*} path path of the album to get, like /2001/12-31/
- * @returns the albums or null if no such album
  */
 export async function getAlbumAndChildren(tableName: string, path: string): Promise<AlbumResponse | null> {
     // ensure albumId starts with a "/"
@@ -34,16 +33,3 @@ export async function getAlbumAndChildren(tableName: string, path: string): Prom
 
     return response;
 }
-
-type AlbumResponse = {
-    album?: Album;
-    nextAlbum?: string;
-    prevAlbum?: string;
-    children?: Album[];
-};
-
-type Album = {
-    title?: string;
-    itemName?: string;
-    parentPath?: string;
-};
