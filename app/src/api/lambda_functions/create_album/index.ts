@@ -11,8 +11,8 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
     if (event.httpMethod !== 'PUT') throw 'This can only be called from a HTTP PUT';
 
     // event.path is passed in from the API Gateway and represents the full
-    // path of the HTTP request, which starts with "/albums/..."
-    const albumPath = event.path.replace('/albums', '');
+    // path of the HTTP request, which starts with "/album/..."
+    const albumPath = event.path.replace('/album', '');
 
     try {
         const results = await createAlbum(tableName, albumPath);

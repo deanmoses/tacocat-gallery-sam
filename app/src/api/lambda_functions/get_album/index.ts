@@ -11,7 +11,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
     if (!event?.path) throw 'No event.path.  This lambda probably is not being called from the API Gateway';
 
     // event.path is passed in from the API Gateway and represents the full
-    // path of the HTTP request, which starts with "/albums/..."
+    // path of the HTTP request, which starts with "/album/..."
     const albumPath = event.path.replace('/album', '');
     const album = await getAlbumAndChildren(tableName, albumPath);
     if (!album) {
