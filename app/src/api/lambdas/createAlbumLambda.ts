@@ -1,6 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
 import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
 import { handleHttpExceptions, respondSuccessMessage } from '../../lib/api_gateway_utils/ApiGatewayResponseHelpers';
+import { BadRequestException } from '../../lib/api_gateway_utils/BadRequestException';
 
 /**
  * A Lambda function that creates the album in DynamoDB

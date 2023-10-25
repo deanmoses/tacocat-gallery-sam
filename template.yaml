@@ -183,6 +183,39 @@ Resources:
           - updateAlbumLambda.ts
 
   # ---------------------------------------------------------------------------
+  # Lambda to update existing image
+  # ---------------------------------------------------------------------------
+  UpdateImageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/src/api/lambdas/
+      Handler: updateImageLambda.handler
+      Description: API Gateway function that updates an existing album in DynamoDB
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /image/{imagePath+}
+            Method: PATCH
+            RestApiId: !Ref ImageApi
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref GalleryItemDDBTable
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - updateImageLambda.ts
+
+  # ---------------------------------------------------------------------------
   # Lambda to set album's thumbnail
   # ---------------------------------------------------------------------------
   SetAlbumThumbnailFunction:
@@ -216,7 +249,40 @@ Resources:
           - setAlbumThumbnailLambda.ts
 
   # ---------------------------------------------------------------------------
-  # Lambda that deletes an album, its photos and child albums
+  # Lambda to recut a thumbnail
+  # ---------------------------------------------------------------------------
+  RecutThumbnailFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/src/api/lambdas/
+      Handler: recutThumbnailLambda.handler
+      Description: API Gateway function that updates an album's thumbnail in DynamoDB
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /thumb/{imagePath+}
+            Method: PATCH
+            RestApiId: !Ref ImageApi
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref GalleryItemDDBTable
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - recutThumbnailLambda.ts
+
+  # ---------------------------------------------------------------------------
+  # Lambda to delete album
   # ---------------------------------------------------------------------------
   DeleteAlbumFunction:
     Type: AWS::Serverless::Function

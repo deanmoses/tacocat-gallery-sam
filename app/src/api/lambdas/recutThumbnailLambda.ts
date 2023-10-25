@@ -25,11 +25,15 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
             throw 'No GALLERY_ITEM_DDB_TABLE defined';
         }
 
+        const imagePath = event?.pathParameters?.imagePath;
+        if (!imagePath) {
+            throw new BadRequestException('No image path specified');
+        }
+
         // Set up execution context
         // This is everything the lambda needs in order to execute
         // This is done to make the lambda unit testable
         const ctx = {};
-        ctx.tableName = tableName;
         ctx.doSaveThumbCrop = async (dynamoParams) => {
             return dynamoDocClient.update(dynamoParams).promise();
         };
@@ -57,7 +61,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
             );
         };
 
-        return await recutThumbnail(event, ctx);
+        return await recutThumbnail(tableName, imagePath);
     } catch (e) {
         return handleHttpExceptions(e);
     }
