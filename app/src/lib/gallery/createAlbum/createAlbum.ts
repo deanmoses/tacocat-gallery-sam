@@ -12,6 +12,12 @@ import { isValidAlbumPath } from '../../gallery_path_utils/pathValidator';
  * @throws exception if path isn't valid
  */
 export async function createAlbum(tableName: string, albumPath: string) {
+    if (!tableName) throw 'No gallery item table specified';
+
+    if (!albumPath) {
+        throw new BadRequestException('No album path specified');
+    }
+
     if (!isValidAlbumPath(albumPath)) {
         throw `Invalid album path: [${albumPath}]`;
     }

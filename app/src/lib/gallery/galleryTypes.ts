@@ -23,3 +23,9 @@ export type AlbumThumbnail = {
     itemType?: string;
     updatedOn?: Date;
 };
+
+export type AlbumUpdateRequest = {
+    title?: string;
+    description?: string;
+    published?: boolean;
+};

@@ -1,14 +1,15 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
-import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
+import { BadRequestException } from '../../lib/api_gateway_utils/BadRequestException';
 import { handleHttpExceptions, respondSuccessMessage } from '../../lib/api_gateway_utils/ApiGatewayResponseHelpers';
+import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
 
 /**
- * A Lambda function that creates the album in DynamoDB
+ * A Lambda function that sets an album's thumbnail to the specified image
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
-        if (event?.httpMethod !== 'PUT') {
-            throw new BadRequestException('This can only be called from a HTTP PUT');
+        if (event?.httpMethod !== 'PATCH') {
+            throw new BadRequestException('This can only be called from a HTTP PATCH');
         }
 
         const tableName = process.env.GALLERY_ITEM_DDB_TABLE;
@@ -21,10 +22,14 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
             throw new BadRequestException('No album path specified');
         }
 
-        const results = await createAlbum(tableName, albumPath);
-        if (results?.httpStatusCode !== 200) throw 'Error saving album';
+        let imagePath;
+        if (!!event?.body) {
+            const body = JSON.parse(event?.body);
+            imagePath = body.imagePath;
+        }
 
-        return respondSuccessMessage(`Album [${albumPath}] saved`);
+        await setAlbumThumbnail(tableName, albumPath, imagePath);
+        return respondSuccessMessage(`Album [${albumPath}] thumbnail set to [${imagePath}]`);
     } catch (e) {
         return handleHttpExceptions(e);
     }

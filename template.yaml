@@ -55,7 +55,7 @@ Globals:
 # -----------------------------------------------------------------------------
 Resources:
   # ---------------------------------------------------------------------------
-  # Lambda function that gets latest album
+  # Lambda that gets latest album
   # ---------------------------------------------------------------------------
   GetLatestAlbumFunction:
     Type: AWS::Serverless::Function
@@ -86,7 +86,7 @@ Resources:
           - getLatestAlbumLambda.ts
 
   # ---------------------------------------------------------------------------
-  # Lambda function that retrieves an album and its children from DynamoDB
+  # Lambda that retrieves album
   # ---------------------------------------------------------------------------
   GetAlbumFunction:
     Type: AWS::Serverless::Function
@@ -117,14 +117,14 @@ Resources:
           - getAlbumLambda.ts
 
   # ---------------------------------------------------------------------------
-  # Lambda function that creates an album and its children from DynamoDB
+  # Lambda that creates new album
   # ---------------------------------------------------------------------------
   CreateAlbumFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: app/src/api/lambdas/
       Handler: createAlbumLambda.handler
-      Description: API Gateway function that creates an album in DynamoDB
+      Description: API Gateway function that creates a new album in DynamoDB
       Events:
         ApiEvent:
           Type: Api
@@ -148,6 +148,105 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - createAlbumLambda.ts
+
+  # ---------------------------------------------------------------------------
+  # Lambda that updates existing album
+  # ---------------------------------------------------------------------------
+  UpdateAlbumFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/src/api/lambdas/
+      Handler: updateAlbumLambda.handler
+      Description: API Gateway function that updates an existing album in DynamoDB
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /album/{albumPath+}
+            Method: PATCH
+            RestApiId: !Ref ImageApi
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref GalleryItemDDBTable
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - updateAlbumLambda.ts
+
+  # ---------------------------------------------------------------------------
+  # Lambda to set album's thumbnail
+  # ---------------------------------------------------------------------------
+  SetAlbumThumbnailFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/src/api/lambdas/
+      Handler: setAlbumThumbnailLambda.handler
+      Description: API Gateway function that updates an album's thumbnail in DynamoDB
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /album-thumb/{albumPath+}
+            Method: PATCH
+            RestApiId: !Ref ImageApi
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref GalleryItemDDBTable
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - setAlbumThumbnailLambda.ts
+
+  # ---------------------------------------------------------------------------
+  # Lambda that deletes an album, its photos and child albums
+  # ---------------------------------------------------------------------------
+  DeleteAlbumFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/src/api/lambdas/
+      Handler: deleteAlbumLambda.handler
+      Description: API Gateway function that deletes an album from DynamoDB
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /album/{albumPath+}
+            Method: DELETE
+            RestApiId: !Ref ImageApi
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref GalleryItemDDBTable
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - deleteAlbumLambda.ts
 
   # ---------------------------------------------------------------------------
   # API Gateway Image API

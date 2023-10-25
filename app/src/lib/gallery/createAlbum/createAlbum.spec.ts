@@ -25,6 +25,18 @@ const expectedSuccessResponse = {
     totalRetryDelay: 0,
 };
 
+//
+// TEST SETUP AND TEARDOWN
+//
+
+afterEach(() => {
+    mockDocClient.reset();
+});
+
+//
+// TESTS
+//
+
 test('Create Album - Happy Path', async () => {
     expect.assertions(2);
 
@@ -49,7 +61,7 @@ describe('Create Album - Invalid Path', () => {
     ];
     badAlbumPaths.forEach((albumPath) => {
         test(`invalid path: [${albumPath}]`, async () => {
-            await expect(createAlbum(tableName, albumPath)).rejects.toMatch('path');
+            await expect(createAlbum(tableName, albumPath)).rejects.toMatch(/path/);
         });
     });
 });

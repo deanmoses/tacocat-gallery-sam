@@ -6,11 +6,13 @@ import { AlbumThumbnailResponse } from '../galleryTypes';
  * enough information to display a thumbnail: does not retrieve any child
  * photos or child albums.
  *
- * @param {*} tableName Name of the table in DynamoDB containing gallery items
+ * @param tableName Name of the table in DynamoDB containing gallery items
  */
 export async function getLatestAlbum(tableName: string): Promise<AlbumThumbnailResponse | undefined> {
+    if (!tableName) throw 'No gallery table name defined';
+
     // get current year's album
-    const currentYearAlbumPath = '/' + new Date().getUTCFullYear() + '/';
+    const currentYearAlbumPath = `/${new Date().getUTCFullYear()}/`;
     const album = await getLatestItemInAlbum(tableName, currentYearAlbumPath);
     if (!album) return;
     else {

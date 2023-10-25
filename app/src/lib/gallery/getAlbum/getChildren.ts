@@ -5,8 +5,8 @@ import { QueryCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
  * Get an album's immediate children: both images and subalbums.
  * Does not get grandchildren.
  *
- * @param {*} tableName Name of the table in DynamoDB containing gallery items
- * @param {*} path Path of the album whose children are to be retrieved, like /2001/12-31/
+ * @param tableName Name of the table in DynamoDB containing gallery items
+ * @param path Path of the album whose children are to be retrieved, like /2001/12-31/
  */
 export async function getChildren(tableName: string, path: string) {
     const ddbClient = new DynamoDBClient({});

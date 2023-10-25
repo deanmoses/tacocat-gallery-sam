@@ -1,30 +1,38 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChildren';
+import {
+    handleHttpExceptions,
+    respond404NotFound,
+    respondHttp,
+} from '../../lib/api_gateway_utils/ApiGatewayResponseHelpers';
+import { BadRequestException } from '../../lib/api_gateway_utils/BadRequestException';
 
 /**
  * A Lambda function that gets an album and its child images and child albums from DynamoDB
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    const tableName = process.env.GALLERY_ITEM_DDB_TABLE;
-    if (!tableName) throw 'No GALLERY_ITEM_DDB_TABLE defined';
+    try {
+        if (event?.httpMethod !== 'GET') {
+            throw new BadRequestException('This can only be called from a HTTP GET');
+        }
 
-    if (!event?.path) throw 'No event.path.  This lambda probably is not being called from the API Gateway';
+        const tableName = process.env.GALLERY_ITEM_DDB_TABLE;
+        if (!tableName) {
+            throw 'No GALLERY_ITEM_DDB_TABLE defined';
+        }
 
-    // event.path is passed in from the API Gateway and represents the full
-    // path of the HTTP request, which starts with "/album/..."
-    const albumPath = event.path.replace('/album', '');
-    const album = await getAlbumAndChildren(tableName, albumPath);
-    if (!album) {
-        return {
-            isBase64Encoded: false,
-            statusCode: 404,
-            body: JSON.stringify({ errorMessage: 'Album Not Found' }),
-        };
-    } else {
-        return {
-            isBase64Encoded: false,
-            statusCode: 200,
-            body: JSON.stringify(album),
-        };
+        const albumPath = event?.pathParameters?.albumPath;
+        if (!albumPath) {
+            throw new BadRequestException('No album path specified');
+        }
+
+        const album = await getAlbumAndChildren(tableName, albumPath);
+        if (!album) {
+            return respond404NotFound('Album Not Found');
+        } else {
+            return respondHttp(album);
+        }
+    } catch (e) {
+        return handleHttpExceptions(e);
     }
 };

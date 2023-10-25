@@ -1,14 +1,15 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
-import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
 import { handleHttpExceptions, respondSuccessMessage } from '../../lib/api_gateway_utils/ApiGatewayResponseHelpers';
+import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
+import { BadRequestException } from '../../lib/api_gateway_utils/BadRequestException';
 
 /**
- * A Lambda function that creates the album in DynamoDB
+ * A Lambda that updates an album's attributes (like title and description) in DynamoDB
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
-        if (event?.httpMethod !== 'PUT') {
-            throw new BadRequestException('This can only be called from a HTTP PUT');
+        if (event?.httpMethod !== 'PATCH') {
+            throw new BadRequestException('This can only be called from a HTTP PATCH');
         }
 
         const tableName = process.env.GALLERY_ITEM_DDB_TABLE;
@@ -21,10 +22,13 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
             throw new BadRequestException('No album path specified');
         }
 
-        const results = await createAlbum(tableName, albumPath);
-        if (results?.httpStatusCode !== 200) throw 'Error saving album';
+        let attributesToUpdate;
+        if (!!event?.body) {
+            attributesToUpdate = JSON.parse(event.body);
+        }
 
-        return respondSuccessMessage(`Album [${albumPath}] saved`);
+        await updateAlbum(tableName, albumPath, attributesToUpdate);
+        return respondSuccessMessage(`Album [${albumPath}] updated`);
     } catch (e) {
         return handleHttpExceptions(e);
     }

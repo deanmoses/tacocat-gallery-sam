@@ -1,14 +1,15 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
-import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
 import { handleHttpExceptions, respondSuccessMessage } from '../../lib/api_gateway_utils/ApiGatewayResponseHelpers';
+import { BadRequestException } from '../../lib/api_gateway_utils/BadRequestException';
+import { deleteAlbum } from '../../lib/gallery/deleteAlbum/deleteAlbum';
 
 /**
- * A Lambda function that creates the album in DynamoDB
+ * A Lambda that deletes an album from DynamoDB
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
-        if (event?.httpMethod !== 'PUT') {
-            throw new BadRequestException('This can only be called from a HTTP PUT');
+        if (event?.httpMethod !== 'DELETE') {
+            throw new BadRequestException('This can only be called from a HTTP DELETE');
         }
 
         const tableName = process.env.GALLERY_ITEM_DDB_TABLE;
@@ -21,10 +22,8 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
             throw new BadRequestException('No album path specified');
         }
 
-        const results = await createAlbum(tableName, albumPath);
-        if (results?.httpStatusCode !== 200) throw 'Error saving album';
-
-        return respondSuccessMessage(`Album [${albumPath}] saved`);
+        await deleteAlbum(tableName, albumPath);
+        return respondSuccessMessage(`Album [${albumPath}] deleted`);
     } catch (e) {
         return handleHttpExceptions(e);
     }

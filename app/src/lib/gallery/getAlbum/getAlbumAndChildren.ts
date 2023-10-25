@@ -1,3 +1,5 @@
+import { BadRequestException } from '../../api_gateway_utils/BadRequestException';
+import { isValidAlbumPath } from '../../gallery_path_utils/pathValidator';
 import { AlbumResponse } from '../galleryTypes';
 import { getAlbum } from './getAlbum';
 import { getChildren } from './getChildren';
@@ -6,10 +8,20 @@ import { getPrevAndNextItem } from './getPrevAndNextItem';
 /**
  * Retrieve an album and its children (images and subalbums) from DynamoDB.
  *
- * @param {*} tableName name of the Album table in DynamoDB
- * @param {*} path path of the album to get, like /2001/12-31/
+ * @param tableName name of the Album table in DynamoDB
+ * @param path path of the album to get, like /2001/12-31/
  */
 export async function getAlbumAndChildren(tableName: string, path: string): Promise<AlbumResponse | null> {
+    if (!tableName) throw 'No gallery item table defined';
+
+    if (!path) {
+        throw new BadRequestException('Must specify album');
+    }
+
+    if (!isValidAlbumPath(path)) {
+        throw new BadRequestException(`Malformed album path: [${path}]`);
+    }
+
     // ensure albumId starts with a "/"
     if (path.lastIndexOf('/', 0) !== 0) path = '/' + path;
 

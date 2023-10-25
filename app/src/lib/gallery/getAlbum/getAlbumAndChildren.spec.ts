@@ -3,12 +3,23 @@ import { mockClient } from 'aws-sdk-client-mock';
 import { GetCommand, QueryCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
+
+//
+// TEST SETUP AND TEARDOWN
+//
+
+afterEach(() => {
+    mockDocClient.reset();
+});
+
+//
+// TESTS
+//
+
 const tableName = 'NotARealTableName';
 
 test('Get root album', async () => {
     expect.assertions(10);
-
-    const albumPath = '';
 
     // Mock out the AWS 'query' method.  Used to return both the child images and the child albums
     mockDocClient.on(QueryCommand).resolves({
@@ -17,7 +28,7 @@ test('Get root album', async () => {
         ScannedCount: 3,
     });
 
-    const result = await getAlbumAndChildren(tableName, albumPath);
+    const result = await getAlbumAndChildren(tableName, '/');
     expect(result).toBeDefined();
 
     const album = result?.album;
@@ -35,14 +46,12 @@ test('Get root album', async () => {
         expect(children[1]).toBeDefined();
         expect(children[1].itemName).toBe('cross_country6.jpg');
     }
-
-    mockDocClient.reset();
 });
 
 test('Get Images in Album', async () => {
     expect.assertions(6);
 
-    const albumId = '/not/a/real/album';
+    const albumPath = '/2001/12-31/';
 
     // Mock out the AWS 'get' method
     mockDocClient.on(GetCommand).resolves({
@@ -60,7 +69,7 @@ test('Get Images in Album', async () => {
         ScannedCount: 3,
     });
 
-    const albumResponse = await getAlbumAndChildren(tableName, albumId);
+    const albumResponse = await getAlbumAndChildren(tableName, albumPath);
     expect(albumResponse).toBeDefined();
 
     expect(albumResponse?.children).toBeDefined();
@@ -71,8 +80,6 @@ test('Get Images in Album', async () => {
         expect(albumResponse?.children[1]).toBeDefined();
         expect(albumResponse?.children[1].itemName).toBe('cross_country6.jpg');
     }
-
-    mockDocClient.reset();
 });
 
 const mockItems = [
