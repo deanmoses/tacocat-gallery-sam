@@ -5,6 +5,18 @@ import { getLatestAlbum } from './getLatestAlbum';
 const mockDocClient = mockClient(DynamoDBDocumentClient);
 const tableName = 'NotARealTableName';
 
+//
+// TEST SETUP AND TEARDOWN
+//
+
+afterEach(() => {
+    mockDocClient.reset();
+});
+
+//
+// TESTS
+//
+
 test('Get Album', async () => {
     expect.assertions(4);
 
@@ -29,8 +41,6 @@ test('Get Album', async () => {
     expect(album?.itemName).toBe(itemName);
     expect(album?.parentPath).toBe(parentPath);
     expect(album?.updatedOn).toBe(updatedOn);
-
-    mockDocClient.reset();
 });
 
 test('Get Nonexistent Album', async () => {
@@ -43,6 +53,4 @@ test('Get Nonexistent Album', async () => {
 
     const result = await getLatestAlbum(tableName);
     expect(result).toBeUndefined();
-
-    mockDocClient.reset();
 });

@@ -6,6 +6,18 @@ const mockDocClient = mockClient(DynamoDBDocumentClient);
 const tableName = 'NotARealTableName';
 const albumId = '/not/a/real/album';
 
+//
+// TEST SETUP AND TEARDOWN
+//
+
+afterEach(() => {
+    mockDocClient.reset();
+});
+
+//
+// TESTS
+//
+
 test('Get Children', async () => {
     expect.assertions(5);
 
@@ -24,6 +36,4 @@ test('Get Children', async () => {
         expect(result[0].albumID).toBe('/2001/12-31');
         expect(result[0].uploadTimeStamp).toBe(1541787209);
     }
-
-    mockDocClient.reset();
 });

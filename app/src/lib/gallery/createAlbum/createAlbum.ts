@@ -2,14 +2,13 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 import { isValidAlbumPath } from '../../gallery_path_utils/pathValidator';
+import { BadRequestException } from '../../api_gateway_utils/BadRequestException';
 
 /**
  * Create album in DynamoDB
  *
- * @param {*} tableName name of the Gallery Item table in DynamoDB
- * @param {*} albumPath path of the album, like '/2001/12-31/'
- *
- * @throws exception if path isn't valid
+ * @param tableName name of the Gallery Item table in DynamoDB
+ * @param albumPath path of the album, like '/2001/12-31/'
  */
 export async function createAlbum(tableName: string, albumPath: string) {
     if (!tableName) throw 'No gallery item table specified';

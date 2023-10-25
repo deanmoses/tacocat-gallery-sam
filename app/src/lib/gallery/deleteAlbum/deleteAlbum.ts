@@ -28,7 +28,7 @@ export async function deleteAlbum(tableName: string, albumPath: string) {
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);
 
-    // TODO: delete photos and child albums
+    // TODO: block delete if the album contains child photos or child albums
     const pathParts = getParentAndNameFromPath(albumPath);
     const ddbCommand = new DeleteCommand({
         TableName: tableName,
