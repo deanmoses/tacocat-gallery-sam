@@ -21,10 +21,10 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
             throw 'No GALLERY_ITEM_DDB_TABLE defined';
         }
 
-        const albumPath = event?.pathParameters?.albumPath;
-        if (!albumPath) {
-            throw new BadRequestException('No album path specified');
+        if (!event?.path) {
+            throw 'No event path';
         }
+        const albumPath = event.path.replace('/album', '');
 
         const album = await getAlbumAndChildren(tableName, albumPath);
         if (!album) {

@@ -101,6 +101,12 @@ Resources:
             Path: /album/{albumPath+}
             Method: GET
             RestApiId: !Ref ImageApi
+        ApiRootEvent:
+          Type: Api
+          Properties:
+            Path: /album # root album
+            Method: GET
+            RestApiId: !Ref ImageApi
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
