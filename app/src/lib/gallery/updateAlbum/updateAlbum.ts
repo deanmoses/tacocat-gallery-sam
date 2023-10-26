@@ -1,10 +1,10 @@
+import { BadRequestException } from '../../api_gateway_utils/BadRequestException';
 import { NotFoundException } from '../../api_gateway_utils/NotFoundException';
 import { isValidAlbumPath } from '../../gallery_path_utils/pathValidator';
+import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
+import { buildUpdatePartiQL } from '../../dynamo_utils/DynamoUpdateBuilder';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ExecuteStatementCommand } from '@aws-sdk/lib-dynamodb';
-import { BadRequestException } from '../../api_gateway_utils/BadRequestException';
-import { buildUpdatePartiQL } from '../../dynamo_utils/DynamoUpdateBuilder';
-import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 
 /**
  * Update an album's attributes (like title and description) in DynamoDB
@@ -12,20 +12,14 @@ import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndN
  * @param tableName Name of the table in DynamoDB containing gallery items
  * @param albumPath Path of the album to update, like /2001/12-31/
  * @param attributesToUpdate bag of attributes to update
- *
- * @returns success message
  */
 export async function updateAlbum(
     tableName: string,
     albumPath: string,
     attributesToUpdate: Record<string, string | boolean>,
 ) {
-    //
-    // Validate the input
-    //
-
     if (!albumPath) {
-        throw new BadRequestException('Must specify album');
+        throw new BadRequestException('No album path specified');
     }
 
     if (!isValidAlbumPath(albumPath)) {
@@ -67,6 +61,7 @@ export async function updateAlbum(
     //
     // Construct the DynamoDB update statement
     //
+
     attributesToUpdate['updatedOn'] = new Date().toISOString();
     const pathParts = getParentAndNameFromPath(albumPath);
     if (!pathParts.name) throw 'Expecting path to have a leaf, got none';

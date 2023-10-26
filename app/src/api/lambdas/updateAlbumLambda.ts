@@ -1,7 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
 import { handleHttpExceptions, respondSuccessMessage } from '../../lib/api_gateway_utils/ApiGatewayResponseHelpers';
-import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
 import { BadRequestException } from '../../lib/api_gateway_utils/BadRequestException';
+import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
 
 /**
  * A Lambda that updates an album's attributes (like title and description) in DynamoDB
@@ -25,10 +25,10 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         if (!event?.body) {
             throw new BadRequestException('No HTTP body specified');
         }
-        const attributesToUpdate = event.body as unknown as Record<string, string | boolean>;
+        const attributesToUpdate = JSON.parse(event.body);
 
         await updateAlbum(tableName, albumPath, attributesToUpdate);
-        return respondSuccessMessage(`Album [${albumPath}] updated`);
+        return respondSuccessMessage(`Updated album [${albumPath}]`);
     } catch (e) {
         return handleHttpExceptions(e);
     }
