@@ -319,8 +319,9 @@ Resources:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
       Policies:
-        - DynamoDBWritePolicy:
+        - DynamoDBCrudPolicy:
             TableName: !Ref GalleryItemDDBTable
+
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
