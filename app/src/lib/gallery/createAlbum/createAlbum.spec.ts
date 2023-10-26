@@ -46,8 +46,6 @@ test('Create Album - Happy Path', async () => {
     console.log('result: ', createResult);
     expect(createResult).toBeDefined();
     expect(createResult).toMatchObject(expectedSuccessResponse);
-
-    mockDocClient.reset();
 });
 
 describe('Create Album - Invalid Path', () => {

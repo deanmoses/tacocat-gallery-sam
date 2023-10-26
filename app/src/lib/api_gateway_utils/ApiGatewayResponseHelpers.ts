@@ -32,19 +32,11 @@ export function respondHttp(body: object, statusCode = 200): APIGatewayProxyResu
  * the API Gateway will understand.
  */
 export function handleHttpExceptions(e: unknown): APIGatewayProxyResult {
-    if (e instanceof Error) {
-        if (e instanceof BadRequestException) {
-            return respondHttp({ errorMessage: e.message }, 400);
-        } else if (e instanceof NotFoundException) {
-            return respond404NotFound(e.message);
-        } else {
-            return respondHttp({ errorMessage: e.message }, 500);
-        }
-    } else if (!!e) {
-        return respondHttp({}, 500);
-    } else if (typeof e === 'string') {
-        return respondHttp({ errorMessage: e }, 500);
+    if (e instanceof BadRequestException) {
+        return respondHttp({ errorMessage: e.message }, 400);
+    } else if (e instanceof NotFoundException) {
+        return respond404NotFound(e.message);
     } else {
-        return respondHttp({}, 500);
+        throw e;
     }
 }

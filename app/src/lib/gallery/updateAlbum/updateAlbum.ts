@@ -1,9 +1,10 @@
 import { NotFoundException } from '../../api_gateway_utils/NotFoundException';
 import { isValidAlbumPath } from '../../gallery_path_utils/pathValidator';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { DynamoUpdateBuilder } from '../../dynamo_utils/DynamoUpdateBuilder';
+import { DynamoDBDocumentClient, ExecuteStatementCommand } from '@aws-sdk/lib-dynamodb';
 import { BadRequestException } from '../../api_gateway_utils/BadRequestException';
+import { buildUpdatePartiQL } from '../../dynamo_utils/DynamoUpdateBuilder';
+import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 
 /**
  * Update an album's attributes (like title and description) in DynamoDB
@@ -66,24 +67,12 @@ export async function updateAlbum(
     //
     // Construct the DynamoDB update statement
     //
-
-    const bldr = new DynamoUpdateBuilder();
-    bldr.add('updatedOn', new Date().toISOString());
-    keysToUpdate.forEach((keyToUpdate) => {
-        bldr.add(keyToUpdate, attributesToUpdate[keyToUpdate]);
-    });
-
+    attributesToUpdate['updatedOn'] = new Date().toISOString();
     const pathParts = getParentAndNameFromPath(albumPath);
-
-    const ddbCommand = new UpdateCommand({
-        TableName: tableName,
-        Key: {
-            parentPath: pathParts.parent,
-            itemName: pathParts.name,
-        },
-        UpdateExpression: bldr.getUpdateExpression(),
-        ExpressionAttributeValues: bldr.getExpressionAttributeValues(),
-        ConditionExpression: 'attribute_exists (itemName)',
+    if (!pathParts.name) throw 'Expecting path to have a leaf, got none';
+    const partiQL = buildUpdatePartiQL(tableName, pathParts.parent, pathParts.name, attributesToUpdate);
+    const ddbCommand = new ExecuteStatementCommand({
+        Statement: partiQL,
     });
 
     //
@@ -93,7 +82,8 @@ export async function updateAlbum(
     try {
         const ddbClient = new DynamoDBClient({});
         const docClient = DynamoDBDocumentClient.from(ddbClient);
-        await docClient.send(ddbCommand);
+        const response = await docClient.send(ddbCommand);
+        console.info('partiQL update response:', response);
     } catch (e) {
         if (e?.toString().includes('conditional')) {
             throw new NotFoundException('Album not found: ' + albumPath);

@@ -171,8 +171,13 @@ Resources:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
       Policies:
-        - DynamoDBWritePolicy:
+        - DynamoDBCrudPolicy:
             TableName: !Ref GalleryItemDDBTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PartiQLUpdate
+              Resource: !GetAtt GalleryItemDDBTable.Arn
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -190,7 +195,7 @@ Resources:
     Properties:
       CodeUri: app/src/api/lambdas/
       Handler: updateImageLambda.handler
-      Description: API Gateway function that updates an existing album in DynamoDB
+      Description: API Gateway function that updates an existing image in DynamoDB
       Events:
         ApiEvent:
           Type: Api
@@ -206,6 +211,11 @@ Resources:
       Policies:
         - DynamoDBWritePolicy:
             TableName: !Ref GalleryItemDDBTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PartiQLUpdate
+              Resource: !GetAtt GalleryItemDDBTable.Arn
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -223,7 +233,7 @@ Resources:
     Properties:
       CodeUri: app/src/api/lambdas/
       Handler: setAlbumThumbnailLambda.handler
-      Description: API Gateway function that updates an album's thumbnail in DynamoDB
+      Description: API Gateway function that sets an album's thumbnail in DynamoDB
       Events:
         ApiEvent:
           Type: Api
@@ -256,7 +266,7 @@ Resources:
     Properties:
       CodeUri: app/src/api/lambdas/
       Handler: recutThumbnailLambda.handler
-      Description: API Gateway function that updates an album's thumbnail in DynamoDB
+      Description: API Gateway function recuts an album's thumbnail in DynamoDB
       Events:
         ApiEvent:
           Type: Api

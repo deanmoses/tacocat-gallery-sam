@@ -22,10 +22,10 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
             throw new BadRequestException('No album path specified');
         }
 
-        let attributesToUpdate;
-        if (!!event?.body) {
-            attributesToUpdate = JSON.parse(event.body);
+        if (!event?.body) {
+            throw new BadRequestException('No HTTP body specified');
         }
+        const attributesToUpdate = event.body as unknown as Record<string, string | boolean>;
 
         await updateAlbum(tableName, albumPath, attributesToUpdate);
         return respondSuccessMessage(`Album [${albumPath}] updated`);
