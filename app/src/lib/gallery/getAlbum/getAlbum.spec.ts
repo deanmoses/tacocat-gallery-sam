@@ -1,9 +1,10 @@
-import { getAlbum } from './getAlbum';
 import { mockClient } from 'aws-sdk-client-mock';
 import { GetCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { setTestEnv } from '../../lambda_utils/Env';
+import { getAlbum } from './getAlbum';
 
-const tableName = 'NotARealTableName';
 const mockDocClient = mockClient(DynamoDBDocumentClient);
+setTestEnv({ GALLERY_ITEM_DDB_TABLE: 'notRealTable' });
 
 //
 // TEST SETUP AND TEARDOWN
@@ -28,7 +29,7 @@ test('Get Album', async () => {
         Item: { albumID: albumPath, uploadTimeStamp: uploadTimeStamp },
     });
 
-    const result = await getAlbum(tableName, albumPath);
+    const result = await getAlbum(albumPath);
 
     expect(result).toBeDefined();
     expect(result?.albumID).toBe(albumPath);
@@ -41,7 +42,7 @@ test('Get Nonexistent Album', async () => {
     // Mock out the AWS method
     mockDocClient.on(GetCommand).resolves({});
 
-    const result = await getAlbum(tableName, '/1900/01-01/');
+    const result = await getAlbum('/1900/01-01/');
     expect(result).toBeUndefined();
 });
 
@@ -51,5 +52,5 @@ test('Get Invalid Album Path', async () => {
     // Mock out the AWS method
     mockDocClient.on(GetCommand).resolves({});
 
-    await expect(getAlbum(tableName, 'not/a/valid/path')).rejects.toThrow(/path/);
+    await expect(getAlbum('not/a/valid/path')).rejects.toThrow(/path/);
 });

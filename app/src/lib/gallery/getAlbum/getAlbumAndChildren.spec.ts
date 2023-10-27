@@ -1,8 +1,10 @@
-import { getAlbumAndChildren } from './getAlbumAndChildren';
 import { mockClient } from 'aws-sdk-client-mock';
 import { GetCommand, QueryCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { setTestEnv } from '../../lambda_utils/Env';
+import { getAlbumAndChildren } from './getAlbumAndChildren';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
+setTestEnv({ GALLERY_ITEM_DDB_TABLE: 'notRealTable' });
 
 //
 // TEST SETUP AND TEARDOWN
@@ -16,8 +18,6 @@ afterEach(() => {
 // TESTS
 //
 
-const tableName = 'NotARealTableName';
-
 test('Get root album', async () => {
     expect.assertions(10);
 
@@ -28,7 +28,7 @@ test('Get root album', async () => {
         ScannedCount: 3,
     });
 
-    const result = await getAlbumAndChildren(tableName, '/');
+    const result = await getAlbumAndChildren('/');
     expect(result).toBeDefined();
 
     const album = result?.album;
@@ -69,7 +69,7 @@ test('Get Images in Album', async () => {
         ScannedCount: 3,
     });
 
-    const albumResponse = await getAlbumAndChildren(tableName, albumPath);
+    const albumResponse = await getAlbumAndChildren(albumPath);
     expect(albumResponse).toBeDefined();
 
     expect(albumResponse?.children).toBeDefined();

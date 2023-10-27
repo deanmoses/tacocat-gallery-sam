@@ -7,15 +7,13 @@ import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndN
  * Just retrieves enough information to display a thumbnail: does not retrieve any
  * child photos or child albums.
  *
- * @param {*} docClient AWS DynamoDB DocumentClient
- * @param {*} tableName Name of the table in DynamoDB containing gallery items
- * @param {*} path Path of the item, like /2001/12-31/ or /2001/12-31/felix.jpg
+ * @param path Path of the item, like /2001/12-31/ or /2001/12-31/felix.jpg
  */
-export async function getPrevAndNextItem(tableName: string, path: string) {
+export async function getPrevAndNextItem(path: string) {
     const pathParts = getParentAndNameFromPath(path);
 
     // retrieve the item's peers
-    const peers = await getChildren(tableName, pathParts.parent);
+    const peers = await getChildren(pathParts.parent);
 
     // find prev & next
     let prev;

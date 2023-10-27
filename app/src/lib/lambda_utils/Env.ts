@@ -1,4 +1,9 @@
 /**
+ * Fake environment variables used in automated tests
+ */
+let testEnv: Record<string, string>;
+
+/**
  * Name of DyanmoDB Table in which Gallery Items are stored
  */
 export function getDynamoDbTableName(): string {
@@ -48,9 +53,16 @@ export function getJpegQuality(): string {
 }
 
 function getEnv(name: string): string {
-    const value = process.env[name];
+    const value = !!testEnv ? testEnv[name] : process.env[name];
     if (!value) {
         throw `Environment misconfiguration: no [${name}] defined`;
     }
     return value;
+}
+
+/**
+ * Set the environment variables used in tests
+ */
+export function setTestEnv(env: Record<string, string>) {
+    testEnv = env;
 }
