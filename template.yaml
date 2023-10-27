@@ -138,8 +138,8 @@ Resources:
             Path: /album/{albumPath+}
             Method: PUT
             RestApiId: !Ref ImageApi
-            Auth:
-              Authorizer: CognitoAuthorizer
+      #           Auth:
+      #             Authorizer: CognitoAuthorizer
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -171,8 +171,8 @@ Resources:
             Path: /album/{albumPath+}
             Method: PATCH
             RestApiId: !Ref ImageApi
-            Auth:
-              Authorizer: CognitoAuthorizer
+      #           Auth:
+      #             Authorizer: CognitoAuthorizer
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -209,8 +209,8 @@ Resources:
             Path: /image/{imagePath+}
             Method: PATCH
             RestApiId: !Ref ImageApi
-            Auth:
-              Authorizer: CognitoAuthorizer
+      #            Auth:
+      #              Authorizer: CognitoAuthorizer
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -247,8 +247,8 @@ Resources:
             Path: /album-thumb/{albumPath+}
             Method: PATCH
             RestApiId: !Ref ImageApi
-            Auth:
-              Authorizer: CognitoAuthorizer
+      #            Auth:
+      #              Authorizer: CognitoAuthorizer
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -280,8 +280,8 @@ Resources:
             Path: /thumb/{imagePath+}
             Method: PATCH
             RestApiId: !Ref ImageApi
-            Auth:
-              Authorizer: CognitoAuthorizer
+      #            Auth:
+      #              Authorizer: CognitoAuthorizer
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -313,8 +313,8 @@ Resources:
             Path: /album/{albumPath+}
             Method: DELETE
             RestApiId: !Ref ImageApi
-            Auth:
-              Authorizer: CognitoAuthorizer
+      #            Auth:
+      #              Authorizer: CognitoAuthorizer
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
