@@ -1,5 +1,5 @@
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, ExecuteStatementCommand } from '@aws-sdk/lib-dynamodb';
 import { setTestEnv } from '../../lambda_utils/Env';
 import { updateAlbum } from './updateAlbum';
 import { ExecuteStatementCommandInput } from '@aws-sdk/client-dynamodb';
@@ -22,13 +22,14 @@ afterEach(() => {
 
 describe('Update Album', () => {
     test('title', async () => {
-        expect.assertions(4);
+        expect.assertions(5);
         await expect(
             updateAlbum(albumPath, {
                 title: 'New Title 1',
             }),
         ).resolves.not.toThrow();
-        const partiQL = (mockDocClient.call(0).args[0].input as ExecuteStatementCommandInput).Statement;
+        const partiQL = mockDocClient.commandCalls(ExecuteStatementCommand)[0].args[0].input.Statement;
+        expect(partiQL).toContain('UPDATE');
         expect(partiQL).toContain('New Title 1');
         expect(partiQL).toContain('updatedOn');
         expect(partiQL).toContain('notRealTable');
