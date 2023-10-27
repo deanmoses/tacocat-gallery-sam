@@ -5,23 +5,15 @@ import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndN
 import { buildUpdatePartiQL } from '../../dynamo_utils/DynamoUpdateBuilder';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ExecuteStatementCommand } from '@aws-sdk/lib-dynamodb';
+import { getDynamoDbTableName } from '../../lambda_utils/Env';
 
 /**
  * Update an album's attributes (like title and description) in DynamoDB
  *
- * @param tableName Name of the table in DynamoDB containing gallery items
  * @param albumPath Path of the album to update, like /2001/12-31/
  * @param attributesToUpdate bag of attributes to update
  */
-export async function updateAlbum(
-    tableName: string,
-    albumPath: string,
-    attributesToUpdate: Record<string, string | boolean>,
-) {
-    if (!albumPath) {
-        throw new BadRequestException('No album path specified');
-    }
-
+export async function updateAlbum(albumPath: string, attributesToUpdate: Record<string, string | boolean>) {
     if (!isValidAlbumPath(albumPath)) {
         throw new BadRequestException(`Malformed album path: [${albumPath}]`);
     }
@@ -35,7 +27,6 @@ export async function updateAlbum(
     }
 
     const keysToUpdate = Object.keys(attributesToUpdate);
-
     if (keysToUpdate.length === 0) {
         throw new BadRequestException('No attributes to update');
     }
@@ -65,6 +56,7 @@ export async function updateAlbum(
     attributesToUpdate['updatedOn'] = new Date().toISOString();
     const pathParts = getParentAndNameFromPath(albumPath);
     if (!pathParts.name) throw 'Expecting path to have a leaf, got none';
+    const tableName = getDynamoDbTableName();
     const partiQL = buildUpdatePartiQL(tableName, pathParts.parent, pathParts.name, attributesToUpdate);
     const ddbCommand = new ExecuteStatementCommand({
         Statement: partiQL,
