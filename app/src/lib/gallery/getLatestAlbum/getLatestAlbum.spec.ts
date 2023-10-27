@@ -1,9 +1,10 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { QueryCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { setTestEnv } from '../../lambda_utils/Env';
 import { getLatestAlbum } from './getLatestAlbum';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
-const tableName = 'NotARealTableName';
+setTestEnv({ GALLERY_ITEM_DDB_TABLE: 'notRealTable' });
 
 //
 // TEST SETUP AND TEARDOWN
@@ -35,7 +36,7 @@ test('Get Album', async () => {
         ],
     });
 
-    const result = await getLatestAlbum(tableName);
+    const result = await getLatestAlbum();
     const album = result?.album;
     expect(album).toBeDefined();
     expect(album?.itemName).toBe(itemName);
@@ -51,6 +52,6 @@ test('Get Nonexistent Album', async () => {
         Items: [],
     });
 
-    const result = await getLatestAlbum(tableName);
+    const result = await getLatestAlbum();
     expect(result).toBeUndefined();
 });

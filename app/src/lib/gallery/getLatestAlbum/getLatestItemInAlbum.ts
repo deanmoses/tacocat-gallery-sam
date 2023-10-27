@@ -1,5 +1,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { AlbumThumbnail } from '../galleryTypes';
 
 /**
@@ -8,13 +9,12 @@ import { AlbumThumbnail } from '../galleryTypes';
  * Just retrieves enough information to display a thumbnail: does not retrieve any
  * child photos or child albums.
  *
- * @param {*} tableName Name of the table in DynamoDB containing gallery items
- * @param {*} path Path of the parent album, like /2001/12-31/
+ * @param path Path of the parent album, like /2001/12-31/
  */
-export async function getLatestItemInAlbum(tableName: string, path: string): Promise<AlbumThumbnail | undefined> {
+export async function getLatestItemInAlbum(path: string): Promise<AlbumThumbnail | undefined> {
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);
-
+    const tableName = getDynamoDbTableName();
     // find the most recent album within the current year
     const ddbCommand = new QueryCommand({
         TableName: tableName,
