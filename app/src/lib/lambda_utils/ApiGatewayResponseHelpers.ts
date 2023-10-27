@@ -1,6 +1,7 @@
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { NotFoundException } from './NotFoundException';
 import { BadRequestException } from './BadRequestException';
+import { ServerException } from './ServerException';
 
 export function respondSuccessMessage(successMessage: string): APIGatewayProxyResult {
     return respondHttp({
@@ -36,7 +37,8 @@ export function handleHttpExceptions(e: unknown): APIGatewayProxyResult {
         return respondHttp({ errorMessage: e.message }, 400);
     } else if (e instanceof NotFoundException) {
         return respond404NotFound(e.message);
-    } else {
-        throw e;
+    } else if (e instanceof ServerException) {
+        return respondHttp({ errorMessage: e.message }, 500);
     }
+    throw e;
 }
