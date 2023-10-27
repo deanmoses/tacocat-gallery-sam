@@ -1,30 +1,21 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
-import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChildren';
 import {
     handleHttpExceptions,
     respond404NotFound,
     respondHttp,
-} from '../../lib/api_gateway_utils/ApiGatewayResponseHelpers';
-import { BadRequestException } from '../../lib/api_gateway_utils/BadRequestException';
+} from '../../lib/lambda_utils/ApiGatewayResponseHelpers';
+import { HttpMethod, ensureHttpMethod, getAlbumPath } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
+import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChildren';
+import { getDynamoDbTableName } from '../../lib/lambda_utils/Env';
 
 /**
  * A Lambda function that gets an album and its child images and child albums from DynamoDB
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
-        if (event?.httpMethod !== 'GET') {
-            throw new BadRequestException('This can only be called from a HTTP GET');
-        }
-
-        const tableName = process.env.GALLERY_ITEM_DDB_TABLE;
-        if (!tableName) {
-            throw 'No GALLERY_ITEM_DDB_TABLE defined';
-        }
-
-        if (!event?.path) {
-            throw 'No event path';
-        }
-        const albumPath = event.path.replace('/album', '');
+        ensureHttpMethod(event, HttpMethod.GET);
+        const tableName = getDynamoDbTableName();
+        const albumPath = getAlbumPath(event);
 
         const album = await getAlbumAndChildren(tableName, albumPath);
         if (!album) {

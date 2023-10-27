@@ -2,7 +2,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 import { isValidAlbumPath } from '../../gallery_path_utils/pathValidator';
-import { BadRequestException } from '../../api_gateway_utils/BadRequestException';
+import { BadRequestException } from '../../lambda_utils/BadRequestException';
 
 /**
  * Retrieve an album from DynamoDB.  Does not retrieve any child photos or child albums.

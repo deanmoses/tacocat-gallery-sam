@@ -1,32 +1,23 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
-import { handleHttpExceptions, respondSuccessMessage } from '../../lib/api_gateway_utils/ApiGatewayResponseHelpers';
-import { BadRequestException } from '../../lib/api_gateway_utils/BadRequestException';
+import { handleHttpExceptions, respondSuccessMessage } from '../../lib/lambda_utils/ApiGatewayResponseHelpers';
+import {
+    HttpMethod,
+    ensureHttpMethod,
+    getBodyAsJson,
+    getImagePath,
+} from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { updateImage } from '../../lib/gallery/updateImage/updateImage';
+import { getDynamoDbTableName } from '../../lib/lambda_utils/Env';
 
 /**
  * A Lambda that updates an image's attributes (like title and description) in DynamoDB
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
-        if (event?.httpMethod !== 'PATCH') {
-            throw new BadRequestException('This can only be called from a HTTP PATCH');
-        }
-
-        const tableName = process.env.GALLERY_ITEM_DDB_TABLE;
-        if (!tableName) {
-            throw 'No GALLERY_ITEM_DDB_TABLE defined';
-        }
-
-        const imagePath = event?.pathParameters?.imagePath;
-        if (!imagePath) {
-            throw new BadRequestException('No image path specified');
-        }
-
-        if (!event?.body) {
-            throw new BadRequestException('HTTP body cannot be empty');
-        }
-        const attributesToUpdate = JSON.parse(event.body);
-
+        ensureHttpMethod(event, HttpMethod.PATCH);
+        const tableName = getDynamoDbTableName();
+        const imagePath = getImagePath(event);
+        const attributesToUpdate = getBodyAsJson(event);
         await updateImage(tableName, imagePath, attributesToUpdate);
         return respondSuccessMessage(`Updated image [${imagePath}]`);
     } catch (e) {

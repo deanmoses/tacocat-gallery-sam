@@ -1,7 +1,8 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
+import { handleHttpExceptions, respondHttp } from '../../lib/lambda_utils/ApiGatewayResponseHelpers';
+import { HttpMethod, ensureHttpMethod } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { getLatestAlbum } from '../../lib/gallery/getLatestAlbum/getLatestAlbum';
-import { BadRequestException } from '../../lib/api_gateway_utils/BadRequestException';
-import { handleHttpExceptions, respondHttp } from '../../lib/api_gateway_utils/ApiGatewayResponseHelpers';
+import { getDynamoDbTableName } from '../../lib/lambda_utils/Env';
 
 /**
  * A Lambda function that retrieves the latest album in the gallery from DynamoDB.
@@ -11,14 +12,8 @@ import { handleHttpExceptions, respondHttp } from '../../lib/api_gateway_utils/A
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
-        if (event?.httpMethod !== 'GET') {
-            throw new BadRequestException('This must be called from a HTTP GET');
-        }
-
-        const tableName = process.env.GALLERY_ITEM_DDB_TABLE;
-        if (!tableName) {
-            throw 'No GALLERY_ITEM_DDB_TABLE defined';
-        }
+        ensureHttpMethod(event, HttpMethod.GET);
+        const tableName = getDynamoDbTableName();
 
         const album = await getLatestAlbum(tableName);
         if (!album) {

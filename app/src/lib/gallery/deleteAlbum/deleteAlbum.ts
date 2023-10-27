@@ -1,7 +1,7 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
-import { BadRequestException } from '../../api_gateway_utils/BadRequestException';
+import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { isValidAlbumPath } from '../../gallery_path_utils/pathValidator';
 
 /**

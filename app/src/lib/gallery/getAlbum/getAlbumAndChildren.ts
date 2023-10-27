@@ -1,4 +1,4 @@
-import { BadRequestException } from '../../api_gateway_utils/BadRequestException';
+import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { isValidAlbumPath } from '../../gallery_path_utils/pathValidator';
 import { AlbumResponse } from '../galleryTypes';
 import { getAlbum } from './getAlbum';

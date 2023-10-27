@@ -59,7 +59,7 @@ describe('Create Album - Invalid Path', () => {
     ];
     badAlbumPaths.forEach((albumPath) => {
         test(`invalid path: [${albumPath}]`, async () => {
-            await expect(createAlbum(tableName, albumPath)).rejects.toMatch(/path/);
+            await expect(createAlbum(tableName, albumPath)).rejects.toThrow(/path/);
         });
     });
 });

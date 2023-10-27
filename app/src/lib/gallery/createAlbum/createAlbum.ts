@@ -2,7 +2,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 import { isValidAlbumPath } from '../../gallery_path_utils/pathValidator';
-import { BadRequestException } from '../../api_gateway_utils/BadRequestException';
+import { BadRequestException } from '../../lambda_utils/BadRequestException';
 
 /**
  * Create album in DynamoDB
@@ -18,7 +18,7 @@ export async function createAlbum(tableName: string, albumPath: string) {
     }
 
     if (!isValidAlbumPath(albumPath)) {
-        throw `Invalid album path: [${albumPath}]`;
+        throw new BadRequestException(`Invalid album path: [${albumPath}]`);
     }
 
     const ddbClient = new DynamoDBClient({});

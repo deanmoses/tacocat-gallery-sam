@@ -1,31 +1,9 @@
 /**
  * Generate a thumbnail of an image stored in s3 and
  * store the thumbnail back in the same bucket under the "Thumbnail/" prefix.
- *
- * @param {Object} event an event object coming from AWS API Gateway
- * @param {Object} ctx the environmental context needed to do the work
  */
-export async function recutThumbnail(event, ctx) {
-    if (!ctx) throw 'Undefined ctx';
-
-    // event.path is passed in from the API Gateway and contains the full path
-    // of the HTTP request, such as  "/thumb/2001/12-31/image.jpg"
-    if (!event.path) throw new BadRequestException('HTTP path cannot be empty');
-
-    // event.body contains the body of the HTTP request
-    if (!event.body) throw new BadRequestException('HTTP body cannot be empty');
-
-    // Remove the first segment of the URL path to get the image path
-    const imagePath = event.path.replace('/thumb', '');
-
-    // Turn the body into a javascript object
-    let crop = JSON.parse(event.body);
-
-    if (!crop) {
-        throw new BadRequestException('Crop not specified');
-    }
-
-    // Validate that the body contains everything we need
+export async function recutThumbnail(tableName: string, imagePath: string, crop) {
+    // Validate that the crop contains everything we need
     checkInt('x', crop.x);
     checkInt('y', crop.y);
     checkInt('length', crop.length);
@@ -67,9 +45,8 @@ export async function recutThumbnail(event, ctx) {
 
 /**
  * Return false if the passed-in thing is a positive integer
- * @param {boolean}
  */
-function checkInt(name, value) {
+function checkInt(name: string, value) {
     if (!isInt(value)) {
         throw new BadRequestException('Invalid ' + name + ': (' + value + ')');
     }

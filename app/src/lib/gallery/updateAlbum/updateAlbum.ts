@@ -1,5 +1,5 @@
-import { BadRequestException } from '../../api_gateway_utils/BadRequestException';
-import { NotFoundException } from '../../api_gateway_utils/NotFoundException';
+import { BadRequestException } from '../../lambda_utils/BadRequestException';
+import { NotFoundException } from '../../lambda_utils/NotFoundException';
 import { isValidAlbumPath } from '../../gallery_path_utils/pathValidator';
 import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 import { buildUpdatePartiQL } from '../../dynamo_utils/DynamoUpdateBuilder';
