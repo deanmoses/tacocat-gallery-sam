@@ -3,20 +3,14 @@ import { DynamoDBDocumentClient, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { isValidAlbumPath } from '../../gallery_path_utils/pathValidator';
+import { getDynamoDbTableName } from '../../lambda_utils/Env';
 
 /**
  * Delete an album and its photos and child albums.
  *
- * @param tableName Name of the table in DynamoDB containing gallery items
  * @param albumPath Path of the album to retrieve, like /2001/12-31/
  */
-export async function deleteAlbum(tableName: string, albumPath: string) {
-    if (!tableName) throw 'No DynamoDB table defined';
-
-    if (!albumPath) {
-        throw new BadRequestException('No album specified');
-    }
-
+export async function deleteAlbum(albumPath: string) {
     if (!isValidAlbumPath(albumPath)) {
         throw new BadRequestException(`Malformed album path: [${albumPath}]`);
     }
@@ -29,6 +23,7 @@ export async function deleteAlbum(tableName: string, albumPath: string) {
     const docClient = DynamoDBDocumentClient.from(ddbClient);
 
     // TODO: block delete if the album contains child photos or child albums
+    const tableName = getDynamoDbTableName();
     const pathParts = getParentAndNameFromPath(albumPath);
     const ddbCommand = new DeleteCommand({
         TableName: tableName,
