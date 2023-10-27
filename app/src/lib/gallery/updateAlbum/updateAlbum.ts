@@ -69,8 +69,7 @@ export async function updateAlbum(albumPath: string, attributesToUpdate: Record<
     try {
         const ddbClient = new DynamoDBClient({});
         const docClient = DynamoDBDocumentClient.from(ddbClient);
-        const response = await docClient.send(ddbCommand);
-        console.info('partiQL update response:', response);
+        await docClient.send(ddbCommand);
     } catch (e) {
         if (e?.toString().includes('conditional')) {
             throw new NotFoundException('Album not found: ' + albumPath);

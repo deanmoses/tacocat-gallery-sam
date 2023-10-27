@@ -2,7 +2,7 @@ import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { setTestEnv } from '../../lambda_utils/Env';
 import { updateAlbum } from './updateAlbum';
-import { BadRequestException } from '../../lambda_utils/BadRequestException';
+import { ExecuteStatementCommandInput } from '@aws-sdk/client-dynamodb';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
 setTestEnv({ GALLERY_ITEM_DDB_TABLE: 'notRealTable' });
@@ -22,12 +22,16 @@ afterEach(() => {
 
 describe('Update Album', () => {
     test('title', async () => {
-        expect.assertions(1);
+        expect.assertions(4);
         await expect(
             updateAlbum(albumPath, {
                 title: 'New Title 1',
             }),
         ).resolves.not.toThrow();
+        const partiQL = (mockDocClient.call(0).args[0].input as ExecuteStatementCommandInput).Statement;
+        expect(partiQL).toContain('New Title 1');
+        expect(partiQL).toContain('updatedOn');
+        expect(partiQL).toContain('notRealTable');
     });
 
     test('blank title (unset title)', async () => {
