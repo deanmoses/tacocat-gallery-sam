@@ -43,7 +43,6 @@ test('Create Album - Happy Path', async () => {
     // Mock the AWS method
     mockDocClient.on(PutCommand).resolves(mockSuccessResponse);
     const createResult = await createAlbum(tableName, '/2001/');
-    console.log('result: ', createResult);
     expect(createResult).toBeDefined();
     expect(createResult).toMatchObject(expectedSuccessResponse);
 });
