@@ -7,7 +7,6 @@ import {
     getImagePath,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { updateImage } from '../../lib/gallery/updateImage/updateImage';
-import { getDynamoDbTableName } from '../../lib/lambda_utils/Env';
 
 /**
  * A Lambda that updates an image's attributes (like title and description) in DynamoDB
@@ -15,10 +14,9 @@ import { getDynamoDbTableName } from '../../lib/lambda_utils/Env';
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
         ensureHttpMethod(event, HttpMethod.PATCH);
-        const tableName = getDynamoDbTableName();
         const imagePath = getImagePath(event);
         const attributesToUpdate = getBodyAsJson(event);
-        await updateImage(tableName, imagePath, attributesToUpdate);
+        await updateImage(imagePath, attributesToUpdate);
         return respondSuccessMessage(`Updated image [${imagePath}]`);
     } catch (e) {
         return handleHttpExceptions(e);

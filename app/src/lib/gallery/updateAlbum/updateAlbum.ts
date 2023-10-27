@@ -3,7 +3,7 @@ import { NotFoundException } from '../../lambda_utils/NotFoundException';
 import { isValidAlbumPath } from '../../gallery_path_utils/pathValidator';
 import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 import { buildUpdatePartiQL } from '../../dynamo_utils/DynamoUpdateBuilder';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { ConditionalCheckFailedException, DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ExecuteStatementCommand } from '@aws-sdk/lib-dynamodb';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 
@@ -31,7 +31,10 @@ export async function updateAlbum(albumPath: string, attributesToUpdate: Record<
         throw new BadRequestException('No attributes to update');
     }
 
+    //
     // Ensure only these attributes are in the input
+    //
+
     const validKeys = new Set(['title', 'description', 'published']);
     keysToUpdate.forEach((keyToUpdate) => {
         // Ensure we aren't trying to update an unknown attribute
@@ -65,16 +68,14 @@ export async function updateAlbum(albumPath: string, attributesToUpdate: Record<
     //
     // Send update to DynamoDB
     //
-
+    const ddbClient = new DynamoDBClient({});
+    const docClient = DynamoDBDocumentClient.from(ddbClient);
     try {
-        const ddbClient = new DynamoDBClient({});
-        const docClient = DynamoDBDocumentClient.from(ddbClient);
         await docClient.send(ddbCommand);
     } catch (e) {
-        if (e?.toString().includes('conditional')) {
-            throw new NotFoundException('Album not found: ' + albumPath);
-        } else {
-            throw e;
+        if (e instanceof ConditionalCheckFailedException) {
+            throw new NotFoundException(`Album not found: [${albumPath}]`);
         }
+        throw e;
     }
 }

@@ -5,23 +5,15 @@ import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndN
 import { buildUpdatePartiQL } from '../../dynamo_utils/DynamoUpdateBuilder';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ExecuteStatementCommand } from '@aws-sdk/lib-dynamodb';
+import { getDynamoDbTableName } from '../../lambda_utils/Env';
 
 /**
  * Update an image's attributes (like title and description) in DynamoDB
  *
- * @param tableName Name of the table in DynamoDB containing gallery items
  * @param imagePath Path of the image to update, like /2001/12-31/image.jpg
  * @param attributesToUpdate bag of attributes to update
  */
-export async function updateImage(
-    tableName: string,
-    imagePath: string,
-    attributesToUpdate: Record<string, string | boolean>,
-) {
-    if (!imagePath) {
-        throw new BadRequestException('No image path specified');
-    }
-
+export async function updateImage(imagePath: string, attributesToUpdate: Record<string, string | boolean>) {
     if (!isValidImagePath(imagePath)) {
         throw new BadRequestException(`Malformed image path: [${imagePath}]`);
     }
@@ -52,7 +44,7 @@ export async function updateImage(
     attributesToUpdate['updatedOn'] = new Date().toISOString();
     const pathParts = getParentAndNameFromPath(imagePath);
     if (!pathParts.name) throw 'Expecting path to have a leaf, got none';
-    const partiQL = buildUpdatePartiQL(tableName, pathParts.parent, pathParts.name, attributesToUpdate);
+    const partiQL = buildUpdatePartiQL(getDynamoDbTableName(), pathParts.parent, pathParts.name, attributesToUpdate);
     const ddbCommand = new ExecuteStatementCommand({
         Statement: partiQL,
     });

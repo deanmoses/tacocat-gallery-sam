@@ -1,12 +1,12 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
 import { handleHttpExceptions, respondSuccessMessage } from '../../lib/lambda_utils/ApiGatewayResponseHelpers';
-import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
 import {
     HttpMethod,
     ensureHttpMethod,
     getAlbumPath,
     getBodyAsJson,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
+import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
 
 /**
  * A Lambda function that sets an album's thumbnail to the specified image

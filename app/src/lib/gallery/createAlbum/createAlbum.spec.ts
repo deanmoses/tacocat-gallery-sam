@@ -1,9 +1,10 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { setTestEnv } from '../../lambda_utils/Env';
 import { createAlbum } from './createAlbum';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
-const tableName = 'NotARealTableName';
+setTestEnv({ GALLERY_ITEM_DDB_TABLE: 'NotARealTableName' });
 
 const mockSuccessResponse = {
     $metadata: {
@@ -42,7 +43,7 @@ test('Create Album - Happy Path', async () => {
 
     // Mock the AWS method
     mockDocClient.on(PutCommand).resolves(mockSuccessResponse);
-    const createResult = await createAlbum(tableName, '/2001/');
+    const createResult = await createAlbum('/2001/');
     expect(createResult).toBeDefined();
     expect(createResult).toMatchObject(expectedSuccessResponse);
 });
@@ -58,7 +59,7 @@ describe('Create Album - Invalid Path', () => {
     ];
     badAlbumPaths.forEach((albumPath) => {
         test(`invalid path: [${albumPath}]`, async () => {
-            await expect(createAlbum(tableName, albumPath)).rejects.toThrow(/path/);
+            await expect(createAlbum(albumPath)).rejects.toThrow(/path/);
         });
     });
 });
