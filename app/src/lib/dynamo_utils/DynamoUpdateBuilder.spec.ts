@@ -25,4 +25,11 @@ describe('buildUpdateSql', () => {
             `UPDATE "someTableName"\nSET description='Desc 2'\nSET updatedOn='${attrs.updatedOn}'\nWHERE parentPath='/2020' AND itemName='12-31'`,
         );
     });
+    test('single quote', () => {
+        expect.assertions(1);
+        attrs = { description: "Don't" };
+        expect(buildUpdatePartiQL('someTableName', '/', '2020', attrs)).toBe(
+            `UPDATE "someTableName"\nSET description='Don\'\'t'\nWHERE parentPath='/' AND itemName='2020'`,
+        );
+    });
 });
