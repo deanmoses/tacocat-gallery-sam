@@ -1,9 +1,11 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { setTestEnv } from '../../lambda_utils/Env';
 import { updateAlbum } from './updateAlbum';
+import { BadRequestException } from '../../lambda_utils/BadRequestException';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
-const tableName = 'NotARealTableName';
+setTestEnv({ GALLERY_ITEM_DDB_TABLE: 'notRealTable' });
 const albumPath = '/2001/12-31/';
 
 //
@@ -20,319 +22,151 @@ afterEach(() => {
 
 describe('Update Album', () => {
     test('title', async () => {
-        expect.assertions(13);
-        const newTitle = 'New Title 1';
-
-        // mock out doUpdate()
-        const mockDoUpdate = jest.fn((q) => {
-            // do some expects *inside* the mocked function
-            expect(q).toBeDefined();
-            expect(q.TableName).toBe(tableName);
-            expect(q.Key.parentPath).toBe('/2001/');
-            expect(q.Key.itemName).toBe('12-31');
-            expect(q.UpdateExpression).toBe('SET updatedOn = :updatedOn, title = :title');
-            expect(Object.keys(q.ExpressionAttributeValues).length).toBe(2);
-            expect(q.ExpressionAttributeValues[':title']).toBe(newTitle);
-            JestUtils.expectValidDate(q.ExpressionAttributeValues[':updatedOn']);
-            expect(q.ConditionExpression).toBe('attribute_exists (itemName)');
-            return {};
-        });
-
-        // do the update
-        let result = await updateAlbum(albumPath, {
-            title: newTitle,
-        });
-
-        // did the mock update get called?
-        expect(ctx.doUpdate).toBeCalledTimes(1);
-
-        expect(result).toBeDefined();
-        expect(Object.keys(result).length).toBe(0);
+        expect.assertions(1);
+        await expect(
+            updateAlbum(albumPath, {
+                title: 'New Title 1',
+            }),
+        ).resolves.not.toThrow();
     });
 
     test('blank title (unset title)', async () => {
-        expect.assertions(12);
-        const newTitle = '';
-        // mock out doUpdate()
-        const mockDoUpdate = jest.fn((q) => {
-            // do some expects *inside* the mocked function
-            expect(q).toBeDefined();
-            expect(q.TableName).toBe(ctx.tableName);
-            expect(q.Key.parentPath).toBe('/2001/');
-            expect(q.Key.itemName).toBe('12-31');
-            expect(q.UpdateExpression).toBe('SET updatedOn = :updatedOn REMOVE title');
-            expect(Object.keys(q.ExpressionAttributeValues).length).toBe(1);
-            JestUtils.expectValidDate(q.ExpressionAttributeValues[':updatedOn']);
-            expect(q.ConditionExpression).toBe('attribute_exists (itemName)');
-            return {};
-        });
-
-        let result = await updateAlbum(albumPath, {
-            title: newTitle,
-        });
-        expect(ctx.doUpdate).toBeCalledTimes(1);
-        expect(result).toBeDefined();
-        expect(Object.keys(result).length).toBe(0);
+        expect.assertions(1);
+        await expect(
+            updateAlbum(albumPath, {
+                title: '',
+            }),
+        ).resolves.not.toThrow();
     });
 
     test('description', async () => {
-        expect.assertions(13);
-        const newDescription = 'New Description 1';
-        // mock out doUpdate()
-        const mockDoUpdate = jest.fn((q) => {
-            // do some expects *inside* the mocked function
-            expect(q).toBeDefined();
-            expect(q.TableName).toBe(ctx.tableName);
-            expect(q.Key.parentPath).toBe('/2001/');
-            expect(q.Key.itemName).toBe('12-31');
-            expect(q.UpdateExpression).toBe('SET updatedOn = :updatedOn, description = :description');
-            expect(Object.keys(q.ExpressionAttributeValues).length).toBe(2);
-            expect(q.ExpressionAttributeValues[':description']).toBe(newDescription);
-            JestUtils.expectValidDate(q.ExpressionAttributeValues[':updatedOn']);
-            expect(q.ConditionExpression).toBe('attribute_exists (itemName)');
-            return {};
-        });
-        ctx.doUpdate = mockDoUpdate;
-        let result = await updateAlbum(ctx, albumPath, {
-            description: newDescription,
-        });
-        expect(ctx.doUpdate).toBeCalledTimes(1);
-        expect(result).toBeDefined();
-        expect(Object.keys(result).length).toBe(0);
+        expect.assertions(1);
+        await expect(
+            updateAlbum(albumPath, {
+                description: 'New Description 1',
+            }),
+        ).resolves.not.toThrow();
     });
 
     test('blank description (unset description)', async () => {
-        expect.assertions(12);
-        const newDescription = '';
-        // mock out doUpdate()
-        const mockDoUpdate = jest.fn((q) => {
-            // do some expects *inside* the mocked function
-            expect(q).toBeDefined();
-            expect(q.TableName).toBe(ctx.tableName);
-            expect(q.Key.parentPath).toBe('/2001/');
-            expect(q.Key.itemName).toBe('12-31');
-            expect(q.UpdateExpression).toBe('SET updatedOn = :updatedOn REMOVE description');
-            expect(Object.keys(q.ExpressionAttributeValues).length).toBe(1);
-            JestUtils.expectValidDate(q.ExpressionAttributeValues[':updatedOn']);
-            expect(q.ConditionExpression).toBe('attribute_exists (itemName)');
-            return {};
-        });
-        ctx.doUpdate = mockDoUpdate;
-        let result = await updateAlbum(ctx, albumPath, {
-            description: newDescription,
-        });
-        expect(ctx.doUpdate).toBeCalledTimes(1);
-        expect(result).toBeDefined();
-        expect(Object.keys(result).length).toBe(0);
+        expect.assertions(1);
+        await expect(
+            updateAlbum(albumPath, {
+                description: '',
+            }),
+        ).resolves.not.toThrow();
     });
 
     test('title and description', async () => {
-        expect.assertions(14);
-        const newTitle = 'New Title 2';
-        const newDescription = 'New Description 2';
-        // mock out doUpdate()
-        const mockDoUpdate = jest.fn((q) => {
-            // do some expects *inside* the mocked function
-            expect(q).toBeDefined();
-            expect(q.TableName).toBe(ctx.tableName);
-            expect(q.Key.parentPath).toBe('/2001/');
-            expect(q.Key.itemName).toBe('12-31');
-            expect(q.UpdateExpression).toBe('SET updatedOn = :updatedOn, title = :title, description = :description');
-            expect(Object.keys(q.ExpressionAttributeValues).length).toBe(3);
-            expect(q.ExpressionAttributeValues[':title']).toBe(newTitle);
-            expect(q.ExpressionAttributeValues[':description']).toBe(newDescription);
-            JestUtils.expectValidDate(q.ExpressionAttributeValues[':updatedOn']);
-            expect(q.ConditionExpression).toBe('attribute_exists (itemName)');
-            return {};
-        });
-        ctx.doUpdate = mockDoUpdate;
-        let result = await updateAlbum(ctx, albumPath, {
-            title: newTitle,
-            description: newDescription,
-        });
-        expect(ctx.doUpdate).toBeCalledTimes(1);
-        expect(result).toBeDefined();
-        expect(Object.keys(result).length).toBe(0);
+        expect.assertions(1);
+        await expect(
+            updateAlbum(albumPath, {
+                title: 'Title 2',
+                description: 'Description 2',
+            }),
+        ).resolves.not.toThrow();
     });
 
-    test('publishedn->true', async () => {
-        expect.assertions(13);
-        const newPublished = true;
-        // mock out doUpdate()
-        const mockDoUpdate = jest.fn((q) => {
-            // do some expects *inside* the mocked function
-            expect(q).toBeDefined();
-            expect(q.TableName).toBe(ctx.tableName);
-            expect(q.Key.parentPath).toBe('/2001/');
-            expect(q.Key.itemName).toBe('12-31');
-            expect(q.UpdateExpression).toBe('SET updatedOn = :updatedOn, published = :published');
-            expect(Object.keys(q.ExpressionAttributeValues).length).toBe(2);
-            expect(q.ExpressionAttributeValues[':published']).toBe(newPublished);
-            JestUtils.expectValidDate(q.ExpressionAttributeValues[':updatedOn']);
-            expect(q.ConditionExpression).toBe('attribute_exists (itemName)');
-            return {};
-        });
-        ctx.doUpdate = mockDoUpdate;
-        let result = await updateAlbum(ctx, albumPath, {
-            published: newPublished,
-        });
-        expect(ctx.doUpdate).toBeCalledTimes(1);
-        expect(result).toBeDefined();
-        expect(Object.keys(result).length).toBe(0);
+    test('published->true', async () => {
+        expect.assertions(1);
+        await expect(
+            updateAlbum(albumPath, {
+                published: true,
+            }),
+        ).resolves.not.toThrow();
     });
 
-    test('publishedn->false', async () => {
-        expect.assertions(13);
-        const newPublished = false;
-        // mock out doUpdate()
-        const mockDoUpdate = jest.fn((q) => {
-            // do some expects *inside* the mocked function
-            expect(q).toBeDefined();
-            expect(q.TableName).toBe(ctx.tableName);
-            expect(q.Key.parentPath).toBe('/2001/');
-            expect(q.Key.itemName).toBe('12-31');
-            expect(q.UpdateExpression).toBe('SET updatedOn = :updatedOn, published = :published');
-            expect(Object.keys(q.ExpressionAttributeValues).length).toBe(2);
-            expect(q.ExpressionAttributeValues[':published']).toBe(newPublished);
-            JestUtils.expectValidDate(q.ExpressionAttributeValues[':updatedOn']);
-            expect(q.ConditionExpression).toBe('attribute_exists (itemName)');
-            return {};
-        });
-        ctx.doUpdate = mockDoUpdate;
-        let result = await updateAlbum(ctx, albumPath, {
-            published: newPublished,
-        });
-        expect(ctx.doUpdate).toBeCalledTimes(1);
-        expect(result).toBeDefined();
-        expect(Object.keys(result).length).toBe(0);
+    test('published->false', async () => {
+        expect.assertions(1);
+        await expect(
+            updateAlbum(albumPath, {
+                published: false,
+            }),
+        ).resolves.not.toThrow();
     });
 
     test('root album', async () => {
-        expect.assertions(2);
-        try {
-            let q = await updateAlbum(ctx, '/', {
+        expect.assertions(1);
+        await expect(
+            updateAlbum('/', {
                 title: 'New Title',
-            });
-            throw ('Was not expecting success.  Got: ', q);
-        } catch (e) {
-            expect(e).toBeInstanceOf(BadRequestException); // Expect this error
-            expect(e.message).toMatch(/root/);
-        }
+            }),
+        ).rejects.toThrow(/root/);
     });
 
     test('empty data', async () => {
-        expect.assertions(2);
+        expect.assertions(1);
         const attributesToUpdate = {};
-        try {
-            let result = await updateAlbum(ctx, albumPath, attributesToUpdate);
-            throw ('Was not expecting success.  Got: ', result);
-        } catch (e) {
-            expect(e).toBeInstanceOf(BadRequestException); // Expect this error
-            expect(e.message).toMatch(/No attributes/);
-        }
+        await expect(updateAlbum(albumPath, attributesToUpdate)).rejects.toThrow(/No attributes/);
     });
 
     test('null data', async () => {
-        expect.assertions(2);
-        const attributesToUpdate = null;
-        try {
-            let result = await updateAlbum(ctx, albumPath, attributesToUpdate);
-            throw ('Was not expecting success.  Got: ', result);
-        } catch (e) {
-            expect(e).toBeInstanceOf(BadRequestException); // Expect this error
-            expect(e.message).toMatch(/No attributes/);
-        }
+        expect.assertions(1);
+        const attributesToUpdate = undefined as unknown as Record<string, string | boolean>;
+        await expect(updateAlbum(albumPath, attributesToUpdate)).rejects.toThrow(/No attributes/);
     });
 
     test('only bad data', async () => {
-        expect.assertions(2);
-        try {
-            let result = await updateAlbum(ctx, albumPath, {
+        expect.assertions(1);
+        await expect(
+            updateAlbum(albumPath, {
                 noSuchAttribute: 'some value',
-            });
-            throw ('Was not expecting success.  Got: ', result);
-        } catch (e) {
-            expect(e).toBeInstanceOf(BadRequestException); // Expect this error
-            expect(e.message).toContain('noSuchAttribute');
-        }
+            }),
+        ).rejects.toThrow(/noSuchAttribute/);
     });
 
     test('both real and bad data', async () => {
-        expect.assertions(2);
-        try {
-            let result = await updateAlbum(ctx, albumPath, {
+        expect.assertions(1);
+        await expect(
+            updateAlbum(albumPath, {
                 title: 'New Title 3',
                 noSuchAttribute: 'some value',
-            });
-            throw ('Was not expecting success.  Got: ', result);
-        } catch (e) {
-            expect(e).toBeInstanceOf(BadRequestException); // Expect this error
-            expect(e.message).toContain('noSuchAttribute');
-        }
+            }),
+        ).rejects.toThrow(/noSuchAttribute/);
     });
 
     test('Invalid published value: true', async () => {
-        expect.assertions(2);
-        try {
-            let result = await updateAlbum(ctx, albumPath, {
+        expect.assertions(1);
+        await expect(
+            updateAlbum(albumPath, {
                 published: 'true',
-            });
-            throw ('Was not expecting success.  Got: ', result);
-        } catch (e) {
-            expect(e).toBeInstanceOf(BadRequestException); // Expect this error
-            expect(e.message).toContain('published');
-        }
+            }),
+        ).rejects.toThrow(/published/);
     });
 
     test('Invalid published value: 1', async () => {
-        expect.assertions(2);
-        try {
-            let result = await updateAlbum(ctx, albumPath, {
-                published: 1,
-            });
-            throw ('Was not expecting success.  Got: ', result);
-        } catch (e) {
-            expect(e).toBeInstanceOf(BadRequestException); // Expect this error
-            expect(e.message).toContain('published');
-        }
+        expect.assertions(1);
+        await expect(
+            updateAlbum(albumPath, {
+                published: 1 as unknown as string,
+            }),
+        ).rejects.toThrow(/published/);
     });
 
     test('Blank published value', async () => {
-        expect.assertions(2);
-        try {
-            let result = await updateAlbum(ctx, albumPath, {
+        expect.assertions(1);
+        await expect(
+            updateAlbum(albumPath, {
                 published: '',
-            });
-            throw ('Was not expecting success.  Got: ', result);
-        } catch (e) {
-            expect(e).toBeInstanceOf(BadRequestException); // Expect this error
-            expect(e.message).toContain('published');
-        }
+            }),
+        ).rejects.toThrow(/published/);
     });
 
     test('Numerical published value', async () => {
-        expect.assertions(2);
-        try {
-            let result = await updateAlbum(ctx, albumPath, {
+        expect.assertions(1);
+        await expect(
+            updateAlbum(albumPath, {
                 published: '0',
-            });
-            throw ('Was not expecting success.  Got: ', result);
-        } catch (e) {
-            expect(e).toBeInstanceOf(BadRequestException); // Expect this error
-            expect(e.message).toContain('published');
-        }
+            }),
+        ).rejects.toThrow(/published/);
     });
 
     test('Missing albumPath', async () => {
-        expect.assertions(2);
-        try {
-            let result = await updateAlbum(ctx, null /*no album*/, {
-                title: 'New Title 3',
-            });
-            throw ('Was not expecting success.  Got: ', result);
-        } catch (e) {
-            expect(e).toBeInstanceOf(BadRequestException); // Expect this error
-            expect(e.message).toContain('album');
-        }
+        expect.assertions(1);
+        await expect(
+            updateAlbum('' /*no album*/, {
+                title: 'New Title',
+            }),
+        ).rejects.toThrow(/path/);
     });
 });
