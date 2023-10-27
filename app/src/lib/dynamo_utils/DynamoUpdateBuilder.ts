@@ -31,7 +31,9 @@ function val(value: unknown): string | boolean {
         case 'boolean':
             return value;
         case 'string':
-            return `'${value}'`;
+            let s = value as string;
+            s = s.replaceAll("'", "''"); // single quotes need to be escaped with another single quotes (!)
+            return `'${s}'`;
         default:
             throw `Unknown data type in PartiQL update statement: [${typeof value}]`;
     }
