@@ -2,7 +2,6 @@ import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, ExecuteStatementCommand } from '@aws-sdk/lib-dynamodb';
 import { setTestEnv } from '../../lambda_utils/Env';
 import { updateAlbum } from './updateAlbum';
-import { ExecuteStatementCommandInput } from '@aws-sdk/client-dynamodb';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
 setTestEnv({ GALLERY_ITEM_DDB_TABLE: 'notRealTable' });
