@@ -7,7 +7,6 @@ import {
     getAlbumPath,
     getBodyAsJson,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
-import { getDynamoDbTableName } from '../../lib/lambda_utils/Env';
 
 /**
  * A Lambda function that sets an album's thumbnail to the specified image
@@ -15,11 +14,10 @@ import { getDynamoDbTableName } from '../../lib/lambda_utils/Env';
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
         ensureHttpMethod(event, HttpMethod.PATCH);
-        const tableName = getDynamoDbTableName();
         const albumPath = getAlbumPath(event);
         const body = getBodyAsJson(event);
         const imagePath = body.imagePath;
-        await setAlbumThumbnail(tableName, albumPath, imagePath);
+        await setAlbumThumbnail(albumPath, imagePath);
         return respondSuccessMessage(`Album [${albumPath}] thumbnail set to [${imagePath}]`);
     } catch (e) {
         return handleHttpExceptions(e);

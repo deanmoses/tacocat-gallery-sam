@@ -1,45 +1,27 @@
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
-import { isValidAlbumPath } from '../../gallery_path_utils/pathValidator';
+import { isValidAlbumPath, isValidImagePath } from '../../gallery_path_utils/pathValidator';
+import { getDynamoDbTableName } from '../../lambda_utils/Env';
+import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
+import { setImageAsAlbumThumb } from './setImageAsAlbumThumb';
 
 /**
- * Sets specified album's thumbnail to the specified image.
- *
- * @returns success message
+ * Set specified album's thumbnail to the specified image.
  */
-export async function setAlbumThumbnail(tableName: string, albumPath: string, imagePath: string) {
-    if (!tableName) throw 'No DynamoDB table defined';
-
-    if (!albumPath) {
-        throw new BadRequestException('No album specified');
-    }
-
+export async function setAlbumThumbnail(albumPath: string, imagePath: string) {
     if (!isValidAlbumPath(albumPath)) {
-        throw new BadRequestException(`Malformed album path: [${albumPath}]`);
+        throw new BadRequestException(`Invalid album path: [${albumPath}]`);
     }
 
     if (albumPath === '/') {
         throw new BadRequestException('Cannot update root album');
     }
 
-    if (!imagePath) {
-        throw new BadRequestException('Missing imagePath');
+    if (!isValidImagePath(imagePath)) {
+        throw new BadRequestException(`Invalid image path: [${imagePath}]`);
     }
 
-    // TODO: extract this as a lib method
-    assertWellFormedImagePath(imagePath);
-
-    // Ensure only these attributes are in the input
-    const validKeys = new Set(['imagePath']);
-    const keysToUpdate = Object.keys(body);
-    keysToUpdate.forEach((keyToUpdate) => {
-        // Ensure we aren't trying to update an unknown attribute
-        if (!validKeys.has(keyToUpdate)) {
-            throw new BadRequestException('Unknown attribute: ' + keyToUpdate);
-        }
-    });
-
     // Get image
-    const imageResult = await getImage(ctx, imagePath);
+    const imageResult = await getImage(imagePath);
     const image = imageResult.Item;
     const imageNotFound = image === undefined;
     if (imageNotFound) throw new BadRequestException('Image not found: ' + imagePath);
@@ -48,42 +30,23 @@ export async function setAlbumThumbnail(tableName: string, albumPath: string, im
 
     // TODO: this fails silently if the image or album doesn't exist
     // Instead, it should throw an exception
-    await setImageAsAlbumThumb(ctx, albumPath, imagePath, thumbnailUpdatedOn, true /* replaceExistingThumb */);
-}
-
-/**
- * Throw exception if it's not a well-formed album path
- */
-function assertWellFormedAlbumPath(albumPath) {
-    if (!albumPath.match(/^\/(\d\d\d\d\/(\d\d-\d\d\/)?)?$/)) {
-        throw new BadRequestException("Malformed album path: '" + albumPath + "'");
-    }
-}
-
-/**
- * Throw exception if it's not a well-formed image path
- */
-function assertWellFormedImagePath(imagePath) {
-    if (!imagePath.match(/^\/\d\d\d\d\/\d\d-\d\d\/.*\..*$/)) {
-        throw new BadRequestException("Malformed image path: '" + imagePath + "'");
-    }
+    await setImageAsAlbumThumb(albumPath, imagePath, thumbnailUpdatedOn, true /* replaceExistingThumb */);
 }
 
 /**
  * Return the specified image from DynamoDB
  *
- * @param {Object} ctx the environmental context needed to do the work
- * @param {*} imagePath Path of the image to retrieve, like /2001/12-31/image.jpg
+ * @param imagePath Path of the image to retrieve, like /2001/12-31/image.jpg
  */
-async function getImage(ctx, imagePath) {
+async function getImage(imagePath: string) {
     const pathParts = getParentAndNameFromPath(imagePath);
     const dynamoParams = {
-        TableName: ctx.tableName,
+        TableName: getDynamoDbTableName(),
         Key: {
             parentPath: pathParts.parent,
             itemName: pathParts.name,
         },
         ProjectionExpression: 'fileUpdatedOn,thumbnail',
     };
-    return await ctx.doGetImage(dynamoParams);
+    return await dynamoClient.send(dynamoParams);
 }

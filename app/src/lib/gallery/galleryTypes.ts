@@ -29,3 +29,12 @@ export type AlbumUpdateRequest = {
     description?: string;
     published?: boolean;
 };
+
+/**
+ * Thumbnail crop info
+ */
+export type Crop = {
+    x: number;
+    y: number;
+    length: number;
+};

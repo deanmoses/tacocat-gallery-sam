@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
-import { handleHttpExceptions } from '../../lib/lambda_utils/ApiGatewayResponseHelpers';
+import { handleHttpExceptions, respondSuccessMessage } from '../../lib/lambda_utils/ApiGatewayResponseHelpers';
 import {
     HttpMethod,
     ensureHttpMethod,
@@ -7,7 +7,6 @@ import {
     getImagePath,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { recutThumbnail } from '../../lib/gallery/recutThumbnail/recutThumbnail';
-import { getDynamoDbTableName } from '../../lib/lambda_utils/Env';
 
 /**
  * Generate a thumbnail of an image stored in s3 and
@@ -16,11 +15,11 @@ import { getDynamoDbTableName } from '../../lib/lambda_utils/Env';
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
-        ensureHttpMethod(event, HttpMethod.PUT);
-        const tableName = getDynamoDbTableName();
+        ensureHttpMethod(event, HttpMethod.PATCH);
         const imagePath = getImagePath(event);
         const crop = getBodyAsJson(event);
-        return await recutThumbnail(tableName, imagePath, crop);
+        await recutThumbnail(imagePath, crop);
+        return respondSuccessMessage(`Image [${imagePath}] thumbnail updated]`);
     } catch (e) {
         return handleHttpExceptions(e);
     }

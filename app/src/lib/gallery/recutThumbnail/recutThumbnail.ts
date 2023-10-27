@@ -1,12 +1,18 @@
+import { BadRequestException } from '../../lambda_utils/BadRequestException';
+import { getDynamoDbTableName } from '../../lambda_utils/Env';
+import { NotFoundException } from '../../lambda_utils/NotFoundException';
+import { Crop } from '../galleryTypes';
+import { generateThumbnail } from './generateThumbnail';
+
 /**
  * Generate a thumbnail of an image stored in s3 and
  * store the thumbnail back in the same bucket under the "Thumbnail/" prefix.
  */
-export async function recutThumbnail(tableName: string, imagePath: string, crop) {
+export async function recutThumbnail(imagePath: string, crop) {
     // Validate that the crop contains everything we need
-    checkInt('x', crop.x);
-    checkInt('y', crop.y);
-    checkInt('length', crop.length);
+    checkInt('x', crop?.x);
+    checkInt('y', crop?.y);
+    checkInt('length', crop?.length);
 
     // Ensure crop values are stored as numbers, not strings
     crop = {
@@ -16,14 +22,14 @@ export async function recutThumbnail(tableName: string, imagePath: string, crop)
     };
 
     // Cut the new thumbnail
-    await ctx.generateThumb(imagePath, crop);
+    await generateThumbnail(imagePath, crop);
 
     // Set timestamp of the crop
     const thumbUpdatedOn = new Date().toISOString();
     crop.fileUpdatedOn = thumbUpdatedOn;
 
     // Save the crop to DynamoDB
-    const updateResult = await saveThumbnailCropInfoToDynamo(ctx, imagePath, crop);
+    const updateResult = await saveThumbnailCropInfoToDynamo(imagePath, crop);
 
     // For every album for which the image is the thumb,
     // update the album’s thumbnail.fileUpdatedOn
@@ -39,14 +45,12 @@ export async function recutThumbnail(tableName: string, imagePath: string, crop)
             msg += ' ' + albumPath;
         }
     }
-
-    return respondHttp({ successMessage: msg });
 }
 
 /**
- * Return false if the passed-in thing is a positive integer
+ * Throw exception if the specified value isn't a positive integer
  */
-function checkInt(name: string, value) {
+function checkInt(name: string, value: unknown) {
     if (!isInt(value)) {
         throw new BadRequestException('Invalid ' + name + ': (' + value + ')');
     }
@@ -54,12 +58,11 @@ function checkInt(name: string, value) {
 
 /**
  * Return true if the passed-in thing is a positive integer
- * @param {boolean}
  */
-function isInt(x) {
+function isInt(x: unknown): boolean {
     if (x === undefined) return false;
     if (typeof x === 'string') {
-        return x.match(/^\d+$/);
+        return /^\d+$/.test(x);
     }
     if (typeof x === 'number' && Number.isInteger(x) && Math.sign(x) >= 0) return true;
 
@@ -69,9 +72,8 @@ function isInt(x) {
 /**
  * Save image thumbnail crop info to DynamoDB
  *
- * @param {Object} ctx execution context
- * @param {String} imagePath Path of the image to update, like /2001/12-31/image.jpg
- * @param {Object} crop thumbnail crop info in the format {x:INTEGER,y:INTEGER,length:INTEGER}
+ * @param imagePath Path of the image to update, like /2001/12-31/image.jpg
+ * @param crop thumbnail crop info
  *
  * @returns {Object} empty {} object if success
  * @throws {Object} the albums that this image is the thumbnail for, like:
@@ -80,7 +82,7 @@ function isInt(x) {
  * 	    albumCount: 1
  *   }
  */
-async function saveThumbnailCropInfoToDynamo(ctx, imagePath, crop) {
+async function saveThumbnailCropInfoToDynamo(imagePath: string, crop: Crop) {
     const bldr = new DynamoUpdateBuilder();
     bldr.add('updatedOn', new Date().toISOString());
     bldr.add('thumbnail', crop);
@@ -88,7 +90,7 @@ async function saveThumbnailCropInfoToDynamo(ctx, imagePath, crop) {
     const pathParts = getParentAndNameFromPath(imagePath);
 
     const dynamoParams = {
-        TableName: ctx.tableName,
+        TableName: getDynamoDbTableName(),
         Key: {
             parentPath: pathParts.parent,
             itemName: pathParts.name,
@@ -145,10 +147,9 @@ async function saveThumbnailCropInfoToDynamo(ctx, imagePath, crop) {
  * For every album for which the image is the thumb, update the album’s
  * thumbnail.fileUpdatedOn
  *
- * @param {Object} ctx the environmental context needed to do the work
  * @param {Array} thumbForAlbums array of albums like ["/2001/12-31/"]
  */
-async function updateAlbumThumbs(ctx, thumbForAlbums, imagePath, thumbUpdatedOn) {
+async function updateAlbumThumbs(thumbForAlbums, imagePath: string, thumbUpdatedOn) {
     if (!imagePath) throw 'Undefined imagePath';
     if (!thumbUpdatedOn) throw 'Undefined thumbUpdatedOn';
     const now = new Date().toISOString();
