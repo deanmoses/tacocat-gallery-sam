@@ -345,9 +345,38 @@ Resources:
             UserPoolArn: !Ref CognitoUserPoolArn
 
   # ---------------------------------------------------------------------------
-  # Step Functions state machine that processes images
+  # Lambda that starts the Step Functions state machine
+  # It's triggered by an image being uploaded to the S3 uploads bucket
   # ---------------------------------------------------------------------------
-  StateMachine:
+  ExecuteStepFunctionsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/src/state_machine/lambdas/startStateMachine/
+      Handler: startStateMachineLambda.handler
+      Description: Triggered by image upload to the S3 uploads bucket and start the image processing step function workflow
+      Environment:
+        Variables:
+          STATE_MACHINE_ARN: !Ref UploadedImageProcessor
+      Events:
+        FileUploadEvent:
+          Type: S3
+          Properties:
+            Bucket: !Ref UploadBucket
+            Events:
+              - "s3:ObjectCreated:*"
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - startStateMachineLambda.ts
+
+  # ---------------------------------------------------------------------------
+  # Step Functions state machine that processes uploaded images
+  # ---------------------------------------------------------------------------
+  UploadedImageProcessor:
     Type: AWS::Serverless::StateMachine
     Properties:
       # State machine files MUST live at the root of the project.
@@ -361,7 +390,7 @@ Resources:
       #
       # This will probably break when we do a build via a CI/CD process where the
       # build directory isn't within the root of the project.
-      DefinitionUri: state_machine.asl.yaml
+      DefinitionUri: uploaded_image_processor.asl.yaml
       # We want the Express workload type
       # Express is for event processing workloads and can run for up to 5 minutes
       # Standard is for long-running (up to one year)
@@ -372,17 +401,30 @@ Resources:
         #  - LambdaInvokePolicy:
         #      FunctionName: !Ref HelloWorldFunction
         - CloudWatchLogsFullAccess
+      Events:
+        FileUploadedEvent: # Event Bridge Rule to listen for S3 image upload event and kick off image processing Step Function
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.s3
+              detail-type:
+                - Object Created
+              detail:
+                bucket:
+                  name:
+                    - !Ref UploadBucket
       Logging:
         Level: ALL
         IncludeExecutionData: FALSE
         Destinations:
           - CloudWatchLogsLogGroup:
-              LogGroupArn: !GetAtt StateMachineLogGroup.Arn
+              LogGroupArn: !GetAtt UploadedImageProcessorLogGroup.Arn
 
-  StateMachineLogGroup:
+  UploadedImageProcessorLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: StateMachineLogGroup
+      LogGroupName: UploadedImageProcessorLogGroup
 
   # -----------------------------------------------------------------------------
   # DynamoDB table containing the album and image metadata
@@ -405,3 +447,25 @@ Resources:
         WriteCapacityUnits: 3
       #StreamSpecification: # enable streaming so that the SearchIndexerFunction lambda can send the stream to be indexed by search engine
       #StreamViewType: "NEW_IMAGE"
+
+  # -----------------------------------------------------------------------------
+  # S3 upload bucket
+  # -----------------------------------------------------------------------------
+  UploadBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      NotificationConfiguration:
+        EventBridgeConfiguration:
+          EventBridgeEnabled: True # Send events to EventBridge so that I can trigger a StepFunction - see FileUploadedEvent elsewhere in this template
+
+  # -----------------------------------------------------------------------------
+  # S3 originals bucket
+  # -----------------------------------------------------------------------------
+  OriginalsBucket:
+    Type: AWS::S3::Bucket
+
+  # -----------------------------------------------------------------------------
+  # S3 derived images bucket
+  # -----------------------------------------------------------------------------
+  DerivedImageBucket:
+    Type: AWS::S3::Bucket
