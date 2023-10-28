@@ -14,11 +14,9 @@ export const handler: Handler = async (event: S3Event, context: Context, callbac
         callback(`Unhandled event: [${record.eventName}]`);
     }
 
-    // console.info('bucket name:', record.s3.bucket.name);
-    // console.info('object key: ', record.s3.object.key);
-
+    console.info('processImageUpload - object key: ', record.s3.object.key);
     const imageMetadata = await extractImageMetadata(record.s3.bucket.name, record.s3.object.key);
-    const imagePath = record.s3.object.key;
+    const imagePath = '/' + record.s3.object.key;
     await createImage(imagePath, imageMetadata);
 
     console.info('DONE!');

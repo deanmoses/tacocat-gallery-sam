@@ -6,10 +6,10 @@ test('Test uploading to S3 bucket', async () => {
     const fileStream = fs.createReadStream(__dirname + '/test_data/test_image.jpg');
     const parallelUploads3 = new Upload({
         params: {
-            Bucket: 'tacocat-gallery-sam-dev-originals',
-            //Bucket: 'tacocat-gallery-sam-dev-uploads',
-            //Key: `/2001/12-31/image-${Date.now()}.jpg`,
-            Key: `/2001/12-31/image.jpg`,
+            //Bucket: 'tacocat-gallery-sam-dev-originals',
+            Bucket: 'tacocat-gallery-sam-dev-uploads',
+            //Key: `2001/12-31/image-${Date.now()}.jpg`,
+            Key: `2001/12-31/image.jpg`,
             Body: fileStream,
         },
         // tags: [
