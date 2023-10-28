@@ -29,19 +29,6 @@ Parameters:
     Default: arn:aws:cognito-idp:us-east-1:010410881828:userpool/us-east-1_DdPFtamLz
 
 # -----------------------------------------------------------------------------
-# Outputs for use after the stack is created, such as to:
-#  - Import into other stacks (to create cross-stack references)
-#  - View value on the AWS CloudFormation console
-# -----------------------------------------------------------------------------
-Outputs:
-  ImageApi:
-    Description: API Gateway endpoint URL for Prod stage for Image API
-    Value: !Sub "https://${ImageApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
-  GalleryItemDDBTable:
-    Description: DynamoDB table containing gallery album and image metadata
-    Value: !Ref GalleryItemDDBTable
-
-# -----------------------------------------------------------------------------
 # Configuration properties inherited by all resources, such as Lambda functions
 # -----------------------------------------------------------------------------
 Globals:
@@ -54,6 +41,102 @@ Globals:
 # Resources are the actual assets that will be provisioned on AWS
 # -----------------------------------------------------------------------------
 Resources:
+  # -----------------------------------------------------------------------------
+  # S3 upload bucket
+  # -----------------------------------------------------------------------------
+  UploadBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-uploads"
+
+  # -----------------------------------------------------------------------------
+  # S3 originals bucket
+  # -----------------------------------------------------------------------------
+  OriginalsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-originals"
+
+  # -----------------------------------------------------------------------------
+  # S3 derived images bucket
+  # -----------------------------------------------------------------------------
+  DerivedImageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-derived-images"
+
+  # -----------------------------------------------------------------------------
+  # DynamoDB table containing the album and image metadata
+  # -----------------------------------------------------------------------------
+  GalleryItemDDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: parentPath
+          AttributeType: S
+        - AttributeName: itemName
+          AttributeType: S
+      KeySchema:
+        - AttributeName: parentPath
+          KeyType: HASH
+        - AttributeName: itemName
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 3
+        WriteCapacityUnits: 3
+      #StreamSpecification: # enable streaming so that the SearchIndexerFunction lambda can send the stream to be indexed by search engine
+      #StreamViewType: "NEW_IMAGE"
+
+  # -----------------------------------------------------------------------------
+  # CloudFront distribution that serves the images
+  # -----------------------------------------------------------------------------
+
+  # CloudFront distibution
+  ImageDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub Distributes the images for ${AWS::StackName}
+        Enabled: true
+        # Aliases: # Custom domain
+        #   - YOUR CNAME HERE # For tacocat.com, must be configured in DreamHost
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+        Origins:
+          - Id: Originals
+            DomainName: !GetAtt OriginalsBucket.DomainName
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${OriginalsCloudFrontOriginAccessIdentity}"
+        DefaultCacheBehavior:
+          Compress: true
+          ViewerProtocolPolicy: redirect-to-https
+          TargetOriginId: Originals
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized managed policy - use this if not using a custom ForwardedValues
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+
+  # Allow CloudFront to read from originals bucket
+  OriginalsBucketCloudFrontReadPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref OriginalsBucket
+      PolicyDocument:
+        Statement:
+          - Action: s3:GetObject
+            Effect: Allow
+            Resource: !Sub arn:aws:s3:::${OriginalsBucket}/*
+            Principal:
+              CanonicalUser: !GetAtt OriginalsCloudFrontOriginAccessIdentity.S3CanonicalUserId
+
+  # CloudFront identity of the original image bucket
+  OriginalsCloudFrontOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Ref OriginalsBucket
+
   # ---------------------------------------------------------------------------
   # Lambda that gets latest album
   # ---------------------------------------------------------------------------
@@ -377,48 +460,14 @@ Resources:
         EntryPoints:
           - processImageUploadLambda.ts
 
-  # -----------------------------------------------------------------------------
-  # DynamoDB table containing the album and image metadata
-  # -----------------------------------------------------------------------------
-  GalleryItemDDBTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      AttributeDefinitions:
-        - AttributeName: parentPath
-          AttributeType: S
-        - AttributeName: itemName
-          AttributeType: S
-      KeySchema:
-        - AttributeName: parentPath
-          KeyType: HASH
-        - AttributeName: itemName
-          KeyType: RANGE
-      ProvisionedThroughput:
-        ReadCapacityUnits: 3
-        WriteCapacityUnits: 3
-      #StreamSpecification: # enable streaming so that the SearchIndexerFunction lambda can send the stream to be indexed by search engine
-      #StreamViewType: "NEW_IMAGE"
+# -----------------------------------------------------------------------------
+# Outputs
+# -----------------------------------------------------------------------------
+Outputs:
+  ImageApi:
+    Description: Image API URL - Prod stage
+    Value: !Sub https://${ImageApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/
 
-  # -----------------------------------------------------------------------------
-  # S3 upload bucket
-  # -----------------------------------------------------------------------------
-  UploadBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub "${AWS::StackName}-uploads"
-
-  # -----------------------------------------------------------------------------
-  # S3 originals bucket
-  # -----------------------------------------------------------------------------
-  OriginalsBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub "${AWS::StackName}-originals"
-
-  # -----------------------------------------------------------------------------
-  # S3 derived images bucket
-  # -----------------------------------------------------------------------------
-  DerivedImageBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub "${AWS::StackName}-derived-images"
+  ImageDomain:
+    Description: CloudFront CDN image distribution domain
+    Value: !Sub https://${ImageDistribution.DomainName}/
