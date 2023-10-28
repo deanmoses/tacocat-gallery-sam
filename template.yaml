@@ -60,7 +60,7 @@ Resources:
   GetLatestAlbumFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: app/src/api/lambdas/
+      CodeUri: app/src/lambdas/api/
       Handler: getLatestAlbumLambda.handler
       Description: API Gateway lambda function that gets the latest album from DynamoDB
       Events:
@@ -91,7 +91,7 @@ Resources:
   GetAlbumFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: app/src/api/lambdas/
+      CodeUri: app/src/lambdas/api/
       Handler: getAlbumLambda.handler
       Description: API Gateway function that returns an album and its children from DynamoDB
       Events:
@@ -128,7 +128,7 @@ Resources:
   CreateAlbumFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: app/src/api/lambdas/
+      CodeUri: app/src/lambdas/api/
       Handler: createAlbumLambda.handler
       Description: API Gateway function that creates a new album in DynamoDB
       Events:
@@ -161,7 +161,7 @@ Resources:
   UpdateAlbumFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: app/src/api/lambdas/
+      CodeUri: app/src/lambdas/api/
       Handler: updateAlbumLambda.handler
       Description: API Gateway function that updates an existing album in DynamoDB
       Events:
@@ -199,7 +199,7 @@ Resources:
   UpdateImageFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: app/src/api/lambdas/
+      CodeUri: app/src/lambdas/api/
       Handler: updateImageLambda.handler
       Description: API Gateway function that updates an existing image in DynamoDB
       Events:
@@ -237,7 +237,7 @@ Resources:
   SetAlbumThumbnailFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: app/src/api/lambdas/
+      CodeUri: app/src/lambdas/api/
       Handler: setAlbumThumbnailLambda.handler
       Description: API Gateway function that sets an album's thumbnail in DynamoDB
       Events:
@@ -270,7 +270,7 @@ Resources:
   RecutThumbnailFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: app/src/api/lambdas/
+      CodeUri: app/src/lambdas/api/
       Handler: recutThumbnailLambda.handler
       Description: API Gateway function recuts an album's thumbnail in DynamoDB
       Events:
@@ -303,7 +303,7 @@ Resources:
   DeleteAlbumFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: app/src/api/lambdas/
+      CodeUri: app/src/lambdas/api/
       Handler: deleteAlbumLambda.handler
       Description: API Gateway function that deletes an album from DynamoDB
       Events:
@@ -345,15 +345,14 @@ Resources:
             UserPoolArn: !Ref CognitoUserPoolArn
 
   # ---------------------------------------------------------------------------
-  # Lambda that extracts metadata from an image.
-  # It's triggered by an image being uploaded to the S3 uploads bucket
+  # Lambda that processes uploaded image, extracts metadata and saves to DyanmoDB
   # ---------------------------------------------------------------------------
-  ExtractImageMetadataFunction:
+  ProcessImageUploadFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: app/src/state_machine/lambdas/
-      Handler: extractImageMetadataLambda.handler
-      Description: Extract image metadata.  Triggered by image upload to the S3 uploads bucket.
+      CodeUri: app/src/lambdas/processImageUpload/
+      Handler: processImageUploadLambda.handler
+      Description: Lambda that processes images uploaded to S3, extracts metadata and saves to DyanmoDB
       Policies:
         - S3ReadPolicy:
             BucketName: !Sub "${AWS::StackName}-uploads"
@@ -376,60 +375,7 @@ Resources:
         Target: "es2020"
         Sourcemap: true
         EntryPoints:
-          - extractImageMetadataLambda.ts
-
-  # ---------------------------------------------------------------------------
-  # Step Functions state machine that processes uploaded images
-  # ---------------------------------------------------------------------------
-  UploadedImageProcessor:
-    Type: AWS::Serverless::StateMachine
-    Properties:
-      # State machine files MUST live at the root of the project.
-      #
-      # sam build has weird behavior: when transforming to a CloudFormation template,
-      # it ignores any path given to DefinitionUri and instead transforms to:
-      # ../../the_name_of_the_template.asl.yaml.
-      # You can see this in transformed template at .aws-sam/build/template.yaml
-      # That ../../ resolves to the root of the project, so that's the only place
-      # you can stick state machine files.
-      #
-      # This will probably break when we do a build via a CI/CD process where the
-      # build directory isn't within the root of the project.
-      DefinitionUri: uploaded_image_processor.asl.yaml
-      # We want the Express workload type
-      # Express is for event processing workloads and can run for up to 5 minutes
-      # Standard is for long-running (up to one year)
-      Type: EXPRESS
-      #DefinitionSubstitutions:
-      #  HelloWorldFunctionArn: !GetAtt HelloWorldFunction.Arn
-      Policies:
-        #  - LambdaInvokePolicy:
-        #      FunctionName: !Ref HelloWorldFunction
-        - CloudWatchLogsFullAccess
-      #      Events:
-      #        FileUploadedEvent: # Event Bridge Rule to listen for S3 image upload event and kick off image processing Step Function
-      #          Type: EventBridgeRule
-      #          Properties:
-      #            Pattern:
-      #              source:
-      #                - aws.s3
-      #              detail-type:
-      #                - Object Created
-      #              detail:
-      #                bucket:
-      #                  name:
-      #                    - !Ref UploadBucket
-      Logging:
-        Level: ALL
-        IncludeExecutionData: FALSE
-        Destinations:
-          - CloudWatchLogsLogGroup:
-              LogGroupArn: !GetAtt UploadedImageProcessorLogGroup.Arn
-
-  UploadedImageProcessorLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: UploadedImageProcessorLogGroup
+          - processImageUploadLambda.ts
 
   # -----------------------------------------------------------------------------
   # DynamoDB table containing the album and image metadata

@@ -17,9 +17,9 @@ export const handler: Handler = async (event: S3Event, context: Context, callbac
     // console.info('bucket name:', record.s3.bucket.name);
     // console.info('object key: ', record.s3.object.key);
 
-    const image = await extractImageMetadata(record.s3.bucket.name, record.s3.object.key);
+    const imageMetadata = await extractImageMetadata(record.s3.bucket.name, record.s3.object.key);
     const imagePath = record.s3.object.key;
-    await createImage(imagePath, image);
+    await createImage(imagePath, imageMetadata);
 
     console.info('DONE!');
 };
