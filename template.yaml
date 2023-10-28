@@ -345,18 +345,20 @@ Resources:
             UserPoolArn: !Ref CognitoUserPoolArn
 
   # ---------------------------------------------------------------------------
-  # Lambda that starts the Step Functions state machine
+  # Lambda that extracts metadata from an image.
   # It's triggered by an image being uploaded to the S3 uploads bucket
   # ---------------------------------------------------------------------------
-  ExecuteStepFunctionsFunction:
+  ExtractImageMetadataFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: app/src/state_machine/lambdas/startStateMachine/
-      Handler: startStateMachineLambda.handler
-      Description: Triggered by image upload to the S3 uploads bucket and start the image processing step function workflow
-      Environment:
-        Variables:
-          STATE_MACHINE_ARN: !Ref UploadedImageProcessor
+      CodeUri: app/src/state_machine/lambdas/
+      Handler: extractImageMetadataLambda.handler
+      Description: Extract image metadata.  Triggered by image upload to the S3 uploads bucket.
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Sub "${AWS::StackName}-uploads"
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GalleryItemDDBTable
       Events:
         FileUploadEvent:
           Type: S3
@@ -364,6 +366,9 @@ Resources:
             Bucket: !Ref UploadBucket
             Events:
               - "s3:ObjectCreated:*"
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -371,7 +376,7 @@ Resources:
         Target: "es2020"
         Sourcemap: true
         EntryPoints:
-          - startStateMachineLambda.ts
+          - extractImageMetadataLambda.ts
 
   # ---------------------------------------------------------------------------
   # Step Functions state machine that processes uploaded images
@@ -401,19 +406,19 @@ Resources:
         #  - LambdaInvokePolicy:
         #      FunctionName: !Ref HelloWorldFunction
         - CloudWatchLogsFullAccess
-      Events:
-        FileUploadedEvent: # Event Bridge Rule to listen for S3 image upload event and kick off image processing Step Function
-          Type: EventBridgeRule
-          Properties:
-            Pattern:
-              source:
-                - aws.s3
-              detail-type:
-                - Object Created
-              detail:
-                bucket:
-                  name:
-                    - !Ref UploadBucket
+      #      Events:
+      #        FileUploadedEvent: # Event Bridge Rule to listen for S3 image upload event and kick off image processing Step Function
+      #          Type: EventBridgeRule
+      #          Properties:
+      #            Pattern:
+      #              source:
+      #                - aws.s3
+      #              detail-type:
+      #                - Object Created
+      #              detail:
+      #                bucket:
+      #                  name:
+      #                    - !Ref UploadBucket
       Logging:
         Level: ALL
         IncludeExecutionData: FALSE
@@ -454,18 +459,20 @@ Resources:
   UploadBucket:
     Type: AWS::S3::Bucket
     Properties:
-      NotificationConfiguration:
-        EventBridgeConfiguration:
-          EventBridgeEnabled: True # Send events to EventBridge so that I can trigger a StepFunction - see FileUploadedEvent elsewhere in this template
+      BucketName: !Sub "${AWS::StackName}-uploads"
 
   # -----------------------------------------------------------------------------
   # S3 originals bucket
   # -----------------------------------------------------------------------------
   OriginalsBucket:
     Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-originals"
 
   # -----------------------------------------------------------------------------
   # S3 derived images bucket
   # -----------------------------------------------------------------------------
   DerivedImageBucket:
     Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-derived-images"

@@ -30,6 +30,12 @@ export type AlbumUpdateRequest = {
     published?: boolean;
 };
 
+export type ImageUpdateRequest = {
+    title?: string;
+    description?: string;
+    tags?: Array<string>;
+};
+
 /**
  * Thumbnail crop info
  */

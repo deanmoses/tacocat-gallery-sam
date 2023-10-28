@@ -20,9 +20,9 @@
                 "s3SchemaVersion": "1.0",
                 "configurationId": "597beef8-4484-4edc-91a1-2714159186b7",
                 "bucket": {
-                    "name": "tacocat-gallery-sam-dev-uploadbucket-17a1cq1lwjzxt",
+                    "name": "tacocat-gallery-sam-dev-uploads",
                     "ownerIdentity": { "principalId": "AK54048X6S7LW" },
-                    "arn": "arn:aws:s3:::tacocat-gallery-sam-dev-uploadbucket-17a1cq1lwjzxt"
+                    "arn": "arn:aws:s3:::tacocat-gallery-sam-dev-uploads"
                 },
                 "object": {
                     "key": "img.png",

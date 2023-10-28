@@ -5,6 +5,26 @@ States:
     Type: Pass
     Result:
       value: Hello from a state machine!
+#    Next: ExtractImageMetadata
+#  ExtractImageMetadata:
+#    Type: Task
+#    Resource: ${ExtractImageMetadataLambdaArn}
+#    InputPath: $
+#    ResultPath: $.extractedMetadata
+#    Next: ImageTypeCheck
+#    Catch:
+#      - ErrorEquals:
+#          - ImageIdentifyError
+#        Next: NotSupportedImageType
+#    Retry:
+#      - ErrorEquals:
+#          - ImageIdentifyError
+#        MaxAttempts: 0
+#      - ErrorEquals:
+#          - States.ALL
+#        IntervalSeconds: 1
+#        MaxAttempts: 2
+#        BackoffRate: 1.5
 #    Next: Invoke My Lambda
 #  Invoke My Lambda:
 #    Type: Task
