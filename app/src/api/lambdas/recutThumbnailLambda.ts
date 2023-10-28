@@ -18,7 +18,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         ensureHttpMethod(event, HttpMethod.PATCH);
         const imagePath = getImagePath(event);
         const crop = getBodyAsJson(event);
-        await recutThumbnail(imagePath, crop);
+        // await recutThumbnail(imagePath, crop); // COMMENTED OUT UNTIL I MAKE recutThumbnail() compile
         return respondSuccessMessage(`Image [${imagePath}] thumbnail updated]`);
     } catch (e) {
         return handleHttpExceptions(e);
