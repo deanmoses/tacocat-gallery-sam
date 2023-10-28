@@ -12,8 +12,9 @@
     },
     "dependencies": {
         "@aws-sdk/client-dynamodb": "^3.431.0",
-        "@aws-sdk/client-s3": "^3.431.0",
+        "@aws-sdk/client-s3": "^3.437.0",
         "@aws-sdk/lib-dynamodb": "^3.431.0",
+        "@aws-sdk/lib-storage": "^3.438.0",
         "esbuild": "^0.19.5"
     },
     "devDependencies": {
