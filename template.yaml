@@ -116,6 +116,9 @@ Resources:
             QueryString: false
             Cookies:
               Forward: none
+          LambdaFunctionAssociations:
+            - EventType: origin-response
+              LambdaFunctionARN: !Ref GetOrCreateImageFunction.Version
 
   # Allow CloudFront to read from originals bucket
   OriginalsBucketCloudFrontReadPolicy:
@@ -136,6 +139,55 @@ Resources:
     Properties:
       CloudFrontOriginAccessIdentityConfig:
         Comment: !Ref OriginalsBucket
+
+  # ---------------------------------------------------------------------------
+  # Lambda that CloudFront uses to resize images
+  # ---------------------------------------------------------------------------
+  GetOrCreateImageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-GetOrCreateImage
+      AutoPublishAlias: live
+      CodeUri: app/src/lambdas/cloudfront/getOrCreateImage/
+      Handler: getOrCreateImageLambda.handler
+      Timeout: 30 # CloudFront Lambda @ Edge functions have max timeout of 30
+      Role: !GetAtt EdgeLambdaRole.Arn
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        EntryPoints:
+          - getOrCreateImageLambda.ts
+
+  EdgeLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Effect: Allow
+          Principal:
+            Service:
+              - lambda.amazonaws.com
+              - edgelambda.amazonaws.com
+          Action:
+            - sts:AssumeRole
+      Path: /service-role/
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXrayFullAccess
+      Policies:
+        - PolicyName: !Sub ${AWS::StackName}-originals-Lambda-S3
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              Effect: Allow
+              Action:
+                - s3:*
+              Resource:
+                - !Sub arn:aws:s3:::${AWS::StackName}-originals
+                - !Sub arn:aws:s3:::${AWS::StackName}-originals/*
 
   # ---------------------------------------------------------------------------
   # Lambda that gets latest album
