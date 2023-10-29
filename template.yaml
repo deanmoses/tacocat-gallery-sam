@@ -159,6 +159,8 @@ Resources:
         Target: "es2020"
         EntryPoints:
           - getOrCreateImageLambda.ts
+        External:
+          - sharp
 
   EdgeLambdaRole:
     Type: AWS::IAM::Role
