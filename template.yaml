@@ -134,10 +134,38 @@ Resources:
         Comment: !Ref OriginalImagesBucket
 
   # ---------------------------------------------------------------------------
-  # Lambda to test resize images
-  # It's *NOT* attached to CloudFront in order to...
-  # 1) Make it faster to deploy
-  # 2) Allow me to turn sourcemap: true
+  # Lambda to generate derived images
+  # ---------------------------------------------------------------------------
+  GenerateDerivedImageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-GenerateDerivedImage
+      CodeUri: app/src/lambdas/generateDerivedImage/
+      Handler: generateDerivedImageLambda.handler
+      Environment:
+        Variables:
+          OriginalImagesBucket: !Ref OriginalImagesBucket
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref OriginalImagesBucket
+      Layers:
+        - !Ref SharpLayerArn
+      FunctionUrlConfig:
+        AuthType: NONE
+        InvokeMode: RESPONSE_STREAM
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Sourcemap: true
+        Target: "es2020"
+        EntryPoints:
+          - generateDerivedImageLambda.ts
+        External:
+          - sharp
+
+  # ---------------------------------------------------------------------------
+  # Lambda to test resizing images
   # ---------------------------------------------------------------------------
   SharpTestImageFunction:
     Type: AWS::Serverless::Function
@@ -498,3 +526,7 @@ Outputs:
   ImageDomain:
     Description: CloudFront CDN image distribution domain
     Value: !Sub https://${ImageDistribution.DomainName}/
+
+  GenerateDerivedImageUrl:
+    Description: URL of lambda that generates derived images
+    Value: !GetAtt GenerateDerivedImageFunctionUrl.FunctionUrl
