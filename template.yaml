@@ -27,6 +27,10 @@ Parameters:
     Type: String
     Description: ARN of the Cognito User Pool for Tacocat Gallery Admins
     Default: arn:aws:cognito-idp:us-east-1:010410881828:userpool/us-east-1_DdPFtamLz
+  SharpLayerArn:
+    Type: String
+    Description: ARN of the Lambda Layer containing the Sharp image processing library
+    Default: arn:aws:lambda:us-east-1:010410881828:layer:Sharp-0_31_2:1
 
 # -----------------------------------------------------------------------------
 # Configuration properties inherited by all resources, such as Lambda functions
@@ -42,25 +46,17 @@ Globals:
 # -----------------------------------------------------------------------------
 Resources:
   # -----------------------------------------------------------------------------
-  # S3 upload bucket
+  # S3 bucket for original images
   # -----------------------------------------------------------------------------
-  UploadBucket:
+  OriginalImagesBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::StackName}-uploads"
+      BucketName: !Sub "${AWS::StackName}-original-images"
 
   # -----------------------------------------------------------------------------
-  # S3 originals bucket
+  # S3 bucket for derived images
   # -----------------------------------------------------------------------------
-  OriginalsBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub "${AWS::StackName}-originals"
-
-  # -----------------------------------------------------------------------------
-  # S3 derived images bucket
-  # -----------------------------------------------------------------------------
-  DerivedImageBucket:
+  DerivedImagesBucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub "${AWS::StackName}-derived-images"
@@ -88,7 +84,7 @@ Resources:
       #StreamViewType: "NEW_IMAGE"
 
   # -----------------------------------------------------------------------------
-  # CloudFront distribution that serves the images
+  # CloudFront CDN distribution that serves the images
   # -----------------------------------------------------------------------------
 
   # CloudFront distibution
@@ -103,93 +99,70 @@ Resources:
         ViewerCertificate:
           CloudFrontDefaultCertificate: true
         Origins:
-          - Id: Originals
-            DomainName: !GetAtt OriginalsBucket.DomainName
+          - Id: original-images-bucket
+            DomainName: !GetAtt OriginalImagesBucket.DomainName
             S3OriginConfig:
-              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${OriginalsCloudFrontOriginAccessIdentity}"
+              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${OriginalImagesCloudFrontOriginAccessIdentity}"
         DefaultCacheBehavior:
+          TargetOriginId: original-images-bucket
           Compress: true
           ViewerProtocolPolicy: redirect-to-https
-          TargetOriginId: Originals
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized managed policy - use this if not using a custom ForwardedValues
           ForwardedValues:
             QueryString: false
             Cookies:
               Forward: none
-          LambdaFunctionAssociations:
-            - EventType: origin-response
-              LambdaFunctionARN: !Ref GetOrCreateImageFunction.Version
 
-  # Allow CloudFront to read from originals bucket
-  OriginalsBucketCloudFrontReadPolicy:
+  # Allow CloudFront to read from original images bucket
+  OriginalImagesBucketCloudFrontReadPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
-      Bucket: !Ref OriginalsBucket
+      Bucket: !Ref OriginalImagesBucket
       PolicyDocument:
         Statement:
           - Action: s3:GetObject
             Effect: Allow
-            Resource: !Sub arn:aws:s3:::${OriginalsBucket}/*
+            Resource: !Sub arn:aws:s3:::${OriginalImagesBucket}/*
             Principal:
-              CanonicalUser: !GetAtt OriginalsCloudFrontOriginAccessIdentity.S3CanonicalUserId
+              CanonicalUser: !GetAtt OriginalImagesCloudFrontOriginAccessIdentity.S3CanonicalUserId
 
   # CloudFront identity of the original image bucket
-  OriginalsCloudFrontOriginAccessIdentity:
+  OriginalImagesCloudFrontOriginAccessIdentity:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
     Properties:
       CloudFrontOriginAccessIdentityConfig:
-        Comment: !Ref OriginalsBucket
+        Comment: !Ref OriginalImagesBucket
 
   # ---------------------------------------------------------------------------
-  # Lambda that CloudFront uses to resize images
+  # Lambda to test resize images
+  # It's *NOT* attached to CloudFront in order to...
+  # 1) Make it faster to deploy
+  # 2) Allow me to turn sourcemap: true
   # ---------------------------------------------------------------------------
-  GetOrCreateImageFunction:
+  SharpTestImageFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-GetOrCreateImage
-      AutoPublishAlias: live
-      CodeUri: app/src/lambdas/cloudfront/getOrCreateImage/
-      Handler: getOrCreateImageLambda.handler
-      Timeout: 30 # CloudFront Lambda @ Edge functions have max timeout of 30
-      Role: !GetAtt EdgeLambdaRole.Arn
+      FunctionName: !Sub ${AWS::StackName}-SharpTest
+      CodeUri: app/src/lambdas/cloudfront/sharpTest/
+      Handler: sharpTestLambda.handler
+      Environment:
+        Variables:
+          OriginalImagesBucket: !Ref OriginalImagesBucket
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref OriginalImagesBucket
+      Layers:
+        - !Ref SharpLayerArn
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
+        Sourcemap: true
         Target: "es2020"
         EntryPoints:
-          - getOrCreateImageLambda.ts
+          - sharpTestLambda.ts
         External:
           - sharp
-
-  EdgeLambdaRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          Effect: Allow
-          Principal:
-            Service:
-              - lambda.amazonaws.com
-              - edgelambda.amazonaws.com
-          Action:
-            - sts:AssumeRole
-      Path: /service-role/
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-        - arn:aws:iam::aws:policy/AWSXrayFullAccess
-      Policies:
-        - PolicyName: !Sub ${AWS::StackName}-originals-Lambda-S3
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              Effect: Allow
-              Action:
-                - s3:*
-              Resource:
-                - !Sub arn:aws:s3:::${AWS::StackName}-originals
-                - !Sub arn:aws:s3:::${AWS::StackName}-originals/*
 
   # ---------------------------------------------------------------------------
   # Lambda that gets latest album
@@ -492,14 +465,14 @@ Resources:
       Description: Lambda that processes images uploaded to S3, extracts metadata and saves to DyanmoDB
       Policies:
         - S3ReadPolicy:
-            BucketName: !Sub "${AWS::StackName}-uploads"
+            BucketName: !Sub "${AWS::StackName}-original-images"
         - DynamoDBCrudPolicy:
             TableName: !Ref GalleryItemDDBTable
       Events:
         FileUploadEvent:
           Type: S3
           Properties:
-            Bucket: !Ref UploadBucket
+            Bucket: !Ref OriginalImagesBucket
             Events:
               - "s3:ObjectCreated:*"
       Environment:

@@ -13,12 +13,12 @@ export const handler: Handler = async (event: CloudFrontResponseEvent): Promise<
     const request = event?.Records?.[0]?.cf?.request;
     const response = event?.Records?.[0]?.cf?.response;
 
-    if (response.status !== '200') {
+    if (!response.body) {
+        response.body = 'No response body';
         return response;
     }
 
-    if (!response.body) {
-        response.body = 'No response body';
+    if (response.status !== '200') {
         return response;
     }
 
