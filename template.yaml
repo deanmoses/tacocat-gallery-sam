@@ -60,6 +60,13 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub "${AWS::StackName}-derived-images"
+      # Autodelete derived images after a while
+      # If someone asks for them again they'll be regenerated
+      LifecycleConfiguration:
+        Rules:
+          - Id: Housekeeping
+            Status: Enabled
+            ExpirationInDays: 60 # delete files after 60 days
 
   # -----------------------------------------------------------------------------
   # DynamoDB table containing the album and image metadata
@@ -80,8 +87,6 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 3
         WriteCapacityUnits: 3
-      #StreamSpecification: # enable streaming so that the SearchIndexerFunction lambda can send the stream to be indexed by search engine
-      #StreamViewType: "NEW_IMAGE"
 
   # -----------------------------------------------------------------------------
   # CloudFront CDN distribution that serves the images
@@ -144,10 +149,19 @@ Resources:
       Handler: generateDerivedImageLambda.handler
       Environment:
         Variables:
+          NODE_ENV: "production"
+          NODE_OPTIONS: "--enable-source-maps"
           OriginalImagesBucket: !Ref OriginalImagesBucket
+          DerivedImagesBucket: !Ref DerivedImagesBucket
+          ORIGINAL_IMAGE_KEY: ${ID}
+          IMAGE_PATH_ID_PATTERN: ^/(?<ID>\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/[a-zA-Z0-9_-]+\.(jpg|jpeg|gif|png))
+          IMAGE_QUALITY: "80"
+          CACHE_CONTROL: "public, max-age=31536000"
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref OriginalImagesBucket
+        - S3ReadPolicy:
+            BucketName: !Ref DerivedImagesBucket
       Layers:
         - !Ref SharpLayerArn
       FunctionUrlConfig:
