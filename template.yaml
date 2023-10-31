@@ -241,34 +241,6 @@ Resources:
           - sharp
 
   # ---------------------------------------------------------------------------
-  # Lambda to test resizing images
-  # ---------------------------------------------------------------------------
-  SharpTestImageFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: !Sub ${AWS::StackName}-SharpTest
-      CodeUri: app/src/lambdas/cloudfront/sharpTest/
-      Handler: sharpTestLambda.handler
-      Environment:
-        Variables:
-          OriginalImagesBucket: !Ref OriginalImagesBucket
-      Policies:
-        - S3ReadPolicy:
-            BucketName: !Ref OriginalImagesBucket
-      Layers:
-        - !Ref SharpLayerArn
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Sourcemap: true
-        Target: "es2020"
-        EntryPoints:
-          - sharpTestLambda.ts
-        External:
-          - sharp
-
-  # ---------------------------------------------------------------------------
   # Lambda that gets latest album
   # ---------------------------------------------------------------------------
   GetLatestAlbumFunction:
@@ -596,11 +568,11 @@ Resources:
 # -----------------------------------------------------------------------------
 Outputs:
   ImageApi:
-    Description: Image API URL - Prod stage
+    Description: URL of Image API - Prod stage
     Value: !Sub https://${ImageApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/
 
   ImageDomain:
-    Description: CloudFront CDN image distribution domain
+    Description: URL of CloudFront CDN image distribution
     Value: !Sub https://${ImageDistribution.DomainName}/
 
   GenerateDerivedImageUrl:
