@@ -18,9 +18,13 @@ export const loadOriginalImage = async (id: string): Promise<Uint8Array | undefi
         return response.Body && response.Body.transformToByteArray();
     } catch (err) {
         if (err instanceof NoSuchKey) return undefined;
-        if (err?.name === 'AccessDenied') {
-            throw `Access denied to bucket [${originalImagesBucket}] key [${id}]`;
-        }
+        console.error(
+            `Error loading original image from bucket[${originalImagesBucket}] key [${originalImageKey.replace(
+                '${ID}',
+                id,
+            )}]: `,
+            err,
+        );
         throw err;
     }
 };
@@ -37,7 +41,10 @@ export const saveOptimizedImage = async (path: string, image: Buffer, contentTyp
             }),
         );
     } catch (err) {
-        if (err instanceof NoSuchKey) return undefined;
+        console.error(
+            `Error saving optimized image to bucket [${optimizedImagesBucket}] key [${path.substring(1)}]: `,
+            err,
+        );
         throw err;
     }
 };
