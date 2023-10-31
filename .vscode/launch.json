@@ -1,16 +1,38 @@
 {
   "configurations": [
     {
+      "type": "node",
+      "request": "attach",
+      "name": "GenerateDerivedImageFunction - Attach to SAM CLI",
+      "address": "localhost",
+      "port": 5858,
+      "protocol": "inspector",
+      "stopOnEntry": false,
+      "remoteRoot": "/var/task",
+      "localRoot": "${workspaceRoot}/.aws-sam/build/GenerateDerivedImageFunction",
+      "outFiles": [
+        "${workspaceFolder}/.aws-sam/build/GenerateDerivedImageFunction/**/*.js"
+      ]
+    },
+    {
       "type": "aws-sam",
       "request": "direct-invoke",
-      "name": "tacocat-gallery-sam:GetAlbumFunction",
+      "name": "XXX GenerateDerivedImageFunction - NOT WORKING",
       "invokeTarget": {
         "target": "template",
         "templatePath": "${workspaceFolder}/template.yaml",
-        "logicalId": "GetAlbumFunction"
+        "logicalId": "GenerateDerivedImageFunction"
       },
       "lambda": {
-        "payload": {},
+        "pathMappings": [
+          {
+            "localRoot": "${workspaceFolder}/.aws-sam/build/GenerateDerivedImageFunction",
+            "remoteRoot": "/var/task"
+          }
+        ],
+        "payload": {
+          "path": "/Users/dmoses/devgit/tacocat-gallery-sam/app/src/lambdas/generateDerivedImage/events/api-gateway-proxy-event.json"
+        },
         "environmentVariables": {}
       }
     }
