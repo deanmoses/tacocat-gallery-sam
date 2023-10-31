@@ -28,9 +28,6 @@ export const handler = async (event: LambdaFunctionUrlEvent): Promise<LambdaFunc
         const method = event.requestContext.http.method;
         const path = event.rawPath;
         console.info(`${method} ${path}`);
-
-        if (!['GET', 'HEAD'].includes(method)) return methodNotAllowed;
-
         return await handleRequest(method, path);
     } catch (err) {
         console.error(err);
