@@ -112,9 +112,26 @@ Resources:
             DomainName: !GetAtt DerivedImagesBucket.DomainName
             S3OriginConfig:
               OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${DerivedImagesCloudFrontOriginAccessIdentity}"
+          - Id: generate-derived-image-lambda
+            DomainName: # parse DomainName from FunctionUrl which looks like 'https://12341232.lambda-url.on.aws/'
+              !Select [
+                2,
+                !Split [
+                  "/",
+                  !Select [
+                    1,
+                    !Split [
+                      ":",
+                      !GetAtt GenerateDerivedImageFunctionUrl.FunctionUrl,
+                    ],
+                  ],
+                ],
+              ]
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
         CacheBehaviors:
           - PathPattern: /i/*
-            TargetOriginId: derived-images-bucket
+            TargetOriginId: derived-images-group
             Compress: true
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized managed policy - use this if not using a custom ForwardedValues
@@ -131,6 +148,19 @@ Resources:
             QueryString: false
             Cookies:
               Forward: none
+        OriginGroups:
+          Quantity: 1
+          Items:
+            - Id: derived-images-group
+              FailoverCriteria:
+                StatusCodes:
+                  Quantity: 2
+                  Items: [403, 404] # S3 will return 403 instead of 404 when s3:ListBucket permission is not given
+              Members:
+                Quantity: 2
+                Items:
+                  - OriginId: derived-images-bucket
+                  - OriginId: generate-derived-image-lambda
 
   # Allow CloudFront to read from the original images bucket
   OriginalImagesBucketCloudFrontReadPolicy:
