@@ -149,8 +149,6 @@ Resources:
       Handler: generateDerivedImageLambda.handler
       Environment:
         Variables:
-          NODE_ENV: "production"
-          NODE_OPTIONS: "--enable-source-maps"
           OriginalImagesBucket: !Ref OriginalImagesBucket
           DerivedImagesBucket: !Ref DerivedImagesBucket
           ORIGINAL_IMAGE_KEY: ${ID}
@@ -160,12 +158,12 @@ Resources:
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref OriginalImagesBucket
-        - S3ReadPolicy:
+        - S3WritePolicy:
             BucketName: !Ref DerivedImagesBucket
       Layers:
         - !Ref SharpLayerArn
       FunctionUrlConfig:
-        AuthType: NONE
+        AuthType: NONE #TODO: authentication
         InvokeMode: RESPONSE_STREAM
     Metadata:
       BuildMethod: esbuild
