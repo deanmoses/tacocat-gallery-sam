@@ -15,6 +15,20 @@
       ]
     },
     {
+      "type": "node",
+      "request": "attach",
+      "name": "SetAlbumThumbnailFunction - Attach to SAM CLI",
+      "address": "localhost",
+      "port": 5858,
+      "protocol": "inspector",
+      "stopOnEntry": false,
+      "remoteRoot": "/var/task",
+      "localRoot": "${workspaceRoot}/.aws-sam/build/SetAlbumThumbnailFunction",
+      "outFiles": [
+        "${workspaceFolder}/.aws-sam/build/SetAlbumThumbnailFunction/**/*.js"
+      ]
+    },
+    {
       "type": "aws-sam",
       "request": "direct-invoke",
       "name": "XXX GenerateDerivedImageFunction - NOT WORKING",

@@ -8,3 +8,8 @@ sam local invoke SharpTestImageFunction -e app/src/lambdas/cloudfront/sharpTest/
 [GenerateDerivedImageFunction]
 sam local invoke GenerateDerivedImageFunction -e app/src/lambdas/generateDerivedImage/events/lambda-function-url-event.json -n .env.json
 sam local invoke GenerateDerivedImageFunction -e app/src/lambdas/generateDerivedImage/events/lambda-function-url-event.json -n .env.json -d 5858 
+
+
+[SetAlbumThumbnailFunction]
+sam local invoke SetAlbumThumbnailFunction -e events/SetAlbumThumbnail.json -n .env.json
+sam local invoke SetAlbumThumbnailFunction -e events/SetAlbumThumbnail.json -n .env.json -d 5858

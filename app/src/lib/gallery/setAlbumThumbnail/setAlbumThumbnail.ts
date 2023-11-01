@@ -7,6 +7,7 @@ import {
     DynamoDBClient,
     ConditionalCheckFailedException,
     TransactionCanceledException,
+    ResourceNotFoundException,
 } from '@aws-sdk/client-dynamodb';
 
 /**
@@ -26,20 +27,8 @@ export async function setAlbumThumbnail(albumPath: string, imagePath: string) {
     }
 
     const image = await getImage(imagePath);
-    if (!image)
-        throw new BadRequestException(
-            `Error setting thumbnail for album [${albumPath}]. Image not found: [${imagePath}]`,
-        );
-    const thumbnailUpdatedOn = image?.thumbnail ? image.thumbnail?.fileUpdatedOn : image?.fileUpdatedOn;
-
-    try {
-        await setImageAsAlbumThumb(albumPath, imagePath, thumbnailUpdatedOn, true /* replaceExistingThumb */);
-    } catch (e) {
-        // TODO: this fails silently if the image or album doesn't exist.
-        // Instead, it should throw a condition unmet exception, and this
-        // should then throw a BadRequestException(`Album not found: [${albumPath}]`);
-        throw e;
-    }
+    const thumbnailUpdatedOn = image?.thumbnail ? image.thumbnail?.updatedOn : image?.updatedOn;
+    await setImageAsAlbumThumb(albumPath, imagePath, thumbnailUpdatedOn, true /* replaceExistingThumb */);
 }
 
 /**
@@ -55,12 +44,21 @@ async function getImage(imagePath: string) {
             parentPath: pathParts.parent,
             itemName: pathParts.name,
         },
-        ProjectionExpression: 'fileUpdatedOn,thumbnail',
+        ProjectionExpression: 'updatedOn,thumbnail',
     });
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);
-    const result = await docClient.send(ddbCommand);
-    return result.Item;
+
+    try {
+        const result = await docClient.send(ddbCommand);
+        if (!result.Item) throw new BadRequestException(`Image not found: [${imagePath}]`);
+        return result.Item;
+    } catch (e) {
+        if (e instanceof ResourceNotFoundException) {
+            throw new BadRequestException(`Image not found: [${imagePath}]`);
+        }
+        throw e;
+    }
 }
 
 /**
@@ -78,7 +76,7 @@ async function setImageAsAlbumThumb(
     imagePath: string,
     imageUpdatedOn: string,
     replaceExistingThumb = true,
-): Promise<boolean> {
+) {
     const albumPathParts = getParentAndNameFromPath(albumPath);
     const imagePathParts = getParentAndNameFromPath(imagePath);
 
@@ -95,7 +93,7 @@ async function setImageAsAlbumThumb(
                         parentPath: albumPathParts.parent,
                         itemName: albumPathParts.name,
                     },
-                    UpdateExpression: 'set updatedOn = :updatedOn and thumbnail = :thumbnail',
+                    UpdateExpression: 'SET updatedOn = :updatedOn, thumbnail = :thumbnail',
                     ExpressionAttributeValues: {
                         ':updatedOn': new Date().toISOString(),
                         ':thumbnail': { path: imagePath, fileUpdatedOn: imageUpdatedOn },
@@ -104,7 +102,7 @@ async function setImageAsAlbumThumb(
                     // check will fail and the entire transaction fails
                     ConditionExpression: replaceExistingThumb
                         ? 'attribute_exists (itemName)'
-                        : '(attribute_exists (itemName) and attribute_not_exists (thumbnail))',
+                        : '(attribute_exists (itemName) AND attribute_not_exists (thumbnail))',
                 },
             },
             // Set album on the image
@@ -116,7 +114,8 @@ async function setImageAsAlbumThumb(
                         parentPath: imagePathParts.parent,
                         itemName: imagePathParts.name,
                     },
-                    UpdateExpression: 'set updatedOn = :updatedOn and thumbForAlbums = :thumbForAlbums',
+                    // adds it to the set of albums because it could be the thumb for multiple albums
+                    UpdateExpression: 'SET updatedOn = :updatedOn ADD thumbForAlbums = :thumbForAlbums',
                     ExpressionAttributeValues: {
                         ':updatedOn': new Date().toISOString(),
                         ':thumbForAlbums': albumPath,
@@ -134,6 +133,10 @@ async function setImageAsAlbumThumb(
         await docClient.send(ddbCommand);
         return true;
     } catch (e) {
+        // TODO: this fails silently if the image or album doesn't exist.
+        // Instead, it should throw a condition unmet exception, and this
+        // should then throw a BadRequestException(`Album not found: [${albumPath}]`);
+
         // ConditionalCheckFailed means the album already has a thumb.
         // That's not an error. Everything else is an error.
         if (e instanceof TransactionCanceledException || e instanceof ConditionalCheckFailedException) {
@@ -149,5 +152,4 @@ async function setImageAsAlbumThumb(
         //     throw err;
         // }
     }
-    return false;
 }
