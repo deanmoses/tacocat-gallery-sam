@@ -8,7 +8,7 @@ import { getDynamoDbTableName } from '../../lambda_utils/Env';
 /**
  * Delete an album and its photos and child albums.
  *
- * @param albumPath Path of the album to retrieve, like /2001/12-31/
+ * @param albumPath Path of the album to delete, like /2001/12-31/
  */
 export async function deleteAlbum(albumPath: string) {
     if (!isValidAlbumPath(albumPath)) {
