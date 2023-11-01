@@ -2,7 +2,7 @@ import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { isValidAlbumPath, isValidImagePath } from '../../gallery_path_utils/pathValidator';
 import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
-import { DynamoDBDocumentClient, GetCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import {
     DynamoDBClient,
     ConditionalCheckFailedException,
@@ -28,7 +28,7 @@ export async function setAlbumThumbnail(albumPath: string, imagePath: string) {
 
     const image = await getImage(imagePath);
     const thumbnailUpdatedOn = image?.thumbnail ? image.thumbnail?.updatedOn : image?.updatedOn;
-    await setImageAsAlbumThumb(albumPath, imagePath, thumbnailUpdatedOn, true /* replaceExistingThumb */);
+    await setThumb(albumPath, imagePath, thumbnailUpdatedOn, true /* replaceExistingThumb */);
 }
 
 /**
@@ -68,70 +68,34 @@ async function getImage(imagePath: string) {
  * @param imagePath Path of the image like /2001/12-31/image.jpg
  * @param imageUpdatedOn ISO 8601 timestamp of when image was last updated
  * @param replaceExistingThumb true: replace existing thumbnail
- *
- * @returns true if the album's thumb was updated; false if the album already had a thumb
  */
-async function setImageAsAlbumThumb(
-    albumPath: string,
-    imagePath: string,
-    imageUpdatedOn: string,
-    replaceExistingThumb = true,
-) {
+async function setThumb(albumPath: string, imagePath: string, imageUpdatedOn: string, replaceExistingThumb = true) {
     const albumPathParts = getParentAndNameFromPath(albumPath);
-    const imagePathParts = getParentAndNameFromPath(imagePath);
 
-    // Build a transaction command to:
-    // 1) set the image as the thumbnail on the album
-    // 2) records it on the image
-    const ddbCommand = new TransactWriteCommand({
-        TransactItems: [
-            // Set image as the thumbnail on the album
-            {
-                Update: {
-                    TableName: getDynamoDbTableName(),
-                    Key: {
-                        parentPath: albumPathParts.parent,
-                        itemName: albumPathParts.name,
-                    },
-                    UpdateExpression: 'SET updatedOn = :updatedOn, thumbnail = :thumbnail',
-                    ExpressionAttributeValues: {
-                        ':updatedOn': new Date().toISOString(),
-                        ':thumbnail': { path: imagePath, fileUpdatedOn: imageUpdatedOn },
-                    },
-                    // If the albums already has a thumbnail, a conditional
-                    // check will fail and the entire transaction fails
-                    ConditionExpression: replaceExistingThumb
-                        ? 'attribute_exists (itemName)'
-                        : '(attribute_exists (itemName) AND attribute_not_exists (thumbnail))',
-                },
-            },
-            // Set album on the image
-            // This lets the image know that it's the album's thumbnail
-            {
-                Update: {
-                    TableName: getDynamoDbTableName(),
-                    Key: {
-                        parentPath: imagePathParts.parent,
-                        itemName: imagePathParts.name,
-                    },
-                    // adds it to the set of albums because it could be the thumb for multiple albums
-                    UpdateExpression: 'SET updatedOn = :updatedOn ADD thumbForAlbums = :thumbForAlbums',
-                    ExpressionAttributeValues: {
-                        ':updatedOn': new Date().toISOString(),
-                        ':thumbForAlbums': albumPath,
-                    },
-                    ConditionExpression: 'attribute_exists (itemName)',
-                },
-            },
-        ],
+    // Build the command
+    const ddbCommand = new UpdateCommand({
+        TableName: getDynamoDbTableName(),
+        Key: {
+            parentPath: albumPathParts.parent,
+            itemName: albumPathParts.name,
+        },
+        UpdateExpression: 'SET updatedOn = :updatedOn, thumbnail = :thumbnail',
+        ExpressionAttributeValues: {
+            ':updatedOn': new Date().toISOString(),
+            ':thumbnail': { path: imagePath, fileUpdatedOn: imageUpdatedOn },
+        },
+        // If the albums already has a thumbnail, a conditional
+        // check will fail and the entire transaction fails
+        ConditionExpression: replaceExistingThumb
+            ? 'attribute_exists (itemName)'
+            : '(attribute_exists (itemName) AND attribute_not_exists (thumbnail))',
     });
 
-    // Do the transaction
+    // Do the command
     const client = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(client);
     try {
         await docClient.send(ddbCommand);
-        return true;
     } catch (e) {
         // TODO: this fails silently if the image or album doesn't exist.
         // Instead, it should throw a condition unmet exception, and this

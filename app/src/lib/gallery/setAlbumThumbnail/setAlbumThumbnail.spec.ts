@@ -1,5 +1,5 @@
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, GetCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { setTestEnv } from '../../lambda_utils/Env';
 import { setAlbumThumbnail } from './setAlbumThumbnail';
 
@@ -38,7 +38,7 @@ describe('Invalid Input', () => {
 
 describe('Valid Input', () => {
     test('Basic success path', async () => {
-        expect.assertions(5);
+        expect.assertions(4);
 
         const albumPath = '/2001/12-31/';
         const imagePath = '/2001/12-31/image.jpg';
@@ -56,12 +56,11 @@ describe('Valid Input', () => {
         const getCalls = mockDocClient.commandCalls(GetCommand);
         expect(getCalls.length).toBe(1);
         expect(getCalls[0].args[0].input.Key?.itemName).toEqual('image.jpg');
-        const transactCalls = mockDocClient.commandCalls(TransactWriteCommand);
+        const transactCalls = mockDocClient.commandCalls(UpdateCommand);
         expect(transactCalls.length).toBe(1);
-        const transactItems = transactCalls[0].args[0].input.TransactItems;
-        expect(transactItems?.length).toBe(2);
-        if (!!transactItems) {
-            expect(transactItems[0].Update?.ConditionExpression).not.toContain('attribute_not_exists');
+        const updateCommand = transactCalls[0].args[0].input;
+        if (!!updateCommand) {
+            expect(updateCommand?.ConditionExpression).not.toContain('attribute_not_exists');
         }
     });
 });
