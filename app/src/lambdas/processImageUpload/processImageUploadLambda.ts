@@ -1,6 +1,7 @@
 import { Context, Handler, S3Event } from 'aws-lambda';
 import { extractImageMetadata } from './extractImageMetadata';
 import { createImage } from '../../lib/gallery/createImage/createImage';
+import { setImageAsParentAlbumThumbnailIfNoneExists } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
 
 /**
  * A Lambda that processes an image uploaded to S3.
@@ -16,10 +17,18 @@ export const handler: Handler = async (event: S3Event, context: Context, callbac
     }
 
     console.info(`processImageUpload - object key: [${record.s3.object.key}]`);
+
+    // Extract EXIF / IPTC metadata from image
     const imageMetadata = await extractImageMetadata(record.s3.bucket.name, record.s3.object.key);
-    const imagePath = '/' + record.s3.object.key;
+
     // Create image in DynamoDB
+    const imagePath = '/' + record.s3.object.key;
+    console.info(`Creating image [${imagePath}] in DynamoDB`);
     await createImage(imagePath, imageMetadata);
+
+    // Set image as its album's thumbnail, if the album does not already have a thumbnail
+    console.info(`Setting image [${imagePath}] as thumbnail of parent album if none exists`);
+    await setImageAsParentAlbumThumbnailIfNoneExists(imagePath);
 
     console.info('DONE!');
 };

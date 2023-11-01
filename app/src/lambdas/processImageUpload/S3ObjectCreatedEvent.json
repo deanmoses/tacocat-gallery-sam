@@ -20,12 +20,12 @@
                 "s3SchemaVersion": "1.0",
                 "configurationId": "597beef8-4484-4edc-91a1-2714159186b7",
                 "bucket": {
-                    "name": "tacocat-gallery-sam-dev-uploads",
+                    "name": "tacocat-gallery-sam-dev-original-images",
                     "ownerIdentity": { "principalId": "AK54048X6S7LW" },
-                    "arn": "arn:aws:s3:::tacocat-gallery-sam-dev-uploads"
+                    "arn": "arn:aws:s3:::tacocat-gallery-sam-dev-original-images"
                 },
                 "object": {
-                    "key": "img.png",
+                    "key": "image.jpg",
                     "size": 1214,
                     "eTag": "c44c8f16f036805a55930c3f2f760d63",
                     "sequencer": "00653B6A494F14B007"
