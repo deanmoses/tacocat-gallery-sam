@@ -13,15 +13,15 @@ export function getDynamoDbTableName(): string {
 /**
  * Name of S3 bucket in which to store resized image
  */
-export function getDerivedImageBucketName(): string {
-    return getEnv('DERIVED_IMAGE_BUCKET');
+export function getDerivedImagesBucketName(): string {
+    return getEnv('DerivedImagesBucket');
 }
 
 /**
  * Name of the S3 bucket containing original image
  */
-export function getS3BucketName(): string {
-    return getEnv('ORIGINAL_IMAGE_BUCKET');
+export function getOriginalImagesBucketName(): string {
+    return getEnv('OriginalImagesBucket');
 }
 
 /**

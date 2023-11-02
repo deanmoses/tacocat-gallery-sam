@@ -1,9 +1,9 @@
 import {
-    getDerivedImageBucketName,
+    getDerivedImagesBucketName,
     getEdgeSize,
     getJpegQuality,
     getOriginalImagePrefix,
-    getS3BucketName,
+    getOriginalImagesBucketName,
     getThumbnailImagePrefix,
 } from '../../lambda_utils/Env';
 import { Crop } from '../galleryTypes';
@@ -21,9 +21,9 @@ const gm = require('gm').subClass({ imageMagick: true }); // Enable ImageMagick 
  * @throws exception if there's any problem
  */
 export async function generateThumbnail(imagePath: string, crop: Crop) {
-    const s3BucketName = getS3BucketName();
+    const s3BucketName = getOriginalImagesBucketName();
     const originalImagePrefix = getOriginalImagePrefix();
-    const derivedImageBucketName = getDerivedImageBucketName();
+    const derivedImageBucketName = getDerivedImagesBucketName();
     const thumbnailImagePrefix = getThumbnailImagePrefix();
     const edgeSize = getEdgeSize();
     const jpegQuality = getJpegQuality();
