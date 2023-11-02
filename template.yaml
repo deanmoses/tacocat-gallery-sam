@@ -507,6 +507,11 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref GalleryItemDDBTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PartiQLSelect
+              Resource: !GetAtt GalleryItemDDBTable.Arn
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
