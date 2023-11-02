@@ -540,12 +540,17 @@ Resources:
           OriginalImagesBucket: !Ref OriginalImagesBucket
           DerivedImagesBucket: !Ref DerivedImagesBucket
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref GalleryItemDDBTable
         - S3CrudPolicy:
             BucketName: !Ref OriginalImagesBucket
         - S3CrudPolicy:
             BucketName: !Ref DerivedImagesBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GalleryItemDDBTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PartiQLUpdate
+              Resource: !GetAtt GalleryItemDDBTable.Arn
     Metadata:
       BuildMethod: esbuild
       BuildProperties:

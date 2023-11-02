@@ -1,10 +1,16 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import {
+    BatchGetItemCommand,
+    ConditionalCheckFailedException,
+    DynamoDBClient,
+    ExecuteStatementCommand,
+} from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, DeleteCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { DeleteObjectCommand, DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDerivedImagesBucketName, getDynamoDbTableName, getOriginalImagesBucketName } from '../../lambda_utils/Env';
 import { isValidImagePath } from '../../gallery_path_utils/pathValidator';
+import { getParentFromPath } from '../../gallery_path_utils/getNameFromPath';
 
 /**
  * Delete specified image from both DynamoDB and S3.
@@ -44,14 +50,32 @@ async function deleteImageFromDynamoDB(imagePath: string) {
 }
 
 /**
- * If image is used as the thumbnail of its parent album or any grandparent,
+ * If image is used as the thumbnail of its parent album,
  * remove it as the thumbnail.
  *
  * @param imagePath Path of image, like /2001/12-31/image.jpg
  */
 async function removeImageAsAlbumThumbnail(imagePath: string) {
-    // TODO: implement
-    //throw 'TODO: implement';
+    // TODO: also look on grandparent album
+    const pathParts = getParentAndNameFromPath(imagePath);
+    const ddbCommand = new ExecuteStatementCommand({
+        Statement:
+            `UPDATE "${getDynamoDbTableName()}"` +
+            ' REMOVE thumbnail' +
+            ` WHERE parentPath='${pathParts.parent}' AND itemName='${pathParts.name}' AND thumbnail.path='${imagePath}'`,
+    });
+    const ddbClient = new DynamoDBClient({});
+    const docClient = DynamoDBDocumentClient.from(ddbClient);
+    try {
+        await docClient.send(ddbCommand);
+        console.info(`Album [${pathParts.parent}]: removed image [${pathParts.name}] as its thumbnail`);
+    } catch (e) {
+        if (e instanceof ConditionalCheckFailedException) {
+            console.info(`Album [${pathParts.parent}] did not have image [${pathParts.name}] as its thumbnail`);
+        } else {
+            throw e;
+        }
+    }
 }
 
 /**
