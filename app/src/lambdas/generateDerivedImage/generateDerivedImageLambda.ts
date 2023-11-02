@@ -60,8 +60,6 @@ export async function handleRequest(method: string, path: string): Promise<Lambd
 
     if (method === 'HEAD') return { statusCode: 200, headers };
     if (body.length > 5 * 1024 * 1024) return retryLater; // can't return large response via lambda, subsequent requests will be served from S3
-
-    console.info(`Image is small enough to return the full thing`);
     return { statusCode: 200, headers, body, isBase64Encoded: true };
 }
 
