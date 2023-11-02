@@ -1,16 +1,10 @@
-import {
-    BatchGetItemCommand,
-    ConditionalCheckFailedException,
-    DynamoDBClient,
-    ExecuteStatementCommand,
-} from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, DeleteCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { ConditionalCheckFailedException, DynamoDBClient, ExecuteStatementCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { DeleteObjectCommand, DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDerivedImagesBucketName, getDynamoDbTableName, getOriginalImagesBucketName } from '../../lambda_utils/Env';
 import { isValidImagePath } from '../../gallery_path_utils/pathValidator';
-import { getParentFromPath } from '../../gallery_path_utils/getNameFromPath';
 
 /**
  * Delete specified image from both DynamoDB and S3.
@@ -56,22 +50,24 @@ async function deleteImageFromDynamoDB(imagePath: string) {
  * @param imagePath Path of image, like /2001/12-31/image.jpg
  */
 async function removeImageAsAlbumThumbnail(imagePath: string) {
-    // TODO: also look on grandparent album
-    const pathParts = getParentAndNameFromPath(imagePath);
+    // TODO: also try to update grandparent album
+    const imagePathParts = getParentAndNameFromPath(imagePath);
+    const albumPathParts = getParentAndNameFromPath(imagePathParts.parent);
     const ddbCommand = new ExecuteStatementCommand({
         Statement:
             `UPDATE "${getDynamoDbTableName()}"` +
             ' REMOVE thumbnail' +
-            ` WHERE parentPath='${pathParts.parent}' AND itemName='${pathParts.name}' AND thumbnail.path='${imagePath}'`,
+            ` SET updatedOn='${new Date().toISOString()}'` +
+            ` WHERE parentPath='${albumPathParts.parent}' AND itemName='${albumPathParts.name}' AND thumbnail.path='${imagePath}'`,
     });
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);
     try {
         await docClient.send(ddbCommand);
-        console.info(`Album [${pathParts.parent}]: removed image [${pathParts.name}] as its thumbnail`);
+        console.info(`Album [${imagePathParts.parent}]: removed image [${imagePath}] as its thumbnail`);
     } catch (e) {
         if (e instanceof ConditionalCheckFailedException) {
-            console.info(`Album [${pathParts.parent}] did not have image [${pathParts.name}] as its thumbnail`);
+            console.info(`Album [${imagePathParts.parent}] did not have image [${imagePath}] as its thumbnail`);
         } else {
             throw e;
         }
@@ -134,10 +130,9 @@ async function deleteS3Folder(bucketName: string, folderPath: string): Promise<n
     const client = new S3Client({});
     const objectsToDelete = await client.send(s3Command);
 
-    console.info('list of objects to delete: ', objectsToDelete);
-
     // Do a bulk delete of the objects
     if (objectsToDelete.KeyCount) {
+        console.info(`Deleting [${objectsToDelete?.Contents?.length}] derived images...`);
         const deleteCommand = new DeleteObjectsCommand({
             Bucket: bucketName,
             Delete: {
@@ -148,7 +143,7 @@ async function deleteS3Folder(bucketName: string, folderPath: string): Promise<n
 
         const deletedObjects = await client.send(deleteCommand); // delete the files
 
-        console.info('deleted objects: ', deletedObjects);
+        console.info(`Deleted [${deletedObjects?.Deleted?.length}] derived images.`);
 
         if (deletedObjects?.Errors) {
             deletedObjects.Errors.map((error) => console.error(`${error.Key} could not be deleted - ${error.Code}`));
