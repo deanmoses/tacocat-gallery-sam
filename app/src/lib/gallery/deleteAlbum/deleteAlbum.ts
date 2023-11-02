@@ -16,7 +16,7 @@ export async function deleteAlbum(albumPath: string) {
     }
 
     if (albumPath === '/') {
-        throw new BadRequestException('Cannot delete root album');
+        throw new BadRequestException('Malformed album path: cannot delete root album');
     }
 
     const ddbClient = new DynamoDBClient({});
