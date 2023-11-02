@@ -61,7 +61,6 @@ test('Delete Nonexistent Image', async () => {
     expect.assertions(2);
 
     // Mock the AWS calls
-    // TODO: verify that the response is no different than deleting an image that DOES exist
     mockDocClient.on(DeleteCommand).resolves({});
     mockS3Client.on(ListObjectsV2Command).resolves({
         KeyCount: 0,
