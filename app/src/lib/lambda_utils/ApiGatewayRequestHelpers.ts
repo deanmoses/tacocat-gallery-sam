@@ -38,11 +38,11 @@ export function getAlbumPath(event: APIGatewayProxyEvent): string {
  * @throws BadRequestException if there's no path in the event
  */
 export function getImagePath(event: APIGatewayProxyEvent): string {
-    const imagePath = event?.pathParameters?.imagePath;
-    if (!imagePath) {
-        throw new BadRequestException('No image path specified');
+    const imagePathParam = event?.pathParameters?.imagePath;
+    if (!imagePathParam) {
+        throw new BadRequestException('Event does not contain an imagePath parameter');
     }
-    return imagePath;
+    return '/' + imagePathParam;
 }
 
 export function getBodyAsJson(event: APIGatewayProxyEvent) {
