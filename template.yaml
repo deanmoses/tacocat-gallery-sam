@@ -213,8 +213,8 @@ Resources:
       Handler: generateDerivedImageLambda.handler
       Environment:
         Variables:
-          OriginalImagesBucket: !Ref OriginalImagesBucket
-          DerivedImagesBucket: !Ref DerivedImagesBucket
+          ORIGINAL_IMAGES_BUCKET: !Ref OriginalImagesBucket
+          DERIVED_IMAGES_BUCKET: !Ref DerivedImagesBucket
           ORIGINAL_IMAGE_KEY: ${ID}
           IMAGE_PATH_ID_PATTERN: ^/i/(?<ID>\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/[a-zA-Z0-9_-]+\.(jpg|jpeg|gif|png))
           IMAGE_QUALITY: "80"
@@ -537,8 +537,8 @@ Resources:
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
-          OriginalImagesBucket: !Ref OriginalImagesBucket
-          DerivedImagesBucket: !Ref DerivedImagesBucket
+          ORIGINAL_IMAGES_BUCKET: !Ref OriginalImagesBucket
+          DERIVED_IMAGES_BUCKET: !Ref DerivedImagesBucket
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref OriginalImagesBucket

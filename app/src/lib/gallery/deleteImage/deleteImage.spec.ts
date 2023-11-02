@@ -1,6 +1,6 @@
 import { setTestEnv } from '../../lambda_utils/Env';
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, DeleteCommand, DeleteCommandOutput } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { deleteImage } from './deleteImage';
 import {
     DeleteObjectsCommand,
@@ -14,8 +14,8 @@ const mockS3Client = mockClient(S3Client);
 const mockDocClient = mockClient(DynamoDBDocumentClient);
 setTestEnv({
     GALLERY_ITEM_DDB_TABLE: 'notRealTable',
-    OriginalImagesBucket: 'notARealBucket',
-    DerivedImagesBucket: 'notARealBucket',
+    ORIGINAL_IMAGES_BUCKET: 'notARealBucket',
+    DERIVED_IMAGES_BUCKET: 'notARealBucket',
 });
 
 afterEach(() => {
