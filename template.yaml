@@ -241,7 +241,7 @@ Resources:
           - sharp
 
   # ---------------------------------------------------------------------------
-  # Lambda that gets latest album
+  # API Gateway lambda to get latest album
   # ---------------------------------------------------------------------------
   GetLatestAlbumFunction:
     Type: AWS::Serverless::Function
@@ -272,7 +272,7 @@ Resources:
           - getLatestAlbumLambda.ts
 
   # ---------------------------------------------------------------------------
-  # Lambda that retrieves album
+  # API Gateway lambda to retrieve album
   # ---------------------------------------------------------------------------
   GetAlbumFunction:
     Type: AWS::Serverless::Function
@@ -309,7 +309,7 @@ Resources:
           - getAlbumLambda.ts
 
   # ---------------------------------------------------------------------------
-  # Lambda that creates new album
+  # API Gateway lambda to create new album
   # ---------------------------------------------------------------------------
   CreateAlbumFunction:
     Type: AWS::Serverless::Function
@@ -342,7 +342,7 @@ Resources:
           - createAlbumLambda.ts
 
   # ---------------------------------------------------------------------------
-  # Lambda that updates existing album
+  # API Gateway lambda to update existing album
   # ---------------------------------------------------------------------------
   UpdateAlbumFunction:
     Type: AWS::Serverless::Function
@@ -380,7 +380,7 @@ Resources:
           - updateAlbumLambda.ts
 
   # ---------------------------------------------------------------------------
-  # Lambda to update existing image
+  # API Gateway lambda to update existing image
   # ---------------------------------------------------------------------------
   UpdateImageFunction:
     Type: AWS::Serverless::Function
@@ -418,7 +418,7 @@ Resources:
           - updateImageLambda.ts
 
   # ---------------------------------------------------------------------------
-  # Lambda to set album's thumbnail
+  # API Gateway lambda to set album's thumbnail
   # ---------------------------------------------------------------------------
   SetAlbumThumbnailFunction:
     Type: AWS::Serverless::Function
@@ -451,7 +451,7 @@ Resources:
           - setAlbumThumbnailLambda.ts
 
   # ---------------------------------------------------------------------------
-  # Lambda to recut a thumbnail
+  # API Gateway lambda to recut a thumbnail
   # ---------------------------------------------------------------------------
   RecutThumbnailFunction:
     Type: AWS::Serverless::Function
@@ -484,7 +484,7 @@ Resources:
           - recutThumbnailLambda.ts
 
   # ---------------------------------------------------------------------------
-  # Lambda to delete album
+  # API Gateway lambda to delete album
   # ---------------------------------------------------------------------------
   DeleteAlbumFunction:
     Type: AWS::Serverless::Function
@@ -507,7 +507,6 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref GalleryItemDDBTable
-
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -516,6 +515,45 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - deleteAlbumLambda.ts
+
+  # ---------------------------------------------------------------------------
+  # API Gateway lambda to delete image
+  # ---------------------------------------------------------------------------
+  DeleteImageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/src/lambdas/api/
+      Handler: deleteImageLambda.handler
+      Description: API Gateway function that deletes an image from DynamoDB and S3
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /image/{imagePath+}
+            Method: DELETE
+            RestApiId: !Ref ImageApi
+      #            Auth:
+      #              Authorizer: CognitoAuthorizer
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+          OriginalImagesBucket: !Ref OriginalImagesBucket
+          DerivedImagesBucket: !Ref DerivedImagesBucket
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GalleryItemDDBTable
+        - S3CrudPolicy:
+            BucketName: !Ref OriginalImagesBucket
+        - S3CrudPolicy:
+            BucketName: !Ref DerivedImagesBucket
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - deleteImageLambda.ts
 
   # ---------------------------------------------------------------------------
   # API Gateway Image API
