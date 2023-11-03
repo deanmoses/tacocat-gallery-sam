@@ -20,7 +20,6 @@ export type AlbumThumbnail = {
     description?: string;
     itemName?: string;
     parentPath?: string;
-    itemType?: string;
     updatedOn?: Date;
 };
 

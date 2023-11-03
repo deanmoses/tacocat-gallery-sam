@@ -22,7 +22,7 @@ export async function getLatestItemInAlbum(path: string): Promise<AlbumThumbnail
         ExpressionAttributeValues: {
             ':parentPath': path,
         },
-        ProjectionExpression: 'itemName,parentPath,itemType,updatedOn,title,description',
+        ProjectionExpression: 'itemName,parentPath,updatedOn,title,description',
         Limit: 1, // # of results to return
         ScanIndexForward: false, // sort results in descending order, i.e., newest first
     });
