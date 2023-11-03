@@ -26,6 +26,7 @@ export async function itemExists(path: string) {
             parentPath: pathParts.parent,
             itemName: pathParts.name,
         },
+        ProjectionExpression: 'parentPath', // Must get at least one field or else it returns ALL fields
     });
 
     const ddbClient = new DynamoDBClient({});
