@@ -76,10 +76,11 @@ async function removeImageAsAlbumThumbnail(imagePath: string) {
 
 /**
  * Delete image from S3, both original and any derived images.
+ * Does not touch DynamoDB
  *
  * @param imagePath Path of image, like /2001/12-31/image.jpg
  */
-async function deleteOriginalImageAndDerivativesFromS3(imagePath: string) {
+export async function deleteOriginalImageAndDerivativesFromS3(imagePath: string) {
     await deleteOriginalImageFromS3(imagePath);
     await deleteDerivedImagesFromS3(imagePath);
 }

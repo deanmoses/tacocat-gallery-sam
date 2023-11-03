@@ -15,6 +15,7 @@
         "@aws-sdk/client-s3": "^3.437.0",
         "@aws-sdk/lib-dynamodb": "^3.431.0",
         "@aws-sdk/lib-storage": "^3.438.0",
+        "@aws-sdk/util-dynamodb": "^3.441.0",
         "esbuild": "^0.19.5",
         "exifreader": "^4.15.0",
         "sharp": "^0.32.6"

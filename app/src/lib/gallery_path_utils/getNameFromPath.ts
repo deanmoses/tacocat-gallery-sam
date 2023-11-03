@@ -9,9 +9,9 @@ import { getParentAndNameFromPath } from './getParentAndNameFromPath';
  *  - /2001 returns 2001
  *  - / returns  ''
  *
- * @param {String} path a path of the format /2001/12-31/image.jpg, or a subset thereof
- * @returns {Object} of format {parent: STRING, name: STRING}
+ * @param path a path of the format /2001/12-31/image.jpg, or a subset thereof
+ * @returns name of leaf, like image.jpg
  */
-export function getParentFromPath(path: string) {
+export function getNameFromPath(path: string): string | undefined {
     return getParentAndNameFromPath(path).name;
 }
