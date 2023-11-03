@@ -36,3 +36,17 @@ function getImagePathRegex() {
 function getImagePathRegexString() {
     return /^\/\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/[a-zA-Z0-9_-]+\.(jpg|jpeg|gif|png)$/i;
 }
+
+/**
+ * Determine if specified string is a valid image name.
+ * Must not have a path.
+ *
+ * @param imageName image name like 'image.jpg'
+ */
+export function isValidImageName(imageName: string): boolean {
+    return new RegExp(getImageNameRegex()).test(imageName);
+}
+
+function getImageNameRegex() {
+    return /^[a-zA-Z0-9_-]+\.(jpg|jpeg|gif|png)$/i;
+}

@@ -1,4 +1,4 @@
-import { isValidAlbumPath, isValidImagePath } from './pathValidator';
+import { isValidAlbumPath, isValidImageName, isValidImagePath } from './pathValidator';
 
 describe('isValidAlbumPath', () => {
     const invalidAlbumPaths = [
@@ -136,6 +136,54 @@ describe('isValidImagePath', () => {
     validImagePaths.forEach((path) => {
         it(`Path should be valid: [${path}]`, () => {
             expect(isValidImagePath(path)).toStrictEqual(true);
+        });
+    });
+});
+
+describe('isValidImageName', () => {
+    const invalidImageNames = [
+        '',
+        '/',
+        'adf',
+        '2000',
+        '/2000',
+        '2000/',
+        '/2000/',
+        '2000/12-31',
+        '/2000/12-31/',
+        '2000/12-31/image.jpg',
+        '/2000/12-31/image.jpg',
+        '/2000/12-31/image',
+        'newName.pdf',
+        'newName.heic',
+        'newName.jpg ', // space at end
+        ' newName.jpg', // space at beginning
+        '/newName.jpg',
+        'newName.',
+        'newName',
+        '.jpg',
+        'a^b.jpg',
+        'a b.jpg',
+    ];
+    invalidImageNames.forEach((imageName) => {
+        test(`Name should be invalid: [${imageName}]`, async () => {
+            expect(isValidImageName(imageName)).toBe(false);
+        });
+    });
+
+    const validImageNames = [
+        'a.jpg',
+        'a.png',
+        'a.gif',
+        'a.JPG',
+        'newName.jpg',
+        'newName.jpeg',
+        'new-name.jpg',
+        'new_name.jpg',
+    ];
+    validImageNames.forEach((imageName) => {
+        test(`Name should be valid: [${imageName}]`, async () => {
+            expect(isValidImageName(imageName)).toBe(true);
         });
     });
 });
