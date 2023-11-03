@@ -104,11 +104,11 @@ describe('update', () => {
 
 describe('rename', () => {
     const newImageName = `renamed-image-${Date.now()}.jpg`;
-    const newImagePath = albumPath + newImageName;
 
     test('renameImage()', async () => {
         const actualImagePath = await renameImage(imagePath, newImageName);
-        expect(actualImagePath).toBe(newImagePath);
+        const expectedImagePath = albumPath + newImageName;
+        expect(actualImagePath).toBe(expectedImagePath);
     });
 
     test('getAlbum() contains renamed image', async () => {
@@ -129,16 +129,19 @@ describe('rename', () => {
         if (!!theChild) throw new Error(`Album still contains old image`);
     });
 
-    test('new image exists in originals bucket', async () => {
-        await expect(imageExistsInS3OriginalsBucket(newImagePath)).resolves.toBe(true);
+    test.todo('getAlbum() renamed image is thumb');
+
+    test('renamed image exists in originals bucket', async () => {
+        const expectedImagePath = albumPath + newImageName;
+        await expect(imageExistsInS3OriginalsBucket(expectedImagePath)).resolves.toBe(true);
     });
 
     test('old image no longer exists in originals bucket', async () => {
         await expect(imageExistsInS3OriginalsBucket(imagePath)).resolves.toBe(false);
     });
 
-    test.todo('old derived images no longer exist in S3');
-    test.todo('getLatestAlbum() has newx image as its thumbnail');
+    test.todo('old image no longer exists in derived bucket');
+    test.todo('getLatestAlbum() has new image as its thumbnail');
 });
 
 describe('delete', () => {
