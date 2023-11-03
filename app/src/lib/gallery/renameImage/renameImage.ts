@@ -66,6 +66,8 @@ function validateNewImageName(existingImagePath: string, newName: string) {
  * @param newImagePath Path of new image like /2001/12-31/newImage.jpg
  */
 async function copyImageToNewNameInS3(existingImagePath: string, newImagePath: string) {
+    console.info(`Rename image: copying original image in S3 from [${existingImagePath}] to [${newImagePath}]...`);
+
     // remove initial '/' from paths
     const existingImageObjectKey = existingImagePath.substring(1);
     const newlImageObjectKey = newImagePath.substring(1);
@@ -139,6 +141,8 @@ async function getOriginalImageFromDynamoDB(path: string): Promise<Record<string
  * @param entry Image entry retrieved from DynamoDB
  */
 async function moveImageInDynamoDB(oldPath: string, newName: string, entry: Record<string, unknown>) {
+    console.info(`Rename image: renaming image entry in DynamoDB from [${oldPath}] to [${newName}]...`);
+
     const oldPathParts = getParentAndNameFromPath(oldPath);
     entry['itemName'] = newName;
 
@@ -179,5 +183,7 @@ async function moveImageInDynamoDB(oldPath: string, newName: string, entry: Reco
  * @param oldImagePath Path of old image like /2001/12-31/previousName.jpg
  */
 async function deleteOldImageFromS3(oldImagePath: string) {
+    console.info(`Rename image: deleting old image from S3 [${oldImagePath}]...`);
+
     deleteOriginalImageAndDerivativesFromS3(oldImagePath);
 }
