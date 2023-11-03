@@ -19,7 +19,7 @@ export const handler: Handler = async (event: S3Event, context: Context, callbac
     ) {
         const msg = `Image processor: triggered by unexpected event [${record?.eventName}]. There's probably a misconfiguration.`;
         console.error(msg);
-        if (!!callback) callback(msg);
+        if (!!callback) callback(msg); // this prevents S3 from attempting to retry calling this lambda
     }
     // Don't handle files that aren't images in the right folder structure
     else {
@@ -27,7 +27,7 @@ export const handler: Handler = async (event: S3Event, context: Context, callbac
         if (!isValidImagePath(imagePath)) {
             const msg = `Image Processor: invalid image path [${imagePath}].  Probably Dean uploaded via AWS S3 Console`;
             console.error(msg);
-            if (!!callback) callback(msg);
+            if (!!callback) callback(msg); // this prevents S3 from attempting to retry calling this lambda
         }
     }
 
