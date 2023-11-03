@@ -128,7 +128,7 @@ async function setThumb(
         // file did do.
         if (e instanceof ConditionalCheckFailedException) {
             console.trace(
-                `Set Album Thumb: not setting album [${albumPath}]'s thumb to [${imagePath}] because album already has a thumb.`,
+                `Set Album Thumb: not setting album [${albumPath}]'s thumb to [${imagePath}] because album already has a thumb`,
             );
         } else {
             throw e;

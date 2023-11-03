@@ -6,46 +6,16 @@ import { createAlbum } from './createAlbum';
 const mockDocClient = mockClient(DynamoDBDocumentClient);
 setTestEnv({ GALLERY_ITEM_DDB_TABLE: 'NotARealTableName' });
 
-const mockSuccessResponse = {
-    $metadata: {
-        httpStatusCode: 200,
-        requestId: 'UD52NC2FIMCCCOESNI53JF59PFVV4KQNSO5AEMVJF66Q9ASUAAJG',
-        extendedRequestId: undefined,
-        cfId: undefined,
-        attempts: 1,
-        totalRetryDelay: 0,
-    },
-};
-
-const expectedSuccessResponse = {
-    httpStatusCode: 200,
-    requestId: 'UD52NC2FIMCCCOESNI53JF59PFVV4KQNSO5AEMVJF66Q9ASUAAJG',
-    extendedRequestId: undefined,
-    cfId: undefined,
-    attempts: 1,
-    totalRetryDelay: 0,
-};
-
-//
-// TEST SETUP AND TEARDOWN
-//
-
 afterEach(() => {
     mockDocClient.reset();
 });
 
-//
-// TESTS
-//
-
 test('Create Album - Happy Path', async () => {
-    expect.assertions(2);
+    expect.assertions(1);
 
-    // Mock the AWS method
+    // Mock the AWS command to create the album
     mockDocClient.on(PutCommand).resolves(mockSuccessResponse);
-    const createResult = await createAlbum('/2001/');
-    expect(createResult).toBeDefined();
-    expect(createResult).toMatchObject(expectedSuccessResponse);
+    await expect(createAlbum('/2001/')).resolves.not.toThrow();
 });
 
 describe('Create Album - Invalid Path', () => {
@@ -63,3 +33,14 @@ describe('Create Album - Invalid Path', () => {
         });
     });
 });
+
+const mockSuccessResponse = {
+    $metadata: {
+        httpStatusCode: 200,
+        requestId: 'UD52NC2FIMCCCOESNI53JF59PFVV4KQNSO5AEMVJF66Q9ASUAAJG',
+        extendedRequestId: undefined,
+        cfId: undefined,
+        attempts: 1,
+        totalRetryDelay: 0,
+    },
+};

@@ -1,4 +1,4 @@
-import { ConditionalCheckFailedException, DynamoDBClient, DynamoDBServiceException } from '@aws-sdk/client-dynamodb';
+import { ConditionalCheckFailedException, DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 import { isValidAlbumPath } from '../../gallery_path_utils/pathValidator';

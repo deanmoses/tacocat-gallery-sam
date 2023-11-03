@@ -30,7 +30,7 @@ export async function uploadImage(nameOfImageOnDisk: string, albumPath: string, 
     });
 
     // parallelUploads3.on('httpUploadProgress', (progress: unknown) => {
-    //     console.log(progress);
+    //     console.trace(progress);
     // });
 
     const results = await parallelUploads3.done();

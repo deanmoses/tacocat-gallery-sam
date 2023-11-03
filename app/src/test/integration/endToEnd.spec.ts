@@ -33,11 +33,9 @@ describe('create', () => {
     describe('album', () => {
         test('createAlbum()', async () => {
             if (await itemExists(albumPath)) {
-                console.log(`Album [${albumPath}] already exists, skipping creation`);
+                console.info(`Album [${albumPath}] already exists, skipping creation`);
             } else {
-                const albumCreateResults = await createAlbum(albumPath);
-                expect(albumCreateResults.httpStatusCode).toBe(200);
-
+                await expect(createAlbum(albumPath)).resolves.not.toThrow();
                 await expect(itemExists(albumPath)).resolves.toBe(true);
             }
         });

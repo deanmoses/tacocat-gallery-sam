@@ -23,11 +23,11 @@ export type LambdaFunctionUrlResult = APIGatewayProxyStructuredResultV2;
  * can't find the derived image in the S3 bucket of derived images.
  */
 export const handler = async (event: LambdaFunctionUrlEvent): Promise<LambdaFunctionUrlResult> => {
-    //console.info('getDerivedImageLambda event', event);
+    //console.debug('Generate Derived Image: event', event);
     try {
         const method = event.requestContext.http.method;
         const path = event.rawPath;
-        console.info(`${method} ${path}`);
+        console.trace(`Generate Derived Image: ${method} ${path}`);
         return await handleRequest(method, path);
     } catch (err) {
         console.error(err);
@@ -42,7 +42,7 @@ export async function handleRequest(method: string, path: string): Promise<Lambd
 
     const { id, error, ...params } = parsePath(path);
     if (error) {
-        console.error('Error: ' + error);
+        console.error('Generate Derived Image: error: ' + error);
     }
     if (error) return badRequest;
     if (!id) return notFound;

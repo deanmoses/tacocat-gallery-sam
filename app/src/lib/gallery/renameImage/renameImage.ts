@@ -9,7 +9,6 @@ import { getParentFromPath } from '../../gallery_path_utils/getParentFromPath';
 import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 import { itemExists } from '../itemExists/itemExists';
 import { deleteOriginalImageAndDerivativesFromS3 } from '../deleteImage/deleteImage';
-import { marshall } from '@aws-sdk/util-dynamodb';
 
 /**
  * Rename an image in both DynamoDB and S3.
@@ -25,6 +24,7 @@ import { marshall } from '@aws-sdk/util-dynamodb';
  * @returns Path of new image like /2001/12-31/newName.jpg
  */
 export async function renameImage(existingImagePath: string, newName: string): Promise<string> {
+    console.trace(`Rename Image: renaming [${existingImagePath}] to [${newName}]...`);
     if (!isValidImagePath(existingImagePath)) {
         throw new BadRequestException(`Malformed image path: [${existingImagePath}]`);
     }
@@ -66,7 +66,7 @@ function validateNewImageName(existingImagePath: string, newName: string) {
  * @param newImagePath Path of new image like /2001/12-31/newImage.jpg
  */
 async function copyImageToNewNameInS3(existingImagePath: string, newImagePath: string) {
-    console.info(`Rename image: copying original image in S3 from [${existingImagePath}] to [${newImagePath}]...`);
+    console.trace(`Rename Image: copying original image in S3 from [${existingImagePath}] to [${newImagePath}]...`);
 
     // remove initial '/' from paths
     const existingImageObjectKey = existingImagePath.substring(1);
@@ -87,7 +87,7 @@ async function copyImageToNewNameInS3(existingImagePath: string, newImagePath: s
                 `Unexpected state: image [${existingImagePath}] exists in database but not on filesystem.`,
             );
         }
-        console.error(`S3 error copying [${existingImageObjectKey}] to [${newlImageObjectKey}]`);
+        console.error(`Rename Image: error copying S3 object [${existingImageObjectKey}] to [${newlImageObjectKey}]`);
         throw e;
     }
 }
@@ -127,7 +127,7 @@ async function getOriginalImageFromDynamoDB(path: string): Promise<Record<string
         }
         return response.Item;
     } catch (e) {
-        console.error(`Error attempting to retrieve original image [${path}]from DynamoDB: `, e);
+        console.error(`Rename Image: error attempting to retrieve original image [${path}]from DynamoDB: `, e);
         throw e;
     }
 }
@@ -141,13 +141,10 @@ async function getOriginalImageFromDynamoDB(path: string): Promise<Record<string
  * @param entry Image entry retrieved from DynamoDB
  */
 async function moveImageInDynamoDB(oldPath: string, newName: string, entry: Record<string, unknown>) {
-    console.info(`Rename image: renaming image entry in DynamoDB from [${oldPath}] to [${newName}]...`);
+    console.trace(`Rename Image: renaming image entry in DynamoDB from [${oldPath}] to [${newName}]...`);
 
     const oldPathParts = getParentAndNameFromPath(oldPath);
     entry['itemName'] = newName;
-
-    // const marshalledEntry = marshall(entry);
-    // console.info('marshalled entry: ', marshalledEntry);
 
     const ddbCommand = new TransactWriteCommand({
         TransactItems: [
@@ -183,7 +180,6 @@ async function moveImageInDynamoDB(oldPath: string, newName: string, entry: Reco
  * @param oldImagePath Path of old image like /2001/12-31/previousName.jpg
  */
 async function deleteOldImageFromS3(oldImagePath: string) {
-    console.info(`Rename image: deleting old image from S3 [${oldImagePath}]...`);
-
+    console.trace(`Rename Image: deleting old image from S3 [${oldImagePath}]...`);
     deleteOriginalImageAndDerivativesFromS3(oldImagePath);
 }

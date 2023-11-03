@@ -26,9 +26,8 @@ export async function extractImageMetadata(bucket: string, objectKey: string): P
     if (tags.exif) {
         delete tags.exif['MakerNote'];
     }
-    //console.info('DateTimeOriginal: ', tags?.exif?.['DateTimeOriginal']?.description);
-
-    //console.info('IPTC', tags.iptc);
+    //console.debug('DateTimeOriginal: ', tags?.exif?.['DateTimeOriginal']?.description);
+    //console.debug('IPTC', tags.iptc);
 
     const image: ImageUpdateRequest = {};
     image.title = tags.iptc?.['Object Name']?.description;

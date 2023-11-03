@@ -12,9 +12,11 @@ import { isValidImagePath } from '../../gallery_path_utils/pathValidator';
  * @param imagePath Path of image to delete, like /2001/12-31/image.jpg
  */
 export async function deleteImage(imagePath: string) {
+    console.trace(`Delete Image: deleting image [${imagePath}]...`);
     await deleteImageFromDynamoDB(imagePath);
     await removeImageAsAlbumThumbnail(imagePath);
     await deleteOriginalImageAndDerivativesFromS3(imagePath);
+    console.trace(`Delete Image: deleted image [${imagePath}]`);
 }
 
 /**
@@ -23,6 +25,8 @@ export async function deleteImage(imagePath: string) {
  * @param imagePath Path of image, like /2001/12-31/image.jpg
  */
 async function deleteImageFromDynamoDB(imagePath: string) {
+    console.trace(`Delete Image: deleting from DynamoDB [${imagePath}]...`);
+
     if (!isValidImagePath(imagePath)) {
         throw new BadRequestException(`Malformed image path: [${imagePath}]`);
     }
@@ -50,6 +54,8 @@ async function deleteImageFromDynamoDB(imagePath: string) {
  * @param imagePath Path of image, like /2001/12-31/image.jpg
  */
 async function removeImageAsAlbumThumbnail(imagePath: string) {
+    console.trace(`Delete Image: removing image as any album thumbnail [${imagePath}]...`);
+
     // TODO: also try to update grandparent album
     const imagePathParts = getParentAndNameFromPath(imagePath);
     const albumPathParts = getParentAndNameFromPath(imagePathParts.parent);
@@ -64,10 +70,12 @@ async function removeImageAsAlbumThumbnail(imagePath: string) {
     const docClient = DynamoDBDocumentClient.from(ddbClient);
     try {
         await docClient.send(ddbCommand);
-        console.info(`Album [${imagePathParts.parent}]: removed image [${imagePath}] as its thumbnail`);
+        console.trace(`Delete Image: album [${imagePathParts.parent}]: removed image [${imagePath}] as its thumbnail`);
     } catch (e) {
         if (e instanceof ConditionalCheckFailedException) {
-            console.info(`Album [${imagePathParts.parent}] did not have image [${imagePath}] as its thumbnail`);
+            console.trace(
+                `Delete Image: album [${imagePathParts.parent}] did not have image [${imagePath}] as its thumbnail`,
+            );
         } else {
             throw e;
         }
@@ -91,6 +99,8 @@ export async function deleteOriginalImageAndDerivativesFromS3(imagePath: string)
  * @param imagePath Path of image, like /2001/12-31/image.jpg
  */
 async function deleteOriginalImageFromS3(imagePath: string) {
+    console.trace(`Delete Image: deleting original from S3 [${imagePath}]...`);
+
     // remove the starting '/' from path
     const originalImageObjectKey = imagePath.substring(1);
     const s3Command = new DeleteObjectCommand({
@@ -107,6 +117,8 @@ async function deleteOriginalImageFromS3(imagePath: string) {
  * @param imagePath Path of image, like /2001/12-31/image.jpg
  */
 async function deleteDerivedImagesFromS3(imagePath: string) {
+    console.trace(`Delete Image: deleting derived images from S3 [${imagePath}]...`);
+
     // Delete everything under i/2001/01-01/image.jpg/
     const derivedImagesPath = 'i' + imagePath + '/';
     await deleteS3Folder(getDerivedImagesBucketName(), derivedImagesPath);
@@ -133,7 +145,7 @@ async function deleteS3Folder(bucketName: string, folderPath: string): Promise<n
 
     // Do a bulk delete of the objects
     if (objectsToDelete.KeyCount) {
-        console.info(`Deleting [${objectsToDelete?.Contents?.length}] derived images...`);
+        console.trace(`Delete Image: deleting [${objectsToDelete?.Contents?.length}] derived images...`);
         const deleteCommand = new DeleteObjectsCommand({
             Bucket: bucketName,
             Delete: {
@@ -143,9 +155,7 @@ async function deleteS3Folder(bucketName: string, folderPath: string): Promise<n
         });
 
         const deletedObjects = await client.send(deleteCommand); // delete the files
-
-        console.info(`Deleted [${deletedObjects?.Deleted?.length}] derived images.`);
-
+        console.trace(`Delete Image: deleted [${deletedObjects?.Deleted?.length}] derived images.`);
         if (deletedObjects?.Errors) {
             deletedObjects.Errors.map((error) => console.error(`${error.Key} could not be deleted - ${error.Code}`));
         }

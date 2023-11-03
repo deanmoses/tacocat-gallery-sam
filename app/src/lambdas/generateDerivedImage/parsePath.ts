@@ -14,7 +14,7 @@ export type PathParams = OptimizingParams & {
 // example: /path/to/image/uuid/webp/300x400/fp=200,100/crop=10,20,400,540
 
 export const parsePath = (path: string): PathParams => {
-    //console.log('regex: ' + pathImageIdPattern);
+    //console.debug('regex: ' + pathImageIdPattern);
     const match = path.match(pathImageIdPattern);
     if (!match) return { error: 'missing image id' };
     // if (!path.startsWith(match[0]))
