@@ -2,6 +2,8 @@ import { extractImageMetadata } from './extractImageMetadata';
 import { createImage } from '../../lib/gallery/createImage/createImage';
 import { setImageAsParentAlbumThumbnailIfNoneExists } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
 import { isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
+import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
+import { getParentFromPath } from '../../lib/gallery_path_utils/getParentFromPath';
 
 /**
  * Process an file uploaded to S3.
@@ -24,6 +26,10 @@ export async function processImageUpload(bucket: string, key: string): Promise<v
     if (!bucket) {
         throw new Error(`Image Processor: invalid bucket name [${bucket}]`);
     }
+
+    console.trace(`Image Processor: ensuring album exists for image [${key}]`);
+    const albumPath = getParentFromPath(imagePath);
+    await createAlbum(albumPath, false /* don't throw exception if album doesn't exist */);
 
     console.trace(`Image Processor: extracting metadata from [${key}]`);
     const imageMetadata = await extractImageMetadata(bucket, key);
