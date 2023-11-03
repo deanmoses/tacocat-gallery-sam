@@ -1,0 +1,21 @@
+[SELECTS]
+
+SELECT parentPath, itemName, updatedOn, thumbnail.path 
+FROM "tacocat-gallery-sam-dev-GalleryItemDDBTable-IML0M4QPQOFY" 
+WHERE parentPath='/2001/' AND itemName='01-01' AND thumbnail.path='/2001/01-01/tswift.jpg'
+
+[UPDATES]
+
+UPDATE "tacocat-gallery-sam-dev-GalleryItemDDBTable-IML0M4QPQOFY"
+SET updatedOn='xxx'
+WHERE parentPath='/2001/' AND itemName='01-01' AND thumbnail.path='/2001/01-01/tswift.jpg'
+
+UPDATE "tacocat-gallery-sam-dev-GalleryItemDDBTable-IML0M4QPQOFY" 
+REMOVE thumbnail 
+SET updatedOn='2023-11-02T07:55:45.847Z' 
+WHERE parentPath='/2001/01-01/' AND itemName='tswift.jpg' AND thumbnail.path='/2001/01-01/tswift.jpg'
+
+[DYNAMODB CLI CHEAT SHEET]
+
+aws dynamodb execute-transaction --transact-statements  file://partiql.json
+aws dynamodb 
