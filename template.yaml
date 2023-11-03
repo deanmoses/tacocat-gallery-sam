@@ -642,7 +642,8 @@ Resources:
           Properties:
             Bucket: !Ref OriginalImagesBucket
             Events:
-              - "s3:ObjectCreated:*"
+              - s3:ObjectCreated:Put
+              - s3:ObjectCreated:CompleteMultipartUpload
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
