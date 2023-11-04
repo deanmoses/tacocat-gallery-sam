@@ -2,10 +2,6 @@ import path from 'path';
 import { selectMetadata } from './extractImageMetadata';
 import ExifReader from 'exifreader';
 
-test.todo('extract metadata from png');
-test.todo('extract metadata from gif');
-test.todo('extract metadata from heic');
-
 describe('selectMetadata', () => {
     const images = [
         {
