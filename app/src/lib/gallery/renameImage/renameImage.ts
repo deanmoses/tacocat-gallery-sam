@@ -1,7 +1,7 @@
 import { S3Client, CopyObjectCommand, NoSuchKey } from '@aws-sdk/client-s3';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
-import { isValidImageName, isValidImagePath, sanitizeImageName } from '../../gallery_path_utils/pathValidator';
+import { isValidImageNameStrict, isValidImagePath } from '../../gallery_path_utils/pathValidator';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName, getOriginalImagesBucketName } from '../../lambda_utils/Env';
 import { ServerException } from '../../lambda_utils/ServerException';
@@ -9,34 +9,40 @@ import { getParentFromPath } from '../../gallery_path_utils/getParentFromPath';
 import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 import { itemExists } from '../itemExists/itemExists';
 import { deleteOriginalImageAndDerivativesFromS3 } from '../deleteImage/deleteImage';
+import { getNameFromPath } from '../../gallery_path_utils/getNameFromPath';
 
 /**
  * Rename an image in both DynamoDB and S3.
  *
- * Only supports renaming within the same album, because
- * that's what's easier to implement on the front end.
- * I COULD implement this as a move and allow moving
- * to other albums, but since v1 of the UI won't
- * support it, I can build that support when I need it.
+ * Only supports renaming within the same album.
+ * I COULD implement this as a move and allow moving to other albums,
+ * but v1 of the UI won't support that.  I can build that support when
+ * I need it in the UI.
  *
- * @param existingImagePath Path of existing image like /2001/12-31/image.jpg
+ * @param oldImagePath Path of existing image like /2001/12-31/image.jpg
  * @param newName New name of image like newName.jpg
  * @returns Path of new image like /2001/12-31/newName.jpg
  */
-export async function renameImage(existingImagePath: string, newName: string): Promise<string> {
-    console.trace(`Rename Image: renaming [${existingImagePath}] to [${newName}]...`);
-    if (!isValidImagePath(existingImagePath)) {
-        throw new BadRequestException(`Malformed image path: [${existingImagePath}]`);
+export async function renameImage(oldImagePath: string, newName: string): Promise<string> {
+    console.trace(`Rename Image: renaming [${oldImagePath}] to [${newName}]...`);
+    if (!isValidImagePath(oldImagePath)) {
+        throw new BadRequestException(`Existing image path is invalid: [${oldImagePath}]`);
     }
-    validateNewImageName(existingImagePath, newName);
-    newName = sanitizeImageName(newName);
-    const newImagePath = getParentFromPath(existingImagePath) + newName;
-    if (!(await itemExists(existingImagePath))) {
-        throw new BadRequestException(`Image not found: [${existingImagePath}]`);
+    validateNewImageName(oldImagePath, newName);
+    const newImagePath = getParentFromPath(oldImagePath) + newName;
+    if (!(await itemExists(oldImagePath))) {
+        throw new BadRequestException(`Image not found: [${oldImagePath}]`);
     }
-    await copyImageToNewNameInS3(existingImagePath, newImagePath);
-    await renameImageInDynamoDB(existingImagePath, newName);
-    await deleteOldImageFromS3(existingImagePath);
+    if (await itemExists(newImagePath)) {
+        throw new BadRequestException(`There's already an image at [${newImagePath}]`);
+    }
+    await copyImageToNewNameInS3(oldImagePath, newImagePath);
+    await renameImageInDynamoDB(oldImagePath, newName);
+    // TODO: if image is being used as album's thumbnail, renames the entry in the album
+    // This should really be transactional with moving the image entry, but since it
+    // relies on a condition failing, the transaction would fail.  BZZZT.
+    await deleteOriginalImageAndDerivativesFromS3(oldImagePath);
+    console.trace(`Rename Image: renamed image from [${oldImagePath}] to [${newImagePath}]`);
     return newImagePath;
 }
 
@@ -48,8 +54,11 @@ export async function renameImage(existingImagePath: string, newName: string): P
  * @param newName New name of image like newName.jpg
  */
 function validateNewImageName(existingImagePath: string, newName: string) {
-    if (!isValidImageName(newName)) {
-        throw new BadRequestException(`Invalid image name: [${newName}]`);
+    if (!isValidImageNameStrict(newName)) {
+        throw new BadRequestException(`New image name is invalid: [${newName}]`);
+    }
+    if (newName === getNameFromPath(existingImagePath)) {
+        throw new BadRequestException(`New image name [${newName}] cannot be same as old one [${existingImagePath}]`);
     }
     const oldExtension = existingImagePath.split('.').pop();
     const newExtension = newName.split('.').pop();
@@ -88,7 +97,7 @@ async function copyImageToNewNameInS3(existingImagePath: string, newImagePath: s
                 `Unexpected state: image [${existingImagePath}] exists in database but not on filesystem.`,
             );
         }
-        console.error(`Rename Image: error copying S3 object [${existingImageObjectKey}] to [${newlImageObjectKey}]`);
+        console.error(`Error copying S3 object [${existingImageObjectKey}] to [${newlImageObjectKey}]`);
         throw e;
     }
 }
@@ -128,7 +137,7 @@ async function getOriginalImageFromDynamoDB(path: string): Promise<Record<string
         }
         return response.Item;
     } catch (e) {
-        console.error(`Rename Image: error attempting to retrieve original image [${path}]from DynamoDB: `, e);
+        console.error(`Error attempting to retrieve original image [${path}] from DynamoDB: `, e);
         throw e;
     }
 }
@@ -143,13 +152,12 @@ async function getOriginalImageFromDynamoDB(path: string): Promise<Record<string
  */
 async function moveImageInDynamoDB(oldPath: string, newName: string, entry: Record<string, unknown>) {
     console.trace(`Rename Image: renaming image entry in DynamoDB from [${oldPath}] to [${newName}]...`);
-
     const oldPathParts = getParentAndNameFromPath(oldPath);
     entry['itemName'] = newName;
-
+    entry['updatedOn'] = new Date().toISOString();
     const ddbCommand = new TransactWriteCommand({
         TransactItems: [
-            // Create entry in new location
+            // Create new entry
             {
                 Put: {
                     TableName: getDynamoDbTableName(),
@@ -168,19 +176,7 @@ async function moveImageInDynamoDB(oldPath: string, newName: string, entry: Reco
             },
         ],
     });
-
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);
     await docClient.send(ddbCommand);
-}
-
-/**
- * Delete the old image and any derivative images from S3.
- * Does not touch DynamoDB.
- *
- * @param oldImagePath Path of old image like /2001/12-31/previousName.jpg
- */
-async function deleteOldImageFromS3(oldImagePath: string) {
-    console.trace(`Rename Image: deleting old image from S3 [${oldImagePath}]...`);
-    deleteOriginalImageAndDerivativesFromS3(oldImagePath);
 }
