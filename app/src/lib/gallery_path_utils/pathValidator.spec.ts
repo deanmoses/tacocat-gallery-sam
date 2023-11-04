@@ -211,8 +211,6 @@ describe('isValidImageNameStrict', () => {
         '/image.jpg',
         'image.xxx', // unknown extension
         'image.pdf', // pdf
-        'image.gif', // gif
-        'image.png', // gif
         'image.heic', // heic
         'image.jpeg', // jpeg
         'image.jpg ', // space at end
@@ -242,7 +240,7 @@ describe('isValidImageNameStrict', () => {
         });
     });
 
-    const validImageNamesStrict = ['image.jpg', 'a.jpg', 'a_b.jpg'];
+    const validImageNamesStrict = ['image.jpg', 'a.jpg', 'a_b.jpg', 'image.gif', 'image.png'];
     validImageNamesStrict.forEach((imageName) => {
         test(`Should be valid: [${imageName}]`, async () => {
             expect(isValidImageNameStrict(imageName)).toBe(true);

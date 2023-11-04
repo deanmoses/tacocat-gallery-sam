@@ -62,7 +62,7 @@ export function isValidImageNameStrict(imageName: string): boolean {
 }
 
 function getImageNameStrictRegex() {
-    return /^[a-z0-9]+([a-z0-9_]*[a-z0-9]+)*\.(jpg)$/;
+    return /^[a-z0-9]+([a-z0-9_]*[a-z0-9]+)*\.(jpg|gif|png)$/;
 }
 
 /**
