@@ -1,4 +1,4 @@
-import { isValidAlbumPath, isValidImageName, isValidImagePath } from './pathValidator';
+import { isValidAlbumPath, isValidImageName, isValidImagePath, sanitizeImageName } from './pathValidator';
 
 describe('isValidAlbumPath', () => {
     const invalidAlbumPaths = [
@@ -184,6 +184,42 @@ describe('isValidImageName', () => {
     validImageNames.forEach((imageName) => {
         test(`Name should be valid: [${imageName}]`, async () => {
             expect(isValidImageName(imageName)).toBe(true);
+        });
+    });
+});
+
+describe('sanitizeImageName', () => {
+    const namePairs = [
+        { in: '', out: '' },
+        { in: 'image', out: 'image' },
+        { in: 'image.', out: 'image.' },
+        { in: 'image.png', out: 'image.png' },
+        { in: 'image.jpg', out: 'image.jpg' },
+        { in: 'IMAGE.jpg', out: 'image.jpg' },
+        { in: 'image.JPG', out: 'image.jpg' },
+        { in: 'image.jpeg', out: 'image.jpg' },
+        { in: 'image.JPEG', out: 'image.jpg' },
+        { in: '_image.jpg', out: 'image.jpg' },
+        { in: 'image_.jpg', out: 'image.jpg' },
+        { in: '-image.jpg', out: 'image.jpg' },
+        { in: 'image-.jpg', out: 'image.jpg' },
+        { in: '-image.jpg', out: 'image.jpg' },
+        { in: 'image-.jpg', out: 'image.jpg' },
+        { in: 'image .jpg', out: 'image.jpg' },
+        { in: ' image.jpg', out: 'image.jpg' },
+        { in: 'image!.jpg', out: 'image.jpg' },
+        { in: 'a-1.jpg', out: 'a_1.jpg' },
+        { in: 'a 1.jpg', out: 'a_1.jpg' },
+        { in: 'a*1.jpg', out: 'a_1.jpg' },
+        { in: 'a&1.jpg', out: 'a_1.jpg' },
+        { in: 'a*1.jpg', out: 'a_1.jpg' },
+        { in: 'a--1.jpg', out: 'a_1.jpg' },
+        { in: 'a__1.jpg', out: 'a_1.jpg' },
+        { in: 'image.invalidExtension', out: 'image.invalidextension' },
+    ];
+    namePairs.forEach((namePair) => {
+        test(`In: [${namePair.in}] Out: [${namePair.out}]`, () => {
+            expect(sanitizeImageName(namePair.in)).toBe(namePair.out);
         });
     });
 });

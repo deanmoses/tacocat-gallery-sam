@@ -50,3 +50,22 @@ export function isValidImageName(imageName: string): boolean {
 function getImageNameRegex() {
     return /^[a-zA-Z0-9_-]+\.(jpg|jpeg|gif|png)$/i;
 }
+
+/**
+ * Return a sanitized version of the specified image name.
+ *  - IMAGE.JPG -> image.jpg
+ *  - image-1.jpg -> image_1.jpg
+ *  - image 1.jpg -> image_1.jpg
+ * Does not check whether it's a valid image name for the gallery.
+ *
+ * @param imageName filename like some-image.jpg
+ */
+export function sanitizeImageName(imageName: string): string {
+    return (imageName || '')
+        .toLowerCase()
+        .replace(/\.jpeg$/, '.jpg') // jpeg -> jpg
+        .replace(/[^a-z0-9_\.]+/g, '_') // special chars to _
+        .replace(/_+/g, '_') // multple underscores to _
+        .replace(/^_/g, '') // remove leading underscore
+        .replace(/(_)\./g, '.'); // remove trailing underscore
+}
