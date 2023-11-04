@@ -52,6 +52,20 @@ function getImageNameRegex() {
 }
 
 /**
+ * Determine if specified string is a valid image name, strict.
+ * Must not have a path.
+ *
+ * @param imageName image name like 'image.jpg'
+ */
+export function isValidImageNameStrict(imageName: string): boolean {
+    return new RegExp(getImageNameStrictRegex()).test(imageName);
+}
+
+function getImageNameStrictRegex() {
+    return /^[a-z0-9]+([a-z0-9_]*[a-z0-9]+)*\.(jpg)$/;
+}
+
+/**
  * Return a sanitized version of the specified image name.
  *  - IMAGE.JPG -> image.jpg
  *  - image-1.jpg -> image_1.jpg
