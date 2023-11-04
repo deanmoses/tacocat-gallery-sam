@@ -1,7 +1,7 @@
 import { S3Client, CopyObjectCommand, NoSuchKey } from '@aws-sdk/client-s3';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
-import { isValidImageName, isValidImagePath } from '../../gallery_path_utils/pathValidator';
+import { isValidImageName, isValidImagePath, sanitizeImageName } from '../../gallery_path_utils/pathValidator';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName, getOriginalImagesBucketName } from '../../lambda_utils/Env';
 import { ServerException } from '../../lambda_utils/ServerException';
@@ -29,6 +29,7 @@ export async function renameImage(existingImagePath: string, newName: string): P
         throw new BadRequestException(`Malformed image path: [${existingImagePath}]`);
     }
     validateNewImageName(existingImagePath, newName);
+    newName = sanitizeImageName(newName);
     const newImagePath = getParentFromPath(existingImagePath) + newName;
     if (!(await itemExists(existingImagePath))) {
         throw new BadRequestException(`Image not found: [${existingImagePath}]`);

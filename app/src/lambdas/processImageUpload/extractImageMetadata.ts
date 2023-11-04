@@ -21,17 +21,18 @@ export async function extractImageMetadata(bucket: string, objectKey: string): P
     const stream = response.Body as Readable;
     const fileContents = Buffer.concat(await stream.toArray());
     const tags = ExifReader.load(fileContents, { expanded: true });
-    // The MakerNote tag can be really large. Remove it to lower memory
-    // usage if you're parsing a lot of files and saving the tags.
-    if (tags.exif) {
-        delete tags.exif['MakerNote'];
-    }
-    //console.debug('DateTimeOriginal: ', tags?.exif?.['DateTimeOriginal']?.description);
-    //console.debug('IPTC', tags.iptc);
 
-    const image: ImageUpdateRequest = {};
-    image.title = tags.iptc?.['Object Name']?.description;
-    image.description = tags.iptc?.['Caption/Abstract']?.description;
+    return selectMetadata(tags);
+}
+
+/**
+ * Extract the metadata to be saved to DynamoDB
+ */
+export function selectMetadata(tags: ExifReader.ExpandedTags): ImageUpdateRequest {
+    const image: ImageUpdateRequest = {
+        title: tags.iptc?.['Object Name']?.description || tags.iptc?.['Headline']?.description,
+        description: tags.iptc?.['Caption/Abstract']?.description,
+    };
     if (tags.iptc?.Keywords?.length) {
         image.tags = [];
         tags.iptc?.Keywords?.forEach((keyword) => {
