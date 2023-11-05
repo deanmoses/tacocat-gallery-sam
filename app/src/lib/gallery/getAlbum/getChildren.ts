@@ -8,7 +8,7 @@ import { getDynamoDbTableName } from '../../lambda_utils/Env';
  *
  * @param path Path of the album whose children are to be retrieved, like /2001/12-31/
  */
-export async function getChildren(path: string) {
+export async function getChildren(path: string): Promise<Record<string, unknown>[] | undefined> {
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);
     const tableName = getDynamoDbTableName();
