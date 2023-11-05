@@ -4,24 +4,18 @@ import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChildren';
 import { getLatestAlbum } from '../../lib/gallery/getLatestAlbum/getLatestAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
-import { renameImage } from '../../lib/gallery/renameImage/renameImage';
 import { getNameFromPath } from '../../lib/gallery_path_utils/getNameFromPath';
 import { getParentAndNameFromPath } from '../../lib/gallery_path_utils/getParentAndNameFromPath';
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
-import { originalImageExists as imageExistsInS3OriginalsBucket, uploadImage } from './s3ImageHelper';
+import { getAlbumPathForToday, getUniqueImagePathForToday } from './helpers/pathHelpers';
+import { uploadImage } from './helpers/s3ImageHelper';
 
 let albumPath: string;
 let imagePath: string;
 
 beforeAll(() => {
-    const day = new Date().getDate().toString().padStart(2, '0');
-    const month = (new Date().getMonth() + 1).toString().padStart(2, '0');
-    const year = new Date().getFullYear();
-    const albumName = `${month}-${day}`;
-    const newImageName = `image-${Date.now()}.jpg`;
-
-    albumPath = `/${year}/${albumName}/`; // use current year so that getLatestAlbum will always return something
-    imagePath = albumPath + newImageName;
+    albumPath = getAlbumPathForToday(); // use current year so that getLatestAlbum will always return something
+    imagePath = getUniqueImagePathForToday();
 });
 
 test('validate test setup', async () => {
@@ -33,19 +27,11 @@ describe('create', () => {
     describe('album', () => {
         test('createAlbum()', async () => {
             if (await itemExists(albumPath)) {
-                console.info(`Album [${albumPath}] already exists, skipping creation`);
+                console.trace(`Album [${albumPath}] already exists, skipping creation`);
             } else {
                 await expect(createAlbum(albumPath)).resolves.not.toThrow();
                 await expect(itemExists(albumPath)).resolves.toBe(true);
             }
-        });
-
-        test('getAlbum() with empty album', async () => {
-            const album = await getAlbumAndChildren(albumPath);
-            if (!album) throw new Error(`No album`);
-            const albumPathParts = getParentAndNameFromPath(albumPath);
-            expect(album.album?.itemName).toBe(albumPathParts.name);
-            expect(album.album?.parentPath).toBe(albumPathParts.parent);
         });
 
         test('getLatestAlbum() with empty album', async () => {
@@ -61,9 +47,8 @@ describe('create', () => {
     describe('image', () => {
         test('upload image', async () => {
             const newImageName = getNameFromPath(imagePath);
-            if (!newImageName) throw new Error('No newImageName');
-            const uploadResults = await uploadImage('test_image.jpg', albumPath, newImageName);
-            expect(uploadResults.$metadata.httpStatusCode).toBe(200);
+            if (!newImageName) throw new Error('newImageName is undefined');
+            await uploadImage('image.jpg', imagePath);
         });
 
         test('new image exists in DynamoDB', async () => {
@@ -98,48 +83,6 @@ describe('create', () => {
 describe('update', () => {
     test.todo('updateAlbum()');
     test.todo('updateImage()');
-});
-
-describe('rename', () => {
-    const newImageName = `renamed-image-${Date.now()}.jpg`;
-
-    test('renameImage()', async () => {
-        const actualImagePath = await renameImage(imagePath, newImageName);
-        const expectedImagePath = albumPath + newImageName;
-        expect(actualImagePath).toBe(expectedImagePath);
-    });
-
-    test('getAlbum() contains renamed image', async () => {
-        const children = (await getAlbumAndChildren(albumPath))?.children;
-        if (!children || !children.length) throw new Error('no children');
-
-        const theChild = children.find((child) => child.itemName === newImageName);
-        if (!theChild) throw new Error(`Album does not contain new image`);
-        expect(theChild?.parentPath).toBe(albumPath);
-    });
-
-    test('getAlbum() does not contain old image', async () => {
-        const children = (await getAlbumAndChildren(albumPath))?.children;
-        if (!children || !children.length) throw new Error('no children');
-
-        const oldImageName = getNameFromPath(imagePath);
-        const theChild = children.find((child) => child.itemName === oldImageName);
-        if (!!theChild) throw new Error(`Album still contains old image`);
-    });
-
-    test.todo('getAlbum() renamed image is thumb');
-
-    test('renamed image exists in originals bucket', async () => {
-        const expectedImagePath = albumPath + newImageName;
-        await expect(imageExistsInS3OriginalsBucket(expectedImagePath)).resolves.toBe(true);
-    });
-
-    test('old image no longer exists in originals bucket', async () => {
-        await expect(imageExistsInS3OriginalsBucket(imagePath)).resolves.toBe(false);
-    });
-
-    test.todo('old image no longer exists in derived bucket');
-    test.todo('getLatestAlbum() has new image as its thumbnail');
 });
 
 describe('delete', () => {

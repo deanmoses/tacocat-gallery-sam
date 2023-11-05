@@ -2,23 +2,21 @@ import * as fs from 'fs';
 import path from 'path';
 import { HeadObjectCommand, NotFound, S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
-import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
-import { getOriginalImagesBucketName } from '../../lib/lambda_utils/Env';
+import { isValidImagePath } from '../../../lib/gallery_path_utils/pathValidator';
+import { getOriginalImagesBucketName } from '../../../lib/lambda_utils/Env';
 
 /**
  * Upload specified image to the Original Images S3 bucket.
  *
  * @param nameOfImageOnDisk name of an image in the test images folder
- * @param albumPath path of album in which to upload it, such as /2001/12-31/
- * @param newNameOfImage name to save as in S3.  If not specified, uses name of image on disk
+ * @param imagePath path of imagate to which to upload it, such as /2001/12-31/image.jpg
  */
-export async function uploadImage(nameOfImageOnDisk: string, albumPath: string, newNameOfImage: string) {
-    if (!isValidAlbumPath(albumPath)) throw new Error(`Invalid album path: [${albumPath}]`);
-
-    const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/', nameOfImageOnDisk);
+export async function uploadImage(nameOfImageOnDisk: string, imagePath: string) {
+    if (!isValidImagePath(imagePath)) throw new Error(`Invalid image path: [${imagePath}]`);
+    const filePath = path.resolve(__dirname, '..', '..', 'data/images/', nameOfImageOnDisk);
     const fileStream = fs.createReadStream(filePath);
-    const key = albumPath.substring(1) + (!newNameOfImage ? nameOfImageOnDisk : newNameOfImage);
-    const parallelUploads3 = new Upload({
+    const key = imagePath.substring(1);
+    const upload = new Upload({
         params: {
             Bucket: getOriginalImagesBucketName(),
             Key: key,
@@ -29,12 +27,14 @@ export async function uploadImage(nameOfImageOnDisk: string, albumPath: string, 
         client: new S3Client({}),
     });
 
-    // parallelUploads3.on('httpUploadProgress', (progress: unknown) => {
+    // upload.on('httpUploadProgress', (progress: unknown) => {
     //     console.trace(progress);
     // });
 
-    const results = await parallelUploads3.done();
-    return results;
+    const results = await upload.done();
+    if (results.$metadata.httpStatusCode != 200) {
+        throw Error(`Got non-200 status code [${results.$metadata.httpStatusCode}] uploading image`);
+    }
 }
 
 /**
