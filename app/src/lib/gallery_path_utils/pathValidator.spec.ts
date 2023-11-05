@@ -240,7 +240,7 @@ describe('isValidImageNameStrict', () => {
         });
     });
 
-    const validImageNamesStrict = ['image.jpg', 'a.jpg', 'a_b.jpg', 'image.gif', 'image.png'];
+    const validImageNamesStrict = ['image.jpg', 'a.jpg', 'a_b.jpg', 'image1_renamed.jpg', 'image.gif', 'image.png'];
     validImageNamesStrict.forEach((imageName) => {
         test(`Should be valid: [${imageName}]`, async () => {
             expect(isValidImageNameStrict(imageName)).toBe(true);
