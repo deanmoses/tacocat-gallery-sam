@@ -33,7 +33,7 @@ test('Parent album was created', async () => {
     if (!(await itemExists(albumPath))) throw new Error(`Album [${albumPath}] does not exist`);
 });
 
-test('Granparent album was created', async () => {
+test('Grandparent album was created', async () => {
     if (!(await itemExists(yearPath))) throw new Error(`Album [${yearPath}] does not exist`);
 });
 
