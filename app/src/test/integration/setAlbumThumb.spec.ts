@@ -12,21 +12,17 @@ const imagePath1 = `${albumPath}image1.jpg`;
 const imagePath2 = `${albumPath}image2.jpg`;
 
 beforeAll(async () => {
-    if (await itemExists(albumPath)) throw new Error(`Album [${albumPath}] cannot exist at start of this test suite`);
-    await createAlbum(albumPath);
-    await uploadImage('image.jpg', imagePath1);
-    await uploadImage('image.jpg', imagePath2);
-    await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
-}, 10000 /* increase Jest's timeout */);
-
-afterAll(async () => {
-    await cleanUpAlbum(albumPath);
-});
-
-test('Validate test setup', async () => {
     expect(isValidAlbumPath(albumPath)).toBe(true);
     expect(isValidImagePath(imagePath1)).toBe(true);
     expect(isValidImagePath(imagePath2)).toBe(true);
+
+    if (await itemExists(albumPath)) throw new Error(`Album [${albumPath}] cannot exist at start of this test suite`);
+
+    await createAlbum(albumPath);
+    await uploadImage('image.jpg', imagePath1);
+    await uploadImage('image.jpg', imagePath2);
+
+    await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
 
     await expect(itemExists(albumPath)).resolves.toBe(true);
     await expect(itemExists(imagePath1)).resolves.toBe(true);
@@ -34,6 +30,10 @@ test('Validate test setup', async () => {
 
     await expect(imageExistsInOriginalsBucket(imagePath1)).resolves.toBe(true);
     await expect(imageExistsInOriginalsBucket(imagePath2)).resolves.toBe(true);
+}, 10000 /* increase Jest's timeout */);
+
+afterAll(async () => {
+    await cleanUpAlbum(albumPath);
 });
 
 test('Invalid Thumbnail', async () => {
