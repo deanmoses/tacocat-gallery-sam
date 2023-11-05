@@ -1,5 +1,5 @@
 import { S3Client, CopyObjectCommand, NoSuchKey } from '@aws-sdk/client-s3';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, ExecuteStatementCommand, ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
 import { isValidImageNameStrict, isValidImagePath } from '../../gallery_path_utils/pathValidator';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
@@ -24,7 +24,7 @@ import { getNameFromPath } from '../../gallery_path_utils/getNameFromPath';
  * @returns Path of new image like /2001/12-31/newName.jpg
  */
 export async function renameImage(oldImagePath: string, newName: string): Promise<string> {
-    console.trace(`Rename Image: renaming [${oldImagePath}] to [${newName}]...`);
+    console.info(`Rename Image: renaming [${oldImagePath}] to [${newName}]...`);
     if (!isValidImagePath(oldImagePath)) {
         throw new BadRequestException(`Existing image path is invalid: [${oldImagePath}]`);
     }
@@ -38,11 +38,8 @@ export async function renameImage(oldImagePath: string, newName: string): Promis
     }
     await copyImageToNewNameInS3(oldImagePath, newImagePath);
     await renameImageInDynamoDB(oldImagePath, newName);
-    // TODO: if image is being used as album's thumbnail, renames the entry in the album
-    // This should really be transactional with moving the image entry, but since it
-    // relies on a condition failing, the transaction would fail.  BZZZT.
     await deleteOriginalImageAndDerivativesFromS3(oldImagePath);
-    console.trace(`Rename Image: renamed image from [${oldImagePath}] to [${newImagePath}]`);
+    console.info(`Rename Image: renamed image from [${oldImagePath}] to [${newImagePath}]`);
     return newImagePath;
 }
 
@@ -76,7 +73,7 @@ function validateNewImageName(existingImagePath: string, newName: string) {
  * @param newImagePath Path of new image like /2001/12-31/newImage.jpg
  */
 async function copyImageToNewNameInS3(existingImagePath: string, newImagePath: string) {
-    console.trace(`Rename Image: copying original image in S3 from [${existingImagePath}] to [${newImagePath}]...`);
+    console.info(`Rename Image: copying original image in S3 from [${existingImagePath}] to [${newImagePath}]...`);
 
     // remove initial '/' from paths
     const existingImageObjectKey = existingImagePath.substring(1);
@@ -111,8 +108,52 @@ async function copyImageToNewNameInS3(existingImagePath: string, newImagePath: s
  * @param newName New name of image like newName.jpg
  */
 async function renameImageInDynamoDB(imagePath: string, newName: string) {
-    const imageEntry = await getOriginalImageFromDynamoDB(imagePath);
-    await moveImageInDynamoDB(imagePath, newName, imageEntry);
+    // TODO: these two methods should be a single method done in a single
+    // transaction.  However, since updating the album entries rely on a
+    // a condition failing, the transaction would fail.  BZZZT.
+    await moveImageInDynamoDB(imagePath, newName); // updates just the image entry
+    await renameImageInAlbumThumbs(imagePath, newName); // updates any usages of the image as an album thumbnail
+}
+
+/**
+ * Rename specified entry in DynamoDB.
+ * Does not update any usages of the image as an album thumbnail (unfortunately)
+ * Does not touch S3.
+ *
+ * @param oldPath Path of existing image like /2001/12-31/image.jpg
+ * @param newName New name of image like newName.jpg
+ * @param entry Image entry retrieved from DynamoDB
+ */
+async function moveImageInDynamoDB(oldPath: string, newName: string) {
+    console.info(`Rename Image: renaming image entry in DynamoDB from [${oldPath}] to [${newName}]...`);
+    const oldPathParts = getParentAndNameFromPath(oldPath);
+    const imageEntry = await getOriginalImageFromDynamoDB(oldPath);
+    imageEntry['itemName'] = newName;
+    imageEntry['updatedOn'] = new Date().toISOString();
+    const ddbCommand = new TransactWriteCommand({
+        TransactItems: [
+            // Create new entry
+            {
+                Put: {
+                    TableName: getDynamoDbTableName(),
+                    Item: imageEntry,
+                },
+            },
+            // Delete old entry
+            {
+                Delete: {
+                    TableName: getDynamoDbTableName(),
+                    Key: {
+                        parentPath: oldPathParts.parent,
+                        itemName: oldPathParts.name,
+                    },
+                },
+            },
+        ],
+    });
+    const ddbClient = new DynamoDBClient({});
+    const docClient = DynamoDBDocumentClient.from(ddbClient);
+    await docClient.send(ddbCommand);
 }
 
 /**
@@ -143,40 +184,40 @@ async function getOriginalImageFromDynamoDB(path: string): Promise<Record<string
 }
 
 /**
- * Rename specified entry in DynamoDB.
+ * If renamed image is being used as the thumbnail of a parent album, rename the album's entry.
+ * This does not rename the image's own entry, just any album's entry that uses it as a thumb.
  * Does not touch S3.
  *
- * @param oldPath Path of existing image like /2001/12-31/image.jpg
- * @param newName New name of image like newName.jpg
- * @param entry Image entry retrieved from DynamoDB
+ * @param oldImagePath Path of existing image like /2001/12-31/image.jpg
+ * @param newImageName New name of image like new_name.jpg
  */
-async function moveImageInDynamoDB(oldPath: string, newName: string, entry: Record<string, unknown>) {
-    console.trace(`Rename Image: renaming image entry in DynamoDB from [${oldPath}] to [${newName}]...`);
-    const oldPathParts = getParentAndNameFromPath(oldPath);
-    entry['itemName'] = newName;
-    entry['updatedOn'] = new Date().toISOString();
-    const ddbCommand = new TransactWriteCommand({
-        TransactItems: [
-            // Create new entry
-            {
-                Put: {
-                    TableName: getDynamoDbTableName(),
-                    Item: entry,
-                },
-            },
-            // Delete old entry
-            {
-                Delete: {
-                    TableName: getDynamoDbTableName(),
-                    Key: {
-                        parentPath: oldPathParts.parent,
-                        itemName: oldPathParts.name,
-                    },
-                },
-            },
-        ],
+async function renameImageInAlbumThumbs(oldImagePath: string, newImageName: string): Promise<void> {
+    console.info(`Rename Image: renaming any usage of the image as an album thumbnail [${oldImagePath}]...`);
+
+    // TODO: also rename in grandparent album !!
+
+    const oldImagePathParts = getParentAndNameFromPath(oldImagePath);
+    const albumPath = oldImagePathParts.parent;
+    const albumPathParts = getParentAndNameFromPath(albumPath);
+    const newImagePath = albumPath + newImageName;
+    const ddbCommand = new ExecuteStatementCommand({
+        Statement:
+            `UPDATE "${getDynamoDbTableName()}"` +
+            // TODO: set thumbnail.fileUpdatedOn !!!
+            ` SET thumbnail.path='${newImagePath}'` +
+            ` SET updatedOn='${new Date().toISOString()}'` +
+            ` WHERE parentPath='${albumPathParts.parent}' AND itemName='${albumPathParts.name}' AND thumbnail.path='${oldImagePath}'`,
     });
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);
-    await docClient.send(ddbCommand);
+    try {
+        await docClient.send(ddbCommand);
+        console.info(`Rename Image: album [${albumPath}]: renamed image [${newImagePath}] as its thumbnail`);
+    } catch (e) {
+        if (e instanceof ConditionalCheckFailedException) {
+            console.info(`Rename Image: album [${albumPath}] did not have image [${oldImagePath}] as its thumbnail`);
+        } else {
+            throw e;
+        }
+    }
 }
