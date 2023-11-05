@@ -5,11 +5,20 @@ export type AlbumResponse = {
     children?: Album[];
 };
 
+export enum GalleryItemType {
+    album = 'album',
+    image = 'image',
+}
 export type Album = {
     title?: string;
+    description?: string;
+    itemType?: GalleryItemType;
     itemName?: string;
     parentPath?: string;
+    updatedOn?: string;
     thumbnail?: AlbumThumbnailEntry;
+    tags?: string[];
+    published?: boolean;
 };
 
 export type AlbumThumbnailEntry = {
@@ -38,7 +47,7 @@ export type AlbumUpdateRequest = {
 export type ImageUpdateRequest = {
     title?: string;
     description?: string;
-    tags?: Array<string>;
+    tags?: string[];
 };
 
 /**

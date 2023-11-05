@@ -43,9 +43,8 @@ test('Album contains image', async () => {
     const imageName = reallyGetNameFromPath(imagePath);
     const image = findImage(album, imageName);
     if (!image) throw new Error(`Did not find child image`);
-    expect(image?.parentPath).toBe(albumPath);
+    expect(image.parentPath).toBe(albumPath);
     expect(image.itemName).toBe(imageName);
     expect(image.title).toBe('Image Title');
+    expect(image.tags?.sort()).toEqual(['test1', 'test2', 'test3'].sort());
 });
-
-test.todo('Test that image uploaded created the correct tags from the IPTC metadata');

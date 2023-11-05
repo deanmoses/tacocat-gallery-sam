@@ -6,11 +6,19 @@ SELECT *
 FROM "tacocat-gallery-sam-dev-GalleryItemDDBTable-IML0M4QPQOFY" 
 WHERE parentPath='/2001/' AND itemName='01-01'
 
+-- GET AN ALBUM'S IMAGES
+
+SELECT parentPath, itemName, tags
+FROM "tacocat-gallery-sam-dev-GalleryItemDDBTable-IML0M4QPQOFY" 
+WHERE parentPath='/2023/01-01/' 
+
+
 -- GET WHETHER AN ALBUM IS USING AN IMAGE AS IT'S THUMBNAIL
 
 SELECT parentPath, itemName, updatedOn, thumbnail.path 
 FROM "tacocat-gallery-sam-dev-GalleryItemDDBTable-IML0M4QPQOFY" 
 WHERE parentPath='/2001/' AND itemName='01-01' AND thumbnail.path='/2001/01-01/tswift.jpg'
+
 
 -- UPDATE ATTRIBUTES
 
