@@ -63,6 +63,9 @@ describe('Invalid New Image Names', () => {
         '__.jpg',
         '_image.jpg', // _ at beginning
         'image_.jpg', // _ at end
+        'IMAGE.JPG', // capitals
+        'image.JPG', // capitals
+        'IMAGE.jpg', // capitals
     ];
     imageNames.forEach((imageName) => {
         test(`Invalid: [${imageName}]`, async () => {
