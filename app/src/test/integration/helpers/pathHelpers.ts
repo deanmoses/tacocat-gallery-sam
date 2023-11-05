@@ -1,3 +1,5 @@
+import { getNameFromPath } from '../../../lib/gallery_path_utils/getNameFromPath';
+
 /**
  * Get path of an album for today's date
  *
@@ -19,4 +21,17 @@ export function getAlbumPathForToday(): string {
 export function getUniqueImagePathForToday(imageNamePrefix: string = 'image-'): string {
     const newImageName = `${imageNamePrefix}${Date.now()}.jpg`;
     return getAlbumPathForToday() + newImageName;
+}
+
+/**
+ * Same as getNameFromPath(), but throws error if there's no name.
+ * Useful so that tests don't have to always be testing for the existence of the path.
+ *
+ * @param path album or image path of the format /2001/12-31/image.jpg, or a subset thereof
+ * @returns leaf name
+ */
+export function reallyGetNameFromPath(path: string): string {
+    const name = getNameFromPath(path);
+    if (!name) throw new Error(`There was no leaf name in path [${path}]`);
+    return name;
 }
