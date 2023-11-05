@@ -23,9 +23,9 @@ WHERE parentPath='/' AND itemName='2018'
 -- RENAME IMAGE: UPDATE ALBUM'S USAGE OF IMAGE AS THUMBNAIL
 
 UPDATE "tacocat-gallery-sam-dev-GalleryItemDDBTable-IML0M4QPQOFY"
-TODO
+SET thumbnail.path='/2001/01-01/NEW_NAME.jpg'
 SET updatedOn='2023-11-02T07:55:45.847Z' 
-WHERE parentPath='/2001/' AND itemName='01-01' AND thumbnail.path='/2001/01-01/tswift.jpg'
+WHERE parentPath='/2001/' AND itemName='01-01' AND thumbnail.path='/2001/01-01/OLD_NAME.jpg'
 
 -- DELETE IMAGE: REMOVE IMAGE ENTRY
 
