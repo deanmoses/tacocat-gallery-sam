@@ -17,7 +17,6 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         const albumPath = getAlbumPath(event);
         const body = getBodyAsJson(event);
         const imagePath = body.imagePath;
-        console.info(`Set Album Thumb: setting album [${albumPath}] thumbnail to [${imagePath}]`);
         await setAlbumThumbnail(albumPath, imagePath);
         return respondSuccessMessage(`Album [${albumPath}] thumbnail set to [${imagePath}]`);
     } catch (e) {

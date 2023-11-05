@@ -11,6 +11,7 @@ import { itemExists } from '../itemExists/itemExists';
  * have a thumbnail.
  *
  * @param imagePath Path of image like /2001/12-31/image.jpg
+ * @returns True if album thumbnail was set; false if album already had thumb
  */
 export async function setImageAsParentAlbumThumbnailIfNoneExists(imagePath: string): Promise<boolean> {
     const imagePathParts = getParentAndNameFromPath(imagePath);
@@ -24,12 +25,14 @@ export async function setImageAsParentAlbumThumbnailIfNoneExists(imagePath: stri
  * @param albumPath Path of album like /2001/12-31/
  * @param imagePath Path of image like /2001/12-31/image.jpg
  * @param replaceExistingThumb true: replace existing thumbnail, if one exists (the default behavior)
+ * @returns True if album thumbnail was set; false if album already had thumb
  */
 export async function setAlbumThumbnail(
     albumPath: string,
     imagePath: string,
     replaceExistingThumb = true,
 ): Promise<boolean> {
+    console.info(`Set Album Thumb: setting album [${albumPath}] thumbnail to [${imagePath}]...`);
     if (!isValidAlbumPath(albumPath)) {
         throw new BadRequestException(`Error setting album thumbnail. Invalid album path: [${albumPath}]`);
     }
@@ -48,7 +51,9 @@ export async function setAlbumThumbnail(
 
     const image = await getImage(imagePath);
     const thumbnailUpdatedOn = image?.thumbnail ? image.thumbnail?.updatedOn : image?.updatedOn;
-    return await setThumb(albumPath, imagePath, replaceExistingThumb, thumbnailUpdatedOn);
+    const thumbWasReplaced = await setThumb(albumPath, imagePath, replaceExistingThumb, thumbnailUpdatedOn);
+    console.info(`Set Album Thumb: set album [${albumPath}] thumbnail to [${imagePath}]`);
+    return thumbWasReplaced;
 }
 
 /**
@@ -88,6 +93,7 @@ async function getImage(imagePath: string) {
  * @param imagePath Path of the image like /2001/12-31/image.jpg
  * @param replaceExistingThumb true: replace existing thumbnail, if one exists
  * @param imageUpdatedOn ISO 8601 timestamp of when image was last updated
+ * @returns True if album thumbnail was set; false if album already had thumb
  */
 async function setThumb(
     albumPath: string,
