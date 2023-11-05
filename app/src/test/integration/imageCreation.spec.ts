@@ -58,7 +58,7 @@ test('delete all images in album', async () => {
         const childPath = child.parentPath + child.itemName;
         await expect(deleteImage(childPath)).resolves.not.toThrow();
     }
-}, 15000 /* increase Jest's timeout */);
+});
 
 test('delete album', async () => {
     await expect(deleteAlbum(albumPath)).resolves.not.toThrow();
