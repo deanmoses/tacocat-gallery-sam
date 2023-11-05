@@ -3,17 +3,23 @@ import { deleteAlbum } from '../../lib/gallery/deleteAlbum/deleteAlbum';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChildren';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { getParentAndNameFromPath } from '../../lib/gallery_path_utils/getParentAndNameFromPath';
+import { cleanUpAlbum } from './helpers/albumHelpers';
 
-// I'm picking an album at random here, in the hope that it doesn't exist.
-// Because this test is about creating and deleting an album without images.
-const albumPath = '/1962/08-13/';
+const albumPath = '/1962/08-13/'; // unique to this suite to prevent pollution
+
+beforeAll(async () => {
+    if (await itemExists(albumPath)) throw new Error(`Album [${albumPath}] cannot exist at start of this test suite`);
+});
+
+afterAll(async () => {
+    await cleanUpAlbum(albumPath);
+});
 
 it('fails on invalid album path', async () => {
     await expect(createAlbum('/2001/0101/')).rejects.toThrow(/invalid.*path/i);
 });
 
-it('suceeds', async () => {
-    if (await itemExists(albumPath)) throw Error(`Album [${albumPath}] already exists, can't do test`);
+it('succeeds', async () => {
     await expect(createAlbum(albumPath)).resolves.not.toThrow();
     await expect(itemExists(albumPath)).resolves.toBe(true);
 });
