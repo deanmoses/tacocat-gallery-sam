@@ -68,32 +68,32 @@ test('GetAlbum() should reflect rename', async () => {
     if (!album) throw new Error('no album');
     if (!album?.children) throw new Error('no children');
 
-    //
     // Ensure album doesn't contain old image
-    //
-    if (findImage(album, imagePath1)) throw new Error(`Album still contains old image`);
+    const oldImageName = getNameFromPath(imagePath1);
+    if (!oldImageName) throw 'no old image name';
+    if (findImage(album, oldImageName)) throw new Error(`Album still contains old image [${oldImageName}]`);
 
-    //
     // Ensure album contains new image
-    //
-    const renamedImage = findImage(album, renameImagePath1);
-    console.log('children: ', album.children);
-    if (!renamedImage) throw new Error(`Album does not contain new image`);
+    const newImageName = getNameFromPath(renameImagePath1);
+    if (!newImageName) throw 'no new image name';
+    const renamedImage = findImage(album, newImageName);
+    if (!renamedImage) throw new Error(`Album does not contain new image [${newImageName}]`);
+    expect(renamedImage.itemName).toBe(newImageName);
     expect(renamedImage.parentPath).toBe(getParentFromPath(renameImagePath1));
 });
 
-test('originals bucket should contain new image', async () => {
+test('Originals bucket should contain new image', async () => {
     await expect(originalImageExists(renameImagePath1)).resolves.toBe(true);
 });
 
-test('originals bucket should not contain old image', async () => {
+test('Originals bucket should not contain old image', async () => {
     await expect(originalImageExists(imagePath1)).resolves.toBe(false);
 });
 
-test.todo('derived images bucket should no longer contain old image');
-test.todo("album's thumbnail should be the renamed image");
-test.todo("grandparent album's thumbnail should be the renamed image");
-test.todo('getLatestAlbum() has new image as its thumbnail');
+test.todo('Derived images bucket should no longer contain old image');
+test.todo("Album's thumbnail should be the renamed image");
+test.todo("Grandparent album's thumbnail should be the renamed image");
+test.todo('GetLatestAlbum() has new image as its thumbnail');
 
 function findImage(album: AlbumResponse, imageName: string): Album | undefined {
     return album?.children?.find((child) => child.itemName === imageName);
