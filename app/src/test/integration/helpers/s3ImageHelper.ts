@@ -28,7 +28,7 @@ export async function uploadImage(nameOfImageOnDisk: string, imagePath: string) 
     });
 
     // upload.on('httpUploadProgress', (progress: unknown) => {
-    //     console.trace(progress);
+    //     console.info(progress);
     // });
 
     const results = await upload.done();

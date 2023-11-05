@@ -27,7 +27,7 @@ describe('create', () => {
     describe('album', () => {
         test('createAlbum()', async () => {
             if (await itemExists(albumPath)) {
-                console.trace(`Album [${albumPath}] already exists, skipping creation`);
+                console.info(`Album [${albumPath}] already exists, skipping creation`);
             } else {
                 await expect(createAlbum(albumPath)).resolves.not.toThrow();
                 await expect(itemExists(albumPath)).resolves.toBe(true);

@@ -27,7 +27,7 @@ export const handler = async (event: LambdaFunctionUrlEvent): Promise<LambdaFunc
     try {
         const method = event.requestContext.http.method;
         const path = event.rawPath;
-        console.trace(`Generate Derived Image: ${method} ${path}`);
+        console.info(`Generate Derived Image: ${method} ${path}`);
         return await handleRequest(method, path);
     } catch (err) {
         console.error(err);

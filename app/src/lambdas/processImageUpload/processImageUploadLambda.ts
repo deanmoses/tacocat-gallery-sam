@@ -9,7 +9,7 @@ import { isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
 export const handler: Handler = async (event: S3Event, context: Context, callback) => {
     const record = event.Records[0];
 
-    console.trace(`Image Processor: got event [${record?.eventName}]`);
+    console.info(`Image Processor: got event [${record?.eventName}]`);
 
     // Handle all ObjectCreated events EXCEPT for Copy
     if (

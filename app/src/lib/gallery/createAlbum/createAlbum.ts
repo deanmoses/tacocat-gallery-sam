@@ -40,10 +40,10 @@ export async function createAlbum(albumPath: string, throwIfExists = true): Prom
     const docClient = DynamoDBDocumentClient.from(ddbClient);
     try {
         await docClient.send(ddbCommand);
-        console.trace(`Create Album: created [${albumPath}]`);
+        console.info(`Create Album: created [${albumPath}]`);
     } catch (e) {
         if (e instanceof ConditionalCheckFailedException) {
-            console.trace(`Create Album: already exists [${albumPath}]`);
+            console.info(`Create Album: already exists [${albumPath}]`);
             if (throwIfExists) {
                 throw new BadRequestException(`Album already exists: [${albumPath}]`);
             }

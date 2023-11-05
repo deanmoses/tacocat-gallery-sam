@@ -14,7 +14,7 @@ import { getParentFromPath } from '../../lib/gallery_path_utils/getParentFromPat
  * @param key key of S3 object to process
  */
 export async function processImageUpload(bucket: string, key: string): Promise<void> {
-    console.trace(`Image Processor: processing object key [${key}]`);
+    console.info(`Image Processor: processing object key [${key}]`);
 
     const imagePath = '/' + key;
     if (!isValidImagePath(imagePath)) {
@@ -27,18 +27,18 @@ export async function processImageUpload(bucket: string, key: string): Promise<v
         throw new Error(`Image Processor: invalid bucket name [${bucket}]`);
     }
 
-    console.trace(`Image Processor: ensuring album exists for image [${key}]`);
+    console.info(`Image Processor: ensuring album exists for image [${key}]`);
     const albumPath = getParentFromPath(imagePath);
     await createAlbum(albumPath, false /* don't throw exception if album doesn't exist */);
 
-    console.trace(`Image Processor: extracting metadata from [${key}]`);
+    console.info(`Image Processor: extracting metadata from [${key}]`);
     const imageMetadata = await extractImageMetadata(bucket, key);
 
-    console.trace(`Image Processor: creating image [${imagePath}] in DynamoDB`);
+    console.info(`Image Processor: creating image [${imagePath}] in DynamoDB`);
     await createImage(imagePath, imageMetadata);
 
-    console.trace(`Image Processor: setting image [${imagePath}] as thumbnail of parent album if none exists`);
+    console.info(`Image Processor: setting image [${imagePath}] as thumbnail of parent album if none exists`);
     await setImageAsParentAlbumThumbnailIfNoneExists(imagePath);
 
-    console.trace('Image Processor: DONE');
+    console.info('Image Processor: DONE');
 }
