@@ -1,10 +1,8 @@
-import { setTestEnv } from '../../lambda_utils/Env';
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { itemExists } from './itemExists';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
-setTestEnv({ GALLERY_ITEM_DDB_TABLE: 'notRealTable' });
 
 afterEach(() => {
     mockDocClient.reset();

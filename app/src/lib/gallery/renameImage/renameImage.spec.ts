@@ -1,4 +1,3 @@
-import { setTestEnv } from '../../lambda_utils/Env';
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { S3Client } from '@aws-sdk/client-s3';
@@ -6,12 +5,6 @@ import { renameImage } from './renameImage';
 
 const mockS3Client = mockClient(S3Client);
 const mockDDBClient = mockClient(DynamoDBDocumentClient);
-
-setTestEnv({
-    GALLERY_ITEM_DDB_TABLE: 'notRealTable',
-    ORIGINAL_IMAGES_BUCKET: 'notARealBucket',
-    DERIVED_IMAGES_BUCKET: 'notARealBucket',
-});
 
 afterEach(() => {
     mockDDBClient.reset();

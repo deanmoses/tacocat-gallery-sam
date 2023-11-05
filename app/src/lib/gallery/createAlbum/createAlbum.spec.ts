@@ -1,10 +1,8 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { setTestEnv } from '../../lambda_utils/Env';
 import { createAlbum } from './createAlbum';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
-setTestEnv({ GALLERY_ITEM_DDB_TABLE: 'NotARealTableName' });
 
 afterEach(() => {
     mockDocClient.reset();

@@ -2,12 +2,7 @@ import { mockClient } from 'aws-sdk-client-mock';
 import { UpdateCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
-const tableName = 'NotARealTableName';
 const imagePath = '/2001/12-31/image.jpg';
-
-//
-// TEST SETUP AND TEARDOWN
-//
 
 beforeEach(() => {
     // A mock doUpdate function goes into execution context
@@ -20,10 +15,6 @@ afterEach(() => {
     mockDocClient.reset();
 });
 
-//
-// TESTS
-//
-
 describe('Update Image', () => {
     test('title', async () => {
         expect.assertions(13);
@@ -32,7 +23,6 @@ describe('Update Image', () => {
         const mockDoUpdate = jest.fn((q) => {
             // do some expects *inside* the mocked function
             expect(q).toBeDefined();
-            expect(q.TableName).toBe(tableName);
             expect(q.Key.parentPath).toBe('/2001/12-31/');
             expect(q.Key.itemName).toBe('image.jpg');
             expect(q.UpdateExpression).toBe('SET title = :title, updatedOn = :updatedOn');
@@ -58,7 +48,6 @@ describe('Update Image', () => {
         const mockDoUpdate = jest.fn((q) => {
             // do some expects *inside* the mocked function
             expect(q).toBeDefined();
-            expect(q.TableName).toBe(ctx.tableName);
             expect(q.Key.parentPath).toBe('/2001/12-31/');
             expect(q.Key.itemName).toBe('image.jpg');
             expect(q.UpdateExpression).toBe('SET updatedOn = :updatedOn REMOVE title');
@@ -83,7 +72,6 @@ describe('Update Image', () => {
         const mockDoUpdate = jest.fn((q) => {
             // do some expects *inside* the mocked function
             expect(q).toBeDefined();
-            expect(q.TableName).toBe(ctx.tableName);
             expect(q.Key.parentPath).toBe('/2001/12-31/');
             expect(q.Key.itemName).toBe('image.jpg');
             expect(q.UpdateExpression).toBe('SET description = :description, updatedOn = :updatedOn');
@@ -109,7 +97,6 @@ describe('Update Image', () => {
         const mockDoUpdate = jest.fn((q) => {
             // do some expects *inside* the mocked function
             expect(q).toBeDefined();
-            expect(q.TableName).toBe(ctx.tableName);
             expect(q.Key.parentPath).toBe('/2001/12-31/');
             expect(q.Key.itemName).toBe('image.jpg');
             expect(q.UpdateExpression).toBe('SET updatedOn = :updatedOn REMOVE description');
@@ -135,7 +122,6 @@ describe('Update Image', () => {
         const mockDoUpdate = jest.fn((q) => {
             // do some expects *inside* the mocked function
             expect(q).toBeDefined();
-            expect(q.TableName).toBe(ctx.tableName);
             expect(q.Key.parentPath).toBe('/2001/12-31/');
             expect(q.Key.itemName).toBe('image.jpg');
             expect(q.UpdateExpression).toBe('SET title = :title, description = :description, updatedOn = :updatedOn');

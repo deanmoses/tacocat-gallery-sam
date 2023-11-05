@@ -1,10 +1,8 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { setTestEnv } from '../../lambda_utils/Env';
 import { setAlbumThumbnail, setImageAsParentAlbumThumbnailIfNoneExists } from './setAlbumThumbnail';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
-setTestEnv({ GALLERY_ITEM_DDB_TABLE: 'notRealTable' });
 
 afterEach(() => {
     mockDocClient.reset();

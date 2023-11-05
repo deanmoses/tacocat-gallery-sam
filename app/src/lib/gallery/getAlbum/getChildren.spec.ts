@@ -1,22 +1,12 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { QueryCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { setTestEnv } from '../../lambda_utils/Env';
 import { getChildren } from './getChildren';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
-setTestEnv({ GALLERY_ITEM_DDB_TABLE: 'notRealTable' });
-
-//
-// TEST SETUP AND TEARDOWN
-//
 
 afterEach(() => {
     mockDocClient.reset();
 });
-
-//
-// TESTS
-//
 
 test('Get Children', async () => {
     expect.assertions(5);
