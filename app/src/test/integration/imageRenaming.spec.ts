@@ -20,7 +20,7 @@ beforeAll(async () => {
     expect(isValidImagePath(imagePath1)).toBe(true);
     expect(isValidImagePath(imagePath2)).toBe(true);
 
-    if (await itemExists(albumPath)) throw new Error(`Album [${albumPath}] cannot exist at start of this test suite`);
+    if (await itemExists(albumPath)) throw new Error(`Album [${albumPath}] cannot exist at start of suite`);
     await createAlbum(albumPath, false);
     await uploadImage('image.jpg', imagePath1);
     await uploadImage('image.jpg', imagePath2);
