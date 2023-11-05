@@ -57,10 +57,7 @@ test('Cannot rename to same name as an existing image', async () => {
     await expect(renameImage(imagePath1, imageName2)).rejects.toThrow(/exists/i);
 });
 
-test('Rename should succeed', async () => {
-    //
-    // Do rename
-    //
+test('Do the rename', async () => {
     const image1NewName = getNameFromPath(renameImagePath1);
     if (!image1NewName) throw 'no image 1 new name';
     await renameImage(imagePath1, image1NewName);
@@ -72,7 +69,7 @@ test('GetAlbum() should reflect rename', async () => {
     if (!album?.children) throw new Error('no children');
 
     //
-    // Ensure album does not contain old image
+    // Ensure album doesn't contain old image
     //
     if (findImage(album, imagePath1)) throw new Error(`Album still contains old image`);
 
@@ -95,6 +92,7 @@ test('originals bucket should not contain old image', async () => {
 
 test.todo('derived images bucket should no longer contain old image');
 test.todo("album's thumbnail should be the renamed image");
+test.todo("grandparent album's thumbnail should be the renamed image");
 test.todo('getLatestAlbum() has new image as its thumbnail');
 
 function findImage(album: AlbumResponse, imageName: string): Album | undefined {
