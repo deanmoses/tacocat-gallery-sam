@@ -11,7 +11,7 @@ import { getDynamoDbTableName } from '../../lambda_utils/Env';
  * @param albumPath path of the album, like '/2001/12-31/'
  * @param throwIfExists true: throw Error if album already exists (default)
  */
-export async function createAlbum(albumPath: string, throwIfExists = true): Promise<void> {
+export async function createAlbum(albumPath: string, throwIfExists = true): Promise<boolean> {
     if (!isValidAlbumPath(albumPath)) {
         throw new BadRequestException(`Invalid album path: [${albumPath}]`);
     }
@@ -41,6 +41,7 @@ export async function createAlbum(albumPath: string, throwIfExists = true): Prom
     try {
         await docClient.send(ddbCommand);
         console.info(`Create Album: created [${albumPath}]`);
+        return true;
     } catch (e) {
         if (e instanceof ConditionalCheckFailedException) {
             console.info(`Create Album: already exists [${albumPath}]`);
@@ -51,4 +52,5 @@ export async function createAlbum(albumPath: string, throwIfExists = true): Prom
             throw e;
         }
     }
+    return false;
 }

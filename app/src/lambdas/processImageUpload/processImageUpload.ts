@@ -27,9 +27,13 @@ export async function processImageUpload(bucket: string, key: string): Promise<v
         throw new Error(`Image Processor: invalid bucket name [${bucket}]`);
     }
 
-    console.info(`Image Processor: ensuring album exists for image [${key}]`);
+    console.info(`Image Processor: ensuring parent albums exist for image [${key}]`);
     const albumPath = getParentFromPath(imagePath);
-    await createAlbum(albumPath, false /* don't throw exception if album doesn't exist */);
+    const albumWasCreated = await createAlbum(albumPath, false /* don't error if album exists */);
+    if (albumWasCreated) {
+        const grandparentAlbumPath = getParentFromPath(albumPath);
+        await createAlbum(grandparentAlbumPath, false /* don't error if album exists */);
+    }
 
     console.info(`Image Processor: extracting metadata from [${key}]`);
     const imageMetadata = await extractImageMetadata(bucket, key);
