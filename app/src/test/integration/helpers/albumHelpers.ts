@@ -13,9 +13,9 @@ export async function cleanUpAlbum(albumPath: string): Promise<void> {
         for (const child of children) {
             if (!child.parentPath) throw 'child has no parent path';
             const childPath = child.parentPath + child.itemName;
-            deleteImage(childPath);
+            await deleteImage(childPath);
         }
     }
 
-    deleteAlbum(albumPath);
+    await deleteAlbum(albumPath);
 }
