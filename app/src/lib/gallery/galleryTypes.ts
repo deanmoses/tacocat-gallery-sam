@@ -9,6 +9,12 @@ export type Album = {
     title?: string;
     itemName?: string;
     parentPath?: string;
+    thumbnail?: AlbumThumbnailEntry;
+};
+
+export type AlbumThumbnailEntry = {
+    path: string;
+    fileUpdatedOn: string;
 };
 
 export type AlbumThumbnailResponse = {
