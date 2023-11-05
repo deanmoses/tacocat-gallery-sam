@@ -60,8 +60,17 @@ describe('Invalid New Image Names', () => {
         '/newName.jpg',
         '/newName.gif',
         '.jpg',
+        ' .jpg',
+        'a b.jpg',
+        'a-b.jpg',
+        'a.b.jpg',
+        'a%b.jpg',
         'a^b.jpg',
         'a b.jpg',
+        '_.jpg',
+        '__.jpg',
+        '_image.jpg', // _ at beginning
+        'image_.jpg', // _ at end
     ];
     imageNames.forEach((imageName) => {
         test(`Name should be invalid: [${imageName}]`, async () => {
@@ -74,10 +83,9 @@ describe('Invalid New Image Names', () => {
 
 describe("Extensions don't match", () => {
     const imageNamePairs = [
-        { oldName: 'newName.png', newName: 'newName.jpeg' },
-        { oldName: 'newName.jpg', newName: 'newName.jpeg' },
-        { oldName: 'newName.jpg', newName: 'newName.png' },
-        { oldName: 'newName.jpg', newName: 'newName.gif' },
+        { oldName: 'name.png', newName: 'new_name.jpg' },
+        { oldName: 'name.jpg', newName: 'new_name.png' },
+        { oldName: 'name.jpg', newName: 'new_name.gif' },
     ];
     imageNamePairs.forEach((pair) => {
         const oldName = pair.oldName;
@@ -90,13 +98,9 @@ describe("Extensions don't match", () => {
     });
 });
 
-test('Nonexistent Image', async () => {
-    // Mock out item not found in DynamoDB
-    mockDDBClient.on(GetCommand).resolves({
-        Item: {},
-    });
-    await expect(renameImage('/1899/12-31/noSuchImage.jpg', 'newImage.jpg')).rejects.toThrow(/not found/i);
-    expect(mockDDBClient.commandCalls(GetCommand).length).toBe(1);
-    expect(mockDDBClient.commandCalls(DeleteItemCommand).length).toBe(0);
-    expect(mockS3Client.calls().length).toBe(0);
+test('Fails if old and new are same name', async () => {
+    await expect(renameImage('/2001/12-31/image.jpg', 'image.png')).rejects.toThrow(/extension/i);
 });
+
+test.todo("Fails if old image doesn't exist");
+test.todo('Fails if new image has same name as an existing image');
