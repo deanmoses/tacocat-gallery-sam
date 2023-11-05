@@ -1,4 +1,4 @@
--- These snippets are used for manual testing via the AWS Console or one of the DDB thick clients
+-- These snippets are used for manual testing via the AWS Console or a DynamoDB thick client
 
 -- GET ALL ATTRIBUTES OF AN ITEM
 
