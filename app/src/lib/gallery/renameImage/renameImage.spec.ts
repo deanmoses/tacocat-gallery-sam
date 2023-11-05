@@ -1,7 +1,6 @@
 import { setTestEnv } from '../../lambda_utils/Env';
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
-import { DeleteItemCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { S3Client } from '@aws-sdk/client-s3';
 import { renameImage } from './renameImage';
 
@@ -34,7 +33,7 @@ describe('Invalid Existing Image Paths', () => {
         '/2000/12-31/image', // no extension
     ];
     paths.forEach((path) => {
-        test(`Path should be invalid: [${path}]`, async () => {
+        test(`Invalid: [${path}]`, async () => {
             await expect(renameImage(path, 'image.jpg')).rejects.toThrow(/invalid|malformed/i);
             expect(mockDDBClient.calls().length).toBe(0);
             expect(mockS3Client.calls().length).toBe(0);
@@ -73,7 +72,7 @@ describe('Invalid New Image Names', () => {
         'image_.jpg', // _ at end
     ];
     imageNames.forEach((imageName) => {
-        test(`Name should be invalid: [${imageName}]`, async () => {
+        test(`Invalid: [${imageName}]`, async () => {
             await expect(renameImage('/2001/12-31/image.jpg', imageName)).rejects.toThrow(/invalid|malformed/i);
             expect(mockDDBClient.calls().length).toBe(0);
             expect(mockS3Client.calls().length).toBe(0);
@@ -90,7 +89,7 @@ describe("Extensions don't match", () => {
     imageNamePairs.forEach((pair) => {
         const oldName = pair.oldName;
         const newName = pair.newName;
-        test(`Extensions shouldn't match: [${oldName}] [${newName}]`, async () => {
+        test(`Mismatch: [${oldName}] [${newName}]`, async () => {
             await expect(renameImage(`/2001/12-31/${oldName}`, newName)).rejects.toThrow(/match/i);
             expect(mockDDBClient.calls().length).toBe(0);
             expect(mockS3Client.calls().length).toBe(0);
@@ -98,9 +97,9 @@ describe("Extensions don't match", () => {
     });
 });
 
-test('Fails if old and new are same name', async () => {
+test('Fail if old and new are same name', async () => {
     await expect(renameImage('/2001/12-31/image.jpg', 'image.png')).rejects.toThrow(/extension/i);
 });
 
-test.todo("Fails if old image doesn't exist");
-test.todo('Fails if new image has same name as an existing image');
+test.todo("Fail if old image doesn't exist");
+test.todo('Fail if new image has same name as an existing image');
