@@ -12,6 +12,7 @@ import { getOriginalImagesBucketName } from '../../../lib/lambda_utils/Env';
  * @param imagePath path of imagate to which to upload it, such as /2001/12-31/image.jpg
  */
 export async function uploadImage(nameOfImageOnDisk: string, imagePath: string) {
+    console.info(`Uploading image [${nameOfImageOnDisk}] to [${imagePath}]...`);
     if (!isValidImagePath(imagePath)) throw new Error(`Invalid image path: [${imagePath}]`);
     const filePath = path.resolve(__dirname, '..', '..', 'data/images/', nameOfImageOnDisk);
     const fileStream = fs.createReadStream(filePath);
@@ -35,6 +36,7 @@ export async function uploadImage(nameOfImageOnDisk: string, imagePath: string) 
     if (results.$metadata.httpStatusCode != 200) {
         throw Error(`Got non-200 status code [${results.$metadata.httpStatusCode}] uploading image`);
     }
+    console.info(`Uploaded image [${nameOfImageOnDisk}] to [${imagePath}]`);
 }
 
 /**
@@ -42,7 +44,7 @@ export async function uploadImage(nameOfImageOnDisk: string, imagePath: string) 
  *
  * @param imagePath path of image like /2001/12-31/image.jpg
  */
-export async function originalImageExists(imagePath: string) {
+export async function imageExistsInOriginalsBucket(imagePath: string) {
     if (!isValidImagePath(imagePath)) throw new Error(`Invalid image path: [${imagePath}]`);
     const key = imagePath.substring(1);
     const s3Command = new HeadObjectCommand({
