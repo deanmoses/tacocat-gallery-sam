@@ -34,7 +34,7 @@ export async function renameImage(oldImagePath: string, newName: string): Promis
         throw new BadRequestException(`Image not found: [${oldImagePath}]`);
     }
     if (await itemExists(newImagePath)) {
-        throw new BadRequestException(`There's already an image at [${newImagePath}]`);
+        throw new BadRequestException(`An image already exists at [${newImagePath}]`);
     }
     await copyImageToNewNameInS3(oldImagePath, newImagePath);
     await renameImageInDynamoDB(oldImagePath, newName);
