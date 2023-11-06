@@ -1,6 +1,6 @@
 import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
-import { cleanUpAlbum } from './helpers/albumHelpers';
+import { cleanUpAlbumAndParents } from './helpers/albumHelpers';
 import {
     assertDerivedImageDoesNotExist,
     assertOriginalImageDoesNotExist,
@@ -26,8 +26,7 @@ beforeAll(async () => {
 }, 10000 /* increase Jest's timeout */);
 
 afterAll(async () => {
-    await cleanUpAlbum(albumPath);
-    await cleanUpAlbum(yearPath);
+    await cleanUpAlbumAndParents(albumPath);
 });
 
 test('Generate derived image', async () => {
