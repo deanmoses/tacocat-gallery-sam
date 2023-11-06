@@ -33,6 +33,7 @@ export type AlbumThumbnailResponse = {
 export type AlbumThumbnail = {
     title?: string;
     description?: string;
+    thumbnail?: AlbumThumbnailEntry;
     itemName?: string;
     parentPath?: string;
     updatedOn?: Date;
