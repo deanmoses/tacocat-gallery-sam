@@ -33,31 +33,40 @@ afterAll(async () => {
     await cleanUpAlbum(albumPath);
 });
 
-test('Invalid Thumbnail', async () => {
+test('Should fail to set thumb to nonexistent image', async () => {
     await expect(setAlbumThumbnail(albumPath, '/1949/10-04/no_such_image.jpg')).rejects.toThrow(/found/i);
 });
 
-test('Set Thumbnail - happy path', async () => {
+test('Set thumb on parent', async () => {
     await expect(setAlbumThumbnail(albumPath, imagePath2)).resolves.not.toThrow();
     const album = await getAlbum(albumPath);
     expect(album?.thumbnail?.path).toBe(imagePath2);
 });
 
-test('Set Thumbnail on grandparent', async () => {
+test('Set thumb on grandparent', async () => {
     const grandparentPath = getParentFromPath(albumPath);
     await expect(setAlbumThumbnail(grandparentPath, imagePath2)).resolves.not.toThrow();
     const album = await getAlbum(grandparentPath);
     expect(album?.thumbnail?.path).toBe(imagePath2);
 });
 
-test('Delete Image Should Unset Thumbnail', async () => {
+test('Delete image', async () => {
     await expect(deleteImage(imagePath2)).resolves.not.toThrow();
+});
 
-    // Shouldn't be thumbnail of parent
+test('Should no longer be thumb of parent', async () => {
     const album = await getAlbum(albumPath);
     expect(album?.thumbnail).toBeUndefined();
 
-    // Shouldn't be thumbnail of grandparent
+    const grandparentPath = getParentFromPath(albumPath);
+    const grandparentAlbum = await getAlbum(grandparentPath);
+    expect(grandparentAlbum?.thumbnail).toBeUndefined();
+});
+
+test('Should no longer be thumb of grandparent', async () => {
+    const album = await getAlbum(albumPath);
+    expect(album?.thumbnail).toBeUndefined();
+
     const grandparentPath = getParentFromPath(albumPath);
     const grandparentAlbum = await getAlbum(grandparentPath);
     expect(grandparentAlbum?.thumbnail).toBeUndefined();
