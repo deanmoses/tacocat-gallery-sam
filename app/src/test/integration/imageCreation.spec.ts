@@ -49,6 +49,11 @@ test('Album contains image', async () => {
     expect(image.tags?.sort()).toEqual(['test1', 'test2', 'test3'].sort());
 });
 
+test("Image was set as album's thumb", async () => {
+    const album = await getAlbumAndChildren(albumPath);
+    expect(album?.album?.thumbnail?.path).toBe(imagePath);
+});
+
 test('Delete image', async () => {
     await expect(deleteImage(imagePath)).resolves.not.toThrow();
 });
@@ -59,6 +64,11 @@ test('Album should not contain deleted image', async () => {
     const imageName = reallyGetNameFromPath(imagePath);
     const image = findImage(album, imagePath);
     if (!!image) throw new Error(`Image [${imageName}] should not exist in album [${albumPath}]`);
+});
+
+test('Image should no longer be album thumb', async () => {
+    const album = await getAlbumAndChildren(albumPath);
+    expect(album?.album?.thumbnail?.path).toBeUndefined();
 });
 
 test('Original images bucket should no longer contain image', async () => {
