@@ -46,8 +46,6 @@ describe('create', () => {
 
     describe('image', () => {
         test('upload image', async () => {
-            const newImageName = getNameFromPath(imagePath);
-            if (!newImageName) throw new Error('newImageName is undefined');
             await uploadImage('image.jpg', imagePath);
         });
 
