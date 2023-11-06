@@ -56,8 +56,7 @@ export async function updateImage(imagePath: string, attributesToUpdate: Record<
     try {
         const ddbClient = new DynamoDBClient({});
         const docClient = DynamoDBDocumentClient.from(ddbClient);
-        const response = await docClient.send(ddbCommand);
-        console.debug('Update Image: partiQL update response:', response);
+        await docClient.send(ddbCommand);
     } catch (e) {
         if (e?.toString().includes('conditional')) {
             throw new NotFoundException('Image not found: ' + imagePath);
