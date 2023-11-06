@@ -1,6 +1,7 @@
 import { deleteAlbum } from '../../../lib/gallery/deleteAlbum/deleteAlbum';
 import { deleteImage } from '../../../lib/gallery/deleteImage/deleteImage';
 import { getAlbumAndChildren } from '../../../lib/gallery/getAlbum/getAlbumAndChildren';
+import { itemExists } from '../../../lib/gallery/itemExists/itemExists';
 
 /**
  * Delete album and its children from S3 and DynamoDB.
@@ -18,4 +19,12 @@ export async function cleanUpAlbum(albumPath: string): Promise<void> {
     }
 
     await deleteAlbum(albumPath);
+}
+
+export async function assertItemExists(path: string): Promise<void> {
+    if (!(await itemExists(path))) throw new Error(`Suite can't run because [${path}] doesn't exist`);
+}
+
+export async function assertItemDoesNotExist(path: string): Promise<void> {
+    if (await itemExists(path)) throw new Error(`Suite can't run because [${path}] exists`);
 }

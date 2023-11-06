@@ -44,7 +44,7 @@ export async function uploadImage(nameOfImageOnDisk: string, imagePath: string) 
  *
  * @param imagePath path of image like /2001/12-31/image.jpg
  */
-export async function imageExistsInOriginalsBucket(imagePath: string) {
+export async function imageExistsInOriginalsBucket(imagePath: string): Promise<boolean> {
     if (!isValidImagePath(imagePath)) throw new Error(`Invalid image path: [${imagePath}]`);
     const key = imagePath.substring(1);
     const s3Command = new HeadObjectCommand({
@@ -61,4 +61,14 @@ export async function imageExistsInOriginalsBucket(imagePath: string) {
         }
         throw e;
     }
+}
+
+export async function assertImageExistsInOriginalsBucket(imagePath: string): Promise<void> {
+    if (!(await imageExistsInOriginalsBucket(imagePath)))
+        throw new Error(`Suite can't run because [${imagePath}] exists in S3 original images bucket`);
+}
+
+export async function assertImageDoesNotExistInOriginalsBucket(imagePath: string): Promise<void> {
+    if (await imageExistsInOriginalsBucket(imagePath))
+        throw new Error(`Suite can't run because [${imagePath}] does not exist in S3 original images bucket`);
 }
