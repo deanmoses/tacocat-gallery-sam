@@ -62,3 +62,5 @@ test('Latest album should no longer have a thumbnail', async () => {
     const image = findImage(album, imagePath);
     if (!!image) throw new Error(`Image [${imageName}] should not exist in album [${albumPath}]`);
 });
+
+test.todo("Latest album's thumbnail entry should honor an image rename");
