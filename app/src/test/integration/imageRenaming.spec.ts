@@ -1,4 +1,3 @@
-import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChildren';
 import { renameImage } from '../../lib/gallery/renameImage/renameImage';
 import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
@@ -6,22 +5,29 @@ import { findImage } from '../../lib/gallery_client/AlbumObject';
 import { getNameFromPath } from '../../lib/gallery_path_utils/getNameFromPath';
 import { getParentFromPath } from '../../lib/gallery_path_utils/getParentFromPath';
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
-import { assertDynamoDBItemDoesNotExist, assertDynamoDBItemExists, cleanUpAlbum } from './helpers/albumHelpers';
+import {
+    assertDynamoDBItemDoesNotExist,
+    assertDynamoDBItemExists,
+    cleanUpAlbumAndParents,
+} from './helpers/albumHelpers';
 import { assertOriginalImageExists, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
 
 const albumPath = '/1950/10-03/'; // unique to this suite to prevent pollution
-const imagePath1 = `${albumPath}image1.jpg`;
-const imagePath2 = `${albumPath}image2.jpg`;
-const renameImagePath1 = `${albumPath}image1_renamed.jpg`;
+let imagePath1: string;
+let imagePath2: string;
+let renameImagePath1: string;
 
 beforeAll(async () => {
+    imagePath1 = `${albumPath}image1_${Date.now()}.jpg`; // unique to this test run to prevent test from not being able to run again on failure to clean up properly
+    imagePath2 = `${albumPath}image2_${Date.now()}.jpg`; // unique to this test run to prevent test from not being able to run again on failure to clean up properly
+    renameImagePath1 = `${albumPath}image1_renamed_${Date.now()}.jpg`;
+
     expect(isValidAlbumPath(albumPath)).toBe(true);
     expect(isValidImagePath(imagePath1)).toBe(true);
     expect(isValidImagePath(imagePath2)).toBe(true);
 
     await assertDynamoDBItemDoesNotExist(albumPath);
 
-    await createAlbum(albumPath, false);
     await uploadImage('image.jpg', imagePath1);
     await uploadImage('image.jpg', imagePath2);
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
@@ -32,15 +38,23 @@ beforeAll(async () => {
     await assertOriginalImageExists(imagePath1);
     await assertOriginalImageExists(imagePath2);
 
+    // Set image as thumbnail of immediate parent album
     await setAlbumThumbnail(
         albumPath,
+        imagePath1,
+        false /* Since the first uploaded image may have set this, don't error */,
+    );
+
+    // Set image as thumbnail of grandparent album
+    await setAlbumThumbnail(
+        getParentFromPath(albumPath),
         imagePath1,
         false /* Since the first uploaded image may have set this, don't error */,
     );
 }, 20000 /* increase Jest's timeout */);
 
 afterAll(async () => {
-    await cleanUpAlbum(albumPath);
+    await cleanUpAlbumAndParents(albumPath);
 });
 
 test('Cannot change extension', async () => {
@@ -81,8 +95,13 @@ test('GetAlbum() should reflect rename', async () => {
     expect(renamedImage.itemName).toBe(newImageName);
     expect(renamedImage.parentPath).toBe(getParentFromPath(renameImagePath1));
 
-    // Ensure album's thumbnail entry reflects rename
-    console.log(`Album thumbnail path: `, album.album?.thumbnail?.path);
+    // Ensure immediate parent album's thumbnail entry reflects rename
+    expect(album.album?.thumbnail?.path).toBe(renameImagePath1);
+});
+
+test("Grandparent album's thumbnail entry should reflect the image rename", async () => {
+    const album = await getAlbumAndChildren(getParentFromPath(albumPath));
+    if (!album) throw new Error('no grandparent album');
     expect(album.album?.thumbnail?.path).toBe(renameImagePath1);
 });
 
@@ -93,7 +112,3 @@ test('Originals bucket should contain new image', async () => {
 test('Originals bucket should not contain old image', async () => {
     await expect(originalImageExists(imagePath1)).resolves.toBe(false);
 });
-
-test.todo('Derived images bucket should no longer contain old image');
-test.todo("Grandparent album's thumbnail entry should reflect the image rename");
-test.todo("Latest album's thumbnail entry should reflect the image rename");
