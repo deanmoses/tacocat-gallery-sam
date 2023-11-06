@@ -7,7 +7,7 @@ import { assertDynamoDBItemDoesNotExist, cleanUpAlbum } from './helpers/albumHel
 import { reallyGetNameFromPath } from './helpers/pathHelpers';
 import { assertOriginalImageDoesNotExist, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
 
-const yearPath = '/1951/'; // unique to this suite to prevent pollution
+const yearPath = '/1704/'; // unique to this suite to prevent pollution
 const albumPath = `${yearPath}09-02/`; // unique to this suite to prevent pollution
 const imagePath = `${albumPath}image1.jpg`;
 
