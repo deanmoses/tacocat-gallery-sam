@@ -104,15 +104,18 @@ async function copyImageToNewNameInS3(existingImagePath: string, newImagePath: s
  * Renames any usages of the image as an album thumbnail as well.
  * Does not touch S3.
  *
- * @param oldPath Path of existing image like /2001/12-31/image.jpg
- * @param newName New name of image like newName.jpg
+ * @param oldImagePath Old image path like /2001/12-31/image.jpg
+ * @param newImageName New image name like new_image_name.jpg
  */
-async function renameImageInDynamoDB(imagePath: string, newName: string) {
-    // TODO: these two methods should be a single method done in a single
-    // transaction.  However, since updating the album entries rely on a
+async function renameImageInDynamoDB(oldImagePath: string, newImageName: string) {
+    // TODO: these should all be done in a single transaction.
+    // However, since updating the album thumbnail entries rely on a
     // a condition failing, the transaction would fail.  BZZZT.
-    await moveImageInDynamoDB(imagePath, newName); // updates just the image entry
-    await renameImageInAlbumThumbs(imagePath, newName); // updates any usages of the image as an album thumbnail
+    await moveImageInDynamoDB(oldImagePath, newImageName);
+    const albumPath = getParentFromPath(oldImagePath);
+    await renameAlbumThumb(oldImagePath, newImageName, albumPath);
+    const grandparentAlbumPath = getParentFromPath(albumPath);
+    await renameAlbumThumb(oldImagePath, newImageName, grandparentAlbumPath);
 }
 
 /**
@@ -184,22 +187,19 @@ async function getOriginalImageFromDynamoDB(path: string): Promise<Record<string
 }
 
 /**
- * If renamed image is being used as the thumbnail of a parent album, rename the album's entry.
- * This does not rename the image's own entry, just any album's entry that uses it as a thumb.
- * Does not touch S3.
+ * If renamed image is being used as the thumbnail of the specified album,
+ * rename the album's thumbnail entry.
  *
- * @param oldImagePath Path of existing image like /2001/12-31/image.jpg
+ * @param oldImagePath Path of old image like /2001/12-31/image.jpg
  * @param newImageName New name of image like new_name.jpg
+ * @param albumPath Path of album like /2001/12-31/ or /2001/
  */
-async function renameImageInAlbumThumbs(oldImagePath: string, newImageName: string): Promise<void> {
-    console.info(`Rename Image: renaming any usage of the image as an album thumbnail [${oldImagePath}]...`);
-
-    // TODO: also rename in grandparent album !!
-
-    const oldImagePathParts = getParentAndNameFromPath(oldImagePath);
-    const albumPath = oldImagePathParts.parent;
+async function renameAlbumThumb(oldImagePath: string, newImageName: string, albumPath: string): Promise<void> {
+    console.info(
+        `Rename Image: attempting to rename thumnail of [${albumPath}] from [${oldImagePath}] to [${newImageName}]...`,
+    );
     const albumPathParts = getParentAndNameFromPath(albumPath);
-    const newImagePath = albumPath + newImageName;
+    const newImagePath = getParentFromPath(oldImagePath) + newImageName;
     const ddbCommand = new ExecuteStatementCommand({
         Statement:
             `UPDATE "${getDynamoDbTableName()}"` +
