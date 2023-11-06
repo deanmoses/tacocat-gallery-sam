@@ -21,10 +21,20 @@ export async function cleanUpAlbum(albumPath: string): Promise<void> {
     await deleteAlbum(albumPath);
 }
 
-export async function assertItemExists(path: string): Promise<void> {
+/**
+ * Throw error if the specified album or image does NOT exist in DynamoDB
+ *
+ * @param path path of the album or image, like /2001/12-31/ or /2001/12-31/image.jpg
+ */
+export async function assertDynamoDBItemExists(path: string): Promise<void> {
     if (!(await itemExists(path))) throw new Error(`[${path}] must exist in DynamoDB at start of suite`);
 }
 
-export async function assertItemDoesNotExist(path: string): Promise<void> {
+/**
+ * Throw error if the specified album or image exists in DynamoDB
+ *
+ * @param path path of the album or image, like /2001/12-31/ or /2001/12-31/image.jpg
+ */
+export async function assertDynamoDBItemDoesNotExist(path: string): Promise<void> {
     if (await itemExists(path)) throw new Error(`[${path}] cannot exist in DynamoDB at start of suite`);
 }

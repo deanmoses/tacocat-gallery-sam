@@ -3,8 +3,8 @@ import { getAlbum } from '../../lib/gallery/getAlbum/getAlbum';
 import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
 import { getParentFromPath } from '../../lib/gallery_path_utils/getParentFromPath';
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
-import { assertItemExists, cleanUpAlbum } from './helpers/albumHelpers';
-import { assertExistsInOriginalImagesBucket, uploadImage } from './helpers/s3ImageHelper';
+import { assertDynamoDBItemExists, cleanUpAlbum } from './helpers/albumHelpers';
+import { assertOriginalImageExists, uploadImage } from './helpers/s3ImageHelper';
 
 const albumPath = '/1949/10-04/'; // unique to this suite to prevent pollution
 const imagePath1 = `${albumPath}image1.jpg`;
@@ -20,13 +20,13 @@ beforeAll(async () => {
 
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
 
-    await assertItemExists(albumPath);
-    await assertItemExists(getParentFromPath(albumPath));
-    await assertItemExists(imagePath1);
-    await assertItemExists(imagePath2);
+    await assertDynamoDBItemExists(albumPath);
+    await assertDynamoDBItemExists(getParentFromPath(albumPath));
+    await assertDynamoDBItemExists(imagePath1);
+    await assertDynamoDBItemExists(imagePath2);
 
-    await assertExistsInOriginalImagesBucket(imagePath1);
-    await assertExistsInOriginalImagesBucket(imagePath2);
+    await assertOriginalImageExists(imagePath1);
+    await assertOriginalImageExists(imagePath2);
 }, 10000 /* increase Jest's timeout */);
 
 afterAll(async () => {

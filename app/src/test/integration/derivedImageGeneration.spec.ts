@@ -1,9 +1,9 @@
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
 import { cleanUpAlbum } from './helpers/albumHelpers';
 import {
-    assertDoesNotExistInDerivedImagesBucket,
-    assertDoesNotExistInOriginalImagesBucket,
-    imageExistsInDerivedImagesBucket,
+    assertDerivedImageDoesNotExist,
+    assertOriginalImageDoesNotExist,
+    derivedImageExists,
     uploadImage,
 } from './helpers/s3ImageHelper';
 
@@ -15,8 +15,9 @@ beforeAll(async () => {
     expect(isValidAlbumPath(yearPath)).toBe(true);
     expect(isValidAlbumPath(albumPath)).toBe(true);
     expect(isValidImagePath(imagePath)).toBe(true);
-    await assertDoesNotExistInOriginalImagesBucket(imagePath);
-    await assertDoesNotExistInDerivedImagesBucket(imagePath);
+
+    await assertOriginalImageDoesNotExist(imagePath);
+    await assertDerivedImageDoesNotExist(imagePath);
 
     await uploadImage('image.jpg', imagePath);
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
@@ -33,7 +34,7 @@ test('Generate derived image', async () => {
     const derivedImageUrl = derivedImageBaseUrl + derivedImagePath;
     const response = await fetch(derivedImageUrl, { cache: 'no-store' });
     expect(response.status).toBe(200);
-    if (!(await imageExistsInDerivedImagesBucket(derivedImagePath))) {
+    if (!(await derivedImageExists(derivedImagePath))) {
         throw new Error(`[${derivedImagePath}] doesn't exist in derived image bucket`);
     }
 }, 15000 /* increase Jest's timeout */);

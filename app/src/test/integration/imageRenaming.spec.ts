@@ -1,14 +1,13 @@
 import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChildren';
-import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { renameImage } from '../../lib/gallery/renameImage/renameImage';
 import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
 import { findImage } from '../../lib/gallery_client/AlbumObject';
 import { getNameFromPath } from '../../lib/gallery_path_utils/getNameFromPath';
 import { getParentFromPath } from '../../lib/gallery_path_utils/getParentFromPath';
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
-import { cleanUpAlbum } from './helpers/albumHelpers';
-import { imageExistsInOriginalsBucket, uploadImage } from './helpers/s3ImageHelper';
+import { assertDynamoDBItemDoesNotExist, assertDynamoDBItemExists, cleanUpAlbum } from './helpers/albumHelpers';
+import { assertOriginalImageExists, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
 
 const albumPath = '/1950/10-03/'; // unique to this suite to prevent pollution
 const imagePath1 = `${albumPath}image1.jpg`;
@@ -20,18 +19,18 @@ beforeAll(async () => {
     expect(isValidImagePath(imagePath1)).toBe(true);
     expect(isValidImagePath(imagePath2)).toBe(true);
 
-    if (await itemExists(albumPath)) throw new Error(`Album [${albumPath}] cannot exist at start of suite`);
+    await assertDynamoDBItemDoesNotExist(albumPath);
+
     await createAlbum(albumPath, false);
     await uploadImage('image.jpg', imagePath1);
     await uploadImage('image.jpg', imagePath2);
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
 
-    await expect(itemExists(albumPath)).resolves.toBe(true);
-    await expect(itemExists(imagePath1)).resolves.toBe(true);
-    await expect(itemExists(imagePath2)).resolves.toBe(true);
-
-    await expect(imageExistsInOriginalsBucket(imagePath1)).resolves.toBe(true);
-    await expect(imageExistsInOriginalsBucket(imagePath2)).resolves.toBe(true);
+    await assertDynamoDBItemExists(albumPath);
+    await assertDynamoDBItemExists(imagePath1);
+    await assertDynamoDBItemExists(imagePath2);
+    await assertOriginalImageExists(imagePath1);
+    await assertOriginalImageExists(imagePath2);
 
     await setAlbumThumbnail(
         albumPath,
@@ -88,11 +87,11 @@ test('GetAlbum() should reflect rename', async () => {
 });
 
 test('Originals bucket should contain new image', async () => {
-    await expect(imageExistsInOriginalsBucket(renameImagePath1)).resolves.toBe(true);
+    await expect(originalImageExists(renameImagePath1)).resolves.toBe(true);
 });
 
 test('Originals bucket should not contain old image', async () => {
-    await expect(imageExistsInOriginalsBucket(imagePath1)).resolves.toBe(false);
+    await expect(originalImageExists(imagePath1)).resolves.toBe(false);
 });
 
 test.todo('Derived images bucket should no longer contain old image');
