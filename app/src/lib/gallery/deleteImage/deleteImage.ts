@@ -5,6 +5,7 @@ import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndN
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDerivedImagesBucketName, getDynamoDbTableName, getOriginalImagesBucketName } from '../../lambda_utils/Env';
 import { isValidImagePath } from '../../gallery_path_utils/pathValidator';
+import { getParentFromPath } from '../../gallery_path_utils/getParentFromPath';
 
 /**
  * Delete specified image from both DynamoDB and S3.
@@ -14,7 +15,7 @@ import { isValidImagePath } from '../../gallery_path_utils/pathValidator';
 export async function deleteImage(imagePath: string) {
     console.info(`Delete Image: deleting image [${imagePath}]...`);
     await deleteImageFromDynamoDB(imagePath);
-    await removeImageAsAlbumThumbnail(imagePath);
+    await removeImageAsThumbnailFromParentAlbums(imagePath);
     await deleteOriginalImageAndDerivativesFromS3(imagePath);
     console.info(`Delete Image: deleted image [${imagePath}]`);
 }
@@ -48,17 +49,28 @@ async function deleteImageFromDynamoDB(imagePath: string) {
 }
 
 /**
- * If image is used as the thumbnail of its parent album,
- * remove it as the thumbnail.
+ * If image is used as the thumbnail of its parent or grandparent album, remove it.
  *
  * @param imagePath Path of image, like /2001/12-31/image.jpg
  */
-async function removeImageAsAlbumThumbnail(imagePath: string) {
+async function removeImageAsThumbnailFromParentAlbums(imagePath: string) {
     console.info(`Delete Image: removing image as any album thumbnail [${imagePath}]...`);
 
-    // TODO: also try to update grandparent album
-    const imagePathParts = getParentAndNameFromPath(imagePath);
-    const albumPathParts = getParentAndNameFromPath(imagePathParts.parent);
+    const parentAlbumPath = getParentFromPath(imagePath);
+    await removeImageAsAlbumThumbnail(imagePath, parentAlbumPath);
+
+    const grandparentAlbumPath = getParentFromPath(parentAlbumPath);
+    await removeImageAsAlbumThumbnail(imagePath, grandparentAlbumPath);
+}
+
+/**
+ * If image is used as the thumbnail of the specified album, remove it.
+ *
+ * @param imagePath Path of image, like /2001/12-31/image.jpg
+ * @param albumPath Path of album, like /2001/12-31/
+ */
+async function removeImageAsAlbumThumbnail(imagePath: string, albumPath: string) {
+    const albumPathParts = getParentAndNameFromPath(albumPath);
     const ddbCommand = new ExecuteStatementCommand({
         Statement:
             `UPDATE "${getDynamoDbTableName()}"` +
@@ -70,12 +82,10 @@ async function removeImageAsAlbumThumbnail(imagePath: string) {
     const docClient = DynamoDBDocumentClient.from(ddbClient);
     try {
         await docClient.send(ddbCommand);
-        console.info(`Delete Image: album [${imagePathParts.parent}]: removed image [${imagePath}] as its thumbnail`);
+        console.info(`Delete Image: album [${albumPath}]: removed image [${imagePath}] as its thumbnail`);
     } catch (e) {
         if (e instanceof ConditionalCheckFailedException) {
-            console.info(
-                `Delete Image: album [${imagePathParts.parent}] did not have image [${imagePath}] as its thumbnail`,
-            );
+            console.info(`Delete Image: album [${albumPath}] did not have image [${imagePath}] as its thumbnail`);
         } else {
             throw e;
         }
