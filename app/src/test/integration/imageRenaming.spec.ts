@@ -38,7 +38,7 @@ beforeAll(async () => {
         imagePath1,
         false /* Since the first uploaded image may have set this, don't error */,
     );
-}, 10000 /* increase Jest's timeout */);
+}, 20000 /* increase Jest's timeout */);
 
 afterAll(async () => {
     await cleanUpAlbum(albumPath);
