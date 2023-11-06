@@ -16,7 +16,7 @@ let imagePath: string;
 beforeAll(async () => {
     albumPath = getAlbumPathForToday(); // use current year so that getLatestAlbum will always return something
     imagePath = albumPath + imageName;
-    assertDynamoDBItemDoesNotExist(albumPath);
+    await assertDynamoDBItemDoesNotExist(albumPath);
     await createAlbum(albumPath, false);
 });
 
