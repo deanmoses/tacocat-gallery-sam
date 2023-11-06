@@ -4,7 +4,7 @@ import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumT
 import { getParentFromPath } from '../../lib/gallery_path_utils/getParentFromPath';
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
 import { assertItemExists, cleanUpAlbum } from './helpers/albumHelpers';
-import { assertImageExistsInOriginalsBucket, uploadImage } from './helpers/s3ImageHelper';
+import { assertExistsInOriginalImagesBucket, uploadImage } from './helpers/s3ImageHelper';
 
 const albumPath = '/1949/10-04/'; // unique to this suite to prevent pollution
 const imagePath1 = `${albumPath}image1.jpg`;
@@ -25,8 +25,8 @@ beforeAll(async () => {
     await assertItemExists(imagePath1);
     await assertItemExists(imagePath2);
 
-    await assertImageExistsInOriginalsBucket(imagePath1);
-    await assertImageExistsInOriginalsBucket(imagePath2);
+    await assertExistsInOriginalImagesBucket(imagePath1);
+    await assertExistsInOriginalImagesBucket(imagePath2);
 }, 10000 /* increase Jest's timeout */);
 
 afterAll(async () => {

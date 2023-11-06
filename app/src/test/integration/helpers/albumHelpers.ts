@@ -22,9 +22,9 @@ export async function cleanUpAlbum(albumPath: string): Promise<void> {
 }
 
 export async function assertItemExists(path: string): Promise<void> {
-    if (!(await itemExists(path))) throw new Error(`Suite can't run because [${path}] doesn't exist`);
+    if (!(await itemExists(path))) throw new Error(`[${path}] must exist in DynamoDB at start of suite`);
 }
 
 export async function assertItemDoesNotExist(path: string): Promise<void> {
-    if (await itemExists(path)) throw new Error(`Suite can't run because [${path}] exists`);
+    if (await itemExists(path)) throw new Error(`[${path}] cannot exist in DynamoDB at start of suite`);
 }

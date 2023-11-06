@@ -1,13 +1,13 @@
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
 import { cleanUpAlbum } from './helpers/albumHelpers';
 import {
-    assertImageDoesNotExistInDerivedImagesBucket,
-    assertImageDoesNotExistInOriginalsBucket,
+    assertDoesNotExistInDerivedImagesBucket,
+    assertDoesNotExistInOriginalImagesBucket,
     imageExistsInDerivedImagesBucket,
     uploadImage,
 } from './helpers/s3ImageHelper';
 
-const yearPath = '/1950/'; // unique to this suite to prevent pollution
+const yearPath = '/1948/'; // unique to this suite to prevent pollution
 const albumPath = `${yearPath}02-18/`; // unique to this suite to prevent pollution
 const imagePath = `${albumPath}image1.jpg`;
 
@@ -15,8 +15,8 @@ beforeAll(async () => {
     expect(isValidAlbumPath(yearPath)).toBe(true);
     expect(isValidAlbumPath(albumPath)).toBe(true);
     expect(isValidImagePath(imagePath)).toBe(true);
-    await assertImageDoesNotExistInOriginalsBucket(imagePath);
-    await assertImageDoesNotExistInDerivedImagesBucket(imagePath);
+    await assertDoesNotExistInOriginalImagesBucket(imagePath);
+    await assertDoesNotExistInDerivedImagesBucket(imagePath);
 
     await uploadImage('image.jpg', imagePath);
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered

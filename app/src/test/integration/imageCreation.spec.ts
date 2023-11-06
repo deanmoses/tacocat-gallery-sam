@@ -5,8 +5,8 @@ import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils
 import { assertItemDoesNotExist, cleanUpAlbum } from './helpers/albumHelpers';
 import { reallyGetNameFromPath } from './helpers/pathHelpers';
 import {
-    assertImageDoesNotExistInDerivedImagesBucket,
-    assertImageDoesNotExistInOriginalsBucket,
+    assertDoesNotExistInDerivedImagesBucket,
+    assertDoesNotExistInOriginalImagesBucket,
     uploadImage,
 } from './helpers/s3ImageHelper';
 
@@ -21,8 +21,8 @@ beforeAll(async () => {
 
     await assertItemDoesNotExist(yearPath);
     await assertItemDoesNotExist(albumPath);
-    await assertImageDoesNotExistInOriginalsBucket(imagePath);
-    await assertImageDoesNotExistInDerivedImagesBucket(imagePath);
+    await assertDoesNotExistInOriginalImagesBucket(imagePath);
+    await assertDoesNotExistInDerivedImagesBucket(imagePath);
 
     await uploadImage('image.jpg', imagePath);
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered

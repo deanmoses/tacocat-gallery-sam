@@ -39,22 +39,22 @@ export async function uploadImage(nameOfImageOnDisk: string, imagePath: string) 
     console.info(`Uploaded image [${nameOfImageOnDisk}] to [${imagePath}]`);
 }
 
-export async function assertImageExistsInOriginalsBucket(imagePath: string): Promise<void> {
+export async function assertExistsInOriginalImagesBucket(imagePath: string): Promise<void> {
     if (!(await imageExistsInOriginalsBucket(imagePath)))
         throw new Error(`[${imagePath}] must exist in originals bucket at start of suite`);
 }
 
-export async function assertImageDoesNotExistInOriginalsBucket(imagePath: string): Promise<void> {
+export async function assertDoesNotExistInOriginalImagesBucket(imagePath: string): Promise<void> {
     if (await imageExistsInOriginalsBucket(imagePath))
         throw new Error(`[${imagePath}] cannot exist in originals bucket at start of suite`);
 }
 
-export async function assertImageExistsInDerivedImagesBucket(imagePath: string): Promise<void> {
+export async function assertExistsInDerivedImagesBucket(imagePath: string): Promise<void> {
     if (!(await imageExistsInDerivedImagesBucket(imagePath)))
         throw new Error(`[${imagePath}] must exist in derived bucket at start of suite`);
 }
 
-export async function assertImageDoesNotExistInDerivedImagesBucket(imagePath: string): Promise<void> {
+export async function assertDoesNotExistInDerivedImagesBucket(imagePath: string): Promise<void> {
     if (await imageExistsInDerivedImagesBucket(imagePath))
         throw new Error(`[${imagePath}] cannot exist in derived bucket at start of suite`);
 }
