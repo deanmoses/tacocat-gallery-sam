@@ -12,7 +12,7 @@ import {
 } from './helpers/albumHelpers';
 import { assertOriginalImageExists, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
 
-const albumPath = '/1950/10-03/'; // unique to this suite to prevent pollution
+const albumPath = '/1703/10-03/'; // unique to this suite to prevent pollution
 let imagePath1: string;
 let imagePath2: string;
 let renameImagePath1: string;
