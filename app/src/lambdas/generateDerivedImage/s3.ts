@@ -1,8 +1,8 @@
 import { GetObjectCommand, PutObjectCommand, S3Client, NoSuchKey } from '@aws-sdk/client-s3';
 import { env } from './env';
 
-const originalImagesBucket = env('OriginalImagesBucket');
-const optimizedImagesBucket = env('DerivedImagesBucket');
+const originalImagesBucket = env('ORIGINAL_IMAGES_BUCKET');
+const optimizedImagesBucket = env('DERIVED_IMAGES_BUCKET');
 const originalImageKey = env('ORIGINAL_IMAGE_KEY');
 
 const s3 = new S3Client({});
