@@ -1,10 +1,11 @@
+import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChildren';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { findImage } from '../../lib/gallery_client/AlbumObject';
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
 import { assertDynamoDBItemDoesNotExist, cleanUpAlbum } from './helpers/albumHelpers';
 import { reallyGetNameFromPath } from './helpers/pathHelpers';
-import { assertDerivedImageDoesNotExist, assertOriginalImageDoesNotExist, uploadImage } from './helpers/s3ImageHelper';
+import { assertOriginalImageDoesNotExist, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
 
 const yearPath = '/1951/'; // unique to this suite to prevent pollution
 const albumPath = `${yearPath}09-02/`; // unique to this suite to prevent pollution
@@ -18,7 +19,6 @@ beforeAll(async () => {
     await assertDynamoDBItemDoesNotExist(yearPath);
     await assertDynamoDBItemDoesNotExist(albumPath);
     await assertOriginalImageDoesNotExist(imagePath);
-    await assertDerivedImageDoesNotExist(imagePath);
 
     await uploadImage('image.jpg', imagePath);
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
@@ -47,4 +47,20 @@ test('Album contains image', async () => {
     expect(image.itemName).toBe(imageName);
     expect(image.title).toBe('Image Title');
     expect(image.tags?.sort()).toEqual(['test1', 'test2', 'test3'].sort());
+});
+
+test('Delete image', async () => {
+    await expect(deleteImage(imagePath)).resolves.not.toThrow();
+});
+
+test('Album should not contain deleted image', async () => {
+    const album = await getAlbumAndChildren(albumPath);
+    if (!album) throw 'no album';
+    const imageName = reallyGetNameFromPath(imagePath);
+    const image = findImage(album, imagePath);
+    if (!!image) throw new Error(`Image [${imageName}] should not exist in album [${albumPath}]`);
+});
+
+test('Original images bucket should no longer contain image', async () => {
+    if (await originalImageExists(imagePath)) throw new Error(`[${imagePath}] should not exist in originals bucket`);
 });
