@@ -3,12 +3,12 @@ import { deleteAlbum } from '../../lib/gallery/deleteAlbum/deleteAlbum';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChildren';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { getParentAndNameFromPath } from '../../lib/gallery_path_utils/getParentAndNameFromPath';
-import { cleanUpAlbum } from './helpers/albumHelpers';
+import { assertDynamoDBItemDoesNotExist, cleanUpAlbum } from './helpers/albumHelpers';
 
 const albumPath = '/1962/08-13/'; // unique to this suite to prevent pollution
 
 beforeAll(async () => {
-    if (await itemExists(albumPath)) throw new Error(`Album [${albumPath}] cannot exist at start of this test suite`);
+    assertDynamoDBItemDoesNotExist(albumPath);
 });
 
 afterAll(async () => {
