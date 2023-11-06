@@ -2,9 +2,13 @@ import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChild
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { findImage } from '../../lib/gallery_client/AlbumObject';
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
-import { cleanUpAlbum } from './helpers/albumHelpers';
+import { assertItemDoesNotExist, cleanUpAlbum } from './helpers/albumHelpers';
 import { reallyGetNameFromPath } from './helpers/pathHelpers';
-import { imageExistsInOriginalsBucket, uploadImage } from './helpers/s3ImageHelper';
+import {
+    assertImageDoesNotExistInDerivedImagesBucket,
+    assertImageDoesNotExistInOriginalsBucket,
+    uploadImage,
+} from './helpers/s3ImageHelper';
 
 const yearPath = '/1951/'; // unique to this suite to prevent pollution
 const albumPath = `${yearPath}09-02/`; // unique to this suite to prevent pollution
@@ -15,10 +19,10 @@ beforeAll(async () => {
     expect(isValidAlbumPath(albumPath)).toBe(true);
     expect(isValidImagePath(imagePath)).toBe(true);
 
-    if (await itemExists(yearPath)) throw new Error(`Album [${yearPath}] cannot exist at start of suite`);
-    if (await itemExists(albumPath)) throw new Error(`Album [${albumPath}] cannot exist at start of suite`);
-    if (await imageExistsInOriginalsBucket(imagePath))
-        throw new Error(`Image [${imagePath}] cannot exist in S3 at start of suite`);
+    await assertItemDoesNotExist(yearPath);
+    await assertItemDoesNotExist(albumPath);
+    await assertImageDoesNotExistInOriginalsBucket(imagePath);
+    await assertImageDoesNotExistInDerivedImagesBucket(imagePath);
 
     await uploadImage('image.jpg', imagePath);
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered

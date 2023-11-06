@@ -3,7 +3,7 @@ import path from 'path';
 import { HeadObjectCommand, NotFound, S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { isValidImagePath } from '../../../lib/gallery_path_utils/pathValidator';
-import { getOriginalImagesBucketName } from '../../../lib/lambda_utils/Env';
+import { getDerivedImagesBucketName, getOriginalImagesBucketName } from '../../../lib/lambda_utils/Env';
 
 /**
  * Upload specified image to the Original Images S3 bucket.
@@ -39,16 +39,58 @@ export async function uploadImage(nameOfImageOnDisk: string, imagePath: string) 
     console.info(`Uploaded image [${nameOfImageOnDisk}] to [${imagePath}]`);
 }
 
+export async function assertImageExistsInOriginalsBucket(imagePath: string): Promise<void> {
+    if (!(await imageExistsInOriginalsBucket(imagePath)))
+        throw new Error(`[${imagePath}] must exist in originals bucket at start of suite`);
+}
+
+export async function assertImageDoesNotExistInOriginalsBucket(imagePath: string): Promise<void> {
+    if (await imageExistsInOriginalsBucket(imagePath))
+        throw new Error(`[${imagePath}] cannot exist in originals bucket at start of suite`);
+}
+
+export async function assertImageExistsInDerivedImagesBucket(imagePath: string): Promise<void> {
+    if (!(await imageExistsInDerivedImagesBucket(imagePath)))
+        throw new Error(`[${imagePath}] must exist in derived bucket at start of suite`);
+}
+
+export async function assertImageDoesNotExistInDerivedImagesBucket(imagePath: string): Promise<void> {
+    if (await imageExistsInDerivedImagesBucket(imagePath))
+        throw new Error(`[${imagePath}] cannot exist in derived bucket at start of suite`);
+}
+
 /**
- * Return true if image exists in S3.
+ * Return true if image exists in S3 original images bucket
  *
  * @param imagePath path of image like /2001/12-31/image.jpg
  */
 export async function imageExistsInOriginalsBucket(imagePath: string): Promise<boolean> {
     if (!isValidImagePath(imagePath)) throw new Error(`Invalid image path: [${imagePath}]`);
+
+    return await imageExists(imagePath, getOriginalImagesBucketName());
+}
+
+/**
+ * Return true if image exists in S3 derived images bucket
+ *
+ * @param imagePath path of image like /2001/12-31/image.jpg
+ */
+export async function imageExistsInDerivedImagesBucket(imagePath: string): Promise<boolean> {
+    return await imageExists(`/i${imagePath}`, getDerivedImagesBucketName());
+}
+
+/**
+ * Return true if image exists in S3.
+ *
+ * @param imagePath path of image like /2001/12-31/image.jpg
+ * @param bucketName name of S3 bucket
+ */
+async function imageExists(imagePath: string, bucketName: string): Promise<boolean> {
+    if (!imagePath) throw new Error(`empty image path`);
+    if (!bucketName) throw new Error(`empty bucket name`);
     const key = imagePath.substring(1);
     const s3Command = new HeadObjectCommand({
-        Bucket: getOriginalImagesBucketName(),
+        Bucket: bucketName,
         Key: key,
     });
     const client = new S3Client({});
@@ -61,14 +103,4 @@ export async function imageExistsInOriginalsBucket(imagePath: string): Promise<b
         }
         throw e;
     }
-}
-
-export async function assertImageExistsInOriginalsBucket(imagePath: string): Promise<void> {
-    if (!(await imageExistsInOriginalsBucket(imagePath)))
-        throw new Error(`Suite can't run because [${imagePath}] exists in S3 original images bucket`);
-}
-
-export async function assertImageDoesNotExistInOriginalsBucket(imagePath: string): Promise<void> {
-    if (await imageExistsInOriginalsBucket(imagePath))
-        throw new Error(`Suite can't run because [${imagePath}] does not exist in S3 original images bucket`);
 }
