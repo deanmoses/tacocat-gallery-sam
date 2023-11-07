@@ -25,10 +25,14 @@ export async function copyOriginals(oldAlbumPath: string, newAlbumPath: string):
     list.Contents?.forEach(async (oldItem) => {
         if (!oldItem.Key) throw new Error(`Blank key in S3 image item ${oldItem}`);
         const oldImagePath = fromS3OriginalBucketKeyToPath(oldItem.Key);
-        const imageName = getNameFromPath(oldImagePath);
-        if (!imageName) throw new Error(`No image name found in path [${oldImagePath}]`);
-        const newImagePath = newAlbumPath + imageName;
-        await copyOriginal(oldImagePath, newImagePath);
+        if (isValidAlbumPath(oldImagePath)) {
+            console.info(`S3 listed album folder [${oldImagePath}] as an object, skipping from delete`);
+        } else {
+            const imageName = getNameFromPath(oldImagePath);
+            if (!imageName) throw new Error(`No image name found in path [${oldImagePath}]`);
+            const newImagePath = newAlbumPath + imageName;
+            await copyOriginal(oldImagePath, newImagePath);
+        }
     });
 }
 
@@ -41,8 +45,8 @@ export async function copyOriginals(oldAlbumPath: string, newAlbumPath: string):
  */
 export async function copyOriginal(oldImagePath: string, newImagePath: string): Promise<void> {
     console.info(`Copying original image from [${oldImagePath}] to [${newImagePath}]...`);
-    if (!isValidImagePath(oldImagePath)) throw new Error(`Cannot copy, invalid old image path [${oldImagePath}]`);
-    if (!isValidImagePath(newImagePath)) throw new Error(`Cannot copy, invalid new image path [${newImagePath}]`);
+    if (!isValidImagePath(oldImagePath)) throw new Error(`Cannot copy, invalid source image path [${oldImagePath}]`);
+    if (!isValidImagePath(newImagePath)) throw new Error(`Cannot copy, invalid target image path [${newImagePath}]`);
     const copyCommand = new CopyObjectCommand({
         CopySource: `${getOriginalImagesBucketName()}${oldImagePath}`,
         Bucket: getOriginalImagesBucketName(), // Destination bucket
