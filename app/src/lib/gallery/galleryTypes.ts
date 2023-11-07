@@ -5,16 +5,26 @@ export type AlbumResponse = {
     children?: Album[];
 };
 
-export enum GalleryItemType {
-    album = 'album',
-    image = 'image',
-}
-export type Album = {
+export type GalleryItemType = 'album' | 'image';
+
+export type GalleryItem = {
+    parentPath?: string;
+    itemName?: string;
+    itemType?: GalleryItemType;
     title?: string;
     description?: string;
-    itemType?: GalleryItemType;
-    itemName?: string;
+    updatedOn?: string;
+    thumbnail?: AlbumThumbnailEntry;
+    tags?: string[];
+    published?: boolean;
+};
+
+export type Album = {
     parentPath?: string;
+    itemName?: string;
+    itemType?: GalleryItemType;
+    title?: string;
+    description?: string;
     updatedOn?: string;
     thumbnail?: AlbumThumbnailEntry;
     tags?: string[];

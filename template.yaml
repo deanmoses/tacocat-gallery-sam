@@ -241,6 +241,37 @@ Resources:
           - sharp
 
   # ---------------------------------------------------------------------------
+  # API Gateway lambda to search for albums and images
+  # ---------------------------------------------------------------------------
+  SearchFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/src/lambdas/api/
+      Handler: searchLambda.handler
+      Description: API Gateway lambda to search for albums and images in DynamoDB
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /search/{searchTerms+}
+            Method: GET
+            RestApiId: !Ref ImageApi
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref GalleryItemDDBTable
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - searchLambda.ts
+
+  # ---------------------------------------------------------------------------
   # API Gateway lambda to get latest album
   # ---------------------------------------------------------------------------
   GetLatestAlbumFunction:
