@@ -11,15 +11,16 @@ afterEach(() => {
     mockS3Client.reset();
 });
 
-describe('Invalid Existing Album Paths', () => {
+describe('Invalid existing album paths', () => {
     const paths = [
         '',
         'adf',
         '2000',
         '/2000',
         '2000/',
-        '2000/12-31',
-        '2000/12-31/',
+        '2000/12-31', // missing slashes
+        '2000/12-31/', // missing slashes
+        '/2000/12_31/', // underscore
         ' /2000/12-31/', // leading space
         ' /2000/12-31/ ', // trailing space
         '2000/12-31/image.jpg',
@@ -29,6 +30,31 @@ describe('Invalid Existing Album Paths', () => {
     paths.forEach((path) => {
         test(`Invalid: [${path}]`, async () => {
             await expect(renameAlbum(path, '01-01')).rejects.toThrow(/invalid|malformed/i);
+            expect(mockDDBClient.calls().length).toBe(0);
+            expect(mockS3Client.calls().length).toBe(0);
+        });
+    });
+});
+
+describe('Invalid new name', () => {
+    const newDayAlbumNames = [
+        '',
+        'adf',
+        '2000',
+        '/2000',
+        '2000/',
+        '2000/12-31', // missing slashes
+        '2000/12-31/', // missing slashes
+        '/2000/12_31/', // underscore
+        ' /2000/12-31/', // leading space
+        ' /2000/12-31/ ', // trailing space
+        '2000/12-31/image.jpg',
+        '/2000/12-31/image',
+        '/2000/12-31/image.jpg', // image, not album
+    ];
+    newDayAlbumNames.forEach((newDayAlbumName) => {
+        test(`Invalid: [${newDayAlbumName}]`, async () => {
+            await expect(renameAlbum('/2001/12-31/', newDayAlbumName)).rejects.toThrow(/invalid|malformed/i);
             expect(mockDDBClient.calls().length).toBe(0);
             expect(mockS3Client.calls().length).toBe(0);
         });

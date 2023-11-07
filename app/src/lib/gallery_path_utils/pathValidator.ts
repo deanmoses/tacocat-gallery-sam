@@ -20,15 +20,25 @@ function getAlbumPathRegexString() {
     return /^(\/\d\d\d\d(\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))?)?\/$/;
 }
 
-export function isValidYearAlbumPath(path: string): boolean {
-    return /^\/\d\d\d\d\/$/.test(path);
+/**
+ * Return true if specified string is a valid year album path like /2001/12-31/
+ */
+export function isValidYearAlbumPath(yearAlbumPath: string): boolean {
+    return /^\/\d\d\d\d\/$/.test(yearAlbumPath);
+}
+
+/**
+ * Return true if specified string is a valid day album name like 12-31
+ */
+export function isValidDayAlbumName(dayAlbumName: string): boolean {
+    return /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(dayAlbumName);
 }
 
 /**
  * Determine if specified string is a valid image path.
  * Cannot be an image on the root album like /image.jpg
  * or an image on a year album like /2001/image.jpg
- * Must be an image on a week album like /2001/12-31/image.jpg
+ * Must be an image on a day album like /2001/12-31/image.jpg
  */
 export function isValidImagePath(path: string): boolean {
     return getImagePathRegex().test(path);

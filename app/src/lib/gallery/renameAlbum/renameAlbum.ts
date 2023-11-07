@@ -1,8 +1,15 @@
-import { S3Client, CopyObjectCommand, NoSuchKey } from '@aws-sdk/client-s3';
+import {
+    S3Client,
+    ListObjectsV2Command,
+    CopyObjectCommand,
+    NoSuchKey,
+    ListObjectsV2CommandOutput,
+} from '@aws-sdk/client-s3';
 import { DynamoDBClient, ExecuteStatementCommand, ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
 import {
     isValidAlbumPath,
+    isValidDayAlbumName,
     isValidImageNameStrict,
     isValidImagePath,
     isValidYearAlbumPath,
@@ -17,11 +24,11 @@ import { deleteOriginalImageAndDerivativesFromS3 } from '../deleteImage/deleteIm
 import { getNameFromPath } from '../../gallery_path_utils/getNameFromPath';
 
 /**
- * Rename a week album in both DynamoDB and S3.
+ * Rename a day album in both DynamoDB and S3.
  *
  * Only supports renaming within the same year album.
  *
- * @param oldAlbumPath Path of existing album like /2001/12-31/
+ * @param oldAlbumPath Path of existing day album like /2001/12-31/
  * @param newName New name of album like 12-29
  * @returns Path of new album like /2001/12-29/
  */
@@ -36,6 +43,9 @@ export async function renameAlbum(oldAlbumPath: string, newName: string): Promis
     }
     if ('/' === oldAlbumPath) {
         throw new BadRequestException(`Cannot rename root album`);
+    }
+    if (!isValidDayAlbumName(newName)) {
+        throw new BadRequestException(`New name for album is invalid: [${newName}]`);
     }
     const newAlbumPath = getParentFromPath(oldAlbumPath) + newName + '/';
     if (!isValidAlbumPath(newAlbumPath)) {
@@ -66,9 +76,38 @@ export async function renameAlbum(oldAlbumPath: string, newName: string): Promis
  * @param newAlbumPath Path of new album like /2001/12-29/
  */
 async function copyImagesToNewNameInS3(oldAlbumPath: string, newAlbumPath: string): Promise<void> {
-    // Copy the images in S3 to new path
-    // I fixed it such that this will no longer trigger the image processing lambda
-    console.error(`TODO: implement copyImagesToNewNameInS3()`);
+    // I'm pretty sure the right way to do this is to just iterate over all
+    // the objects and copy them.  AWS *does* have a batch job thing,
+    // but it's for large scale, millions of objects.
+
+    const list = await listOriginalImagesInAlbum(oldAlbumPath);
+    list.Contents?.forEach(async (oldItem) => {
+        if (!oldItem.Key) throw new Error(`Blank key`);
+        const imageName = getNameFromPath('/' + oldItem.Key);
+        const newImagePath = newAlbumPath + imageName;
+        const newItemKey = newImagePath.substring(1); // remove the starting '/' from path
+        await copyOriginalImage(oldItem.Key, newItemKey);
+    });
+}
+
+async function listOriginalImagesInAlbum(albumPath: string): Promise<ListObjectsV2CommandOutput> {
+    const listCommand = new ListObjectsV2Command({
+        Bucket: getOriginalImagesBucketName(), // Destination bucket
+        Prefix: albumPath,
+    });
+    const client = new S3Client({});
+    return await client.send(listCommand);
+}
+
+async function copyOriginalImage(oldKey: string, newKey: string): Promise<void> {
+    console.info(`Rename Album: copying original image from [${oldKey}] to [${newKey}]`);
+    const copyCommand = new CopyObjectCommand({
+        CopySource: `${getOriginalImagesBucketName()}/${oldKey}`,
+        Bucket: getOriginalImagesBucketName(), // Destination bucket
+        Key: newKey, // Destination key
+    });
+    const client = new S3Client({});
+    await client.send(copyCommand);
 }
 
 /**

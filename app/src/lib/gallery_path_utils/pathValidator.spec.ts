@@ -1,5 +1,6 @@
 import {
     isValidAlbumPath,
+    isValidDayAlbumName,
     isValidImageName,
     isValidImageNameStrict,
     isValidImagePath,
@@ -70,11 +71,11 @@ describe('isValidYearAlbumPath', () => {
         '2001',
         '12-31',
         '/12-31',
-        '/2030/01-01/', // week
-        '/2001/01-09/', // week
-        '/2001/01-11/', // week
-        '/2018/01-24/', // week
-        '/2001/12-31/', // week
+        '/2030/01-01/', // day
+        '/2001/01-09/', // day
+        '/2001/01-11/', // day
+        '/2018/01-24/', // day
+        '/2001/12-31/', // day
         '2001/12-31',
         '/2001/12-31',
         '/2001/12 31/',
@@ -97,6 +98,59 @@ describe('isValidYearAlbumPath', () => {
     validYearAlbumPaths.forEach((path) => {
         it(`Should be valid: [${path}]`, () => {
             expect(isValidYearAlbumPath(path)).toStrictEqual(true);
+        });
+    });
+});
+
+describe('isValidDayAlbumName', () => {
+    const invalidDayAlbumNames = [
+        '',
+        '/', // root
+        'notapath',
+        '/not/a/real/path',
+        '//',
+        '/1/',
+        '/10/',
+        '/200/',
+        '/2001',
+        '2001', // year
+        '/12-31', // slashes
+        '/12-31/', // slashes
+        '12_31', // underscore
+        '12 32', // space
+        ' 12-32', // leading space
+        '12-32 ', // trailing space
+        'i2-o2', // letters
+        '13-01', // nonexistent month
+        '01-32', // nonexistent day
+        '01-100', // nonexistent day
+        '/2030/01-01/', // day path
+        '/2001/01-09/', // day path
+        '/2001/01-11/', // day path
+        '/2018/01-24/', // day path
+        '/2001/12-31/', // day path
+        '2001/12-31',
+        '/2001/12-31',
+        '/2001/12 31/',
+        '/2001/12_31/',
+        '/2001/1231/',
+        '/2001/12-32/',
+        '/2001/13-01/',
+        '/2001/20-01/',
+        '/2001/12-200/',
+        '/2001/12-31/something',
+        '/2001/12-31/something/',
+    ];
+    invalidDayAlbumNames.forEach((dayAlbumName) => {
+        it(`Should be invalid: [${dayAlbumName}]`, () => {
+            expect(isValidDayAlbumName(dayAlbumName)).toStrictEqual(false);
+        });
+    });
+
+    const validDayAlbumNames = ['01-01', '01-09', '01-11', '01-24', '09-01', '10-10', '11-29', '12-31'];
+    validDayAlbumNames.forEach((dayAlbumName) => {
+        it(`Should be valid: [${dayAlbumName}]`, () => {
+            expect(isValidDayAlbumName(dayAlbumName)).toStrictEqual(true);
         });
     });
 });

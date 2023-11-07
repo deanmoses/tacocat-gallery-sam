@@ -1,4 +1,9 @@
 import { getNameFromPath } from '../../../lib/gallery_path_utils/getNameFromPath';
+import {
+    isValidAlbumPath,
+    isValidImagePath,
+    isValidYearAlbumPath,
+} from '../../../lib/gallery_path_utils/pathValidator';
 
 /**
  * Get path of an album for today's date
@@ -34,4 +39,16 @@ export function reallyGetNameFromPath(path: string): string {
     const name = getNameFromPath(path);
     if (!name) throw new Error(`There was no leaf name in path [${path}]`);
     return name;
+}
+
+export function assertIsValidImagePath(imagePath: string): void {
+    if (!isValidImagePath(imagePath)) throw new Error(`Invalid image path: [${imagePath}]`);
+}
+
+export function assertIsValidAlbumPath(albumPath: string): void {
+    if (!isValidAlbumPath(albumPath)) throw new Error(`Invalid album path: [${albumPath}]`);
+}
+
+export function assertIsValidYearAlbumPath(albumPath: string): void {
+    if (!isValidYearAlbumPath(albumPath)) throw new Error(`Invalid year album path: [${albumPath}]`);
 }
