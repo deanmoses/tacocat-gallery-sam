@@ -4,7 +4,6 @@ import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChild
 import { renameAlbum } from '../../lib/gallery/renameAlbum/renameAlbum';
 import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
 import { findImage } from '../../lib/gallery_client/AlbumObject';
-import { getNameFromPath } from '../../lib/gallery_path_utils/getNameFromPath';
 import { getParentFromPath } from '../../lib/gallery_path_utils/getParentFromPath';
 import {
     assertDynamoDBItemDoesNotExist,
@@ -78,7 +77,7 @@ test('Cannot rename to same name as an existing album', async () => {
 });
 
 test('Do the rename', async () => {
-    await expect(renameAlbum(oldAlbumPath, newAlbumName)).resolves.not.toThrow();
+    await renameAlbum(oldAlbumPath, newAlbumName);
 });
 
 test('Originals bucket should not contain old image', async () => {
