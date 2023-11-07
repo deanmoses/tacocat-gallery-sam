@@ -3,6 +3,7 @@ import { deleteImage } from '../../../lib/gallery/deleteImage/deleteImage';
 import { getAlbumAndChildren } from '../../../lib/gallery/getAlbum/getAlbumAndChildren';
 import { itemExists } from '../../../lib/gallery/itemExists/itemExists';
 import { getParentFromPath } from '../../../lib/gallery_path_utils/getParentFromPath';
+import { deleteOriginalsAndDerivatives } from '../../../lib/s3_utils/s3delete';
 
 /**
  * Delete album, its images AND its parent album from S3 and DynamoDB.
@@ -48,6 +49,19 @@ export async function cleanUpAlbum(albumPath: string): Promise<void> {
         await deleteAlbum(albumPath);
     } catch (e) {
         console.error(`Album Cleanup: error deleting album [${albumPath}].  Continuing.`, e);
+    }
+
+    try {
+        // This will clean up images from DynamoDB that don't have an album entry.
+        // This will happen when I have really broken services that copy the images in S3
+        // but don't yet delete them nor create the DynamoDB entries for those images.
+        // (like what happened with my first draft of Album Rename as of Nov 7 2023)
+        await deleteOriginalsAndDerivatives(albumPath);
+    } catch (e) {
+        console.error(
+            `Album Cleanup: error last-chance deleting all S3 images for album [${albumPath}].  Continuing.`,
+            e,
+        );
     }
 }
 
