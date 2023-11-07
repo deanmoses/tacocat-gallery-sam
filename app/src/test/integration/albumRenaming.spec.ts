@@ -90,14 +90,14 @@ test('Originals bucket should contain new image', async () => {
 });
 
 test('GetAlbum() should not find old album', async () => {
-    const album = await getAlbumAndChildren(albumPath);
-    if (!!album) throw new Error(`Was able to retrieve old album [${albumPath}]`);
+    const album = await getAlbumAndChildren(oldAlbumPath);
+    if (!!album) throw new Error(`Was able to retrieve old album [${oldAlbumPath}]`);
 });
 
 test('GetAlbum() should find new album', async () => {
     const album = await getAlbumAndChildren(newAlbumPath);
-    if (!album) throw new Error('no album');
-    if (!album?.children) throw new Error('no children');
+    if (!album) throw new Error(`No new album [${newAlbumPath}]`);
+    if (!album?.children) throw new Error(`New album [${newAlbumPath}] has no children`);
 
     // Ensure album contains image
     const image = findImage(album, imageName);
