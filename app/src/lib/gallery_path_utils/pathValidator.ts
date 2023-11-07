@@ -20,6 +20,10 @@ function getAlbumPathRegexString() {
     return /^(\/\d\d\d\d(\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))?)?\/$/;
 }
 
+export function isValidYearAlbumPath(path: string): boolean {
+    return /^\/\d\d\d\d\/$/.test(path);
+}
+
 /**
  * Determine if specified string is a valid image path.
  * Cannot be an image on the root album like /image.jpg
