@@ -69,6 +69,8 @@ test('Should find diacriticals', async () => {
     expect(searchResults[0].item.title).toBe('Café Français');
 });
 
+test.todo('Should search 35k images fast enough');
+
 const mockScanResults: GalleryItem[] = [
     {
         itemType: 'album',
