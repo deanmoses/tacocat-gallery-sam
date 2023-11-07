@@ -38,19 +38,8 @@ beforeAll(async () => {
     await assertOriginalImageExists(imagePath1);
     await assertOriginalImageExists(imagePath2);
 
-    // Set image as thumbnail of immediate parent album
-    await setAlbumThumbnail(
-        albumPath,
-        imagePath1,
-        false /* Since the first uploaded image may have set this, don't error */,
-    );
-
-    // Set image as thumbnail of grandparent album
-    await setAlbumThumbnail(
-        getParentFromPath(albumPath),
-        imagePath1,
-        false /* Since the first uploaded image may have set this, don't error */,
-    );
+    await setAlbumThumbnail(albumPath, imagePath1); // Set image as thumbnail of immediate parent album
+    await setAlbumThumbnail(getParentFromPath(albumPath), imagePath1); // Set image as thumbnail of grandparent album
 }, 20000 /* increase Jest's timeout */);
 
 afterAll(async () => {
