@@ -5,7 +5,7 @@ import { fromPathToS3OriginalBucketKey } from './s3path';
 export async function listOriginalImages(albumPath: string): Promise<ListObjectsV2CommandOutput> {
     const albumKey = fromPathToS3OriginalBucketKey(albumPath);
     const listCommand = new ListObjectsV2Command({
-        Bucket: getOriginalImagesBucketName(), // Destination bucket
+        Bucket: getOriginalImagesBucketName(),
         Prefix: albumKey,
     });
     const client = new S3Client({});
