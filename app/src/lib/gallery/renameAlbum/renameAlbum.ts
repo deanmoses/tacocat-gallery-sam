@@ -1,20 +1,14 @@
-import { DynamoDBClient, ExecuteStatementCommand, ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
-import {
-    isValidAlbumPath,
-    isValidDayAlbumName,
-    isValidImageNameStrict,
-    isValidImagePath,
-    isValidYearAlbumPath,
-} from '../../gallery_path_utils/pathValidator';
+import { DynamoDBClient, ExecuteStatementCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
+import { isValidAlbumPath, isValidDayAlbumName, isValidYearAlbumPath } from '../../gallery_path_utils/pathValidator';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { getParentFromPath } from '../../gallery_path_utils/getParentFromPath';
 import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 import { itemExists } from '../itemExists/itemExists';
-import { getNameFromPath } from '../../gallery_path_utils/getNameFromPath';
 import { copyOriginals } from '../../s3_utils/s3copy';
 import { deleteOriginalsAndDerivatives } from '../../s3_utils/s3delete';
+import { getFullChildrenFromDynamoDB, getFullItemFromDynamoDB, getItem } from '../../dynamo_utils/ddbGet';
 
 /**
  * Rename a day album in both DynamoDB and S3.
@@ -55,7 +49,8 @@ export async function renameAlbum(oldAlbumPath: string, newName: string): Promis
     }
 
     await copyOriginals(oldAlbumPath, newAlbumPath);
-    await renameInDynamoDB(oldAlbumPath, newAlbumPath);
+    await moveAlbumInDynamoDB(oldAlbumPath, newAlbumPath); // handles renaming thumbnail on parent album
+    await renameAlbumThumb(getParentFromPath(oldAlbumPath), oldAlbumPath, newAlbumPath); // rename thumb on grandparent album
     await deleteOriginalsAndDerivatives(oldAlbumPath);
 
     console.info(`Rename Album: renamed [${oldAlbumPath}] to [${newAlbumPath}]`);
@@ -63,16 +58,124 @@ export async function renameAlbum(oldAlbumPath: string, newName: string): Promis
 }
 
 /**
- * Rename album and child images in DynamoDB.
+ * Rename specified album and its children in DynamoDB.
+ * Does not update the thumbnails that should be changed in any other albums.
+ * Does not touch S3.
  *
- * @param oldAlbumPath Path of old album like /2001/12-31/
- * @param newAlbumPath Path of new album like /2001/12-29/
+ * @param oldAlbumPath Path of existing image like /2001/12-31/image.jpg
+ * @param newAlbumPath New name of image like newName.jpg
+ * @param entry Image entry retrieved from DynamoDB
  */
-async function renameInDynamoDB(oldAlbumPath: string, newAlbumPath: string): Promise<void> {
-    // In a single transaction
-    //   - Update album path
-    // 	 - Update image paths
-    // - If album has a thumbnail, update thumbnail path
-    // - If year album has a thumbnail, possibly update thumbnail path
-    console.error(`TODO: implement renameInDynamoDB()`);
+async function moveAlbumInDynamoDB(oldAlbumPath: string, newAlbumPath: string): Promise<void> {
+    console.info(
+        `Rename Album: moving album and image entries in DynamoDB from [${oldAlbumPath}] to [${newAlbumPath}]...`,
+    );
+    const oldAlbumPathParts = getParentAndNameFromPath(oldAlbumPath);
+    const newAlbumPathParts = getParentAndNameFromPath(newAlbumPath);
+    const now = new Date().toISOString();
+
+    const album = await getFullItemFromDynamoDB(oldAlbumPath);
+    if (!album) throw new Error(`Old album [${oldAlbumPath}] not found in DynamoDB`);
+    album.parentPath = newAlbumPathParts.parent;
+    album.itemName = newAlbumPathParts.name;
+    album.updatedOn = now;
+    if (!!album?.thumbnail?.path) {
+        album.thumbnail.path = album.thumbnail.path.replace(oldAlbumPath, newAlbumPath);
+    }
+
+    const ddbCommand = new TransactWriteCommand({
+        TransactItems: [
+            // Create new album entry
+            {
+                Put: {
+                    TableName: getDynamoDbTableName(),
+                    Item: album,
+                },
+            },
+            // Delete old album entry
+            {
+                Delete: {
+                    TableName: getDynamoDbTableName(),
+                    Key: {
+                        parentPath: oldAlbumPathParts.parent,
+                        itemName: oldAlbumPathParts.name,
+                    },
+                },
+            },
+        ],
+    });
+
+    const children = await getFullChildrenFromDynamoDB(oldAlbumPath);
+    if (!!children) {
+        children.forEach((child) => {
+            child.parentPath = newAlbumPath;
+            child.updatedOn = now;
+            ddbCommand.input.TransactItems?.push(
+                // Create new image entry
+                {
+                    Put: {
+                        TableName: getDynamoDbTableName(),
+                        Item: child,
+                    },
+                },
+                // Delete old image entry
+                {
+                    Delete: {
+                        TableName: getDynamoDbTableName(),
+                        Key: {
+                            parentPath: oldAlbumPath,
+                            itemName: child.itemName,
+                        },
+                    },
+                },
+            );
+        });
+    }
+
+    console.log(`transaction: `, JSON.stringify(ddbCommand.input.TransactItems, null, 2));
+
+    const ddbClient = new DynamoDBClient({});
+    const docClient = DynamoDBDocumentClient.from(ddbClient);
+    await docClient.send(ddbCommand);
+}
+
+/**
+ * If specified album has a thumb within the specified old path,
+ * update it to the new path.
+ *
+ * @param albumPath Path of album on which to change the thumbnail, like /2001/ or /2001/12-31/
+ * @param oldPathOfAlbumWithThumb Old path of album containing thumbnail like /2001/12-31/
+ * @param newPathOfAlbumWithThumb New path of album containing thumbnail like /2001/12-29/
+ */
+export async function renameAlbumThumb(
+    albumPath: string,
+    oldPathOfAlbumWithThumb: string,
+    newPathOfAlbumWithThumb: string,
+): Promise<void> {
+    console.info(
+        `Maybe updating [${albumPath}]'s thumb path from [${oldPathOfAlbumWithThumb}] to [${newPathOfAlbumWithThumb}]...`,
+    );
+    if (!isValidAlbumPath(albumPath)) throw new Error(`Invalid album path: [${albumPath}]`);
+    if (!isValidAlbumPath(oldPathOfAlbumWithThumb)) throw new Error(`Invalid old path: [${oldPathOfAlbumWithThumb}]`);
+    if (!isValidAlbumPath(newPathOfAlbumWithThumb)) throw new Error(`Invalid new path: [${newPathOfAlbumWithThumb}]`);
+
+    const album = await getItem(albumPath, ['thumbnail']);
+    if (album?.thumbnail?.path?.includes(oldPathOfAlbumWithThumb)) {
+        const oldImagePath = album.thumbnail.path;
+        const newImagePath = oldImagePath.replace(oldPathOfAlbumWithThumb, newPathOfAlbumWithThumb);
+        const albumPathParts = getParentAndNameFromPath(albumPath);
+        const ddbCommand = new ExecuteStatementCommand({
+            Statement:
+                `UPDATE "${getDynamoDbTableName()}"` +
+                ` SET thumbnail.path='${newImagePath}'` +
+                ` SET updatedOn='${new Date().toISOString()}'` +
+                ` WHERE parentPath='${albumPathParts.parent}' AND itemName='${albumPathParts.name}'`,
+        });
+        const ddbClient = new DynamoDBClient({});
+        const docClient = DynamoDBDocumentClient.from(ddbClient);
+        await docClient.send(ddbCommand);
+        console.info(`Renamed album [${albumPath}] thumb from [${oldImagePath}] to [${newImagePath}]`);
+    } else {
+        console.info(`Album [${albumPath}] did not have an image within [${oldPathOfAlbumWithThumb}] as its thumbnail`);
+    }
 }
