@@ -24,16 +24,31 @@ export async function cleanUpAlbumAndParents(albumPath: string): Promise<void> {
  * @param albumPath path of album, like /2001/12-31/
  */
 export async function cleanUpAlbum(albumPath: string): Promise<void> {
-    const children = (await getAlbumAndChildren(albumPath))?.children;
-    if (!!children) {
-        for (const child of children) {
-            if (!child.parentPath) throw 'child has no parent path';
-            const childPath = child.parentPath + child.itemName;
-            await deleteImage(childPath);
+    try {
+        const children = (await getAlbumAndChildren(albumPath))?.children;
+        if (!!children) {
+            for (const child of children) {
+                try {
+                    if (!child.parentPath) throw 'child has no parent path';
+                    const childPath = child.parentPath + child.itemName;
+                    await deleteImage(childPath);
+                } catch (e) {
+                    console.error(
+                        `Album Cleanup: error deleting image [${child?.itemName}] from album [${albumPath}].  Continuing.`,
+                        e,
+                    );
+                }
+            }
         }
+    } catch (e) {
+        console.error(`Album Cleanup: error deleting children of album [${albumPath}].  Continuing.`, e);
     }
 
-    await deleteAlbum(albumPath);
+    try {
+        await deleteAlbum(albumPath);
+    } catch (e) {
+        console.error(`Album Cleanup: error deleting album [${albumPath}].  Continuing.`, e);
+    }
 }
 
 /**
