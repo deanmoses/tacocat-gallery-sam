@@ -94,7 +94,7 @@ describe("Extensions don't match", () => {
 });
 
 test('Fail if old and new are same name', async () => {
-    await expect(renameImage('/2001/12-31/image.jpg', 'image.png')).rejects.toThrow(/extension/i);
+    await expect(renameImage('/2001/12-31/image.jpg', 'image.jpg')).rejects.toThrow(/same/i);
 });
 
 test.todo("Fail if old image doesn't exist");
