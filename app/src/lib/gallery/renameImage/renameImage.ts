@@ -1,15 +1,15 @@
-import { S3Client, CopyObjectCommand, NoSuchKey } from '@aws-sdk/client-s3';
 import { DynamoDBClient, ExecuteStatementCommand, ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
 import { isValidImageNameStrict, isValidImagePath } from '../../gallery_path_utils/pathValidator';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
-import { getDynamoDbTableName, getOriginalImagesBucketName } from '../../lambda_utils/Env';
+import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { ServerException } from '../../lambda_utils/ServerException';
 import { getParentFromPath } from '../../gallery_path_utils/getParentFromPath';
 import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 import { itemExists } from '../itemExists/itemExists';
-import { deleteOriginalImageAndDerivativesFromS3 } from '../deleteImage/deleteImage';
 import { getNameFromPath } from '../../gallery_path_utils/getNameFromPath';
+import { copyOriginal } from '../../s3_utils/s3copy';
+import { deleteOriginalAndDerivatives } from '../../s3_utils/s3delete';
 
 /**
  * Rename an image in both DynamoDB and S3.
@@ -36,9 +36,9 @@ export async function renameImage(oldImagePath: string, newName: string): Promis
     if (await itemExists(newImagePath)) {
         throw new BadRequestException(`An image already exists at [${newImagePath}]`);
     }
-    await copyImageToNewNameInS3(oldImagePath, newImagePath);
+    await copyOriginal(oldImagePath, newImagePath);
     await renameImageInDynamoDB(oldImagePath, newName);
-    await deleteOriginalImageAndDerivativesFromS3(oldImagePath);
+    await deleteOriginalAndDerivatives(oldImagePath);
     console.info(`Rename Image: renamed image from [${oldImagePath}] to [${newImagePath}]`);
     return newImagePath;
 }
@@ -61,41 +61,6 @@ function validateNewImageName(existingImagePath: string, newName: string) {
     const newExtension = newName.split('.').pop();
     if (newExtension !== oldExtension) {
         throw new BadRequestException(`File extension of [${newName}] does not match [${existingImagePath}]`);
-    }
-}
-
-/**
- * Copy image to new location in S3.
- * Leaves original at the old location.
- * Does not touch DynamoDB.
- *
- * @param existingImagePath Path of existing image like /2001/12-31/existingImage.jpg
- * @param newImagePath Path of new image like /2001/12-31/newImage.jpg
- */
-async function copyImageToNewNameInS3(existingImagePath: string, newImagePath: string) {
-    console.info(`Rename Image: copying original image in S3 from [${existingImagePath}] to [${newImagePath}]...`);
-
-    // remove initial '/' from paths
-    const existingImageObjectKey = existingImagePath.substring(1);
-    const newlImageObjectKey = newImagePath.substring(1);
-
-    const s3Command = new CopyObjectCommand({
-        CopySource: `${getOriginalImagesBucketName()}/${existingImageObjectKey}`,
-        Bucket: getOriginalImagesBucketName(), // Destination bucket
-        Key: newlImageObjectKey, // Destination key
-    });
-
-    const client = new S3Client({});
-    try {
-        await client.send(s3Command);
-    } catch (e) {
-        if (e instanceof NoSuchKey) {
-            throw new ServerException(
-                `Unexpected state: image [${existingImagePath}] exists in database but not on filesystem.`,
-            );
-        }
-        console.error(`Error copying S3 object [${existingImageObjectKey}] to [${newlImageObjectKey}]`);
-        throw e;
     }
 }
 
