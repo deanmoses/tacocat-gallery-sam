@@ -515,7 +515,7 @@ Resources:
           - recutThumbnailLambda.ts
 
   # ---------------------------------------------------------------------------
-  # API Gateway lambda to rename image
+  # API Gateway lambda to rename an image
   # ---------------------------------------------------------------------------
   RenameImageFunction:
     Type: AWS::Serverless::Function
@@ -557,6 +557,50 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - renameImageLambda.ts
+
+  # ---------------------------------------------------------------------------
+  # API Gateway lambda to rename an album
+  # ---------------------------------------------------------------------------
+  RenameAlbumFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/src/lambdas/api/
+      Handler: renameAlbumLambda.handler
+      Description: API Gateway function that renames an album in DynamoDB and S3
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /album-rename/{albumPath+}
+            Method: POST
+            RestApiId: !Ref ImageApi
+      #            Auth:
+      #              Authorizer: CognitoAuthorizer
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+          ORIGINAL_IMAGES_BUCKET: !Ref OriginalImagesBucket
+          DERIVED_IMAGES_BUCKET: !Ref DerivedImagesBucket
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref OriginalImagesBucket
+        - S3CrudPolicy:
+            BucketName: !Ref DerivedImagesBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GalleryItemDDBTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PartiQLUpdate
+              Resource: !GetAtt GalleryItemDDBTable.Arn
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - renameAlbumLambda.ts
 
   # ---------------------------------------------------------------------------
   # API Gateway lambda to delete album
