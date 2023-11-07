@@ -1,4 +1,11 @@
 /**
+ * Determine if specified string is a valid album or image path such as / or /2001/ or /2001/12-31/ or /2001/12-31/image.jpg
+ */
+export function isValidPath(path: string): boolean {
+    return isValidAlbumPath(path) || isValidImagePath(path);
+}
+
+/**
  * Determine if specified string is a valid album path.
  * Must be root, year or album path like / or /2001/ or /2001/12-31/
  */
