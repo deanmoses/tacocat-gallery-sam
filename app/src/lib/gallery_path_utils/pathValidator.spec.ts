@@ -3,6 +3,7 @@ import {
     isValidImageName,
     isValidImageNameStrict,
     isValidImagePath,
+    isValidYearAlbumPath,
     sanitizeImageName,
 } from './pathValidator';
 
@@ -51,6 +52,51 @@ describe('isValidAlbumPath', () => {
     validAlbumPaths.forEach((path) => {
         it(`Should be valid: [${path}]`, () => {
             expect(isValidAlbumPath(path)).toStrictEqual(true);
+        });
+    });
+});
+
+describe('isValidYearAlbumPath', () => {
+    const invalidYearAlbumPaths = [
+        '',
+        '/', // root
+        'notapath',
+        '/not/a/real/path',
+        '//',
+        '/1/',
+        '/10/',
+        '/200/',
+        '/2001',
+        '2001',
+        '12-31',
+        '/12-31',
+        '/2030/01-01/', // week
+        '/2001/01-09/', // week
+        '/2001/01-11/', // week
+        '/2018/01-24/', // week
+        '/2001/12-31/', // week
+        '2001/12-31',
+        '/2001/12-31',
+        '/2001/12 31/',
+        '/2001/12_31/',
+        '/2001/1231/',
+        '/2001/12-32/',
+        '/2001/13-01/',
+        '/2001/20-01/',
+        '/2001/12-200/',
+        '/2001/12-31/something',
+        '/2001/12-31/something/',
+    ];
+    invalidYearAlbumPaths.forEach((path) => {
+        it(`Should be invalid: [${path}]`, () => {
+            expect(isValidYearAlbumPath(path)).toStrictEqual(false);
+        });
+    });
+
+    const validYearAlbumPaths = ['/2001/', '/2018/', '/2029/'];
+    validYearAlbumPaths.forEach((path) => {
+        it(`Should be valid: [${path}]`, () => {
+            expect(isValidYearAlbumPath(path)).toStrictEqual(true);
         });
     });
 });
