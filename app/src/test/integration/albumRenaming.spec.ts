@@ -9,7 +9,7 @@ import {
     cleanUpAlbumAndParents,
 } from './helpers/albumHelpers';
 import { assertIsValidAlbumPath, assertIsValidImagePath, assertIsValidYearAlbumPath } from './helpers/pathHelpers';
-import { assertOriginalImageExists, uploadImage } from './helpers/s3ImageHelper';
+import { assertOriginalImageExists, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
 
 const yearAlbumPath = '/1711/'; // should be unique to this suite to prevent pollution
 const oldAlbumName = '01-17';
@@ -18,10 +18,12 @@ const anotherAlbumName = '01-19';
 const oldAlbumPath = `${yearAlbumPath}${oldAlbumName}/`;
 const newAlbumPath = `${yearAlbumPath}${newAlbumName}/`;
 const anotherAlbumPath = `${yearAlbumPath}${anotherAlbumName}/`;
+let imageName: string;
 let imagePath: string;
 
 beforeAll(async () => {
-    imagePath = `${oldAlbumPath}image1_${Date.now()}.jpg`; // unique to this test run to prevent test from not being able to run again on failure to clean up properly
+    imageName = `image1_${Date.now()}.jpg`; // unique to this test run to prevent test from not being able to run again on failure to clean up properly
+    imagePath = `${oldAlbumPath}${imageName}`; // unique to this test run to prevent test from not being able to run again on failure to clean up properly
 
     assertIsValidYearAlbumPath(yearAlbumPath);
     assertIsValidAlbumPath(oldAlbumPath);
@@ -70,3 +72,19 @@ test('Cannot rename to same name', async () => {
 test('Cannot rename to same name as an existing album', async () => {
     await expect(renameAlbum(oldAlbumPath, anotherAlbumName)).rejects.toThrow(/exists/i);
 });
+
+test('Do the rename', async () => {
+    await expect(renameAlbum(oldAlbumPath, newAlbumName)).resolves.not.toThrow();
+});
+
+test('Originals bucket should contain new image', async () => {
+    await expect(originalImageExists(newAlbumPath + imageName)).resolves.toBe(true);
+});
+
+test('Originals bucket should not contain old image', async () => {
+    await expect(originalImageExists(imagePath)).resolves.toBe(false);
+});
+
+test.todo('GetAlbum() should reflect rename');
+
+test.todo("Grandparent album's thumbnail entry should reflect the image rename");

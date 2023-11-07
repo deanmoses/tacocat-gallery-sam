@@ -1,10 +1,3 @@
-import {
-    S3Client,
-    ListObjectsV2Command,
-    CopyObjectCommand,
-    NoSuchKey,
-    ListObjectsV2CommandOutput,
-} from '@aws-sdk/client-s3';
 import { DynamoDBClient, ExecuteStatementCommand, ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
 import {
@@ -15,13 +8,13 @@ import {
     isValidYearAlbumPath,
 } from '../../gallery_path_utils/pathValidator';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
-import { getDynamoDbTableName, getOriginalImagesBucketName } from '../../lambda_utils/Env';
-import { ServerException } from '../../lambda_utils/ServerException';
+import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { getParentFromPath } from '../../gallery_path_utils/getParentFromPath';
 import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 import { itemExists } from '../itemExists/itemExists';
-import { deleteOriginalImageAndDerivativesFromS3 } from '../deleteImage/deleteImage';
 import { getNameFromPath } from '../../gallery_path_utils/getNameFromPath';
+import { copyOriginals } from '../../s3_utils/s3copy';
+import { deleteOriginalsAndDerivatives } from '../../s3_utils/s3delete';
 
 /**
  * Rename a day album in both DynamoDB and S3.
@@ -61,53 +54,12 @@ export async function renameAlbum(oldAlbumPath: string, newName: string): Promis
         throw new BadRequestException(`An album already exists at [${newAlbumPath}]`);
     }
 
-    await copyImagesToNewNameInS3(oldAlbumPath, newAlbumPath);
+    await copyOriginals(oldAlbumPath, newAlbumPath);
     await renameInDynamoDB(oldAlbumPath, newAlbumPath);
-    await deleteOldImagesFromS3(oldAlbumPath);
+    await deleteOriginalsAndDerivatives(oldAlbumPath);
 
     console.info(`Rename Album: renamed [${oldAlbumPath}] to [${newAlbumPath}]`);
     return newAlbumPath;
-}
-
-/**
- * Copy album's images to new path in S3.
- *
- * @param oldAlbumPath Path of old album like /2001/12-31/
- * @param newAlbumPath Path of new album like /2001/12-29/
- */
-async function copyImagesToNewNameInS3(oldAlbumPath: string, newAlbumPath: string): Promise<void> {
-    // I'm pretty sure the right way to do this is to just iterate over all
-    // the objects and copy them.  AWS *does* have a batch job thing,
-    // but it's for large scale, millions of objects.
-
-    const list = await listOriginalImagesInAlbum(oldAlbumPath);
-    list.Contents?.forEach(async (oldItem) => {
-        if (!oldItem.Key) throw new Error(`Blank key`);
-        const imageName = getNameFromPath('/' + oldItem.Key);
-        const newImagePath = newAlbumPath + imageName;
-        const newItemKey = newImagePath.substring(1); // remove the starting '/' from path
-        await copyOriginalImage(oldItem.Key, newItemKey);
-    });
-}
-
-async function listOriginalImagesInAlbum(albumPath: string): Promise<ListObjectsV2CommandOutput> {
-    const listCommand = new ListObjectsV2Command({
-        Bucket: getOriginalImagesBucketName(), // Destination bucket
-        Prefix: albumPath,
-    });
-    const client = new S3Client({});
-    return await client.send(listCommand);
-}
-
-async function copyOriginalImage(oldKey: string, newKey: string): Promise<void> {
-    console.info(`Rename Album: copying original image from [${oldKey}] to [${newKey}]`);
-    const copyCommand = new CopyObjectCommand({
-        CopySource: `${getOriginalImagesBucketName()}/${oldKey}`,
-        Bucket: getOriginalImagesBucketName(), // Destination bucket
-        Key: newKey, // Destination key
-    });
-    const client = new S3Client({});
-    await client.send(copyCommand);
 }
 
 /**
@@ -123,13 +75,4 @@ async function renameInDynamoDB(oldAlbumPath: string, newAlbumPath: string): Pro
     // - If album has a thumbnail, update thumbnail path
     // - If year album has a thumbnail, possibly update thumbnail path
     console.error(`TODO: implement renameInDynamoDB()`);
-}
-
-/**
- * Delete album's images from old path in S3.
- *
- * @param oldAlbumPath Path of old album like /2001/12-31/
- */
-async function deleteOldImagesFromS3(oldAlbumPath: string): Promise<void> {
-    console.error(`TODO: implement deleteOldImagesFromS3()`);
 }
