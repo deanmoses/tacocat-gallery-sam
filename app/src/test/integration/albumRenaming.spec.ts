@@ -1,6 +1,10 @@
 import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
+import { getAlbum } from '../../lib/gallery/getAlbum/getAlbum';
+import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChildren';
 import { renameAlbum } from '../../lib/gallery/renameAlbum/renameAlbum';
 import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
+import { findImage } from '../../lib/gallery_client/AlbumObject';
+import { getNameFromPath } from '../../lib/gallery_path_utils/getNameFromPath';
 import { getParentFromPath } from '../../lib/gallery_path_utils/getParentFromPath';
 import {
     assertDynamoDBItemDoesNotExist,
@@ -77,14 +81,38 @@ test('Do the rename', async () => {
     await expect(renameAlbum(oldAlbumPath, newAlbumName)).resolves.not.toThrow();
 });
 
-test('Originals bucket should contain new image', async () => {
-    await expect(originalImageExists(newAlbumPath + imageName)).resolves.toBe(true);
-});
-
 test('Originals bucket should not contain old image', async () => {
     await expect(originalImageExists(imagePath)).resolves.toBe(false);
 });
 
-test.todo('GetAlbum() should reflect rename');
+test('Originals bucket should contain new image', async () => {
+    await expect(originalImageExists(newAlbumPath + imageName)).resolves.toBe(true);
+});
 
-test.todo("Grandparent album's thumbnail entry should reflect the image rename");
+test('GetAlbum() should not find old album', async () => {
+    const album = await getAlbumAndChildren(albumPath);
+    if (!!album) throw new Error(`Was able to retrieve old album [${albumPath}]`);
+});
+
+test('GetAlbum() should find new album', async () => {
+    const album = await getAlbumAndChildren(newAlbumPath);
+    if (!album) throw new Error('no album');
+    if (!album?.children) throw new Error('no children');
+
+    // Ensure album contains image
+    const image = findImage(album, imageName);
+    if (!image) throw new Error(`Album does not contain image [${imageName}]`);
+    expect(image.itemName).toBe(imageName);
+    expect(image.parentPath).toBe(newAlbumPath);
+
+    // Ensure album's thumbnail entry reflects rename
+    const newImagePath = newAlbumPath + imageName;
+    expect(album.album?.thumbnail?.path).toBe(newImagePath);
+});
+
+test("Grandparent album's thumbnail entry should reflect the image rename", async () => {
+    const album = await getAlbum(getParentFromPath(newAlbumPath));
+    if (!album) throw new Error('no grandparent album');
+    const newImagePath = newAlbumPath + imageName;
+    expect(album?.thumbnail?.path).toBe(newImagePath);
+});
