@@ -1,4 +1,4 @@
-import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
+import { createAlbum, createAlbumNoThrow } from '../../lib/gallery/createAlbum/createAlbum';
 import { getAlbum } from '../../lib/gallery/getAlbum/getAlbum';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
@@ -95,7 +95,7 @@ it('set title & description & published', async () => {
 });
 
 test("attempting to create an album that already exists doesn't blow attributes away", async () => {
-    await expect(createAlbum(albumPath, false /* don't error if it exists */)).resolves.not.toThrow();
+    await expect(createAlbumNoThrow(albumPath)).resolves.not.toThrow();
 
     const album = await getAlbum(albumPath);
     expect(album?.title).toBe(title);

@@ -2,7 +2,7 @@ import { extractImageMetadata } from './extractImageMetadata';
 import { createImage } from '../../lib/gallery/createImage/createImage';
 import { setImageAsParentAlbumThumbnailIfNoneExists } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
 import { isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
-import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
+import { createAlbumNoThrow } from '../../lib/gallery/createAlbum/createAlbum';
 import { getParentFromPath } from '../../lib/gallery_path_utils/getParentFromPath';
 
 /**
@@ -29,10 +29,11 @@ export async function processImageUpload(bucket: string, key: string): Promise<v
 
     console.info(`Image Processor: ensuring parent albums exist for image [${key}]`);
     const albumPath = getParentFromPath(imagePath);
-    const albumWasCreated = await createAlbum(albumPath, false /* don't error if album exists */);
+
+    const albumWasCreated = await createAlbumNoThrow(albumPath);
     if (albumWasCreated) {
         const grandparentAlbumPath = getParentFromPath(albumPath);
-        await createAlbum(grandparentAlbumPath, false /* don't error if album exists */);
+        await createAlbumNoThrow(grandparentAlbumPath);
     }
 
     console.info(`Image Processor: extracting metadata from [${key}]`);

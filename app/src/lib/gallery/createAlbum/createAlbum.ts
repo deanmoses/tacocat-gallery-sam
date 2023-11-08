@@ -6,19 +6,31 @@ import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 
 /**
+ * Create album, but don't throw an exception if it already exists.
+ *
+ * @param albumPath path of the album, like '/2001/12-31/'
+ * @returns true if album was created; false if it already exists
+ */
+export async function createAlbumNoThrow(albumPath: string): Promise<boolean> {
+    return createAlbum(albumPath, undefined, false);
+}
+
+/**
  * Create album in DynamoDB
  *
  * @param albumPath path of the album, like '/2001/12-31/'
+ * @param attributesToSet album attributes to set
  * @param throwIfExists true: throw Error if album already exists (default)
+ * @returns true if album was created; false if it already exists
  */
-export async function createAlbum(albumPath: string, throwIfExists = true): Promise<boolean> {
+export async function createAlbum(
+    albumPath: string,
+    attributesToSet?: Record<string, string | boolean>,
+    throwIfExists = true,
+): Promise<boolean> {
     if (!isValidAlbumPath(albumPath)) {
         throw new BadRequestException(`Invalid album path: [${albumPath}]`);
     }
-
-    //
-    // Construct the DynamoDB command
-    //
     const pathParts = getParentAndNameFromPath(albumPath);
     const now = new Date().toISOString();
     const ddbCommand = new PutCommand({
@@ -32,10 +44,11 @@ export async function createAlbum(albumPath: string, throwIfExists = true): Prom
         },
         ConditionExpression: 'attribute_not_exists (itemName)',
     });
-
-    //
-    // Send command to DynamoDB
-    //
+    if (ddbCommand?.input?.Item) {
+        if (!!attributesToSet?.title) ddbCommand.input.Item.title = attributesToSet?.title;
+        if (!!attributesToSet?.description) ddbCommand.input.Item.description = attributesToSet?.description;
+        if (!!attributesToSet?.published) ddbCommand.input.Item.published = attributesToSet?.published;
+    }
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);
     try {
