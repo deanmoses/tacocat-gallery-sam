@@ -1,6 +1,6 @@
 import { deleteAlbum } from '../../../lib/gallery/deleteAlbum/deleteAlbum';
 import { deleteImage } from '../../../lib/gallery/deleteImage/deleteImage';
-import { getAlbumAndChildren } from '../../../lib/gallery/getAlbum/getAlbumAndChildren';
+import { getAlbumAndChildren } from '../../../lib/gallery/getAlbum/getAlbum';
 import { itemExists } from '../../../lib/gallery/itemExists/itemExists';
 import { getParentFromPath } from '../../../lib/gallery_path_utils/getParentFromPath';
 import { deleteOriginalsAndDerivatives } from '../../../lib/s3_utils/s3delete';

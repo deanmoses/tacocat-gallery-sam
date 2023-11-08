@@ -5,7 +5,7 @@ import {
     respondHttp,
 } from '../../lib/lambda_utils/ApiGatewayResponseHelpers';
 import { HttpMethod, ensureHttpMethod, getAlbumPath } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
-import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChildren';
+import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 
 /**
  * A Lambda function that gets an album and its child images and child albums from DynamoDB

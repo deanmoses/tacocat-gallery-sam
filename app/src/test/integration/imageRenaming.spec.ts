@@ -1,4 +1,4 @@
-import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChildren';
+import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { renameImage } from '../../lib/gallery/renameImage/renameImage';
 import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
 import { findImage } from '../../lib/gallery_client/AlbumObject';

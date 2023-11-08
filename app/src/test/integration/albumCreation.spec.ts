@@ -1,6 +1,6 @@
 import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
 import { deleteAlbum } from '../../lib/gallery/deleteAlbum/deleteAlbum';
-import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChildren';
+import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { getParentAndNameFromPath } from '../../lib/gallery_path_utils/getParentAndNameFromPath';
 import { assertDynamoDBItemDoesNotExist, cleanUpAlbum } from './helpers/albumHelpers';

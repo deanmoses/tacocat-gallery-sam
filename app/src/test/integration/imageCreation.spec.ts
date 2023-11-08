@@ -1,5 +1,5 @@
 import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
-import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChildren';
+import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { findImage } from '../../lib/gallery_client/AlbumObject';
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
@@ -22,7 +22,7 @@ beforeAll(async () => {
 
     await uploadImage('image.jpg', imagePath);
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
-}, 10000 /* increase Jest's timeout */);
+}, 20000 /* increase Jest's timeout */);
 
 afterAll(async () => {
     await cleanUpAlbum(albumPath);

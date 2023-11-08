@@ -1,7 +1,7 @@
 import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
 import { deleteAlbum } from '../../lib/gallery/deleteAlbum/deleteAlbum';
 import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
-import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChildren';
+import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { getLatestAlbum } from '../../lib/gallery/getLatestAlbum/getLatestAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { getParentAndNameFromPath } from '../../lib/gallery_path_utils/getParentAndNameFromPath';

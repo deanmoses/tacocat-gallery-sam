@@ -1,6 +1,6 @@
 import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
 import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
-import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChildren';
+import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { getLatestAlbum } from '../../lib/gallery/getLatestAlbum/getLatestAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { findImage } from '../../lib/gallery_client/AlbumObject';

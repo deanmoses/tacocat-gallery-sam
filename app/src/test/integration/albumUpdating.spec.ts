@@ -1,6 +1,6 @@
 import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
 import { getAlbum } from '../../lib/gallery/getAlbum/getAlbum';
-import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChildren';
+import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
 import { getParentAndNameFromPath } from '../../lib/gallery_path_utils/getParentAndNameFromPath';
 import {

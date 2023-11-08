@@ -1,6 +1,6 @@
 import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
 import { getAlbum } from '../../lib/gallery/getAlbum/getAlbum';
-import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbumAndChildren';
+import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { renameAlbum } from '../../lib/gallery/renameAlbum/renameAlbum';
 import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
 import { findImage } from '../../lib/gallery_client/AlbumObject';
