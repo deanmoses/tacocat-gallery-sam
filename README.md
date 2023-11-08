@@ -117,4 +117,4 @@ To delete the application from AWS:
 sam delete --stack-name tacocat-gallery-sam
 ```
 
-:warning: This _might_ delete the S3 photo repo and DynamoDB database, though I _think_ it's set up not to delete them if they contain stuff.
+:warning: This _might_ delete the S3 bucket with all the photos and the DynamoDB database, though I _think_ it's set up not to delete them if they contain stuff.
