@@ -109,53 +109,54 @@ test('Images', async () => {
 });
 
 describe('Prev & Next', () => {
-    test('Both Prev & Next', async () => {
-        // Mock out the AWS method to get the album itself (no children)
-        mockDocClient.on(GetCommand).resolves({ Item: { parentPath: '/2001/', itemName: '12-01' } });
-        // Mock out the AWS method that returns children
-        mockDocClient.on(QueryCommand).resolves({ Items: mockAlbums });
-        const albumResponse = await getAlbumAndChildren('/2001/01-02/');
-        if (!albumResponse?.prevAlbum) throw new Error('Did not receive a prev');
-        if (!albumResponse?.nextAlbum) throw new Error('Did not receive a prev');
-    });
-
     test('No Prev', async () => {
         // Mock out the AWS method to get the album itself (no children)
-        mockDocClient.on(GetCommand).resolves({ Item: { parentPath: '/2001/', itemName: '12-01' } });
+        mockDocClient.on(GetCommand).resolves({ Item: { parentPath: '/2001/', itemName: '01-01' } });
         // Mock out the AWS method that returns children
         mockDocClient.on(QueryCommand).resolves({ Items: mockAlbums });
         const albumResponse = await getAlbumAndChildren('/2001/01-01/');
         if (!!albumResponse?.prevAlbum) throw new Error('Not expecting a prev');
-        if (!albumResponse?.nextAlbum) throw new Error('Did not receive a next');
-    });
-
-    test('No Next', async () => {
-        // Mock out the AWS method to get the album itself (no children)
-        mockDocClient.on(GetCommand).resolves({ Item: { parentPath: '/2001/', itemName: '12-01' } });
-        // Mock out the AWS method that returns children
-        mockDocClient.on(QueryCommand).resolves({ Items: mockAlbums });
-        const albumResponse = await getAlbumAndChildren('/2001/01-04/');
-        if (!albumResponse?.prevAlbum) throw new Error('Did not receive a prev');
-        if (!!albumResponse?.nextAlbum) throw new Error('Not expecting a next');
-    });
-
-    test('Prev Skips Unpublished', async () => {
-        // Mock out the AWS method to get the album itself (no children)
-        mockDocClient.on(GetCommand).resolves({ Item: { parentPath: '/2001/', itemName: '12-01' } });
-        // Mock out the AWS method that returns children
-        mockDocClient.on(QueryCommand).resolves({ Items: mockAlbums });
-        const albumResponse = await getAlbumAndChildren('/2001/01-04/');
-        if (!albumResponse?.prevAlbum) throw new Error('Did not receive a prev');
+        expect(albumResponse?.nextAlbum?.path).toBe('/2001/01-02/');
     });
 
     test('Next Skips Unpublished', async () => {
         // Mock out the AWS method to get the album itself (no children)
-        mockDocClient.on(GetCommand).resolves({ Item: { parentPath: '/2001/', itemName: '12-01' } });
+        mockDocClient.on(GetCommand).resolves({ Item: { parentPath: '/2001/', itemName: '01-02' } });
         // Mock out the AWS method that returns children
         mockDocClient.on(QueryCommand).resolves({ Items: mockAlbums });
         const albumResponse = await getAlbumAndChildren('/2001/01-02/');
-        if (!albumResponse?.prevAlbum) throw new Error('Did not receive a prev');
-        if (!albumResponse?.nextAlbum) throw new Error('Did not recieve a next');
+        expect(albumResponse?.prevAlbum?.path).toBe('/2001/01-01/');
+        expect(albumResponse?.nextAlbum?.path).toBe('/2001/01-04/');
+    });
+
+    test('Both Prev & Next', async () => {
+        // Mock out the AWS method to get the album itself (no children)
+        mockDocClient.on(GetCommand).resolves({ Item: { parentPath: '/2001/', itemName: '01-03' } });
+        // Mock out the AWS method that returns children
+        mockDocClient.on(QueryCommand).resolves({ Items: mockAlbums });
+        const albumResponse = await getAlbumAndChildren('/2001/01-03/');
+        expect(albumResponse?.prevAlbum?.path).toBe('/2001/01-02/');
+        expect(albumResponse?.prevAlbum?.title).toBe('Title 2');
+        expect(albumResponse?.nextAlbum?.path).toBe('/2001/01-04/');
+        expect(albumResponse?.nextAlbum?.title).toBe('Title 4');
+    });
+
+    test('Prev Skips Unpublished', async () => {
+        // Mock out the AWS method to get the album itself (no children)
+        mockDocClient.on(GetCommand).resolves({ Item: { parentPath: '/2001/', itemName: '01-04' } });
+        // Mock out the AWS method that returns children
+        mockDocClient.on(QueryCommand).resolves({ Items: mockAlbums });
+        const albumResponse = await getAlbumAndChildren('/2001/01-04/');
+        expect(albumResponse?.prevAlbum?.path).toBe('/2001/01-02/');
+    });
+
+    test('No Next', async () => {
+        // Mock out the AWS method to get the album itself (no children)
+        mockDocClient.on(GetCommand).resolves({ Item: { parentPath: '/2001/', itemName: '01-04' } });
+        // Mock out the AWS method that returns children
+        mockDocClient.on(QueryCommand).resolves({ Items: mockAlbums });
+        const albumResponse = await getAlbumAndChildren('/2001/01-04/');
+        if (!!albumResponse?.nextAlbum) throw new Error('Not expecting a next');
     });
 });
 

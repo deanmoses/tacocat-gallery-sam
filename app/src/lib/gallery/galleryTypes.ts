@@ -1,8 +1,21 @@
 export type AlbumResponse = {
     album?: Album;
-    nextAlbum?: string;
-    prevAlbum?: string;
+    nextAlbum?: NavInfo;
+    prevAlbum?: NavInfo;
     children?: Album[];
+};
+
+export type Navigable = {
+    prev?: NavInfo;
+    next?: NavInfo;
+};
+
+/**
+ * Just enough information to navigate to a next/prev album or image
+ */
+export type NavInfo = {
+    path: string;
+    title?: string;
 };
 
 export type GalleryItemType = 'album' | 'image';
