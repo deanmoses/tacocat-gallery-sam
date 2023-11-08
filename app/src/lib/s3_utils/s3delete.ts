@@ -15,12 +15,23 @@ export async function deleteOriginalsAndDerivatives(imagePath: string): Promise<
 }
 
 /**
+ * Delete image from S3, both original and any derived images.
+ * Does not touch DynamoDB.
+ *
+ * @param imagePath Path of image, like /2001/12-31/image.jpg
+ */
+export async function deleteOriginalAndDerivatives(imagePath: string): Promise<void> {
+    await deleteOriginalImage(imagePath);
+    await deleteDerivedImages(imagePath);
+}
+
+/**
  * Delete album's original images from S3.
  * Does not touch DynamoDB.
  *
  * @param albumPath Path of album, like /2001/12-31/
  */
-export async function deleteOriginals(albumPath: string): Promise<void> {
+async function deleteOriginals(albumPath: string): Promise<void> {
     console.info(`Deleting original images for album [${albumPath}]...`);
     if (!isValidAlbumPath(albumPath)) {
         throw new Error(`Cannot delete original images; invalid album path [${albumPath}]`);
@@ -35,7 +46,7 @@ export async function deleteOriginals(albumPath: string): Promise<void> {
  *
  * @param albumPath Path of album, like /2001/12-31/
  */
-export async function deleteDerivedImagesForAlbum(albumPath: string): Promise<void> {
+async function deleteDerivedImagesForAlbum(albumPath: string): Promise<void> {
     console.info(`Deleting derived images for album [${albumPath}]...`);
     if (!isValidAlbumPath(albumPath)) {
         throw new Error(`Cannot delete derived images; invalid album path [${albumPath}]`);
@@ -45,23 +56,12 @@ export async function deleteDerivedImagesForAlbum(albumPath: string): Promise<vo
 }
 
 /**
- * Delete image from S3, both original and any derived images.
- * Does not touch DynamoDB.
- *
- * @param imagePath Path of image, like /2001/12-31/image.jpg
- */
-export async function deleteOriginalAndDerivatives(imagePath: string): Promise<void> {
-    await deleteOriginalImage(imagePath);
-    await deleteDerivedImages(imagePath);
-}
-
-/**
  * Delete original image from S3.
  * Does not touch DynamoDB.
  *
  * @param imagePath Path of image, like /2001/12-31/image.jpg
  */
-export async function deleteOriginalImage(imagePath: string): Promise<void> {
+async function deleteOriginalImage(imagePath: string): Promise<void> {
     console.info(`Deleting original image from S3 [${imagePath}]...`);
     if (!isValidImagePath(imagePath)) {
         throw new Error(`Cannot delete original image; invalid image path [${imagePath}]`);
@@ -81,7 +81,7 @@ export async function deleteOriginalImage(imagePath: string): Promise<void> {
  *
  * @param imagePath Path of image, like /2001/12-31/image.jpg
  */
-export async function deleteDerivedImages(imagePath: string): Promise<void> {
+async function deleteDerivedImages(imagePath: string): Promise<void> {
     console.info(`Deleting derived images from S3 [${imagePath}]...`);
     if (!isValidImagePath(imagePath)) {
         throw new Error(`Cannot delete derived images; invalid image path [${imagePath}]`);
