@@ -29,12 +29,9 @@ export async function getLatestAlbum(): Promise<AlbumThumbnailResponse | undefin
  * @param path Path of the parent album, like /2001/12-31/
  */
 async function getLatestItemInAlbum(path: string): Promise<AlbumThumbnail | undefined> {
-    const ddbClient = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
-    const tableName = getDynamoDbTableName();
     // find the most recent album within the current year
     const ddbCommand = new QueryCommand({
-        TableName: tableName,
+        TableName: getDynamoDbTableName(),
         KeyConditionExpression: 'parentPath = :parentPath',
         ExpressionAttributeValues: {
             ':parentPath': path,
@@ -43,9 +40,9 @@ async function getLatestItemInAlbum(path: string): Promise<AlbumThumbnail | unde
         Limit: 1, // # of results to return
         ScanIndexForward: false, // sort results in descending order, i.e., newest first
     });
-
+    const ddbClient = new DynamoDBClient({});
+    const docClient = DynamoDBDocumentClient.from(ddbClient);
     const result = await docClient.send(ddbCommand);
-
     if (!!result.Items && result.Items?.length > 0) {
         return result.Items[0];
     } else {
