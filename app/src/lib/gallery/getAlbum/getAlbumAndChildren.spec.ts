@@ -8,101 +8,140 @@ afterEach(() => {
     mockDocClient.reset();
 });
 
-test('Get root album', async () => {
-    expect.assertions(10);
-
+test('Root Album', async () => {
     // Mock out the AWS 'query' method.  Used to return both the child images and the child albums
     mockDocClient.on(QueryCommand).resolves({
-        Items: mockItems,
+        Items: mockAlbums,
         Count: 3,
         ScannedCount: 3,
     });
 
     const result = await getAlbumAndChildren('/');
-    expect(result).toBeDefined();
 
     const album = result?.album;
-    expect(album).toBeDefined();
+    if (!album) throw new Error('Did not receive album');
     expect(album?.title).toBe('Dean, Lucie, Felix and Milo Moses');
     expect(album?.itemName).toBe('/');
     expect(album?.parentPath).toBe('');
 
     const children = result?.children;
-    expect(children).toBeDefined();
-    if (!!children) {
-        expect(children[0]).toBeDefined();
-        expect(children[0].itemName).toBe('cross_country5.jpg');
-
-        expect(children[1]).toBeDefined();
-        expect(children[1].itemName).toBe('cross_country6.jpg');
-    }
+    if (!children) throw new Error('Did not receive children');
+    expect(children[0]?.itemName).toBe('01-01');
+    expect(children[1]?.itemName).toBe('01-02');
 });
 
-test('Get Images in Album', async () => {
-    expect.assertions(6);
-
-    const albumPath = '/2001/12-31/';
-
+test('Images', async () => {
     // Mock out the AWS 'get' method
     mockDocClient.on(GetCommand).resolves({
         Item: {
-            itemName: '12-31',
             parentPath: '/2001/',
+            itemName: '12-31',
             updatedOn: '2001-12-31T23:59:59.999Z',
         },
     });
 
     // Mock out the AWS 'query' method.  Used to return both the child images and the child albums
     mockDocClient.on(QueryCommand).resolves({
-        Items: mockItems,
+        Items: mockImages,
         Count: 3,
         ScannedCount: 3,
     });
 
-    const albumResponse = await getAlbumAndChildren(albumPath);
-    expect(albumResponse).toBeDefined();
-
-    expect(albumResponse?.children).toBeDefined();
-    if (!!albumResponse?.children) {
-        expect(albumResponse?.children[0]).toBeDefined();
-        expect(albumResponse?.children[0].itemName).toBe('cross_country5.jpg');
-
-        expect(albumResponse?.children[1]).toBeDefined();
-        expect(albumResponse?.children[1].itemName).toBe('cross_country6.jpg');
-    }
+    const children = (await getAlbumAndChildren('/2001/12-31/'))?.children;
+    if (!children) throw new Error('Did not receive children');
+    expect(children[0]?.itemName).toBe('image1.jpg');
+    expect(children[0]?.title).toBe('Title 1');
+    expect(children[0]?.description).toBe('Description 1');
+    expect(children[0]?.updatedOn).toBe('2001-12-31T23:59:59.999Z');
+    expect(children[0]?.tags).toContain('image1_tag1');
+    expect(children[1]?.itemName).toBe('image2.jpg');
+    expect(children[1]?.title).toBe('Title 2');
+    expect(children[1]?.description).toBe('Description 2');
+    expect(children[1]?.tags).toContain('image2_tag2');
+    expect(children[2]?.tags).toContain('image3_tag3');
 });
 
-const mockItems = [
+test('Prev & Next', async () => {
+    // Mock out the AWS 'get' method
+    mockDocClient.on(GetCommand).resolves({
+        Item: {
+            parentPath: '/2001/',
+            itemName: '12-31',
+            updatedOn: '2001-12-31T23:59:59.999Z',
+        },
+    });
+
+    // Mock out the AWS 'query' method.  Used to return both the child images and the child albums
+    mockDocClient.on(QueryCommand).resolves({
+        Items: mockAlbums,
+        Count: 3,
+        ScannedCount: 3,
+    });
+    const albumResponse = await getAlbumAndChildren('/2001/12-31/');
+    if (!albumResponse?.album) throw new Error('Did not receive album');
+    if (!albumResponse?.nextAlbum) throw new Error('Did not receive next album');
+    if (!albumResponse?.prevAlbum) throw new Error('Did not receive prev album');
+});
+
+const mockImages = [
     {
-        itemName: 'cross_country5.jpg',
-        parentPath: '/2001/12-31',
-        updatedOn: '2018:11:03 16:25:41',
+        itemName: 'image1.jpg',
+        itemType: 'image',
+        parentPath: '/2001/12-31/',
+        title: 'Title 1',
+        description: 'Description 1',
+        updatedOn: '2001-12-31T23:59:59.999Z',
         dimensions: { width: 4032, height: 3024 },
-        tags: ['Person', 'Human', 'Clothing', 'Shorts', 'Crowd', 'People', 'Audience', 'Festival', 'Shoe', 'Footwear'],
+        tags: ['image1_tag1', 'image1_tag2'],
     },
     {
-        itemName: 'cross_country6.jpg',
-        parentPath: '/2001/12-31',
-        updatedOn: '2018:11:03 16:25:41',
+        itemName: 'image2.jpg',
+        itemType: 'image',
+        parentPath: '/2001/12-31/',
+        title: 'Title 2',
+        description: 'Description 2',
+        updatedOn: '2001-12-31T23:59:59.999Z',
         dimensions: { width: 4032, height: 3024 },
-        tags: [
-            'Person',
-            'Clothing',
-            'Electronics',
-            'Sitting',
-            'Furniture',
-            'Table',
-            'Photographer',
-            'Tripod',
-            'Desk',
-            'Wood',
-        ],
+        tags: ['image2_tag1', 'image2_tag2'],
     },
     {
-        imageID: '2001/12-31/cross_country7.jpg',
-        parentPath: '/2001/12-31',
-        updatedOn: '2018:11:03 16:25:41',
+        itemName: 'image3.jpg',
+        itemType: 'image',
+        parentPath: '/2001/12-31/',
+        title: 'Title 3',
+        description: 'Description 3',
+        updatedOn: '2001-12-31T23:59:59.999Z',
         dimensions: { width: 4032, height: 3024 },
-        tags: ['Person', 'Human', 'Sports', 'Sport', 'Cross Country', 'People', 'Crowd', 'Apparel', 'Clothing'],
+        tags: ['image3_tag1', 'image3_tag2', 'image3_tag3'],
+    },
+];
+
+const mockAlbums = [
+    {
+        itemName: '01-01',
+        itemType: 'album',
+        parentPath: '/2001/',
+        title: 'Title 1',
+        description: 'Description 1',
+        updatedOn: '2001-12-31T23:59:59.999Z',
+        tags: ['album1_tag1', 'album1_tag2'],
+    },
+    {
+        itemName: '01-02',
+        itemType: 'album',
+        parentPath: '/2001/',
+        title: 'Title 2',
+        description: 'Description 2',
+        updatedOn: '2001-12-31T23:59:59.999Z',
+        tags: ['album2_tag1', 'album2_tag2'],
+    },
+    {
+        itemName: '01-03',
+        itemType: 'album',
+        parentPath: '/2001/',
+        title: 'Title 3',
+        description: 'Description 3',
+        updatedOn: '2001-12-31T23:59:59.999Z',
+        tags: ['album3_tag1', 'album3_tag2', 'album3_tag3'],
     },
 ];

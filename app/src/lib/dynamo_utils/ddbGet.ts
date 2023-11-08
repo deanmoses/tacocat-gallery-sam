@@ -49,6 +49,16 @@ export async function getItem(path: string, attributes: string[] = []): Promise<
  * @param albumPath path to album, like /2001/12-31/
  */
 export async function getFullChildrenFromDynamoDB(albumPath: string): Promise<GalleryItem[] | undefined> {
+    return getChildItems(albumPath);
+}
+
+/**
+ * Get the specified attributes of all the children of the specified album from DynamoDB.
+ *
+ * @param albumPath path to album, like /2001/12-31/
+ * @param attributes Name of the attributes to include.  If blank, returns ALL attributes.
+ */
+export async function getChildItems(albumPath: string, attributes: string[] = []): Promise<GalleryItem[] | undefined> {
     if (!isValidAlbumPath(albumPath)) throw new Error(`Invalid album path [${albumPath}]`);
     const ddbCommand = new QueryCommand({
         TableName: getDynamoDbTableName(),
@@ -57,6 +67,9 @@ export async function getFullChildrenFromDynamoDB(albumPath: string): Promise<Ga
             ':parentPath': albumPath,
         },
     });
+    if (attributes?.length && attributes?.length > 0) {
+        ddbCommand.input.ProjectionExpression = attributes.toString();
+    }
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);
     const results = await docClient.send(ddbCommand);
