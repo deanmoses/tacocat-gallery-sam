@@ -6,7 +6,7 @@ import { isValidAlbumPath } from '../../gallery_path_utils/pathValidator';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 
 /**
- * Delete an album and its photos and child albums.
+ * Delete an empty album.  Cannot contain children.
  *
  * @param albumPath Path of the album to delete, like /2001/12-31/
  */
