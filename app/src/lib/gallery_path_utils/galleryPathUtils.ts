@@ -81,13 +81,11 @@ export function sanitizeImageName(imageName: string): string {
 }
 
 /**
- * For the given path, return 1) the leaf item and 2) the parent path
- *
- * For example:
+ * Return the specified path's parent path and leaf item
  *  - /2001/12-31/image.jpg returns  '/2001/12-31/' and 'image.jpg'
  *  - /2001/12-31 returns '/2001/' and '12-31'
  *  - /2001 returns '/' and 2000'
- *  - / returns  ''
+ *  - / returns  '' and undefined
  *
  *  @param {String} path a path of the format /2001/12-31/image.jpg, or a subset thereof
  */
