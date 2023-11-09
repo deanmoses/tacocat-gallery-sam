@@ -479,15 +479,15 @@ describe('albumPathToDate', () => {
     });
 
     const inputs = [
-        { in: '/', out: new Date(1826, 1, 1) },
-        { in: '/2001/', out: new Date(2001, 1, 1) },
-        { in: '/1970/', out: new Date(1970, 1, 1) },
-        { in: '/2001/01-01/', out: new Date(2001, 1, 1) },
-        { in: '/2001/01-02/', out: new Date(2001, 1, 2) },
-        { in: '/2023/12-31/', out: new Date(2023, 12, 31) },
+        { in: '/', out: new Date(1826, 0, 1) },
+        { in: '/2001/', out: new Date(2001, 0, 1) },
+        { in: '/1970/', out: new Date(1970, 0, 1) },
+        { in: '/2001/01-01/', out: new Date(2001, 0, 1) },
+        { in: '/2001/01-02/', out: new Date(2001, 0, 2) },
+        { in: '/2023/12-31/', out: new Date(2023, 11, 31) },
     ];
     inputs.forEach((input) => {
-        test(`In: [${input.in}] Out: [${input.out}]`, () => {
+        test(`In: [${input.in}] Out: [${input.out.toDateString()}]`, () => {
             expect(albumPathToDate(input.in)).toEqual(input.out);
         });
     });

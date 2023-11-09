@@ -154,15 +154,15 @@ export function getNameFromPath(path: string): string | undefined {
 export function albumPathToDate(albumPath: string): Date {
     if (!isValidAlbumPath(albumPath)) throw new Error(`Invalid album path: [${albumPath}]`);
     if (albumPath === '/') {
-        return new Date(1826, 1, 1); // Date of first surviving photograph
+        return new Date(1826, 0, 1); // Date of first surviving photograph
     }
     const m = /^\/(?<year>\d\d\d\d)\/((?<month>\d\d)-(?<day>\d\d)\/)?$/i.exec(albumPath);
     if (!m?.groups?.year) throw new Error(`Error matching`);
     const year = Number.parseInt(m.groups.year, 10);
     if (!!m?.groups?.month && !!m?.groups?.day) {
-        const month = Number.parseInt(m.groups.month, 10);
+        const month = Number.parseInt(m.groups.month, 10) - 1;
         const day = Number.parseInt(m.groups.day, 10);
         return new Date(year, month, day);
     }
-    return new Date(year, 1, 1); // Use Jan 1 for year albums
+    return new Date(year, 0, 1); // Use Jan 1 for year albums
 }
