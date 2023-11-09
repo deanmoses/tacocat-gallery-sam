@@ -1,14 +1,14 @@
 /**
- * Determine if specified string is a valid album or image path
- * such as / or /2001/ or /2001/12-31/ or /2001/12-31/image.jpg
+ * Return true if specified string is a valid album or image path
+ * like / or /2001/ or /2001/12-31/ or /2001/12-31/image.jpg
  */
 export function isValidPath(path: string): boolean {
     return isValidAlbumPath(path) || isValidImagePath(path);
 }
 
 /**
- * Determine if specified string is a valid album path.
- * Must be root, year or album path like / or /2001/ or /2001/12-31/
+ * Return true if specified string is a valid album path
+ * like / or /2001/ or /2001/12-31/
  */
 export function isValidAlbumPath(path: string): boolean {
     return /^(\/\d\d\d\d(\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))?)?\/$/.test(path);
@@ -29,30 +29,33 @@ export function isValidDayAlbumName(dayAlbumName: string): boolean {
 }
 
 /**
- * Determine if specified string is a valid image path.
- * Cannot be an image on the root album like /image.jpg
- * or an image on a year album like /2001/image.jpg
- * Must be an image on a day album like /2001/12-31/image.jpg
+ * Return true if specified string is a valid image path like /2001/12-31/image.jpg
+ * Cannot be on root album like /image.jpg
+ * Cannot be on year album like /2001/image.jpg
+ * Must be on a day album like /2001/12-31/image.jpg
  */
 export function isValidImagePath(path: string): boolean {
     return /^\/\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/[a-zA-Z0-9_-]+\.(jpg|jpeg|gif|png)$/i.test(path);
 }
 
 /**
- * Determine if specified string is a valid image name.
+ * Return true if specified string is a valid image name like 'image.jpg'
  * Must not have a path.
  *
- * @param imageName image name like 'image.jpg'
+ * @param imageName name of image
  */
 export function isValidImageName(imageName: string): boolean {
     return /^[a-zA-Z0-9_-]+\.(jpg|jpeg|gif|png)$/i.test(imageName);
 }
 
 /**
- * Determine if specified string is a valid image name, strict.
+ * Return true if specified string is a valid strict image name.
+ * Must be lower case
+ * No hyphens (-) just underscores (_)
+ * Must be 'jpg' not 'jpeg'
  * Must not have a path.
  *
- * @param imageName image name like 'image.jpg'
+ * @param imageName name of image
  */
 export function isValidImageNameStrict(imageName: string): boolean {
     return /^[a-z0-9]+([a-z0-9_]*[a-z0-9]+)*\.(jpg|gif|png)$/.test(imageName);
