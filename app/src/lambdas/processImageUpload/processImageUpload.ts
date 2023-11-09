@@ -1,9 +1,8 @@
 import { extractImageMetadata } from './extractImageMetadata';
 import { createImage } from '../../lib/gallery/createImage/createImage';
 import { setImageAsParentAlbumThumbnailIfNoneExists } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
-import { isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
+import { getParentFromPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { createAlbumNoThrow } from '../../lib/gallery/createAlbum/createAlbum';
-import { getParentFromPath } from '../../lib/gallery_path_utils/getParentFromPath';
 
 /**
  * Process an file uploaded to S3.

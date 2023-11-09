@@ -2,8 +2,7 @@ import { S3Client, CopyObjectCommand } from '@aws-sdk/client-s3';
 import { getOriginalImagesBucketName } from '../lambda_utils/Env';
 import { listOriginalImages } from './s3list';
 import { fromPathToS3OriginalBucketKey, fromS3OriginalBucketKeyToPath } from './s3path';
-import { isValidAlbumPath, isValidImagePath } from '../gallery_path_utils/pathValidator';
-import { getNameFromPath } from '../gallery_path_utils/getNameFromPath';
+import { getNameFromPath, isValidAlbumPath, isValidImagePath } from '../gallery_path_utils/galleryPathUtils';
 
 /**
  * Duplicate album's images to new path in S3 originals bucket.

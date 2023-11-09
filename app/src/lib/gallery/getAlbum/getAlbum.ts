@@ -1,9 +1,11 @@
-import { isValidAlbumPath } from '../../gallery_path_utils/pathValidator';
+import {
+    getParentAndNameFromPath,
+    getParentFromPath,
+    isValidAlbumPath,
+} from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { Album, AlbumResponse, GalleryItem, NavInfo, Navigable } from '../galleryTypes';
 import { getChildItems, getItem } from '../../dynamo_utils/ddbGet';
-import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
-import { getParentFromPath } from '../../gallery_path_utils/getParentFromPath';
 
 /**
  * Retrieve an album and its children (images and subalbums) from DynamoDB.

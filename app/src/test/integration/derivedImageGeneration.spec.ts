@@ -1,5 +1,5 @@
 import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
-import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
+import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { cleanUpAlbumAndParents } from './helpers/albumHelpers';
 import {
     assertDerivedImageDoesNotExist,

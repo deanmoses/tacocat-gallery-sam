@@ -1,7 +1,10 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
-import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
-import { isValidAlbumPath, isValidImagePath } from '../../gallery_path_utils/pathValidator';
+import {
+    getParentAndNameFromPath,
+    isValidAlbumPath,
+    isValidImagePath,
+} from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 

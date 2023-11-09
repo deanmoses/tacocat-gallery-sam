@@ -1,4 +1,4 @@
-import { isValidPath } from '../gallery_path_utils/pathValidator';
+import { isValidPath } from '../gallery_path_utils/galleryPathUtils';
 
 /**
  * Given a gallery album or image path like /2001/12-31/ or /2001/12-31/image.jpg,

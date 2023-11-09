@@ -1,8 +1,7 @@
 import { DynamoDBClient, ExecuteStatementCommand } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, DeleteCommand } from '@aws-sdk/lib-dynamodb';
-import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
+import { getParentAndNameFromPath, isValidAlbumPath } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
-import { isValidAlbumPath } from '../../gallery_path_utils/pathValidator';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 
 /**
@@ -11,6 +10,7 @@ import { getDynamoDbTableName } from '../../lambda_utils/Env';
  * @param albumPath Path of the album to delete, like /2001/12-31/
  */
 export async function deleteAlbum(albumPath: string) {
+    console.info(`Delete Album: deleting [${albumPath}]...`);
     if (!isValidAlbumPath(albumPath)) {
         throw new BadRequestException(`Malformed album path: [${albumPath}]`);
     }
@@ -25,7 +25,8 @@ export async function deleteAlbum(albumPath: string) {
         );
     }
 
-    deleteAlbumFromDynamoDB(albumPath);
+    await deleteAlbumFromDynamoDB(albumPath);
+    console.info(`Delete Album: deleted [${albumPath}]`);
 }
 
 /**

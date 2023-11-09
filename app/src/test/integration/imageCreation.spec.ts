@@ -2,7 +2,7 @@ import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { findImage } from '../../lib/gallery_client/AlbumObject';
-import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
+import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { assertDynamoDBItemDoesNotExist, cleanUpAlbum } from './helpers/albumHelpers';
 import { reallyGetNameFromPath } from './helpers/pathHelpers';
 import { assertOriginalImageDoesNotExist, originalImageExists, uploadImage } from './helpers/s3ImageHelper';

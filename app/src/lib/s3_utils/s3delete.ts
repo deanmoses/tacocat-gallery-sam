@@ -1,7 +1,7 @@
 import { DeleteObjectCommand, DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { getDerivedImagesBucketName, getOriginalImagesBucketName } from '../lambda_utils/Env';
 import { fromPathToS3DerivedImagesBucketKey, fromPathToS3OriginalBucketKey } from './s3path';
-import { isValidAlbumPath, isValidImagePath } from '../gallery_path_utils/pathValidator';
+import { isValidAlbumPath, isValidImagePath } from '../gallery_path_utils/galleryPathUtils';
 
 /**
  * Delete album's images from S3, both original and any derived images.

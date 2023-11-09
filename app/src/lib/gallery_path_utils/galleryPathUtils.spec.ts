@@ -1,12 +1,13 @@
 import {
-    isValidAlbumPath,
+    getParentAndNameFromPath,
+    isValidAlbumPath as isValidPath,
     isValidDayAlbumName,
     isValidImageName,
     isValidImageNameStrict,
     isValidImagePath,
     isValidYearAlbumPath,
     sanitizeImageName,
-} from './pathValidator';
+} from './galleryPathUtils';
 
 describe('isValidAlbumPath', () => {
     const invalidAlbumPaths = [
@@ -35,7 +36,7 @@ describe('isValidAlbumPath', () => {
     ];
     invalidAlbumPaths.forEach((path) => {
         it(`Should be invalid: [${path}]`, () => {
-            expect(isValidAlbumPath(path)).toStrictEqual(false);
+            expect(isValidPath(path)).toStrictEqual(false);
         });
     });
 
@@ -52,7 +53,7 @@ describe('isValidAlbumPath', () => {
     ];
     validAlbumPaths.forEach((path) => {
         it(`Should be valid: [${path}]`, () => {
-            expect(isValidAlbumPath(path)).toStrictEqual(true);
+            expect(isValidPath(path)).toStrictEqual(true);
         });
     });
 });
@@ -380,6 +381,40 @@ describe('sanitizeImageName', () => {
     namePairs.forEach((namePair) => {
         test(`In: [${namePair.in}] Out: [${namePair.out}]`, () => {
             expect(sanitizeImageName(namePair.in)).toBe(namePair.out);
+        });
+    });
+});
+
+describe('getParentAndNameFromPath', () => {
+    const invalidInputs = [
+        '',
+        '2001',
+        '/2001',
+        '2001/',
+        '2001/12-31',
+        '/2001/12-31', // no trailing slash
+        '/2001/12-31/image', // no image extension
+        '2001/12-31/image.jpg', // no starting slash
+        'image.jpg',
+        '/image.jpg',
+    ];
+    invalidInputs.forEach((invalidInput) => {
+        test(`Invalid: [${invalidInput}]`, () => {
+            expect(() => {
+                getParentAndNameFromPath(invalidInput);
+            }).toThrow(/invalid/i);
+        });
+    });
+
+    const validInputs = [
+        { in: '/', out: { parent: '', name: '' } }, // TODO: shouldn't parent be undefined?
+        { in: '/2001/', out: { parent: '/', name: '2001' } },
+        { in: '/2001/12-31/', out: { parent: '/2001/', name: '12-31' } },
+        { in: '/2001/12-31/image.jpg', out: { parent: '/2001/12-31/', name: 'image.jpg' } },
+    ];
+    validInputs.forEach((validInput) => {
+        test(`In: [${validInput.in}] Out: [${validInput.out.parent}][${validInput.out.name}]`, () => {
+            expect(getParentAndNameFromPath(validInput.in)).toStrictEqual(validInput.out);
         });
     });
 });

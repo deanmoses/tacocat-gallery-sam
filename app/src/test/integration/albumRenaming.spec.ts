@@ -4,7 +4,7 @@ import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { renameAlbum } from '../../lib/gallery/renameAlbum/renameAlbum';
 import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
 import { findImage } from '../../lib/gallery_client/AlbumObject';
-import { getParentFromPath } from '../../lib/gallery_path_utils/getParentFromPath';
+import { getParentFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import {
     assertDynamoDBItemDoesNotExist,
     assertDynamoDBItemExists,

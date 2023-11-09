@@ -2,7 +2,7 @@ import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
 import { deleteAlbum } from '../../lib/gallery/deleteAlbum/deleteAlbum';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
-import { getParentAndNameFromPath } from '../../lib/gallery_path_utils/getParentAndNameFromPath';
+import { getParentAndNameFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { assertDynamoDBItemDoesNotExist } from './helpers/albumHelpers';
 
 const albumPath = '/1701/08-13/'; // unique to this suite to prevent pollution
@@ -23,7 +23,7 @@ it('fails on invalid album path', async () => {
 });
 
 it('succeeds', async () => {
-    createAlbum(albumPath);
+    await createAlbum(albumPath);
     await expect(itemExists(albumPath)).resolves.toBe(true);
 });
 
@@ -49,7 +49,7 @@ test('deleteAlbum() succeeds on empty album', async () => {
 });
 
 it('create with attributes', async () => {
-    createAlbum(albumPath2, { title: 'Title 1', description: 'Description 1', published: true });
+    await createAlbum(albumPath2, { title: 'Title 1', description: 'Description 1', published: true });
     await expect(itemExists(albumPath2)).resolves.toBe(true);
 });
 

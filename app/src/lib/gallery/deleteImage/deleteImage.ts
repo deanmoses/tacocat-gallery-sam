@@ -1,10 +1,12 @@
 import { ConditionalCheckFailedException, DynamoDBClient, ExecuteStatementCommand } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, DeleteCommand } from '@aws-sdk/lib-dynamodb';
-import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
+import {
+    getParentAndNameFromPath,
+    getParentFromPath,
+    isValidImagePath,
+} from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
-import { isValidImagePath } from '../../gallery_path_utils/pathValidator';
-import { getParentFromPath } from '../../gallery_path_utils/getParentFromPath';
 import { deleteOriginalAndDerivatives } from '../../s3_utils/s3delete';
 
 /**

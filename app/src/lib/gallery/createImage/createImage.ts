@@ -1,6 +1,5 @@
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
-import { isValidImagePath } from '../../gallery_path_utils/pathValidator';
+import { getParentAndNameFromPath, isValidImagePath } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { ConditionalCheckFailedException, DynamoDBClient } from '@aws-sdk/client-dynamodb';

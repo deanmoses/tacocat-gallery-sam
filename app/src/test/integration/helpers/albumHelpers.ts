@@ -2,7 +2,7 @@ import { deleteAlbum } from '../../../lib/gallery/deleteAlbum/deleteAlbum';
 import { deleteImage } from '../../../lib/gallery/deleteImage/deleteImage';
 import { getAlbumAndChildren } from '../../../lib/gallery/getAlbum/getAlbum';
 import { itemExists } from '../../../lib/gallery/itemExists/itemExists';
-import { getParentFromPath } from '../../../lib/gallery_path_utils/getParentFromPath';
+import { getParentFromPath, isValidAlbumPath } from '../../../lib/gallery_path_utils/galleryPathUtils';
 import { deleteOriginalsAndDerivatives } from '../../../lib/s3_utils/s3delete';
 
 /**
@@ -32,10 +32,16 @@ export async function cleanUpAlbum(albumPath: string): Promise<void> {
                 try {
                     if (!child.parentPath) throw 'child has no parent path';
                     const childPath = child.parentPath + child.itemName;
-                    await deleteImage(childPath);
+                    if (isValidAlbumPath(childPath)) {
+                        console.error(
+                            `Album Cleanup: album [${albumPath}] contains child album [${child?.itemName}].  Delete child albums before parent albums.  Continuing.`,
+                        );
+                    } else {
+                        await deleteImage(childPath);
+                    }
                 } catch (e) {
                     console.error(
-                        `Album Cleanup: error deleting image [${child?.itemName}] from album [${albumPath}].  Continuing.`,
+                        `Album Cleanup: error deleting [${child?.itemName}] from album [${albumPath}].  Continuing.`,
                         e,
                     );
                 }

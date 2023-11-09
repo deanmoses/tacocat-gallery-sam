@@ -1,8 +1,7 @@
 import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
 import { getAlbum } from '../../lib/gallery/getAlbum/getAlbum';
 import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
-import { getParentFromPath } from '../../lib/gallery_path_utils/getParentFromPath';
-import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
+import { getParentFromPath, isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { assertDynamoDBItemExists, cleanUpAlbum } from './helpers/albumHelpers';
 import { assertOriginalImageExists, uploadImage } from './helpers/s3ImageHelper';
 

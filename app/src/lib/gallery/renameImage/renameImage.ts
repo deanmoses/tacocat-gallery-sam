@@ -1,12 +1,16 @@
 import { DynamoDBClient, ExecuteStatementCommand, ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
-import { isValidAlbumPath, isValidImageNameStrict, isValidImagePath } from '../../gallery_path_utils/pathValidator';
+import {
+    getNameFromPath,
+    getParentAndNameFromPath,
+    getParentFromPath,
+    isValidAlbumPath,
+    isValidImageNameStrict,
+    isValidImagePath,
+} from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
-import { getParentFromPath } from '../../gallery_path_utils/getParentFromPath';
-import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 import { itemExists } from '../itemExists/itemExists';
-import { getNameFromPath } from '../../gallery_path_utils/getNameFromPath';
 import { copyOriginal } from '../../s3_utils/s3copy';
 import { deleteOriginalAndDerivatives } from '../../s3_utils/s3delete';
 import { getFullItemFromDynamoDB } from '../../dynamo_utils/ddbGet';

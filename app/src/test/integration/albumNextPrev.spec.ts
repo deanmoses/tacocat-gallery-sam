@@ -1,8 +1,7 @@
 import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
-import { deleteAlbum } from '../../lib/gallery/deleteAlbum/deleteAlbum';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
-import { assertDynamoDBItemDoesNotExist } from './helpers/albumHelpers';
+import { assertDynamoDBItemDoesNotExist, cleanUpAlbum } from './helpers/albumHelpers';
 
 const yearPath = '/1716/'; // unique to this suite to prevent pollution
 const prevAlbumPath = `${yearPath}06-20/`;
@@ -18,14 +17,14 @@ beforeAll(async () => {
     await createAlbum(prevAlbumPath);
     await createAlbum(currentAlbumPath);
     await createAlbum(nextAlbumPath);
-});
+}, 20000 /* increase Jest's timeout */);
 
 afterAll(async () => {
-    await deleteAlbum(yearPath);
-    await deleteAlbum(prevAlbumPath);
-    await deleteAlbum(currentAlbumPath);
-    await deleteAlbum(nextAlbumPath);
-});
+    await cleanUpAlbum(prevAlbumPath);
+    await cleanUpAlbum(currentAlbumPath);
+    await cleanUpAlbum(nextAlbumPath);
+    await cleanUpAlbum(yearPath);
+}, 20000 /* increase Jest's timeout */);
 
 test('no published peers, no prev/next', async () => {
     const album = await getAlbumAndChildren(currentAlbumPath);

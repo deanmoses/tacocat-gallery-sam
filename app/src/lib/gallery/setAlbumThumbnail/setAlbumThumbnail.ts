@@ -1,6 +1,9 @@
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
-import { isValidAlbumPath, isValidImagePath } from '../../gallery_path_utils/pathValidator';
-import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
+import {
+    getParentAndNameFromPath,
+    isValidAlbumPath,
+    isValidImagePath,
+} from '../../gallery_path_utils/galleryPathUtils';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { DynamoDBClient, ConditionalCheckFailedException, ResourceNotFoundException } from '@aws-sdk/client-dynamodb';

@@ -1,10 +1,14 @@
 import { DynamoDBClient, ExecuteStatementCommand } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
-import { isValidAlbumPath, isValidDayAlbumName, isValidYearAlbumPath } from '../../gallery_path_utils/pathValidator';
+import {
+    getParentAndNameFromPath,
+    getParentFromPath,
+    isValidAlbumPath,
+    isValidDayAlbumName,
+    isValidYearAlbumPath,
+} from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
-import { getParentFromPath } from '../../gallery_path_utils/getParentFromPath';
-import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
 import { itemExists } from '../itemExists/itemExists';
 import { copyOriginals } from '../../s3_utils/s3copy';
 import { deleteOriginalsAndDerivatives } from '../../s3_utils/s3delete';

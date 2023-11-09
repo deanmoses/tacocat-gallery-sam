@@ -1,7 +1,6 @@
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { NotFoundException } from '../../lambda_utils/NotFoundException';
-import { isValidAlbumPath } from '../../gallery_path_utils/pathValidator';
-import { getParentAndNameFromPath } from '../../gallery_path_utils/getParentAndNameFromPath';
+import { getParentAndNameFromPath, isValidAlbumPath } from '../../gallery_path_utils/galleryPathUtils';
 import { buildUpdatePartiQL } from '../../dynamo_utils/DynamoUpdateBuilder';
 import { ConditionalCheckFailedException, DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ExecuteStatementCommand } from '@aws-sdk/lib-dynamodb';

@@ -2,9 +2,12 @@ import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { renameImage } from '../../lib/gallery/renameImage/renameImage';
 import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
 import { findImage } from '../../lib/gallery_client/AlbumObject';
-import { getNameFromPath } from '../../lib/gallery_path_utils/getNameFromPath';
-import { getParentFromPath } from '../../lib/gallery_path_utils/getParentFromPath';
-import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
+import {
+    getNameFromPath,
+    getParentFromPath,
+    isValidAlbumPath,
+    isValidImagePath,
+} from '../../lib/gallery_path_utils/galleryPathUtils';
 import {
     assertDynamoDBItemDoesNotExist,
     assertDynamoDBItemExists,

@@ -76,3 +76,64 @@ export function sanitizeImageName(imageName: string): string {
         .replace(/^_/g, '') // remove leading underscore
         .replace(/(_)\./g, '.'); // remove trailing underscore
 }
+
+/**
+ * For the given path, return 1) the leaf item and 2) the parent path
+ *
+ * For example:
+ *  - /2001/12-31/image.jpg returns  '/2001/12-31/' and 'image.jpg'
+ *  - /2001/12-31 returns '/2001/' and '12-31'
+ *  - /2001 returns '/' and 2000'
+ *  - / returns  ''
+ *
+ *  @param {String} path a path of the format /2001/12-31/image.jpg, or a subset thereof
+ */
+export function getParentAndNameFromPath(path: string) {
+    if (!path) throw new Error('Invalid path: cannot be empty');
+    path = path.toString().trim();
+    if (!path) throw new Error('Invalid path: cannot be empty');
+    if (!isValidPath(path)) throw new Error(`Invalid path: [${path}]`);
+    if (path === '/') return { parent: '', name: '' };
+    const pathParts = path.split('/'); // split the path apart
+    if (!pathParts[pathParts.length - 1]) pathParts.pop(); // if the path ended in a "/", remove the blank path part at the end
+    const name = pathParts.pop(); // remove leaf of path
+    path = pathParts.join('/');
+    if (path.substr(-1) !== '/') path = path + '/'; // make sure path ends with a "/"
+    if (path.lastIndexOf('/', 0) !== 0) path = '/' + path; // make sure path starts with a "/"
+    return {
+        parent: path,
+        name: name,
+    };
+}
+
+/**
+ * For the given path, return the parent path
+ *
+ * For example:
+ *  - /2001/12-31/image.jpg returns  /2001/12-31/
+ *  - /2001/12-31 returns /2001/
+ *  - /2001 returns /
+ *  - / returns  '' TODO: MAYBE THIS SHOULD BE UNDEFINED
+ *
+ * @param {String} path a path of the format /2001/12-31/image.jpg, or a subset thereof
+ * @returns {String} parent path
+ */
+export function getParentFromPath(path: string): string {
+    return getParentAndNameFromPath(path).parent;
+}
+
+/**
+ * For the given path, return the leaf name
+ *
+ * For example:
+ *  - /2001/12-31/image.jpg returns image.jpg
+ *  - /2001/12-31 returns 12-31
+ *  - /2001 returns 2001
+ *  - / returns  ''
+ *
+ * @param path a path of the format /2001/12-31/image.jpg, or a subset thereof
+ * @returns name of leaf, like image.jpg
+ */
+export function getNameFromPath(path: string): string | undefined {
+    return getParentAndNameFromPath(path).name;
+}

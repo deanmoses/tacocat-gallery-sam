@@ -4,8 +4,11 @@ import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { getLatestAlbum } from '../../lib/gallery/getLatestAlbum/getLatestAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
-import { getParentAndNameFromPath } from '../../lib/gallery_path_utils/getParentAndNameFromPath';
-import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
+import {
+    getParentAndNameFromPath,
+    isValidAlbumPath,
+    isValidImagePath,
+} from '../../lib/gallery_path_utils/galleryPathUtils';
 import { getAlbumPathForToday, getUniqueImagePathForToday } from './helpers/pathHelpers';
 import { uploadImage } from './helpers/s3ImageHelper';
 

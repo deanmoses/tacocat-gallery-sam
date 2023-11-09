@@ -2,7 +2,7 @@ import { Album } from '../../lib/gallery/galleryTypes';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { updateImage } from '../../lib/gallery/updateImage/updateImage';
 import { findImage } from '../../lib/gallery_client/AlbumObject';
-import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
+import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import {
     assertDynamoDBItemDoesNotExist,
     assertDynamoDBItemExists,

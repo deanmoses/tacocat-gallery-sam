@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import path from 'path';
 import { HeadObjectCommand, NotFound, S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
-import { isValidImagePath } from '../../../lib/gallery_path_utils/pathValidator';
+import { isValidImagePath } from '../../../lib/gallery_path_utils/galleryPathUtils';
 import { getDerivedImagesBucketName, getOriginalImagesBucketName } from '../../../lib/lambda_utils/Env';
 
 /**

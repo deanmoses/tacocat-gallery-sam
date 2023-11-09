@@ -1,9 +1,9 @@
-import { getNameFromPath } from '../../../lib/gallery_path_utils/getNameFromPath';
 import {
+    getNameFromPath,
     isValidAlbumPath,
     isValidImagePath,
     isValidYearAlbumPath,
-} from '../../../lib/gallery_path_utils/pathValidator';
+} from '../../../lib/gallery_path_utils/galleryPathUtils';
 
 /**
  * Get path of an album for today's date

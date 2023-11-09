@@ -1,6 +1,6 @@
 import { Context, Handler, S3Event } from 'aws-lambda';
 import { processImageUpload } from './processImageUpload';
-import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/pathValidator';
+import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
 
 /**
  * A Lambda that processes an image uploaded to S3.

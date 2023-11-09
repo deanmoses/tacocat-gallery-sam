@@ -4,7 +4,7 @@ import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { getLatestAlbum } from '../../lib/gallery/getLatestAlbum/getLatestAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { findImage } from '../../lib/gallery_client/AlbumObject';
-import { getParentAndNameFromPath } from '../../lib/gallery_path_utils/getParentAndNameFromPath';
+import { getParentAndNameFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { assertDynamoDBItemDoesNotExist, cleanUpAlbum } from './helpers/albumHelpers';
 import { getAlbumPathForToday, reallyGetNameFromPath } from './helpers/pathHelpers';
 import { uploadImage } from './helpers/s3ImageHelper';

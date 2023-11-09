@@ -2,7 +2,7 @@ import { createAlbum, createAlbumNoThrow } from '../../lib/gallery/createAlbum/c
 import { getAlbum } from '../../lib/gallery/getAlbum/getAlbum';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
-import { getParentAndNameFromPath } from '../../lib/gallery_path_utils/getParentAndNameFromPath';
+import { getParentAndNameFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import {
     assertDynamoDBItemDoesNotExist,
     assertDynamoDBItemExists,
