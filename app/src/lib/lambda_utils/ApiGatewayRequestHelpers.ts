@@ -22,13 +22,12 @@ export function ensureHttpMethod(event: APIGatewayProxyEvent, httpMethod: HttpMe
 
 /**
  * Extract the album's path from the URL path
-
- * @throws BadRequestException if album path isn't there
+ * If not there, return root path
  */
 export function getAlbumPath(event: APIGatewayProxyEvent): string {
     const albumPathParam = event?.pathParameters?.albumPath;
     if (!albumPathParam) {
-        throw new BadRequestException('Event does not contain an albumPath parameter');
+        return '/';
     }
     return '/' + albumPathParam + '/';
 }

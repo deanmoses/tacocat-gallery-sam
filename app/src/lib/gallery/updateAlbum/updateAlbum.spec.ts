@@ -9,158 +9,161 @@ afterEach(() => {
     mockDocClient.reset();
 });
 
-describe('Update Album', () => {
-    test('title', async () => {
-        expect.assertions(5);
-        await expect(
-            updateAlbum(albumPath, {
-                title: 'New Title 1',
-            }),
-        ).resolves.not.toThrow();
-        expect(mockDocClient.commandCalls(ExecuteStatementCommand).length).toBe(1);
-        const partiQL = mockDocClient.commandCalls(ExecuteStatementCommand)[0].args[0].input.Statement;
-        expect(partiQL).toContain('UPDATE');
-        expect(partiQL).toContain('New Title 1');
-        expect(partiQL).toContain('updatedOn');
-    });
+test('cannot update root album', async () => {
+    await expect(updateAlbum('/', { title: 'Title' })).rejects.toThrow(/root/i);
+    expect(mockDocClient.calls.length).toBe(0);
+});
 
-    test('blank title (unset title)', async () => {
-        expect.assertions(1);
-        await expect(
-            updateAlbum(albumPath, {
-                title: '',
-            }),
-        ).resolves.not.toThrow();
-    });
+test('title', async () => {
+    expect.assertions(5);
+    await expect(
+        updateAlbum(albumPath, {
+            title: 'New Title 1',
+        }),
+    ).resolves.not.toThrow();
+    expect(mockDocClient.commandCalls(ExecuteStatementCommand).length).toBe(1);
+    const partiQL = mockDocClient.commandCalls(ExecuteStatementCommand)[0].args[0].input.Statement;
+    expect(partiQL).toContain('UPDATE');
+    expect(partiQL).toContain('New Title 1');
+    expect(partiQL).toContain('updatedOn');
+});
 
-    test('description', async () => {
-        expect.assertions(1);
-        await expect(
-            updateAlbum(albumPath, {
-                description: 'New Description 1',
-            }),
-        ).resolves.not.toThrow();
-    });
+test('blank title (unset title)', async () => {
+    expect.assertions(1);
+    await expect(
+        updateAlbum(albumPath, {
+            title: '',
+        }),
+    ).resolves.not.toThrow();
+});
 
-    test('blank description (unset description)', async () => {
-        expect.assertions(1);
-        await expect(
-            updateAlbum(albumPath, {
-                description: '',
-            }),
-        ).resolves.not.toThrow();
-    });
+test('description', async () => {
+    expect.assertions(1);
+    await expect(
+        updateAlbum(albumPath, {
+            description: 'New Description 1',
+        }),
+    ).resolves.not.toThrow();
+});
 
-    test('title and description', async () => {
-        expect.assertions(1);
-        await expect(
-            updateAlbum(albumPath, {
-                title: 'Title 2',
-                description: 'Description 2',
-            }),
-        ).resolves.not.toThrow();
-    });
+test('blank description (unset description)', async () => {
+    expect.assertions(1);
+    await expect(
+        updateAlbum(albumPath, {
+            description: '',
+        }),
+    ).resolves.not.toThrow();
+});
 
-    test('published->true', async () => {
-        expect.assertions(1);
-        await expect(
-            updateAlbum(albumPath, {
-                published: true,
-            }),
-        ).resolves.not.toThrow();
-    });
+test('title and description', async () => {
+    expect.assertions(1);
+    await expect(
+        updateAlbum(albumPath, {
+            title: 'Title 2',
+            description: 'Description 2',
+        }),
+    ).resolves.not.toThrow();
+});
 
-    test('published->false', async () => {
-        expect.assertions(1);
-        await expect(
-            updateAlbum(albumPath, {
-                published: false,
-            }),
-        ).resolves.not.toThrow();
-    });
+test('published->true', async () => {
+    expect.assertions(1);
+    await expect(
+        updateAlbum(albumPath, {
+            published: true,
+        }),
+    ).resolves.not.toThrow();
+});
 
-    test('root album', async () => {
-        expect.assertions(1);
-        await expect(
-            updateAlbum('/', {
-                title: 'New Title',
-            }),
-        ).rejects.toThrow(/root/);
-    });
+test('published->false', async () => {
+    expect.assertions(1);
+    await expect(
+        updateAlbum(albumPath, {
+            published: false,
+        }),
+    ).resolves.not.toThrow();
+});
 
-    test('empty data', async () => {
-        expect.assertions(1);
-        const attributesToUpdate = {};
-        await expect(updateAlbum(albumPath, attributesToUpdate)).rejects.toThrow(/No attributes/);
-    });
+test('root album', async () => {
+    expect.assertions(1);
+    await expect(
+        updateAlbum('/', {
+            title: 'New Title',
+        }),
+    ).rejects.toThrow(/root/);
+});
 
-    test('null data', async () => {
-        expect.assertions(1);
-        const attributesToUpdate = undefined as unknown as Record<string, string | boolean>;
-        await expect(updateAlbum(albumPath, attributesToUpdate)).rejects.toThrow(/No attributes/);
-    });
+test('empty data', async () => {
+    expect.assertions(1);
+    const attributesToUpdate = {};
+    await expect(updateAlbum(albumPath, attributesToUpdate)).rejects.toThrow(/No attributes/);
+});
 
-    test('only bad data', async () => {
-        expect.assertions(1);
-        await expect(
-            updateAlbum(albumPath, {
-                noSuchAttribute: 'some value',
-            }),
-        ).rejects.toThrow(/noSuchAttribute/);
-    });
+test('null data', async () => {
+    expect.assertions(1);
+    const attributesToUpdate = undefined as unknown as Record<string, string | boolean>;
+    await expect(updateAlbum(albumPath, attributesToUpdate)).rejects.toThrow(/No attributes/);
+});
 
-    test('both real and bad data', async () => {
-        expect.assertions(1);
-        await expect(
-            updateAlbum(albumPath, {
-                title: 'New Title 3',
-                noSuchAttribute: 'some value',
-            }),
-        ).rejects.toThrow(/noSuchAttribute/);
-    });
+test('only bad data', async () => {
+    expect.assertions(1);
+    await expect(
+        updateAlbum(albumPath, {
+            noSuchAttribute: 'some value',
+        }),
+    ).rejects.toThrow(/noSuchAttribute/);
+});
 
-    test('Invalid published value: true', async () => {
-        expect.assertions(1);
-        await expect(
-            updateAlbum(albumPath, {
-                published: 'true',
-            }),
-        ).rejects.toThrow(/published/);
-    });
+test('both real and bad data', async () => {
+    expect.assertions(1);
+    await expect(
+        updateAlbum(albumPath, {
+            title: 'New Title 3',
+            noSuchAttribute: 'some value',
+        }),
+    ).rejects.toThrow(/noSuchAttribute/);
+});
 
-    test('Invalid published value: 1', async () => {
-        expect.assertions(1);
-        await expect(
-            updateAlbum(albumPath, {
-                published: 1 as unknown as string,
-            }),
-        ).rejects.toThrow(/published/);
-    });
+test('Invalid published value: true', async () => {
+    expect.assertions(1);
+    await expect(
+        updateAlbum(albumPath, {
+            published: 'true',
+        }),
+    ).rejects.toThrow(/published/);
+});
 
-    test('Blank published value', async () => {
-        expect.assertions(1);
-        await expect(
-            updateAlbum(albumPath, {
-                published: '',
-            }),
-        ).rejects.toThrow(/published/);
-    });
+test('Invalid published value: 1', async () => {
+    expect.assertions(1);
+    await expect(
+        updateAlbum(albumPath, {
+            published: 1 as unknown as string,
+        }),
+    ).rejects.toThrow(/published/);
+});
 
-    test('Numerical published value', async () => {
-        expect.assertions(1);
-        await expect(
-            updateAlbum(albumPath, {
-                published: '0',
-            }),
-        ).rejects.toThrow(/published/);
-    });
+test('Blank published value', async () => {
+    expect.assertions(1);
+    await expect(
+        updateAlbum(albumPath, {
+            published: '',
+        }),
+    ).rejects.toThrow(/published/);
+});
 
-    test('Missing albumPath', async () => {
-        expect.assertions(1);
-        await expect(
-            updateAlbum('' /*no album*/, {
-                title: 'New Title',
-            }),
-        ).rejects.toThrow(/path/);
-    });
+test('Numerical published value', async () => {
+    expect.assertions(1);
+    await expect(
+        updateAlbum(albumPath, {
+            published: '0',
+        }),
+    ).rejects.toThrow(/published/);
+});
+
+test('Missing albumPath', async () => {
+    expect.assertions(1);
+    await expect(
+        updateAlbum('' /*no album*/, {
+            title: 'New Title',
+        }),
+    ).rejects.toThrow(/path/);
 });

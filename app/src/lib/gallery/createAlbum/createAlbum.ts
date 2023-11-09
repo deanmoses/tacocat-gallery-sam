@@ -30,6 +30,9 @@ export async function createAlbum(
     if (!isValidAlbumPath(albumPath)) {
         throw new BadRequestException(`Invalid album path: [${albumPath}]`);
     }
+    if (albumPath === '/') {
+        throw new BadRequestException('Invalid album path: cannot create root album');
+    }
     const pathParts = getParentAndNameFromPath(albumPath);
     const now = new Date().toISOString();
     const ddbCommand = new PutCommand({

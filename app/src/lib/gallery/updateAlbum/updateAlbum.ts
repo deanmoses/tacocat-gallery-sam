@@ -18,7 +18,7 @@ export async function updateAlbum(albumPath: string, attributesToUpdate: Record<
     }
 
     if (albumPath === '/') {
-        throw new BadRequestException('Cannot update root album');
+        throw new BadRequestException('Invalid album path [/]: cannot update root album');
     }
 
     if (!attributesToUpdate) {

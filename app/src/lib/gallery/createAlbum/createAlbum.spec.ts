@@ -18,12 +18,17 @@ test('Create Album - Happy Path', async () => {
 
 describe('Create Album - Invalid Path', () => {
     const badAlbumPaths = [
+        '/', // cannot create root album
         '/invalid/path',
         'another bad path',
-        '/2001/0000',
-        '/2020/12-31',
-        '/2020/13-01/',
-        '/2020/01-32',
+        '/2001/1231/', // no hyphen
+        '2020/12-31/', // no starting slash
+        '/2020/12-31', // no trailing slash
+        '/2001/00-01/', // invalid month
+        '/2020/13-01/', // invalid month
+        '/2020/01-00/', // invalid day
+        '/2020/01-32/', // invalid day
+        '/2020/01-31/image.jpg', // image
     ];
     badAlbumPaths.forEach((albumPath) => {
         test(`invalid path: [${albumPath}]`, async () => {
