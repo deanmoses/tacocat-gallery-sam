@@ -88,13 +88,13 @@ test('GetAlbum() should reflect rename', async () => {
     expect(renamedImage.parentPath).toBe(getParentFromPath(renameImagePath1));
 
     // Ensure immediate parent album's thumbnail entry reflects rename
-    expect(album.album?.thumbnail?.path).toBe(renameImagePath1);
+    expect(album?.thumbnail?.path).toBe(renameImagePath1);
 });
 
 test("Grandparent album's thumbnail entry should reflect the image rename", async () => {
     const album = await getAlbumAndChildren(getParentFromPath(albumPath));
     if (!album) throw new Error('no grandparent album');
-    expect(album.album?.thumbnail?.path).toBe(renameImagePath1);
+    expect(album?.thumbnail?.path).toBe(renameImagePath1);
 });
 
 test('Originals bucket should contain new image', async () => {

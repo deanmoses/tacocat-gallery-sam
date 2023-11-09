@@ -64,8 +64,8 @@ describe('create', () => {
             if (!album) throw new Error(`No album`);
 
             const albumPathParts = getParentAndNameFromPath(albumPath);
-            expect(album.album?.itemName).toBe(albumPathParts.name);
-            expect(album.album?.parentPath).toBe(albumPathParts.parent);
+            expect(album?.itemName).toBe(albumPathParts.name);
+            expect(album?.parentPath).toBe(albumPathParts.parent);
 
             if (!album.children) throw new Error('no children');
             const imagePathParts = getParentAndNameFromPath(imagePath);

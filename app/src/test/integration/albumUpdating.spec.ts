@@ -30,12 +30,12 @@ test('get empty album', async () => {
     if (!album) throw new Error(`No album`);
     if (album.children && album.children.length > 0) throw new Error(`Album has children, that's not expected`);
     const albumPathParts = getParentAndNameFromPath(albumPath);
-    expect(album.album?.itemName).toBe(albumPathParts.name);
-    expect(album.album?.parentPath).toBe(albumPathParts.parent);
-    expect(album.album?.title).toBeUndefined();
-    expect(album.album?.description).toBeUndefined();
-    expect(album.album?.published).toBeUndefined();
-    expect(album.album?.thumbnail?.path).toBeUndefined();
+    expect(album?.itemName).toBe(albumPathParts.name);
+    expect(album?.parentPath).toBe(albumPathParts.parent);
+    expect(album?.title).toBeUndefined();
+    expect(album?.description).toBeUndefined();
+    expect(album?.published).toBeUndefined();
+    expect(album?.thumbnail?.path).toBeUndefined();
 });
 
 it('set title', async () => {

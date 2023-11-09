@@ -1,8 +1,8 @@
-import { AlbumResponse } from '../gallery/galleryTypes';
+import { Album } from '../gallery/galleryTypes';
 import { findImage } from './AlbumObject';
 
 describe('findImage()', () => {
-    const albumWithMultipleChildren: AlbumResponse = {
+    const albumWithMultipleChildren: Album = {
         children: [
             {
                 itemName: 'image1.jpg',
@@ -16,7 +16,7 @@ describe('findImage()', () => {
         ],
     };
 
-    const albumWithoutChildren: AlbumResponse = {
+    const albumWithoutChildren: Album = {
         children: [],
     };
 

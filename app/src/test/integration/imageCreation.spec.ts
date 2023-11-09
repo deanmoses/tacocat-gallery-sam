@@ -51,7 +51,7 @@ test('Album contains image', async () => {
 
 test("Image was set as album's thumb", async () => {
     const album = await getAlbumAndChildren(albumPath);
-    expect(album?.album?.thumbnail?.path).toBe(imagePath);
+    expect(album?.thumbnail?.path).toBe(imagePath);
 });
 
 test('Delete image', async () => {
@@ -68,7 +68,7 @@ test('Album should not contain deleted image', async () => {
 
 test('Image should no longer be album thumb', async () => {
     const album = await getAlbumAndChildren(albumPath);
-    expect(album?.album?.thumbnail?.path).toBeUndefined();
+    expect(album?.thumbnail?.path).toBeUndefined();
 });
 
 test('Original images bucket should no longer contain image', async () => {

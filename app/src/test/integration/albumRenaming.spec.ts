@@ -106,7 +106,7 @@ test('GetAlbum() should find new album', async () => {
 
     // Ensure album's thumbnail entry reflects rename
     const newImagePath = newAlbumPath + imageName;
-    expect(album.album?.thumbnail?.path).toBe(newImagePath);
+    expect(album?.thumbnail?.path).toBe(newImagePath);
 });
 
 test("Grandparent album's thumbnail entry should reflect the image rename", async () => {

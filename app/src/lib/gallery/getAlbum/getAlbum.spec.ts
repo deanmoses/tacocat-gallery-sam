@@ -42,22 +42,21 @@ test('Root Album', async () => {
         .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/' } })
         .resolves({ Items: mockAlbums, Count: 3 });
 
-    const result = await getAlbumAndChildren('/');
+    const album = await getAlbumAndChildren('/');
 
-    const album = result?.album;
     if (!album) throw new Error('Did not receive album');
     expect(album?.title).toBe('Dean, Lucie, Felix and Milo Moses');
     expect(album?.itemName).toBe('/');
     expect(album?.parentPath).toBe('');
 
-    const children = result?.children;
+    const children = album?.children;
     if (!children) throw new Error('Did not receive children');
     expect(children[0]?.itemName).toBe('01-01');
     expect(children[1]?.itemName).toBe('01-02');
     expect(children[1]?.published).toBe(true);
 
-    if (!!result.nextAlbum?.path) throw new Error('Was not expecting a next album on root');
-    if (!!result.prevAlbum?.path) throw new Error('Was not expecting a prev album on root');
+    if (!!album.next?.path) throw new Error('Was not expecting a next album on root');
+    if (!!album.prev?.path) throw new Error('Was not expecting a prev album on root');
 });
 
 test('Week Album - Empty', async () => {
@@ -72,10 +71,10 @@ test('Week Album - Empty', async () => {
     });
     // Mock out the AWS method that returns children and peers (for next/prev)
     mockDocClient.on(QueryCommand).resolves({});
-    const albumResponse = await getAlbumAndChildren('/2001/01-01/');
-    if (!albumResponse?.album) throw new Error('Did not receive album');
-    if (!!albumResponse?.children) throw new Error('Received unexpected children');
-    expect(albumResponse.album.description).toBe('xxx');
+    const album = await getAlbumAndChildren('/2001/01-01/');
+    if (!album) throw new Error('Did not receive album');
+    if (!!album.children) throw new Error('Received unexpected children');
+    expect(album.description).toBe('xxx');
 });
 
 test('Images', async () => {
@@ -94,8 +93,8 @@ test('Images', async () => {
     // Mock out the AWS method that returns peers (for next/prev)
     mockDocClient.on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2001/' } }).resolves({});
 
-    const result = await getAlbumAndChildren('/2001/01-01/');
-    const children = result?.children;
+    const album = await getAlbumAndChildren('/2001/01-01/');
+    const children = album?.children;
     if (!children) throw new Error('Did not receive children');
     expect(children[0]?.itemName).toBe('image1.jpg');
     expect(children[0]?.title).toBe('Title 1');
@@ -107,8 +106,8 @@ test('Images', async () => {
     expect(children[1]?.description).toBe('Description 2');
     expect(children[1]?.tags).toContain('image2_tag2');
     expect(children[2]?.tags).toContain('image3_tag3');
-    if (!!result.nextAlbum?.path) throw new Error('Was not expecting a next album');
-    if (!!result.prevAlbum?.path) throw new Error('Was not expecting a prev album');
+    if (!!album.next?.path) throw new Error('Was not expecting a next album');
+    if (!!album.prev?.path) throw new Error('Was not expecting a prev album');
 });
 
 describe('Prev & Next', () => {
@@ -124,9 +123,9 @@ describe('Prev & Next', () => {
         mockDocClient
             .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2001/' } })
             .resolves({ Items: mockAlbums });
-        const albumResponse = await getAlbumAndChildren(`/2001/${albumName}/`);
-        if (!!albumResponse?.prevAlbum) throw new Error('Not expecting a prev');
-        expect(albumResponse?.nextAlbum?.path).toBe('/2001/01-02/');
+        const album = await getAlbumAndChildren(`/2001/${albumName}/`);
+        if (!!album?.prev) throw new Error('Not expecting a prev');
+        expect(album?.next?.path).toBe('/2001/01-02/');
     });
 
     test('Next Skips Unpublished', async () => {
@@ -141,9 +140,9 @@ describe('Prev & Next', () => {
         mockDocClient
             .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2001/' } })
             .resolves({ Items: mockAlbums });
-        const albumResponse = await getAlbumAndChildren(`/2001/${albumName}/`);
-        expect(albumResponse?.prevAlbum?.path).toBe('/2001/01-01/');
-        expect(albumResponse?.nextAlbum?.path).toBe('/2001/01-04/');
+        const album = await getAlbumAndChildren(`/2001/${albumName}/`);
+        expect(album?.prev?.path).toBe('/2001/01-01/');
+        expect(album?.next?.path).toBe('/2001/01-04/');
     });
 
     test('Both Prev & Next', async () => {
@@ -158,11 +157,11 @@ describe('Prev & Next', () => {
         mockDocClient
             .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2001/' } })
             .resolves({ Items: mockAlbums });
-        const albumResponse = await getAlbumAndChildren(`/2001/${albumName}/`);
-        expect(albumResponse?.prevAlbum?.path).toBe('/2001/01-02/');
-        expect(albumResponse?.prevAlbum?.title).toBe('Title 2');
-        expect(albumResponse?.nextAlbum?.path).toBe('/2001/01-04/');
-        expect(albumResponse?.nextAlbum?.title).toBe('Title 4');
+        const album = await getAlbumAndChildren(`/2001/${albumName}/`);
+        expect(album?.prev?.path).toBe('/2001/01-02/');
+        expect(album?.prev?.title).toBe('Title 2');
+        expect(album?.next?.path).toBe('/2001/01-04/');
+        expect(album?.next?.title).toBe('Title 4');
     });
 
     test('Prev Skips Unpublished', async () => {
@@ -177,8 +176,8 @@ describe('Prev & Next', () => {
         mockDocClient
             .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2001/' } })
             .resolves({ Items: mockAlbums });
-        const albumResponse = await getAlbumAndChildren(`/2001/${albumName}/`);
-        expect(albumResponse?.prevAlbum?.path).toBe('/2001/01-02/');
+        const album = await getAlbumAndChildren(`/2001/${albumName}/`);
+        expect(album?.prev?.path).toBe('/2001/01-02/');
     });
 
     test('No Next', async () => {
@@ -193,8 +192,8 @@ describe('Prev & Next', () => {
         mockDocClient
             .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2001/' } })
             .resolves({ Items: mockAlbums });
-        const albumResponse = await getAlbumAndChildren(`/2001/${albumName}/`);
-        if (!!albumResponse?.nextAlbum) throw new Error('Not expecting a next');
+        const album = await getAlbumAndChildren(`/2001/${albumName}/`);
+        if (!!album?.next) throw new Error('Not expecting a next');
     });
 });
 

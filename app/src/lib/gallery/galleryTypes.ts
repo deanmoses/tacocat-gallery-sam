@@ -1,10 +1,3 @@
-export type AlbumResponse = {
-    album?: Album;
-    nextAlbum?: NavInfo;
-    prevAlbum?: NavInfo;
-    children?: Album[];
-};
-
 export type Navigable = {
     prev?: NavInfo;
     next?: NavInfo;
@@ -32,17 +25,10 @@ export type GalleryItem = {
     published?: boolean;
 };
 
-export type Album = {
-    parentPath?: string;
-    itemName?: string;
-    itemType?: GalleryItemType;
-    title?: string;
-    description?: string;
-    updatedOn?: string;
-    thumbnail?: AlbumThumbnailEntry;
-    tags?: string[];
-    published?: boolean;
-};
+export type Album = GalleryItem &
+    Navigable & {
+        children?: GalleryItem[];
+    };
 
 export type AlbumThumbnailEntry = {
     path: string;

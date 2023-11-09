@@ -4,7 +4,7 @@ import {
     isValidAlbumPath,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
-import { Album, AlbumResponse, GalleryItem, NavInfo, Navigable } from '../galleryTypes';
+import { Album, GalleryItem, NavInfo, Navigable } from '../galleryTypes';
 import { getChildItems, getItem } from '../../dynamo_utils/ddbGet';
 
 /**
@@ -12,22 +12,21 @@ import { getChildItems, getItem } from '../../dynamo_utils/ddbGet';
  *
  * @param albumPath Path of album, like /2001/12-31/
  */
-export async function getAlbumAndChildren(albumPath: string): Promise<AlbumResponse | undefined> {
+export async function getAlbumAndChildren(albumPath: string): Promise<Album | undefined> {
     if (!isValidAlbumPath(albumPath)) throw new BadRequestException(`Malformed album path: [${albumPath}]`);
-    const response: AlbumResponse = {};
-    response.album = await getAlbum(albumPath);
-    if (!response.album) return undefined;
-    response.children = await getChildren(albumPath);
-    // root is peerless
+    const album = await getAlbum(albumPath);
+    if (!album) return undefined;
+    album.children = await getChildren(albumPath);
+    // root album is peerless
     if (albumPath !== '/') {
         const peers = await getPeers(albumPath);
         if (!!peers) {
             const nav = getPrevAndNext(albumPath, peers);
-            response.nextAlbum = nav.next;
-            response.prevAlbum = nav.prev;
+            album.next = nav.next;
+            album.prev = nav.prev;
         }
     }
-    return response;
+    return album;
 }
 
 /**

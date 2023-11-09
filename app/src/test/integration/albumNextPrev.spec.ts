@@ -29,22 +29,22 @@ afterAll(async () => {
 test('no published peers, no prev/next', async () => {
     const album = await getAlbumAndChildren(currentAlbumPath);
     if (!album) throw new Error(`No album`);
-    expect(album?.nextAlbum).toBeUndefined();
-    expect(album?.prevAlbum).toBeUndefined();
+    expect(album?.next).toBeUndefined();
+    expect(album?.prev).toBeUndefined();
 });
 
 test('prev', async () => {
     await updateAlbum(prevAlbumPath, { published: true });
     const album = await getAlbumAndChildren(currentAlbumPath);
     if (!album) throw new Error(`No album`);
-    expect(album?.prevAlbum?.path).toBe(prevAlbumPath);
-    expect(album?.nextAlbum).toBeUndefined();
+    expect(album?.prev?.path).toBe(prevAlbumPath);
+    expect(album?.next).toBeUndefined();
 });
 
 test('prev & next', async () => {
     await updateAlbum(nextAlbumPath, { published: true });
     const album = await getAlbumAndChildren(currentAlbumPath);
     if (!album) throw new Error(`No album`);
-    expect(album?.nextAlbum?.path).toBe(nextAlbumPath);
-    expect(album?.prevAlbum?.path).toBe(prevAlbumPath);
+    expect(album?.next?.path).toBe(nextAlbumPath);
+    expect(album?.prev?.path).toBe(prevAlbumPath);
 });
