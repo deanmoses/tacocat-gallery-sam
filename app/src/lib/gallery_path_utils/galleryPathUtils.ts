@@ -15,10 +15,17 @@ export function isValidAlbumPath(path: string): boolean {
 }
 
 /**
- * Return true if specified string is a valid year album path like /2001/12-31/
+ * Return true if specified string is a valid year album path like /2001/
  */
 export function isValidYearAlbumPath(yearAlbumPath: string): boolean {
     return /^\/\d\d\d\d\/$/.test(yearAlbumPath);
+}
+
+/**
+ * Return true if specified string is a valid day album path like /2001/12-31/
+ */
+export function isValidDayAlbumPath(dayAlbumPath: string): boolean {
+    return /^\/\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/$/i.test(dayAlbumPath);
 }
 
 /**
@@ -34,8 +41,8 @@ export function isValidDayAlbumName(dayAlbumName: string): boolean {
  * Cannot be on year album like /2001/image.jpg
  * Must be on a day album like /2001/12-31/image.jpg
  */
-export function isValidImagePath(path: string): boolean {
-    return /^\/\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/[a-zA-Z0-9_-]+\.(jpg|jpeg|gif|png)$/i.test(path);
+export function isValidImagePath(imagePath: string): boolean {
+    return /^\/\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/[a-zA-Z0-9_-]+\.(jpg|jpeg|gif|png)$/i.test(imagePath);
 }
 
 /**
@@ -137,4 +144,25 @@ export function getParentFromPath(path: string): string {
  */
 export function getNameFromPath(path: string): string | undefined {
     return getParentAndNameFromPath(path).name;
+}
+
+/**
+ * Convert from an album path to a date.
+ *
+ * @param albumPath path of root, year or day album like / or /2001/ or /2001/12-31/
+ */
+export function albumPathToDate(albumPath: string): Date {
+    if (!isValidAlbumPath(albumPath)) throw new Error(`Invalid album path: [${albumPath}]`);
+    if (albumPath === '/') {
+        return new Date(1826, 1, 1); // Date of first surviving photograph
+    }
+    const m = /^\/(?<year>\d\d\d\d)\/((?<month>\d\d)-(?<day>\d\d)\/)?$/i.exec(albumPath);
+    if (!m?.groups?.year) throw new Error(`Error matching`);
+    const year = Number.parseInt(m.groups.year, 10);
+    if (!!m?.groups?.month && !!m?.groups?.day) {
+        const month = Number.parseInt(m.groups.month, 10);
+        const day = Number.parseInt(m.groups.day, 10);
+        return new Date(year, month, day);
+    }
+    return new Date(year, 1, 1); // Use Jan 1 for year albums
 }

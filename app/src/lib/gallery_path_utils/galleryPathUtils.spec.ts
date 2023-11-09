@@ -7,6 +7,8 @@ import {
     isValidImagePath,
     isValidYearAlbumPath,
     sanitizeImageName,
+    isValidDayAlbumPath,
+    albumPathToDate,
 } from './galleryPathUtils';
 
 describe('isValidAlbumPath', () => {
@@ -99,6 +101,46 @@ describe('isValidYearAlbumPath', () => {
     validYearAlbumPaths.forEach((path) => {
         it(`Should be valid: [${path}]`, () => {
             expect(isValidYearAlbumPath(path)).toStrictEqual(true);
+        });
+    });
+});
+
+describe('isValidDayAlbumPath', () => {
+    const invalidDayAlbumPaths = [
+        '',
+        '/', // root
+        'notapath',
+        '/not/a/real/path',
+        '//',
+        '/1/',
+        '/10/',
+        '/200/',
+        '/2001',
+        '2001',
+        '12-31',
+        '/12-31',
+        '2001/12-31',
+        '/2001/12-31',
+        '/2001/12 31/',
+        '/2001/12_31/',
+        '/2001/1231/',
+        '/2001/12-32/',
+        '/2001/13-01/',
+        '/2001/20-01/',
+        '/2001/12-200/',
+        '/2001/12-31/something',
+        '/2001/12-31/something/',
+    ];
+    invalidDayAlbumPaths.forEach((path) => {
+        it(`Should be invalid: [${path}]`, () => {
+            expect(isValidDayAlbumPath(path)).toStrictEqual(false);
+        });
+    });
+
+    const validDayAlbumPaths = ['/2001/12-31/', '/2018/01-01/', '/2018/09-09/', '/2029/10-10/', '/2100/11-22/'];
+    validDayAlbumPaths.forEach((path) => {
+        it(`Should be valid: [${path}]`, () => {
+            expect(isValidDayAlbumPath(path)).toStrictEqual(true);
         });
     });
 });
@@ -407,7 +449,7 @@ describe('getParentAndNameFromPath', () => {
     });
 
     const validInputs = [
-        { in: '/', out: { parent: '', name: '' } }, // TODO: shouldn't parent be undefined?
+        { in: '/', out: { parent: '', name: '' } }, // TODO: shouldn't parent be undefined and name be ''?
         { in: '/2001/', out: { parent: '/', name: '2001' } },
         { in: '/2001/12-31/', out: { parent: '/2001/', name: '12-31' } },
         { in: '/2001/12-31/image.jpg', out: { parent: '/2001/12-31/', name: 'image.jpg' } },
@@ -415,6 +457,38 @@ describe('getParentAndNameFromPath', () => {
     validInputs.forEach((validInput) => {
         test(`In: [${validInput.in}] Out: [${validInput.out.parent}][${validInput.out.name}]`, () => {
             expect(getParentAndNameFromPath(validInput.in)).toStrictEqual(validInput.out);
+        });
+    });
+});
+
+describe('albumPathToDate', () => {
+    const invalidInputs = [
+        '',
+        '2001/', // no starting slash
+        '/2001', // no trailing slash
+        '2001/12-31/', // no starting slash
+        '/2001/12-31', // no trailing slash
+        '/2001/12-31/image.jpg', // image
+    ];
+    invalidInputs.forEach((invalidInput) => {
+        test(`Invalid: [${invalidInput}]`, () => {
+            expect(() => {
+                albumPathToDate(invalidInput);
+            }).toThrow(/invalid/i);
+        });
+    });
+
+    const inputs = [
+        { in: '/', out: new Date(1826, 1, 1) },
+        { in: '/2001/', out: new Date(2001, 1, 1) },
+        { in: '/1970/', out: new Date(1970, 1, 1) },
+        { in: '/2001/01-01/', out: new Date(2001, 1, 1) },
+        { in: '/2001/01-02/', out: new Date(2001, 1, 2) },
+        { in: '/2023/12-31/', out: new Date(2023, 12, 31) },
+    ];
+    inputs.forEach((input) => {
+        test(`In: [${input.in}] Out: [${input.out}]`, () => {
+            expect(albumPathToDate(input.in)).toEqual(input.out);
         });
     });
 });
