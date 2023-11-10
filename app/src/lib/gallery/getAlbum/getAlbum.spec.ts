@@ -16,6 +16,7 @@ test('getAlbum() - no children', async () => {
         Item: {
             parentPath: '/2001/',
             itemName: '01-01',
+            itemType: 'album',
             title: 'Title',
             description: 'Description',
             updatedOn: uploadTimeStamp,
@@ -74,9 +75,9 @@ test('Week Album - Empty', async () => {
     // Mock out the AWS method to get the album itself (no children)
     mockDocClient.on(GetCommand).resolves({
         Item: {
-            path: '/2001/01-01/',
             parentPath: '/2001/',
             itemName: '01-01',
+            itemType: 'album',
             updatedOn: '2001-01-01T23:59:59.999Z',
             description: 'xxx',
         },
@@ -86,6 +87,7 @@ test('Week Album - Empty', async () => {
     const album = await getAlbumAndChildren('/2001/01-01/');
     if (!album) throw new Error('Did not receive album');
     if (!!album.children) throw new Error('Received unexpected children');
+    expect(album.path).toBe('/2001/01-01/');
     expect(album.description).toBe('xxx');
 });
 
@@ -95,6 +97,7 @@ test('Images', async () => {
         Item: {
             parentPath: '/2001/',
             itemName: '01-01',
+            itemType: 'album',
             updatedOn: '2001-01-01T23:59:59.999Z',
         },
     });
@@ -128,7 +131,9 @@ describe('Prev & Next', () => {
     test('No Prev', async () => {
         const albumName = '01-01';
         // Mock out the AWS method to get the album itself
-        mockDocClient.on(GetCommand).resolves({ Item: { parentPath: '/2001/', itemName: albumName } });
+        mockDocClient
+            .on(GetCommand)
+            .resolves({ Item: { parentPath: '/2001/', itemName: albumName, itemType: 'album' } });
         // Mock out the AWS method that returns children
         mockDocClient
             .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': `/2001/${albumName}/` } })
@@ -145,7 +150,9 @@ describe('Prev & Next', () => {
     test('Next Skips Unpublished', async () => {
         const albumName = '01-02';
         // Mock out the AWS method to get the album itself
-        mockDocClient.on(GetCommand).resolves({ Item: { parentPath: '/2001/', itemName: albumName } });
+        mockDocClient
+            .on(GetCommand)
+            .resolves({ Item: { parentPath: '/2001/', itemName: albumName, itemType: 'album' } });
         // Mock out the AWS method that returns children
         mockDocClient
             .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': `/2001/${albumName}/` } })
@@ -162,7 +169,9 @@ describe('Prev & Next', () => {
     test('Both Prev & Next', async () => {
         const albumName = '01-03';
         // Mock out the AWS method to get the album itself
-        mockDocClient.on(GetCommand).resolves({ Item: { parentPath: '/2001/', itemName: albumName } });
+        mockDocClient
+            .on(GetCommand)
+            .resolves({ Item: { parentPath: '/2001/', itemName: albumName, itemType: 'album' } });
         // Mock out the AWS method that returns children
         mockDocClient
             .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': `/2001/${albumName}/` } })
@@ -181,7 +190,9 @@ describe('Prev & Next', () => {
     test('Prev Skips Unpublished', async () => {
         const albumName = '01-04';
         // Mock out the AWS method to get the album itself
-        mockDocClient.on(GetCommand).resolves({ Item: { parentPath: '/2001/', itemName: albumName } });
+        mockDocClient
+            .on(GetCommand)
+            .resolves({ Item: { parentPath: '/2001/', itemName: albumName, itemType: 'album' } });
         // Mock out the AWS method that returns children
         mockDocClient
             .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': `/2001/${albumName}/` } })
@@ -197,7 +208,9 @@ describe('Prev & Next', () => {
     test('No Next', async () => {
         const albumName = '01-04';
         // Mock out the AWS method to get the album itself
-        mockDocClient.on(GetCommand).resolves({ Item: { parentPath: '/2001/', itemName: albumName } });
+        mockDocClient
+            .on(GetCommand)
+            .resolves({ Item: { parentPath: '/2001/', itemName: albumName, itemType: 'album' } });
         // Mock out the AWS method that returns children
         mockDocClient
             .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': `/2001/${albumName}/` } })

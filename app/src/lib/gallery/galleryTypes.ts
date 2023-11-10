@@ -36,17 +36,14 @@ export type AlbumThumbnailEntry = {
     fileUpdatedOn: string;
 };
 
-export type AlbumThumbnailResponse = {
-    album?: AlbumThumbnail;
-};
-
 export type AlbumThumbnail = {
+    path?: string;
+    parentPath?: string;
+    itemName?: string;
     title?: string;
     description?: string;
-    thumbnail?: AlbumThumbnailEntry;
-    itemName?: string;
-    parentPath?: string;
     updatedOn?: Date;
+    thumbnail?: AlbumThumbnailEntry;
 };
 
 export type AlbumUpdateRequest = {

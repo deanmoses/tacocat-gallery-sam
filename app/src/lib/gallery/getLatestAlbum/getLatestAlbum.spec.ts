@@ -8,40 +8,33 @@ afterEach(() => {
     mockDocClient.reset();
 });
 
-test('Get Album', async () => {
-    expect.assertions(4);
-
-    const parentPath = '/2001/12-31/';
+test('Get Latest Album', async () => {
+    const parentPath = '/2001/';
     const itemName = '12-31';
     const updatedOn = '2001-12-31T23:59:59Z';
 
-    // Mock out the AWS method
+    // Mock out the AWS method that finds the latest album
     mockDocClient.on(QueryCommand).resolves({
         Items: [
             {
                 itemName: itemName,
                 parentPath: parentPath,
+                itemType: 'album',
                 updatedOn: updatedOn,
             },
         ],
     });
-
-    const result = await getLatestAlbum();
-    const album = result?.album;
-    expect(album).toBeDefined();
-    expect(album?.itemName).toBe(itemName);
-    expect(album?.parentPath).toBe(parentPath);
-    expect(album?.updatedOn).toBe(updatedOn);
+    const album = await getLatestAlbum();
+    if (!album) throw new Error('Got no latest album');
+    expect(album.path).toBe('/2001/12-31/');
+    expect(album.parentPath).toBe(parentPath);
+    expect(album.itemName).toBe(itemName);
+    expect(album.updatedOn).toBe(updatedOn);
 });
 
-test('Get Nonexistent Album', async () => {
-    expect.assertions(1);
-
-    // Mock out the AWS method
-    mockDocClient.on(QueryCommand).resolves({
-        Items: [],
-    });
-
+test('Get Nonexistent Latest Album', async () => {
+    // Mock out the AWS method that finds the latest album
+    mockDocClient.on(QueryCommand).resolves({ Items: [] });
     const result = await getLatestAlbum();
     expect(result).toBeUndefined();
 });

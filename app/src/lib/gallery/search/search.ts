@@ -4,6 +4,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
+import { toPathFromItem } from '../../gallery_path_utils/galleryPathUtils';
 
 /**
  * Search for images and albums in DynamoDB
@@ -19,8 +20,14 @@ export async function search(searchTerms: string | undefined): Promise<FuzzyResu
         throw new BadRequestException(`Search terms [${searchTerms}]: must be 3 characters or longer`);
     }
     const haystack = await getAllGalleryItems();
-    const searchResults = searchInHaystack(searchTerms, haystack);
+    let searchResults = searchInHaystack(searchTerms, haystack);
     console.info(`Search: searched gallery for [${searchTerms}].  Item count [${searchResults.length}]`);
+    if (!!searchResults) {
+        searchResults = searchResults.map((result) => {
+            result.item.path = toPathFromItem(result.item);
+            return result;
+        });
+    }
     return searchResults;
 }
 

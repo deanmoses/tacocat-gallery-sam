@@ -9,6 +9,7 @@ import {
     sanitizeImageName,
     isValidDayAlbumPath,
     albumPathToDate,
+    toPathFromItem,
 } from './galleryPathUtils';
 
 describe('isValidAlbumPath', () => {
@@ -490,5 +491,45 @@ describe('albumPathToDate', () => {
         test(`In: [${input.in}] Out: [${input.out.toDateString()}]`, () => {
             expect(albumPathToDate(input.in)).toEqual(input.out);
         });
+    });
+});
+
+describe('toPathFromItem', () => {
+    test('root album', () => {
+        expect(
+            toPathFromItem({
+                parentPath: '',
+                itemName: '/',
+                itemType: 'album',
+            }),
+        ).toBe('/');
+    });
+
+    test('year album', () => {
+        expect(
+            toPathFromItem({
+                parentPath: '/',
+                itemName: '2001',
+                itemType: 'album',
+            }),
+        ).toBe('/2001/');
+    });
+    test('day album', () => {
+        expect(
+            toPathFromItem({
+                parentPath: '/2001/',
+                itemName: '12-31',
+                itemType: 'album',
+            }),
+        ).toBe('/2001/12-31/');
+    });
+    test('image', () => {
+        expect(
+            toPathFromItem({
+                parentPath: '/2001/12-31/',
+                itemName: 'image.jpg',
+                itemType: 'image',
+            }),
+        ).toBe('/2001/12-31/image.jpg');
     });
 });

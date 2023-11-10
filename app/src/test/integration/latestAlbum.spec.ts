@@ -24,18 +24,18 @@ afterAll(async () => {
     await cleanUpAlbum(albumPath);
 });
 
-test('Latest album should have no thumbnail', async () => {
-    const album = (await getLatestAlbum())?.album;
+test('Should be able to get latest album', async () => {
+    const album = await getLatestAlbum();
     if (!album) throw new Error(`No latest album`);
     const albumPathParts = getParentAndNameFromPath(albumPath);
     expect(album.itemName).toBe(albumPathParts.name);
     expect(album.parentPath).toBe(albumPathParts.parent);
-    expect(album.thumbnail?.path).toBeUndefined();
+    expect(album.path).toBe(albumPath);
+    if (album.thumbnail?.path) throw new Error(`Was expecting album thumbnail to be undefined [${album.thumbnail}]`);
 });
 
 test('Upload image', async () => {
     await uploadImage('image.jpg', imagePath);
-
     // wait for the image processing lambda to trigger
     // TODO: I would love to implement push notifications so these tests become deterministic
     await new Promise((r) => setTimeout(r, 4000));
@@ -43,11 +43,11 @@ test('Upload image', async () => {
 }, 10000 /* increase Jest's timeout */);
 
 test("Image should have been set to latest album's thumb", async () => {
-    const album = (await getLatestAlbum())?.album;
+    const album = await getLatestAlbum();
     if (!album) throw new Error(`No latest album`);
     const albumPathParts = getParentAndNameFromPath(albumPath);
-    expect(album?.itemName).toBe(albumPathParts.name);
-    expect(album?.parentPath).toBe(albumPathParts.parent);
+    expect(album.itemName).toBe(albumPathParts.name);
+    expect(album.parentPath).toBe(albumPathParts.parent);
     expect(album.thumbnail?.path).toBe(imagePath);
 });
 

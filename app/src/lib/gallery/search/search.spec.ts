@@ -15,6 +15,13 @@ test('Short search should fail', async () => {
     await expect(search('12')).rejects.toThrow(/characters/i);
 });
 
+test('Results should include path', async () => {
+    mockDDBClient.on(ScanCommand).resolves({ Items: mockScanResults }); // Mock out the DDB table scan
+    const searchResults = await search('rocket');
+    expect(searchResults.length).toBe(1);
+    expect(searchResults[0].item.path).toBe('/2018/01-24/');
+});
+
 test('Should find by title', async () => {
     mockDDBClient.on(ScanCommand).resolves({ Items: mockScanResults }); // Mock out the DDB table scan
     const searchResults = await search('rocket');

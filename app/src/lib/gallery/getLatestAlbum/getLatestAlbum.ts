@@ -1,23 +1,17 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
-import { AlbumThumbnail, AlbumThumbnailResponse } from '../galleryTypes';
+import { AlbumThumbnail } from '../galleryTypes';
+import { toPathFromItem } from '../../gallery_path_utils/galleryPathUtils';
 
 /**
  * Retrieve the latest album in the gallery from DynamoDB.  Just retrieves
  * enough information to display a thumbnail: does not retrieve any child
  * photos or child albums.
  */
-export async function getLatestAlbum(): Promise<AlbumThumbnailResponse | undefined> {
-    // get path to current year's album
+export async function getLatestAlbum(): Promise<AlbumThumbnail | undefined> {
     const currentYearAlbumPath = `/${new Date().getUTCFullYear()}/`;
-    const album = await getLatestItemInAlbum(currentYearAlbumPath);
-    if (!album) return;
-    else {
-        return {
-            album,
-        };
-    }
+    return await getLatestItemInAlbum(currentYearAlbumPath);
 }
 
 /**
@@ -36,16 +30,15 @@ async function getLatestItemInAlbum(path: string): Promise<AlbumThumbnail | unde
         ExpressionAttributeValues: {
             ':parentPath': path,
         },
-        ProjectionExpression: 'itemName,parentPath,updatedOn,title,description,thumbnail',
+        ProjectionExpression: 'itemName,parentPath,itemType,updatedOn,title,description,thumbnail',
         Limit: 1, // # of results to return
         ScanIndexForward: false, // sort results in descending order, i.e., newest first
     });
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);
-    const result = await docClient.send(ddbCommand);
-    if (!!result.Items && result.Items?.length > 0) {
-        return result.Items[0];
-    } else {
-        return undefined;
+    const album = (await docClient.send(ddbCommand))?.Items?.[0];
+    if (!!album) {
+        album.path = toPathFromItem(album);
     }
+    return album;
 }

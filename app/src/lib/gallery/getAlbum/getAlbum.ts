@@ -45,17 +45,19 @@ export async function getAlbum(albumPath: string): Promise<Album | undefined> {
             path: '/',
             parentPath: '',
             itemName: '/',
+            itemType: 'album',
             title: 'Dean, Lucie, Felix and Milo Moses',
         };
     } else {
         const album = await getItem(albumPath, [
             'parentPath',
             'itemName',
-            'published',
+            'itemType',
             'updatedOn',
             'title',
             'description',
             'thumbnail',
+            'published',
         ]);
         if (!!album) album.path = toPathFromItem(album);
         return album;
@@ -72,14 +74,14 @@ async function getChildren(albumPath: string): Promise<Array<GalleryItem> | unde
     let children = await getChildItems(albumPath, [
         'parentPath',
         'itemName',
-        'published',
         'itemType',
         'updatedOn',
-        'dimensions',
         'title',
         'description',
-        'tags',
         'thumbnail',
+        'tags',
+        'published',
+        'dimensions',
     ]);
     if (!!children) {
         children = children.map((child) => {
@@ -95,7 +97,7 @@ async function getChildren(albumPath: string): Promise<Array<GalleryItem> | unde
  */
 async function getPeers(albumPath: string): Promise<Array<GalleryItem> | undefined> {
     const parentAlbumPath = getParentFromPath(albumPath);
-    return await getChildItems(parentAlbumPath, ['parentPath', 'itemName', 'published', 'title']);
+    return await getChildItems(parentAlbumPath, ['parentPath', 'itemName', 'itemType', 'published', 'title']);
 }
 
 /**
