@@ -6,6 +6,7 @@ import {
     isValidAlbumPath,
     isValidDayAlbumName,
     isValidYearAlbumPath,
+    toPath,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
@@ -38,7 +39,7 @@ export async function renameAlbum(oldAlbumPath: string, newName: string): Promis
     if (!isValidDayAlbumName(newName)) {
         throw new BadRequestException(`New name for album is invalid: [${newName}]`);
     }
-    const newAlbumPath = getParentFromPath(oldAlbumPath) + newName + '/';
+    const newAlbumPath = toPath(getParentFromPath(oldAlbumPath), newName);
     if (!isValidAlbumPath(newAlbumPath)) {
         throw new BadRequestException(`New album path is invalid: [${newAlbumPath}]`);
     }

@@ -2,6 +2,7 @@ import {
     getParentAndNameFromPath,
     getParentFromPath,
     isValidAlbumPath,
+    toPathFromItem,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { Album, GalleryItem, NavInfo, Navigable } from '../galleryTypes';
@@ -41,20 +42,23 @@ export async function getAlbum(albumPath: string): Promise<Album | undefined> {
     if (albumPath === '/') {
         // Root album isn't in DynamoDB
         return {
-            itemName: '/',
+            path: '/',
             parentPath: '',
+            itemName: '/',
             title: 'Dean, Lucie, Felix and Milo Moses',
         };
     } else {
-        return await getItem(albumPath, [
-            'itemName',
+        const album = await getItem(albumPath, [
             'parentPath',
+            'itemName',
             'published',
             'updatedOn',
             'title',
             'description',
             'thumbnail',
         ]);
+        if (!!album) album.path = toPathFromItem(album);
+        return album;
     }
 }
 
@@ -65,9 +69,9 @@ export async function getAlbum(albumPath: string): Promise<Album | undefined> {
  * @param albumPath Path of album, like /2001/12-31/
  */
 async function getChildren(albumPath: string): Promise<Array<GalleryItem> | undefined> {
-    return getChildItems(albumPath, [
-        'itemName',
+    let children = await getChildItems(albumPath, [
         'parentPath',
+        'itemName',
         'published',
         'itemType',
         'updatedOn',
@@ -77,6 +81,13 @@ async function getChildren(albumPath: string): Promise<Array<GalleryItem> | unde
         'tags',
         'thumbnail',
     ]);
+    if (!!children) {
+        children = children.map((child) => {
+            child.path = toPathFromItem(child);
+            return child;
+        });
+    }
+    return children;
 }
 
 /**
@@ -84,7 +95,7 @@ async function getChildren(albumPath: string): Promise<Array<GalleryItem> | unde
  */
 async function getPeers(albumPath: string): Promise<Array<GalleryItem> | undefined> {
     const parentAlbumPath = getParentFromPath(albumPath);
-    return getChildItems(parentAlbumPath, ['itemName', 'parentPath', 'published', 'title']);
+    return await getChildItems(parentAlbumPath, ['parentPath', 'itemName', 'published', 'title']);
 }
 
 /**
@@ -124,7 +135,7 @@ function getPrevAndNext(path: string, peers: GalleryItem[]): Navigable {
 
 function itemNav(item: GalleryItem): NavInfo {
     return {
-        path: (item?.parentPath || '') + (item?.itemName || '') + '/',
+        path: toPathFromItem(item),
         title: item.title,
     };
 }

@@ -1,3 +1,5 @@
+import { GalleryItem } from '../gallery/galleryTypes';
+
 /**
  * Return true if specified string is a valid album or image path
  * like / or /2001/ or /2001/12-31/ or /2001/12-31/image.jpg
@@ -165,4 +167,15 @@ export function albumPathToDate(albumPath: string): Date {
         return new Date(year, month, day);
     }
     return new Date(year, 0, 1); // Use Jan 1 for year albums
+}
+
+export function toPath(parentPath: string | undefined, itemName: string | undefined): string {
+    if (!parentPath) throw new Error(`Undefined parentPath`);
+    if (!itemName) throw new Error(`Undefined itemName`);
+    return parentPath + itemName;
+}
+
+export function toPathFromItem(item: GalleryItem): string {
+    if (!item) throw new Error(`Undefined gallery item`);
+    return toPath(item.parentPath, item.itemName);
 }

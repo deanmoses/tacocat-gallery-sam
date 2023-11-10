@@ -13,11 +13,19 @@ test('getAlbum() - no children', async () => {
     const uploadTimeStamp = 1541787209;
     // Mock out the AWS method to get the album itself
     mockDocClient.on(GetCommand, {}).resolves({
-        Item: { parentPath: albumPath, title: 'Title', description: 'Description', updatedOn: uploadTimeStamp },
+        Item: {
+            parentPath: '/2001/',
+            itemName: '01-01',
+            title: 'Title',
+            description: 'Description',
+            updatedOn: uploadTimeStamp,
+        },
     });
     const result = await getAlbum(albumPath);
     expect(result).toBeDefined();
-    expect(result?.parentPath).toBe(albumPath);
+    expect(result?.path).toBe(albumPath);
+    expect(result?.parentPath).toBe('/2001/');
+    expect(result?.itemName).toBe('01-01');
     expect(result?.title).toBe('Title');
     expect(result?.description).toBe('Description');
     expect(result?.updatedOn).toBe(uploadTimeStamp);
@@ -40,19 +48,22 @@ test('Root Album', async () => {
     // Mock out the AWS method that returns children
     mockDocClient
         .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/' } })
-        .resolves({ Items: mockAlbums, Count: 3 });
+        .resolves({ Items: mockRootAlbums, Count: 3 });
 
     const album = await getAlbumAndChildren('/');
 
     if (!album) throw new Error('Did not receive album');
     expect(album?.title).toBe('Dean, Lucie, Felix and Milo Moses');
-    expect(album?.itemName).toBe('/');
+    expect(album?.path).toBe('/');
     expect(album?.parentPath).toBe('');
+    expect(album?.itemName).toBe('/');
 
     const children = album?.children;
     if (!children) throw new Error('Did not receive children');
-    expect(children[0]?.itemName).toBe('01-01');
-    expect(children[1]?.itemName).toBe('01-02');
+    expect(children[0]?.path).toBe('/2001/');
+    expect(children[0]?.parentPath).toBe('/');
+    expect(children[0]?.itemName).toBe('2001');
+    expect(children[1]?.itemName).toBe('2002');
     expect(children[1]?.published).toBe(true);
 
     if (!!album.next?.path) throw new Error('Was not expecting a next album on root');
@@ -63,6 +74,7 @@ test('Week Album - Empty', async () => {
     // Mock out the AWS method to get the album itself (no children)
     mockDocClient.on(GetCommand).resolves({
         Item: {
+            path: '/2001/01-01/',
             parentPath: '/2001/',
             itemName: '01-01',
             updatedOn: '2001-01-01T23:59:59.999Z',
@@ -96,11 +108,13 @@ test('Images', async () => {
     const album = await getAlbumAndChildren('/2001/01-01/');
     const children = album?.children;
     if (!children) throw new Error('Did not receive children');
+    expect(children[0]?.path).toBe('/2001/01-01/image1.jpg');
     expect(children[0]?.itemName).toBe('image1.jpg');
     expect(children[0]?.title).toBe('Title 1');
     expect(children[0]?.description).toBe('Description 1');
     expect(children[0]?.updatedOn).toBe('2001-01-01T23:59:59.999Z');
     expect(children[0]?.tags).toContain('image1_tag1');
+    expect(children[1]?.path).toBe('/2001/01-01/image2.jpg');
     expect(children[1]?.itemName).toBe('image2.jpg');
     expect(children[1]?.title).toBe('Title 2');
     expect(children[1]?.description).toBe('Description 2');
@@ -268,6 +282,49 @@ const mockAlbums = [
         title: 'Title 4',
         description: 'Description 4',
         updatedOn: '2001-04-01T23:59:59.999Z',
+        tags: ['album4_tag1', 'album4_tag2'],
+        published: true,
+    },
+];
+
+const mockRootAlbums = [
+    {
+        itemName: '2001',
+        itemType: 'album',
+        parentPath: '/',
+        title: 'Title 1',
+        description: 'Description 1',
+        updatedOn: '2001-01-01T23:59:59.999Z',
+        tags: ['album1_tag1', 'album1_tag2'],
+        published: true,
+    },
+    {
+        itemName: '2002',
+        itemType: 'album',
+        parentPath: '/',
+        title: 'Title 2',
+        description: 'Description 2',
+        updatedOn: '2002-02-01T23:59:59.999Z',
+        tags: ['album2_tag1', 'album2_tag2'],
+        published: true,
+    },
+    {
+        itemName: '2003',
+        itemType: 'album',
+        parentPath: '/',
+        title: 'Title 3',
+        description: 'Description 3',
+        updatedOn: '2003-03-01T23:59:59.999Z',
+        tags: ['album3_tag1', 'album3_tag2', 'album3_tag3'],
+        published: false,
+    },
+    {
+        itemName: '2004',
+        itemType: 'album',
+        parentPath: '/',
+        title: 'Title 4',
+        description: 'Description 4',
+        updatedOn: '2004-04-01T23:59:59.999Z',
         tags: ['album4_tag1', 'album4_tag2'],
         published: true,
     },

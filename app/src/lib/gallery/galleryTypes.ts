@@ -1,3 +1,8 @@
+export type Album = GalleryItem &
+    Navigable & {
+        children?: GalleryItem[];
+    };
+
 export type Navigable = {
     prev?: NavInfo;
     next?: NavInfo;
@@ -11,9 +16,8 @@ export type NavInfo = {
     title?: string;
 };
 
-export type GalleryItemType = 'album' | 'image';
-
 export type GalleryItem = {
+    path?: string;
     parentPath?: string;
     itemName?: string;
     itemType?: GalleryItemType;
@@ -25,10 +29,7 @@ export type GalleryItem = {
     published?: boolean;
 };
 
-export type Album = GalleryItem &
-    Navigable & {
-        children?: GalleryItem[];
-    };
+export type GalleryItemType = 'album' | 'image';
 
 export type AlbumThumbnailEntry = {
     path: string;
@@ -52,6 +53,7 @@ export type AlbumUpdateRequest = {
     title?: string;
     description?: string;
     published?: boolean;
+    // TODO: tags
 };
 
 export type ImageUpdateRequest = {
