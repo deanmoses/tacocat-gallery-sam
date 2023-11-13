@@ -1,5 +1,6 @@
 export type Album = GalleryItem &
     Navigable & {
+        summary?: string;
         children?: GalleryItem[];
     };
 

@@ -14,6 +14,10 @@ test('cannot update root album', async () => {
     expect(mockDocClient.calls.length).toBe(0);
 });
 
+test('fail on unknown attribute', async () => {
+    await expect(updateAlbum(albumPath, { unknownAttr: '' })).rejects.toThrow(/unknown/i);
+});
+
 test('title', async () => {
     expect.assertions(5);
     await expect(
@@ -28,7 +32,7 @@ test('title', async () => {
     expect(partiQL).toContain('updatedOn');
 });
 
-test('blank title (unset title)', async () => {
+test('blank title', async () => {
     expect.assertions(1);
     await expect(
         updateAlbum(albumPath, {
@@ -46,7 +50,7 @@ test('description', async () => {
     ).resolves.not.toThrow();
 });
 
-test('blank description (unset description)', async () => {
+test('blank description', async () => {
     expect.assertions(1);
     await expect(
         updateAlbum(albumPath, {
@@ -55,12 +59,31 @@ test('blank description (unset description)', async () => {
     ).resolves.not.toThrow();
 });
 
-test('title and description', async () => {
+test('summary', async () => {
     expect.assertions(1);
+    await expect(
+        updateAlbum(albumPath, {
+            summary: 'New Summary 1',
+        }),
+    ).resolves.not.toThrow();
+});
+
+test('blank summary', async () => {
+    expect.assertions(1);
+    await expect(
+        updateAlbum(albumPath, {
+            summary: '',
+        }),
+    ).resolves.not.toThrow();
+});
+
+test('all fields', async () => {
     await expect(
         updateAlbum(albumPath, {
             title: 'Title 2',
             description: 'Description 2',
+            summary: 'Summary 2',
+            published: true,
         }),
     ).resolves.not.toThrow();
 });

@@ -33,6 +33,31 @@ export async function createAlbum(
     if (albumPath === '/') {
         throw new BadRequestException('Invalid album path: cannot create root album');
     }
+
+    if (!!attributesToSet) {
+        const keysToUpdate = Object.keys(attributesToSet);
+
+        //
+        // Ensure only these attributes are in the input
+        //
+        const validKeys = new Set(['title', 'description', 'summary', 'published']);
+        keysToUpdate.forEach((keyToUpdate) => {
+            // Ensure we aren't trying to update an unknown attribute
+            if (!validKeys.has(keyToUpdate)) {
+                throw new BadRequestException('Unknown attribute: ' + keyToUpdate);
+            }
+
+            // If published is being modified, ensure new value is valid
+            if (keyToUpdate === 'published') {
+                if (typeof attributesToSet.published !== 'boolean') {
+                    throw new BadRequestException(
+                        `Invalid value: 'published' must be a boolean.  I got: [${attributesToSet.published}]`,
+                    );
+                }
+            }
+        });
+    }
+
     const pathParts = getParentAndNameFromPath(albumPath);
     const now = new Date().toISOString();
     const ddbCommand = new PutCommand({
@@ -49,6 +74,7 @@ export async function createAlbum(
     if (ddbCommand?.input?.Item) {
         if (!!attributesToSet?.title) ddbCommand.input.Item.title = attributesToSet?.title;
         if (!!attributesToSet?.description) ddbCommand.input.Item.description = attributesToSet?.description;
+        if (!!attributesToSet?.summary) ddbCommand.input.Item.summary = attributesToSet?.summary;
         if (!!attributesToSet?.published) ddbCommand.input.Item.published = attributesToSet?.published;
     }
     const ddbClient = new DynamoDBClient({});

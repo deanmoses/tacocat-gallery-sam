@@ -42,7 +42,11 @@ test('getAlbum retrieves newly created album', async () => {
 });
 
 it('should fail to create if album already exists', async () => {
-    await expect(createAlbum(albumPath)).rejects.toThrow(/exists/);
+    await expect(createAlbum(albumPath)).rejects.toThrow(/exists/i);
+});
+
+it('should fail on unknown attribute', async () => {
+    await expect(createAlbum(albumPath, { unknownAttr: '' })).rejects.toThrow(/unknown/i);
 });
 
 test('deleteAlbum() succeeds on empty album', async () => {
@@ -50,7 +54,12 @@ test('deleteAlbum() succeeds on empty album', async () => {
 });
 
 it('create with attributes', async () => {
-    await createAlbum(albumPath2, { title: 'Title 1', description: 'Description 1', published: true });
+    await createAlbum(albumPath2, {
+        title: 'Title 1',
+        description: 'Description 1',
+        summary: 'Summary 1',
+        published: true,
+    });
     await expect(itemExists(albumPath2)).resolves.toBe(true);
 });
 
@@ -64,6 +73,7 @@ test('getAlbum retrieves updated album', async () => {
     expect(album?.path).toBe(albumPath2);
     expect(album?.title).toBe('Title 1');
     expect(album?.description).toBe('Description 1');
+    expect(album?.summary).toBe('Summary 1');
     expect(album?.published).toBe(true);
     expect(album?.thumbnail?.path).toBeUndefined();
 });

@@ -56,6 +56,7 @@ export async function getAlbum(albumPath: string): Promise<Album | undefined> {
             'updatedOn',
             'title',
             'description',
+            'summary',
             'thumbnail',
             'published',
         ]);
@@ -78,6 +79,7 @@ async function getChildren(albumPath: string): Promise<Array<GalleryItem> | unde
         'updatedOn',
         'title',
         'description',
+        'summary',
         'thumbnail',
         'tags',
         'published',

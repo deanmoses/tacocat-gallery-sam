@@ -8,15 +8,7 @@ afterEach(() => {
     mockDocClient.reset();
 });
 
-test('Create Album - Happy Path', async () => {
-    expect.assertions(1);
-
-    // Mock the AWS command to create the album
-    mockDocClient.on(PutCommand).resolves(mockSuccessResponse);
-    await expect(createAlbum('/2001/')).resolves.not.toThrow();
-});
-
-describe('Create Album - Invalid Path', () => {
+it('Should fail on invalid album path', () => {
     const badAlbumPaths = [
         '/', // cannot create root album
         '/invalid/path',
@@ -35,6 +27,29 @@ describe('Create Album - Invalid Path', () => {
             await expect(createAlbum(albumPath)).rejects.toThrow(/path/);
         });
     });
+});
+
+it('Should fail on unknown attribute', async () => {
+    await expect(createAlbum(albumPath, { unknownAttr: '' })).rejects.toThrow(/unknown/i);
+});
+
+test('Success', async () => {
+    // Mock the AWS command to create album
+    mockDocClient.on(PutCommand).resolves(mockSuccessResponse);
+    await expect(createAlbum('/2001/')).resolves.not.toThrow();
+});
+
+test('Set Fields', async () => {
+    // Mock the AWS command to create album
+    mockDocClient.on(PutCommand).resolves(mockSuccessResponse);
+    await expect(
+        createAlbum('/2001/', {
+            title: 'Title 1',
+            description: 'Description 1',
+            summary: 'Summary 1',
+            published: true,
+        }),
+    ).resolves.not.toThrow();
 });
 
 const mockSuccessResponse = {

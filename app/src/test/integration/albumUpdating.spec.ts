@@ -9,20 +9,29 @@ import {
     cleanUpAlbumAndParents,
 } from './helpers/albumHelpers';
 
-const albumPath = '/1700/04-26/'; // unique to this suite to prevent pollution
+const yearAlbumPath = '/1700/'; // unique to this suite to prevent pollution
+const albumPath = `${yearAlbumPath}04-26/`;
 let title: string;
 let description: string;
+let summary: string;
 
 beforeAll(async () => {
     title = `Title [${Date.now}]`;
     description = `Description [${Date.now}]`;
+    summary = `Summary [${Date.now}]`;
     await assertDynamoDBItemDoesNotExist(albumPath);
     await createAlbum(albumPath);
     await assertDynamoDBItemExists(albumPath);
+    await createAlbum(yearAlbumPath);
 });
 
 afterAll(async () => {
     await cleanUpAlbumAndParents(albumPath);
+    await cleanUpAlbumAndParents(yearAlbumPath);
+});
+
+test('fail on unknown attribute', async () => {
+    await expect(updateAlbum(albumPath, { unknownAttr: '' })).rejects.toThrow(/unknown/i);
 });
 
 test('get empty album', async () => {
@@ -54,9 +63,25 @@ it('set description', async () => {
     expect(album?.published).toBeUndefined();
 });
 
+it('set summary', async () => {
+    await updateAlbum(albumPath, { summary: summary });
+    const album = await getAlbum(albumPath);
+    expect(album?.summary).toBe(summary);
+});
+
 it('publish', async () => {
     await updateAlbum(albumPath, { published: true });
     const album = await getAlbum(albumPath);
+    expect(album?.title).toBe(title);
+    expect(album?.description).toBe(description);
+    expect(album?.published).toBe(true);
+});
+
+it('getChildren should reflect changes', async () => {
+    const yearAlbum = await getAlbumAndChildren(yearAlbumPath);
+    if (!yearAlbum) throw new Error(`No year album [${yearAlbumPath}]`);
+    const album = yearAlbum?.children?.[0];
+    if (!album) throw new Error(`Year album [${yearAlbumPath}] did not have any children`);
     expect(album?.title).toBe(title);
     expect(album?.description).toBe(description);
     expect(album?.published).toBe(true);
@@ -78,9 +103,25 @@ it('unset description', async () => {
     expect(album?.published).toBe(true);
 });
 
+it('unset summary', async () => {
+    await updateAlbum(albumPath, { summary: '' });
+    const album = await getAlbum(albumPath);
+    expect(album?.summary).toBe('');
+});
+
 it('unpublish', async () => {
     await updateAlbum(albumPath, { published: false });
     const album = await getAlbum(albumPath);
+    expect(album?.title).toBe('');
+    expect(album?.description).toBe('');
+    expect(album?.published).toBe(false);
+});
+
+it('getChildren should reflect the unsettings', async () => {
+    const yearAlbum = await getAlbumAndChildren(yearAlbumPath);
+    if (!yearAlbum) throw new Error(`No year album [${yearAlbumPath}]`);
+    const album = yearAlbum?.children?.[0];
+    if (!album) throw new Error(`Year album [${yearAlbumPath}] did not have any children`);
     expect(album?.title).toBe('');
     expect(album?.description).toBe('');
     expect(album?.published).toBe(false);

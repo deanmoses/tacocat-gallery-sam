@@ -34,7 +34,7 @@ export async function updateAlbum(albumPath: string, attributesToUpdate: Record<
     // Ensure only these attributes are in the input
     //
 
-    const validKeys = new Set(['title', 'description', 'published']);
+    const validKeys = new Set(['title', 'description', 'summary', 'published']);
     keysToUpdate.forEach((keyToUpdate) => {
         // Ensure we aren't trying to update an unknown attribute
         if (!validKeys.has(keyToUpdate)) {
