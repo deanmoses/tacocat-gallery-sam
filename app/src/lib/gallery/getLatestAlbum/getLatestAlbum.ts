@@ -5,32 +5,29 @@ import { AlbumThumbnail } from '../galleryTypes';
 import { toPathFromItem } from '../../gallery_path_utils/galleryPathUtils';
 
 /**
- * Retrieve the latest album in the gallery from DynamoDB.  Just retrieves
- * enough information to display a thumbnail: does not retrieve any child
- * photos or child albums.
+ * Retrieve the latest album in the gallery
  */
 export async function getLatestAlbum(): Promise<AlbumThumbnail | undefined> {
     const currentYearAlbumPath = `/${new Date().getUTCFullYear()}/`;
-    return await getLatestItemInAlbum(currentYearAlbumPath);
+    return await getLatestAlbumInAlbum(currentYearAlbumPath);
 }
 
 /**
- * Retrieve the latest album or image in the specified parent album from DynamoDB.
+ * Retrieve the latest album in the specified parent album from DynamoDB.
  *
- * Just retrieves enough information to display a thumbnail: does not retrieve any
- * child photos or child albums.
- *
- * @param path Path of the parent album, like /2001/12-31/
+ * @param path Path of parent album like /2001/
  */
-async function getLatestItemInAlbum(path: string): Promise<AlbumThumbnail | undefined> {
+async function getLatestAlbumInAlbum(path: string): Promise<AlbumThumbnail | undefined> {
     // find the most recent album within the current year
     const ddbCommand = new QueryCommand({
         TableName: getDynamoDbTableName(),
-        KeyConditionExpression: 'parentPath = :parentPath',
+        KeyConditionExpression: 'parentPath = :parentPath, itemType = :itemType, published = :published',
         ExpressionAttributeValues: {
             ':parentPath': path,
+            ':itemType': 'album',
+            ':published': true,
         },
-        ProjectionExpression: 'itemName,parentPath,itemType,updatedOn,title,description,thumbnail',
+        ProjectionExpression: 'itemName,parentPath,itemType,updatedOn,summary,thumbnail',
         Limit: 1, // # of results to return
         ScanIndexForward: false, // sort results in descending order, i.e., newest first
     });
