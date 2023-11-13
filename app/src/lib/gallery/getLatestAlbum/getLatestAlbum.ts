@@ -21,14 +21,14 @@ async function getLatestAlbumInAlbum(path: string): Promise<AlbumThumbnail | und
     // find the most recent album within the current year
     const ddbCommand = new QueryCommand({
         TableName: getDynamoDbTableName(),
-        KeyConditionExpression: 'parentPath = :parentPath, itemType = :itemType, published = :published',
+        KeyConditionExpression: 'parentPath = :parentPath',
+        FilterExpression: 'itemType = :itemType and published = :published',
         ExpressionAttributeValues: {
             ':parentPath': path,
             ':itemType': 'album',
             ':published': true,
         },
         ProjectionExpression: 'itemName,parentPath,itemType,updatedOn,summary,thumbnail',
-        Limit: 1, // # of results to return
         ScanIndexForward: false, // sort results in descending order, i.e., newest first
     });
     const ddbClient = new DynamoDBClient({});

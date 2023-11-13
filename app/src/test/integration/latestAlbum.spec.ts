@@ -1,4 +1,4 @@
-import { createAlbumNoThrow } from '../../lib/gallery/createAlbum/createAlbum';
+import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
 import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { getLatestAlbum } from '../../lib/gallery/getLatestAlbum/getLatestAlbum';
@@ -17,14 +17,14 @@ beforeAll(async () => {
     albumPath = getAlbumPathForToday(); // use current year so that getLatestAlbum will always return something
     imagePath = albumPath + imageName;
     await assertDynamoDBItemDoesNotExist(albumPath);
-    await createAlbumNoThrow(albumPath);
+    await createAlbum(albumPath, { published: true });
 });
 
 afterAll(async () => {
     await cleanUpAlbum(albumPath);
 });
 
-test('Should be able to get latest album', async () => {
+test('Should get latest album', async () => {
     const album = await getLatestAlbum();
     if (!album) throw new Error(`No latest album`);
     const albumPathParts = getParentAndNameFromPath(albumPath);
