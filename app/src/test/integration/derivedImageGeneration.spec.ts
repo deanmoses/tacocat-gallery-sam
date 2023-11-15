@@ -30,7 +30,7 @@ afterAll(async () => {
 });
 
 test('Generate derived image', async () => {
-    const derivedImageBaseUrl = 'https://2ulsytomrhi5tvj7ybwoqd247a0qnbat.lambda-url.us-east-1.on.aws/i';
+    const derivedImageBaseUrl = 'https://2ulsytomrhi5tvj7ybwoqd247a0qnbat.lambda-url.us-east-1.on.aws/i'; // TODO: get URL from env variable
     const derivedImageUrl = derivedImageBaseUrl + derivedImagePath;
     const response = await fetch(derivedImageUrl, { cache: 'no-store' });
     expect(response.status).toBe(200);
