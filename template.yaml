@@ -52,6 +52,39 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub "${AWS::StackName}-original-images"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - HEAD
+              - GET
+              - PUT
+              - POST
+            AllowedOrigins:
+              - "*"
+            ExposedHeaders:
+              - ETag
+
+  # Allow upload from my guest cognito identity pool
+  # This was erroring, I think with an invalid principal
+  #OriginalImagesBucketPolicy:
+  #  Type: AWS::S3::BucketPolicy
+  #  Properties:
+  #    Bucket: !Ref OriginalImagesBucket
+  #    PolicyDocument:
+  #      Version: "2012-10-17"
+  #      Statement:
+  #        - Effect: Allow
+  #          Action: s3:PutObject
+  #          Resource: !Ref OriginalImagesBucket
+  #          Principal:
+  #            AWS: "arn:aws:iam::010410881828:role/service-role/TacocatGalleryGuestUser" # guest cognito identity pool role
 
   # -----------------------------------------------------------------------------
   # S3 bucket for derived images
@@ -746,3 +779,7 @@ Outputs:
   GenerateDerivedImageUrl:
     Description: URL of lambda that generates derived images
     Value: !GetAtt GenerateDerivedImageFunctionUrl.FunctionUrl
+
+  OriginalsBucketName:
+    Description: Name of S3 Bucket containing original images
+    Value: !Ref OriginalImagesBucket
