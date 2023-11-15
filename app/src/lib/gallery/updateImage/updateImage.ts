@@ -13,6 +13,7 @@ import { getDynamoDbTableName } from '../../lambda_utils/Env';
  * @param attributesToUpdate bag of attributes to update
  */
 export async function updateImage(imagePath: string, attributesToUpdate: Record<string, string | boolean>) {
+    console.info(`Update Image: updating [${imagePath}]...`);
     if (!isValidImagePath(imagePath)) {
         throw new BadRequestException(`Malformed image path: [${imagePath}]`);
     }
@@ -63,4 +64,5 @@ export async function updateImage(imagePath: string, attributesToUpdate: Record<
             throw e;
         }
     }
+    console.info(`Update Image: updated [${imagePath}]`);
 }

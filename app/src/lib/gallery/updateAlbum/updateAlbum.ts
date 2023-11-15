@@ -13,6 +13,7 @@ import { getDynamoDbTableName } from '../../lambda_utils/Env';
  * @param attributesToUpdate bag of attributes to update
  */
 export async function updateAlbum(albumPath: string, attributesToUpdate: Record<string, string | boolean>) {
+    console.info(`Update Album: updating [${albumPath}]...`);
     if (!isValidAlbumPath(albumPath)) {
         throw new BadRequestException(`Malformed album path: [${albumPath}]`);
     }
@@ -77,4 +78,6 @@ export async function updateAlbum(albumPath: string, attributesToUpdate: Record<
         }
         throw e;
     }
+
+    console.info(`Update Album: updated [${albumPath}]`);
 }
