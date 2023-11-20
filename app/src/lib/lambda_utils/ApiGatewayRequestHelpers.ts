@@ -2,6 +2,7 @@ import { APIGatewayProxyEvent } from 'aws-lambda';
 import { BadRequestException } from './BadRequestException';
 
 export enum HttpMethod {
+    HEAD = 'HEAD',
     GET = 'GET',
     PUT = 'PUT',
     PATCH = 'PATCH',

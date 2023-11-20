@@ -336,6 +336,74 @@ Resources:
           - getLatestAlbumLambda.ts
 
   # ---------------------------------------------------------------------------
+  # API Gateway lambda to determine whether album exists
+  # ---------------------------------------------------------------------------
+  AlbumExistsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/src/lambdas/api/
+      Handler: albumExistsLambda.handler
+      Description: API Gateway function to determine whether album exists
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /album/{albumPath+}
+            Method: HEAD
+            RestApiId: !Ref ImageApi
+        ApiRootEvent:
+          Type: Api
+          Properties:
+            Path: /album # root album
+            Method: HEAD
+            RestApiId: !Ref ImageApi
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref GalleryItemDDBTable
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - albumExistsLambda.ts
+
+  # ---------------------------------------------------------------------------
+  # API Gateway lambda to determine whether image exists
+  # ---------------------------------------------------------------------------
+  ImageExistsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/src/lambdas/api/
+      Handler: imageExistsLambda.handler
+      Description: API Gateway function to determine whether image exists
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /image/{imagePath+}
+            Method: HEAD
+            RestApiId: !Ref ImageApi
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref GalleryItemDDBTable
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - imageExistsLambda.ts
+
+  # ---------------------------------------------------------------------------
   # API Gateway lambda to retrieve album
   # ---------------------------------------------------------------------------
   GetAlbumFunction:
