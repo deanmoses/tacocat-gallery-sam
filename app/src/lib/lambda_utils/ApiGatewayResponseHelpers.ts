@@ -3,6 +3,9 @@ import { NotFoundException } from './NotFoundException';
 import { BadRequestException } from './BadRequestException';
 import { ServerException } from './ServerException';
 
+/**
+ * Create a 200 OK API Gateway lambda function response
+ */
 export function respondSuccessMessage(successMessage: string): APIGatewayProxyResult {
     return respondHttp({
         success: true,
@@ -11,14 +14,14 @@ export function respondSuccessMessage(successMessage: string): APIGatewayProxyRe
 }
 
 /**
- * Create a 404 Not Found response
+ * Create a 404 Not Found API Gateway lambda function response
  */
 export function respond404NotFound(message: string): APIGatewayProxyResult {
     return respondHttp({ message: !message ? 'Not Found' : message }, 404);
 }
 
 /**
- * Create  lambda function response to send the result to the API Gateway
+ * Create an API Gateway lambda function response
  */
 export function respondHttp(body: object, statusCode = 200): APIGatewayProxyResult {
     return {
@@ -29,7 +32,7 @@ export function respondHttp(body: object, statusCode = 200): APIGatewayProxyResu
 }
 
 /**
- * Turn the exception into a response of the format that
+ * Turn the exception into a lambda function response of the format that
  * the API Gateway will understand.
  */
 export function handleHttpExceptions(e: unknown): APIGatewayProxyResult {
