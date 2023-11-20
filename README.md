@@ -12,12 +12,13 @@ Database (DynamoDB), image storage (S3), APIs (API Gateway), CDN (CloudFront), i
 
 - Node.js 18 or higher
 - The AWS Serverless Application Model Command Line Interface (SAM CLI)
+- [esbuild](https://esbuild.github.io/) installed globally (`npm install --global esbuild`)
 - I'm using the Visual Studio Code IDE with a lot of extensions, the AWS Toolkit is a key one
 
 ## Install
 
 - Clone this project from github
-- Install dependencies: `cd` into its directory, `cd app` and then install dependencies with `npm install` or `pnpm install` or `yarn`. Node the `app` subdirectory! Due to the way SAM handles Typescript, the package.json and all the Node.js stuff is under `app`.
+- Install dependencies: `cd` into its directory, `cd app` and then install dependencies with `npm install` or `pnpm install` or `yarn`. *Note the `app` subdirectory!* Due to the way SAM handles Typescript, the package.json and all the Node.js stuff is under `app`.
 
 ## Build
 
