@@ -8,7 +8,7 @@ afterEach(() => {
     mockDocClient.reset();
 });
 
-it('Should fail on invalid album path', () => {
+describe('Should fail on invalid album path', () => {
     const badAlbumPaths = [
         '/', // cannot create root album
         '/invalid/path',
@@ -30,7 +30,7 @@ it('Should fail on invalid album path', () => {
 });
 
 it('Should fail on unknown attribute', async () => {
-    await expect(createAlbum(albumPath, { unknownAttr: '' })).rejects.toThrow(/unknown/i);
+    await expect(createAlbum('/2001/', { unknownAttr: '' })).rejects.toThrow(/unknown/i);
 });
 
 test('Success', async () => {
