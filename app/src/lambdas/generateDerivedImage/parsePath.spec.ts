@@ -65,6 +65,12 @@ describe('parsePath', () => {
         expect(params).toEqual({ id: '2001/12-31/image.jpg', focus: { x: 200, y: 100 }, width: 100, height: 200 });
     });
 
+    it('should ignore empty segments #2', () => {
+        const { crop, error } = parsePath('/i/2001/12-31/image.jpg///crop=10,20,30,40');
+        expect(crop).toEqual({ x: 10, y: 20, width: 30, height: 40 });
+        expect(error).toBeUndefined();
+    });
+
     it('should extract quality parameter', () => {
         const { quality, error } = parsePath('/i/2001/12-31/image.jpg/q=50');
         expect(quality).toEqual(50);
