@@ -6,8 +6,11 @@ sam local invoke SharpTestImageFunction -e app/src/lambdas/cloudfront/sharpTest/
 sam local invoke SharpTestImageFunction -e app/src/lambdas/cloudfront/sharpTest/events/origin-response-event-http200.json -n .env.json -d 5858 
 
 [GenerateDerivedImageFunction]
-sam local invoke GenerateDerivedImageFunction -e app/src/lambdas/generateDerivedImage/events/lambda-function-url-event.json -n .env.json
-sam local invoke GenerateDerivedImageFunction -e app/src/lambdas/generateDerivedImage/events/lambda-function-url-event.json -n .env.json -d 5858 
+sam local invoke GenerateDerivedImageFunction -e app/src/test/data/events/GenerateDerivedImage.json -n .env.json
+sam local invoke GenerateDerivedImageFunction -e app/src/test/data/events/GenerateDerivedImage.json -n .env.json -d 5858 
+sam local invoke GenerateDerivedImageFunction -e app/src/test/data/events/GenerateDerivedImage-crop.json -n .env.json -d 5858 
+
+
 
 
 [SetAlbumThumbnailFunction]
