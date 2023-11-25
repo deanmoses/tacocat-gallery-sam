@@ -1,3 +1,5 @@
+import { AlbumItem } from '../gallery/galleryTypes';
+
 /**
  * Generate a DynamoDB PartiSQL update string
  *
@@ -12,7 +14,7 @@ export function buildUpdatePartiQL(
     tableName: string,
     parentPath: string,
     itemName: string,
-    fields: Record<string, string | boolean>,
+    fields: Partial<AlbumItem>,
 ): string {
     let sql = `UPDATE "${tableName}"\n`;
     Object.entries(fields).forEach(([fieldName, fieldValue]) => {

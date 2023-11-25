@@ -1,5 +1,5 @@
 import createFuzzySearch, { FuzzyResult } from '@nozbe/microfuzz';
-import { GalleryItem } from '../galleryTypes';
+import { BaseGalleryRecord } from '../galleryTypes';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
@@ -11,7 +11,7 @@ import { toPathFromItem } from '../../gallery_path_utils/galleryPathUtils';
  *
  * @param searchTerms string containing search terms like 'milo UCSB'
  */
-export async function search(searchTerms: string | undefined): Promise<FuzzyResult<GalleryItem>[]> {
+export async function search(searchTerms: string | undefined): Promise<FuzzyResult<BaseGalleryRecord>[]> {
     console.info(`Search: searching gallery for [${searchTerms}]...`);
     if (!searchTerms) {
         throw new BadRequestException('No search terms supplied');
@@ -37,7 +37,7 @@ export async function search(searchTerms: string | undefined): Promise<FuzzyResu
  * @param searchTerms string containing search terms like 'milo UCSB'
  * @param haystack data to search over
  */
-function searchInHaystack(searchTerms: string, haystack: GalleryItem[]): FuzzyResult<GalleryItem>[] {
+function searchInHaystack(searchTerms: string, haystack: BaseGalleryRecord[]): FuzzyResult<BaseGalleryRecord>[] {
     const search = createFuzzySearch(haystack, {
         getText: (item) => [item.itemName, item.title, item.description, item?.tags?.toString()],
     });
@@ -48,7 +48,7 @@ function searchInHaystack(searchTerms: string, haystack: GalleryItem[]): FuzzyRe
  * Retrieve all albums and images from DynamoDB in a flat list,
  * suitable for passing into the Fuse.js search engine.
  */
-async function getAllGalleryItems(): Promise<GalleryItem[]> {
+async function getAllGalleryItems(): Promise<BaseGalleryRecord[]> {
     console.info(`Search: retrieving contents of entire DynamoDB table...`);
     const ddbCommand = new ScanCommand({
         TableName: getDynamoDbTableName(),

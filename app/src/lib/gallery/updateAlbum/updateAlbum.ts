@@ -5,14 +5,15 @@ import { buildUpdatePartiQL } from '../../dynamo_utils/DynamoUpdateBuilder';
 import { ConditionalCheckFailedException, DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ExecuteStatementCommand } from '@aws-sdk/lib-dynamodb';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
+import { AlbumItem, AlbumUpdateRequest } from '../galleryTypes';
 
 /**
- * Update an album's attributes (like title and description) in DynamoDB
+ * Update an album's attributes (like description and summary) in DynamoDB
  *
  * @param albumPath Path of the album to update, like /2001/12-31/
  * @param attributesToUpdate bag of attributes to update
  */
-export async function updateAlbum(albumPath: string, attributesToUpdate: Record<string, string | boolean>) {
+export async function updateAlbum(albumPath: string, attributesToUpdate: AlbumUpdateRequest) {
     console.info(`Update Album: updating [${albumPath}]...`);
     if (!isValidAlbumPath(albumPath)) {
         throw new BadRequestException(`Malformed album path: [${albumPath}]`);
@@ -35,7 +36,7 @@ export async function updateAlbum(albumPath: string, attributesToUpdate: Record<
     // Ensure only these attributes are in the input
     //
 
-    const validKeys = new Set(['title', 'description', 'summary', 'published']);
+    const validKeys = new Set(['description', 'summary', 'published']);
     keysToUpdate.forEach((keyToUpdate) => {
         // Ensure we aren't trying to update an unknown attribute
         if (!validKeys.has(keyToUpdate)) {
@@ -55,12 +56,12 @@ export async function updateAlbum(albumPath: string, attributesToUpdate: Record<
     //
     // Construct the DynamoDB update statement
     //
-
-    attributesToUpdate['updatedOn'] = new Date().toISOString();
+    const attrs: Partial<AlbumItem> = attributesToUpdate;
+    attrs.updatedOn = new Date().toISOString();
     const pathParts = getParentAndNameFromPath(albumPath);
     if (!pathParts.name) throw 'Expecting path to have a leaf, got none';
     const tableName = getDynamoDbTableName();
-    const partiQL = buildUpdatePartiQL(tableName, pathParts.parent, pathParts.name, attributesToUpdate);
+    const partiQL = buildUpdatePartiQL(tableName, pathParts.parent, pathParts.name, attrs);
     const ddbCommand = new ExecuteStatementCommand({
         Statement: partiQL,
     });

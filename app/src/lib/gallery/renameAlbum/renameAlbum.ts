@@ -14,6 +14,7 @@ import { itemExists } from '../itemExists/itemExists';
 import { copyOriginals } from '../../s3_utils/s3copy';
 import { deleteOriginalsAndDerivatives } from '../../s3_utils/s3delete';
 import { getFullChildrenFromDynamoDB, getFullItemFromDynamoDB, getItem } from '../../dynamo_utils/ddbGet';
+import { AlbumItem } from '../galleryTypes';
 
 /**
  * Rename a day album in both DynamoDB and S3.
@@ -79,7 +80,7 @@ async function moveAlbumInDynamoDB(oldAlbumPath: string, newAlbumPath: string): 
     const newAlbumPathParts = getParentAndNameFromPath(newAlbumPath);
     const now = new Date().toISOString();
 
-    const album = await getFullItemFromDynamoDB(oldAlbumPath);
+    const album = await getFullItemFromDynamoDB<AlbumItem>(oldAlbumPath);
     if (!album) throw new Error(`Old album [${oldAlbumPath}] not found in DynamoDB`);
     album.parentPath = newAlbumPathParts.parent;
     album.itemName = newAlbumPathParts.name;
@@ -164,7 +165,7 @@ export async function renameAlbumThumb(
     if (!isValidAlbumPath(oldPathOfAlbumWithThumb)) throw new Error(`Invalid old path: [${oldPathOfAlbumWithThumb}]`);
     if (!isValidAlbumPath(newPathOfAlbumWithThumb)) throw new Error(`Invalid new path: [${newPathOfAlbumWithThumb}]`);
 
-    const album = await getItem(albumPath, ['thumbnail']);
+    const album = await getItem<AlbumItem>(albumPath, ['thumbnail']);
     if (album?.thumbnail?.path?.includes(oldPathOfAlbumWithThumb)) {
         const oldImagePath = album.thumbnail.path;
         const newImagePath = oldImagePath.replace(oldPathOfAlbumWithThumb, newPathOfAlbumWithThumb);

@@ -1,6 +1,6 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
-import { GalleryItem } from '../galleryTypes';
+import { GalleryItem, ImageItem } from '../galleryTypes';
 import { search } from './search';
 
 const mockDDBClient = mockClient(DynamoDBDocumentClient);
@@ -26,7 +26,7 @@ test('Should find by title', async () => {
     mockDDBClient.on(ScanCommand).resolves({ Items: mockScanResults }); // Mock out the DDB table scan
     const searchResults = await search('rocket');
     expect(searchResults.length).toBe(1);
-    expect(searchResults[0].item.title).toBe('A space rocket');
+    expect((searchResults[0].item as ImageItem).title).toBe('A space rocket');
 });
 
 test('Should find by description', async () => {
@@ -47,21 +47,21 @@ test('Should find by tag', async () => {
     mockDDBClient.on(ScanCommand).resolves({ Items: mockScanResults }); // Mock out the DDB table scan
     const searchResults = await search('sarcophagus');
     expect(searchResults.length).toBe(1);
-    expect(searchResults[0].item.tags).toContain('sarcophagus');
+    expect((searchResults[0].item as ImageItem).tags).toContain('sarcophagus');
 });
 
 test('Should find multiple by tag', async () => {
     mockDDBClient.on(ScanCommand).resolves({ Items: mockScanResults }); // Mock out the DDB table scan
     const searchResults = await search('parade');
     expect(searchResults.length).toBeGreaterThanOrEqual(4);
-    expect(searchResults[0].item.tags).toContain('parade');
+    expect((searchResults[0].item as ImageItem).tags).toContain('parade');
 });
 
 test('Should find "taylor swift" all over', async () => {
     mockDDBClient.on(ScanCommand).resolves({ Items: mockScanResults }); // Mock out the DDB table scan
     const searchResults = await search('taylor swift');
     expect(searchResults.length).toBeGreaterThanOrEqual(4);
-    expect(searchResults[0].item.title).toBe('Taylor Swift');
+    expect((searchResults[0].item as ImageItem).title).toBe('Taylor Swift');
 });
 
 test('Should find diacriticals', async () => {
@@ -69,11 +69,11 @@ test('Should find diacriticals', async () => {
 
     let searchResults = await search('cafe');
     expect(searchResults.length).toBe(1);
-    expect(searchResults[0].item.title).toBe('Café Français');
+    expect((searchResults[0].item as ImageItem).title).toBe('Café Français');
 
     searchResults = await search('francais');
     expect(searchResults.length).toBe(1);
-    expect(searchResults[0].item.title).toBe('Café Français');
+    expect((searchResults[0].item as ImageItem).title).toBe('Café Français');
 });
 
 test.todo('Should search 35k images fast enough');

@@ -1,4 +1,4 @@
-import { GalleryItem } from '../gallery/galleryTypes';
+import { BaseGalleryRecord } from '../gallery/galleryTypes';
 
 /**
  * Return true if specified string is a valid album or image path
@@ -169,7 +169,7 @@ export function albumPathToDate(albumPath: string): Date {
     return new Date(year, 0, 1); // Use Jan 1 for year albums
 }
 
-export function toPathFromItem(item: GalleryItem): string {
+export function toPathFromItem(item: BaseGalleryRecord): string {
     switch (item?.itemType) {
         case 'album':
             return toAlbumPath(item.parentPath, item.itemName);

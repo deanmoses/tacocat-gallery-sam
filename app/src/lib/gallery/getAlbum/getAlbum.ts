@@ -5,7 +5,7 @@ import {
     toPathFromItem,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
-import { Album, GalleryItem, NavInfo, Navigable } from '../galleryTypes';
+import { Album, AlbumItem, GalleryItem, NavInfo, Navigable } from '../galleryTypes';
 import { getChildItems, getItem } from '../../dynamo_utils/ddbGet';
 
 /**
@@ -46,15 +46,13 @@ export async function getAlbum(albumPath: string): Promise<Album | undefined> {
             parentPath: '',
             itemName: '/',
             itemType: 'album',
-            title: 'Dean, Lucie, Felix and Milo Moses',
         };
     } else {
-        const album = await getItem(albumPath, [
+        const album = await getItem<AlbumItem>(albumPath, [
             'parentPath',
             'itemName',
             'itemType',
             'updatedOn',
-            'title',
             'description',
             'summary',
             'thumbnail',
@@ -105,7 +103,7 @@ async function getPeers(albumPath: string): Promise<Array<GalleryItem> | undefin
 /**
  * Given an album or image, retrieve both the previous and next album or image from DynamoDB.
  *
- * Just retrieves enough information to display a thumbnail: does not retrieve any
+ * Retrieves just enough information to navigate to the prev/next: doesn't retrieve any
  * child photos or child albums.
  *
  * @param path Path of the item, like /2001/12-31/ or /2001/12-31/felix.jpg
@@ -121,13 +119,13 @@ function getPrevAndNext(path: string, peers: GalleryItem[]): Navigable {
             if (!foundCurrent) {
                 if (peer.itemName === pathParts.name) {
                     foundCurrent = true;
-                } else if (peer.published) {
+                } else if (peer.itemType === 'image' || ('published' in peer && peer.published)) {
                     nav.prev = itemNav(peer);
                 }
             }
             // else we're past the current item and searching for the next published album
             else {
-                if (peer.published) {
+                if (peer.itemType === 'image' || ('published' in peer && peer.published)) {
                     nav.next = itemNav(peer);
                     return true; // functions as a break, stops the execution of some()
                 }
@@ -138,8 +136,11 @@ function getPrevAndNext(path: string, peers: GalleryItem[]): Navigable {
 }
 
 function itemNav(item: GalleryItem): NavInfo {
-    return {
+    const nav: NavInfo = {
         path: toPathFromItem(item),
-        title: item.title,
     };
+    if ('title' in item) {
+        nav.title = item.title;
+    }
+    return nav;
 }

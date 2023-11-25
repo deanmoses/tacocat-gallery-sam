@@ -1,6 +1,7 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { GetCommand, QueryCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { getAlbum, getAlbumAndChildren } from './getAlbum';
+import { AlbumItem, ImageItem } from '../galleryTypes';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
 
@@ -27,7 +28,6 @@ test('getAlbum() - no children', async () => {
     expect(result?.path).toBe(albumPath);
     expect(result?.parentPath).toBe('/2001/');
     expect(result?.itemName).toBe('01-01');
-    expect(result?.title).toBe('Title');
     expect(result?.description).toBe('Description');
     expect(result?.updatedOn).toBe(uploadTimeStamp);
 });
@@ -54,7 +54,6 @@ test('Root Album', async () => {
     const album = await getAlbumAndChildren('/');
 
     if (!album) throw new Error('Did not receive album');
-    expect(album?.title).toBe('Dean, Lucie, Felix and Milo Moses');
     expect(album?.path).toBe('/');
     expect(album?.parentPath).toBe('');
     expect(album?.itemName).toBe('/');
@@ -65,7 +64,7 @@ test('Root Album', async () => {
     expect(children[0]?.parentPath).toBe('/');
     expect(children[0]?.itemName).toBe('2001');
     expect(children[1]?.itemName).toBe('2002');
-    expect(children[1]?.published).toBe(true);
+    expect((children[1] as AlbumItem)?.published).toBe(true);
 
     if (!!album.next?.path) throw new Error('Was not expecting a next album on root');
     if (!!album.prev?.path) throw new Error('Was not expecting a prev album on root');
@@ -109,7 +108,8 @@ test('Images', async () => {
     mockDocClient.on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2001/' } }).resolves({});
 
     const album = await getAlbumAndChildren('/2001/01-01/');
-    const children = album?.children;
+    if (!album) throw new Error('Did not receive album');
+    const children = album.children as ImageItem[];
     if (!children) throw new Error('Did not receive children');
     expect(children[0]?.path).toBe('/2001/01-01/image1.jpg');
     expect(children[0]?.itemName).toBe('image1.jpg');

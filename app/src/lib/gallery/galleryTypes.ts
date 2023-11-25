@@ -1,6 +1,5 @@
-export type Album = GalleryItem &
+export type Album = AlbumItem &
     Navigable & {
-        summary?: string;
         children?: GalleryItem[];
     };
 
@@ -9,25 +8,36 @@ export type Navigable = {
     next?: NavInfo;
 };
 
-/**
- * Just enough information to navigate to a next/prev album or image
- */
+/** Just enough information to navigate to a next/prev album or image */
 export type NavInfo = {
     path: string;
     title?: string;
 };
 
-export type GalleryItem = {
+export type GalleryItem = AlbumItem | ImageItem;
+
+/** Album without children */
+export type AlbumItem = BaseGalleryRecord & {
+    thumbnail?: AlbumThumbnailEntry;
+    summary?: string;
+    published?: boolean;
+};
+
+export type ImageItem = BaseGalleryRecord & {
+    dimensions: Size;
+    thumbnail?: ImageThumbnailCrop;
+    title?: string;
+    tags?: string[];
+};
+
+/** Base that albums and images extend */
+export type BaseGalleryRecord = {
     path?: string;
     parentPath?: string;
     itemName?: string;
     itemType?: GalleryItemType;
-    title?: string;
-    description?: string;
     updatedOn?: string;
-    thumbnail?: AlbumThumbnailEntry;
-    tags?: string[];
-    published?: boolean;
+    description?: string;
 };
 
 export type GalleryItemType = 'album' | 'image';
@@ -50,8 +60,8 @@ export type AlbumThumbnail = {
 export type AlbumUpdateRequest = {
     title?: string;
     description?: string;
+    summary?: string;
     published?: boolean;
-    // TODO: tags
 };
 
 export type ImageUpdateRequest = {
@@ -60,11 +70,16 @@ export type ImageUpdateRequest = {
     tags?: string[];
 };
 
-/**
- * Thumbnail crop info
- */
-export type Crop = {
+export type ImageThumbnailCrop = Rectangle;
+
+export type Rectangle = Point & Size;
+
+export type Point = {
     x: number;
     y: number;
-    length: number;
+};
+
+export type Size = {
+    width: number;
+    height: number;
 };

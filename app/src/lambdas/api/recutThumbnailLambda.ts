@@ -7,19 +7,18 @@ import {
     getImagePath,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { recutThumbnail } from '../../lib/gallery/recutThumbnail/recutThumbnail';
+import { Rectangle } from '../generateDerivedImage/focusCrop';
 
 /**
- * Generate a thumbnail of an image stored in s3 and
- * store the thumbnail back in the same bucket
- * under the "Thumbnail/" prefix.
+ * A Lambda function that stores thumbnail re-cut info about an image in DynamoDB
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
         ensureHttpMethod(event, HttpMethod.PATCH);
         const imagePath = getImagePath(event);
-        const crop = getBodyAsJson(event);
-        // await recutThumbnail(imagePath, crop); // COMMENTED OUT UNTIL I MAKE recutThumbnail() compile
-        return respondSuccessMessage(`Image [${imagePath}] thumbnail updated]`);
+        const crop: Rectangle = getBodyAsJson(event);
+        await recutThumbnail(imagePath, crop);
+        return respondSuccessMessage(`Image [${imagePath}] thumbnail re-cut]`);
     } catch (e) {
         return handleHttpExceptions(e);
     }

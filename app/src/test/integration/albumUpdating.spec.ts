@@ -1,4 +1,5 @@
 import { createAlbum, createAlbumNoThrow } from '../../lib/gallery/createAlbum/createAlbum';
+import { Album, AlbumUpdateRequest } from '../../lib/gallery/galleryTypes';
 import { getAlbum } from '../../lib/gallery/getAlbum/getAlbum';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
@@ -11,12 +12,10 @@ import {
 
 const yearAlbumPath = '/1700/'; // unique to this suite to prevent pollution
 const albumPath = `${yearAlbumPath}04-26/`;
-let title: string;
 let description: string;
 let summary: string;
 
 beforeAll(async () => {
-    title = `Title [${Date.now}]`;
     description = `Description [${Date.now}]`;
     summary = `Summary [${Date.now}]`;
     await assertDynamoDBItemDoesNotExist(albumPath);
@@ -31,7 +30,7 @@ afterAll(async () => {
 });
 
 test('fail on unknown attribute', async () => {
-    await expect(updateAlbum(albumPath, { unknownAttr: '' })).rejects.toThrow(/unknown/i);
+    await expect(updateAlbum(albumPath, { unknownAttr: '' } as AlbumUpdateRequest)).rejects.toThrow(/unknown/i);
 });
 
 test('get empty album', async () => {
@@ -41,24 +40,14 @@ test('get empty album', async () => {
     const albumPathParts = getParentAndNameFromPath(albumPath);
     expect(album?.itemName).toBe(albumPathParts.name);
     expect(album?.parentPath).toBe(albumPathParts.parent);
-    expect(album?.title).toBeUndefined();
     expect(album?.description).toBeUndefined();
     expect(album?.published).toBeUndefined();
     expect(album?.thumbnail?.path).toBeUndefined();
 });
 
-it('set title', async () => {
-    await updateAlbum(albumPath, { title: title });
-    const album = await getAlbum(albumPath);
-    expect(album?.title).toBe(title);
-    expect(album?.description).toBeUndefined();
-    expect(album?.published).toBeUndefined();
-});
-
 it('set description', async () => {
     await updateAlbum(albumPath, { description: description });
     const album = await getAlbum(albumPath);
-    expect(album?.title).toBe(title);
     expect(album?.description).toBe(description);
     expect(album?.published).toBeUndefined();
 });
@@ -72,7 +61,6 @@ it('set summary', async () => {
 it('publish', async () => {
     await updateAlbum(albumPath, { published: true });
     const album = await getAlbum(albumPath);
-    expect(album?.title).toBe(title);
     expect(album?.description).toBe(description);
     expect(album?.published).toBe(true);
 });
@@ -80,17 +68,8 @@ it('publish', async () => {
 it('getChildren should reflect changes', async () => {
     const yearAlbum = await getAlbumAndChildren(yearAlbumPath);
     if (!yearAlbum) throw new Error(`No year album [${yearAlbumPath}]`);
-    const album = yearAlbum?.children?.[0];
+    const album = yearAlbum?.children?.[0] as Album;
     if (!album) throw new Error(`Year album [${yearAlbumPath}] did not have any children`);
-    expect(album?.title).toBe(title);
-    expect(album?.description).toBe(description);
-    expect(album?.published).toBe(true);
-});
-
-it('unset title', async () => {
-    await updateAlbum(albumPath, { title: '' });
-    const album = await getAlbum(albumPath);
-    expect(album?.title).toBe('');
     expect(album?.description).toBe(description);
     expect(album?.published).toBe(true);
 });
@@ -98,7 +77,6 @@ it('unset title', async () => {
 it('unset description', async () => {
     await updateAlbum(albumPath, { description: '' });
     const album = await getAlbum(albumPath);
-    expect(album?.title).toBe('');
     expect(album?.description).toBe('');
     expect(album?.published).toBe(true);
 });
@@ -112,25 +90,25 @@ it('unset summary', async () => {
 it('unpublish', async () => {
     await updateAlbum(albumPath, { published: false });
     const album = await getAlbum(albumPath);
-    expect(album?.title).toBe('');
     expect(album?.description).toBe('');
     expect(album?.published).toBe(false);
+    expect(album?.summary).toBe('');
 });
 
 it('getChildren should reflect the unsettings', async () => {
     const yearAlbum = await getAlbumAndChildren(yearAlbumPath);
     if (!yearAlbum) throw new Error(`No year album [${yearAlbumPath}]`);
-    const album = yearAlbum?.children?.[0];
+    const album = yearAlbum?.children?.[0] as Album;
     if (!album) throw new Error(`Year album [${yearAlbumPath}] did not have any children`);
-    expect(album?.title).toBe('');
+    expect(album?.summary).toBe('');
     expect(album?.description).toBe('');
     expect(album?.published).toBe(false);
 });
 
-it('set title & description & published', async () => {
-    await updateAlbum(albumPath, { title: title, description: description, published: true });
+it('set summary & description & published', async () => {
+    await updateAlbum(albumPath, { summary: summary, description: description, published: true });
     const album = await getAlbum(albumPath);
-    expect(album?.title).toBe(title);
+    expect(album?.summary).toBe(summary);
     expect(album?.description).toBe(description);
     expect(album?.published).toBe(true);
 });
@@ -139,7 +117,7 @@ test("attempting to create an album that already exists doesn't blow attributes 
     await expect(createAlbumNoThrow(albumPath)).resolves.not.toThrow();
 
     const album = await getAlbum(albumPath);
-    expect(album?.title).toBe(title);
+    expect(album?.summary).toBe(summary);
     expect(album?.description).toBe(description);
     expect(album?.published).toBe(true);
 });

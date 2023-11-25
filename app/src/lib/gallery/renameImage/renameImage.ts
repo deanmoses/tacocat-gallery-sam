@@ -14,6 +14,7 @@ import { itemExists } from '../itemExists/itemExists';
 import { copyOriginal } from '../../s3_utils/s3copy';
 import { deleteOriginalAndDerivatives } from '../../s3_utils/s3delete';
 import { getFullItemFromDynamoDB } from '../../dynamo_utils/ddbGet';
+import { ImageItem } from '../galleryTypes';
 
 /**
  * Rename an image in both DynamoDB and S3.
@@ -100,7 +101,7 @@ async function renameImageInDynamoDB(oldImagePath: string, newImageName: string)
 async function moveImageInDynamoDB(oldImagePath: string, newImageName: string) {
     console.info(`Rename Image: renaming image entry in DynamoDB from [${oldImagePath}] to [${newImageName}]...`);
     const oldPathParts = getParentAndNameFromPath(oldImagePath);
-    const image = await getFullItemFromDynamoDB(oldImagePath);
+    const image = await getFullItemFromDynamoDB<ImageItem>(oldImagePath);
     if (!image) throw new Error(`Old image [${oldImagePath}] not found in DynamoDB`);
     image.itemName = newImageName;
     image.updatedOn = new Date().toISOString();

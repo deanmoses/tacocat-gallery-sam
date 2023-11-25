@@ -1,4 +1,4 @@
-import { Album } from '../../lib/gallery/galleryTypes';
+import { ImageItem } from '../../lib/gallery/galleryTypes';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { updateImage } from '../../lib/gallery/updateImage/updateImage';
 import { findImage } from '../../lib/gallery_client/AlbumObject';
@@ -67,7 +67,7 @@ it('set title & description', async () => {
     expect(image.description).toBe(description);
 });
 
-async function doUpdate(attributesToUpdate: Record<string, string | boolean>): Promise<Album> {
+async function doUpdate(attributesToUpdate: Record<string, string | boolean>): Promise<ImageItem> {
     await updateImage(imagePath, attributesToUpdate);
     const album = await getAlbumAndChildren(albumPath);
     if (!album) throw new Error(`No album for [${albumPath}]`);

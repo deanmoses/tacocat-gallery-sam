@@ -35,7 +35,6 @@ test('getAlbum retrieves newly created album', async () => {
     expect(album?.itemName).toBe(albumPathParts.name);
     expect(album?.parentPath).toBe(albumPathParts.parent);
     expect(album?.path).toBe(albumPath);
-    expect(album?.title).toBeUndefined();
     expect(album?.description).toBeUndefined();
     expect(album?.published).toBeUndefined();
     expect(album?.thumbnail?.path).toBeUndefined();
@@ -71,7 +70,6 @@ test('getAlbum retrieves updated album', async () => {
     expect(album?.itemName).toBe(albumPathParts.name);
     expect(album?.parentPath).toBe(albumPathParts.parent);
     expect(album?.path).toBe(albumPath2);
-    expect(album?.title).toBe('Title 1');
     expect(album?.description).toBe('Description 1');
     expect(album?.summary).toBe('Summary 1');
     expect(album?.published).toBe(true);
