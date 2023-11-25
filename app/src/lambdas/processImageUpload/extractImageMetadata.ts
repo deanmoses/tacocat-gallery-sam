@@ -1,7 +1,7 @@
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import ExifReader from 'exifreader';
 import { Readable } from 'stream';
-import { ImageUpdateRequest } from '../../lib/gallery/galleryTypes';
+import { ImageCreateRequest, ImageUpdateRequest } from '../../lib/gallery/galleryTypes';
 
 export async function extractImageMetadata(bucket: string, objectKey: string): Promise<ImageUpdateRequest> {
     const s3Command = new GetObjectCommand({
@@ -21,18 +21,27 @@ export async function extractImageMetadata(bucket: string, objectKey: string): P
     const stream = response.Body as Readable;
     const fileContents = Buffer.concat(await stream.toArray());
     const tags = ExifReader.load(fileContents, { expanded: true });
-
     return selectMetadata(tags);
 }
 
 /**
  * Extract the metadata to be saved to DynamoDB
  */
-export function selectMetadata(tags: ExifReader.ExpandedTags): ImageUpdateRequest {
-    const image: ImageUpdateRequest = {
+export function selectMetadata(tags: ExifReader.ExpandedTags): ImageCreateRequest {
+    const image: ImageCreateRequest = {
         title: tags.iptc?.['Object Name']?.description || tags.iptc?.['Headline']?.description,
         description: tags.iptc?.['Caption/Abstract']?.description,
     };
+    const height = tags.file?.['Image Height']?.description || tags.exif?.ImageLength?.description;
+    const width = tags.file?.['Image Width']?.description || tags.exif?.ImageWidth?.description;
+    if (height && width) {
+        image.dimensions = {
+            height: Number.parseInt(height, 10),
+            width: Number.parseInt(width, 10),
+        };
+    } else {
+        console.error(`Image [${image.title}] has no dimensions`);
+    }
     if (tags.iptc?.Keywords?.length) {
         image.tags = [];
         tags.iptc?.Keywords?.forEach((keyword) => {

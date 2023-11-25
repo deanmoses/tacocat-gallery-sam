@@ -1,6 +1,6 @@
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { recutThumbnail } from './recutThumbnail';
+import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { recutThumbnail, toPixelsFromPctCrop } from './recutThumbnail';
 import { Rectangle } from '../../../lambdas/generateDerivedImage/focusCrop';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
@@ -47,41 +47,79 @@ describe('Invalid Crop', () => {
     });
 
     test('blank x', async () => {
-        const crop = { x: '', y: 0, width: 200, height: 200 } as unknown as Rectangle;
+        const crop = { x: '', y: 0, width: 100, height: 100 } as unknown as Rectangle;
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*x/i);
     });
 
     test('negative x', async () => {
-        const crop = { x: -1, y: 0, width: 200, height: 200 };
+        const crop = { x: -1, y: 0, width: 100, height: 100 };
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*x/i);
     });
 
-    test('float x', async () => {
-        const crop = { x: 1.1, y: 0, width: 200, height: 200 };
-        await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*x/i);
+    test('height > 100%', async () => {
+        const crop = { x: 1.1, y: 0, width: 100, height: 101 };
+        await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*height/i);
+    });
+
+    test('width > 100%', async () => {
+        const crop = { x: 1.1, y: 0, width: 200, height: 100 };
+        await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*width/i);
     });
 
     test('non-numeric x', async () => {
-        const crop = { x: 'a', y: 0, width: 200, height: 200 } as unknown as Rectangle;
+        const crop = { x: 'a', y: 0, width: 100, height: 100 } as unknown as Rectangle;
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*x/i);
     });
 
     test('string integer x', async () => {
-        const crop = { x: '1', y: 0, width: 200, height: 200 } as unknown as Rectangle;
+        const crop = { x: '1', y: 0, width: 100, height: 100 } as unknown as Rectangle;
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*x/i);
     });
 
     test('string zero x', async () => {
-        const crop = { x: '0', y: 0, width: 200, height: 200 } as unknown as Rectangle;
+        const crop = { x: '0', y: 0, width: 100, height: 100 } as unknown as Rectangle;
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*x/i);
     });
 });
 
 test('Save Crop', async () => {
-    const crop = { x: 0, y: 0, width: 200, height: 200 };
+    const crop = { x: 0, y: 0, width: 100, height: 100 };
+    // Mock out the AWS method to get the image dimensions
+    mockDocClient.on(GetCommand).resolves({ Item: { dimensions: { width: 1000, height: 1000 } } });
     await recutThumbnail('/2001/12-31/image.jpg', crop);
     expect(mockDocClient.commandCalls(UpdateCommand).length).toBe(1);
     const x = mockDocClient.commandCalls(UpdateCommand)[0].args[0].input;
     expect(x?.Key?.parentPath).toBe('/2001/12-31/');
     expect(x?.Key?.itemName).toBe('image.jpg');
+});
+
+describe('Convert from % to absolute crop', () => {
+    const inputs = [
+        {
+            name: 'Square original',
+            pct: { x: 0, y: 0, width: 100, height: 100 },
+            pixels: { width: 1000, height: 1000 },
+            expected: { x: 0, y: 0, width: 1000, height: 1000 },
+        },
+        {
+            name: 'Floats',
+            pct: { x: 21.875, y: 0, width: 56.25, height: 99.9 },
+            pixels: { width: 640, height: 360 },
+            expected: { x: 140, y: 0, width: 360, height: 360 },
+        },
+        // TODO: implement the code to make this test pass
+        {
+            name: 'Invalid: if height is 100% then y must be 0',
+            pct: { x: 0, y: 10.3, width: 100, height: 100 },
+            pixels: { width: 1000, height: 750 },
+            expected: { x: 0, y: 0, width: 1000, height: 1000 },
+        },
+    ];
+
+    inputs.forEach((input) => {
+        test(input.name, () => {
+            const crop = toPixelsFromPctCrop(input.pct, input.pixels);
+            expect(crop).toEqual(input.expected);
+        });
+    });
 });

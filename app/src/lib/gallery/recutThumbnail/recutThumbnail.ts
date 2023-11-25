@@ -5,24 +5,36 @@ import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { DynamoDBClient, ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import { getParentAndNameFromPath, isValidImagePath } from '../../gallery_path_utils/galleryPathUtils';
+import { getItem } from '../../dynamo_utils/ddbGet';
+import { ImageItem, Size } from '../galleryTypes';
 
 /**
  * Store thumbnail re-cut info about an image in DynamoDB
+ *
+ * @crop rectangle specified in percent of image
  */
-export async function recutThumbnail(imagePath: string, crop: Rectangle) {
+export async function recutThumbnail(imagePath: string, cropInPct: Rectangle) {
     console.info(`Re-cutting [${imagePath}] thumbnail]`);
 
     if (!isValidImagePath(imagePath)) {
         throw new BadRequestException(`Invalid image path [${imagePath}]`);
     }
 
-    // Validate the input
-    checkInt('x', crop.x);
-    checkInt('y', crop.y);
-    checkInt('width', crop.width);
-    checkInt('height', crop.height);
+    checkPercent('x', cropInPct.x);
+    checkPercent('y', cropInPct.y);
+    checkPercent('width', cropInPct.width);
+    checkPercent('height', cropInPct.height);
 
-    // Build the DynamoDB command
+    // Get original image dimensions so I can convert from percent to pixels
+    const image = await getItem<ImageItem>(imagePath, ['dimensions']);
+    if (!image) {
+        throw new NotFoundException(`Image not found: [${imagePath}]`);
+    }
+    if (!image.dimensions) {
+        throw new NotFoundException(`Image dimensions not found: [${imagePath}]`);
+    }
+
+    // Build DynamoDB command
     const imagePathParts = getParentAndNameFromPath(imagePath);
     const ddbCommand = new UpdateCommand({
         TableName: getDynamoDbTableName(),
@@ -33,12 +45,7 @@ export async function recutThumbnail(imagePath: string, crop: Rectangle) {
         UpdateExpression: 'SET updatedOn = :updatedOn, thumbnail = :thumbnail',
         ExpressionAttributeValues: {
             ':updatedOn': new Date().toISOString(),
-            ':thumbnail': {
-                x: crop.x,
-                y: crop.y,
-                width: crop.width,
-                height: crop.height,
-            },
+            ':thumbnail': toPixelsFromPctCrop(cropInPct, image.dimensions),
         },
         ConditionExpression: 'attribute_exists (itemName)',
     });
@@ -59,19 +66,33 @@ export async function recutThumbnail(imagePath: string, crop: Rectangle) {
 }
 
 /**
- * Throw exception if the specified value isn't a positive integer
+ * Throw exception if the specified value isn't a positive number
  */
-function checkInt(name: string, value: unknown) {
-    if (!isInt(value)) {
+function checkPercent(name: string, value: unknown) {
+    if (!isPercent(value)) {
         throw new BadRequestException(`Invalid ${name} [${value}]`);
     }
 }
 
 /**
- * Return true if the passed-in thing is a positive integer
+ * Return true if the passed-in thing is a positive float
  */
-function isInt(x: unknown): boolean {
-    if (x === undefined) return false;
-    if (typeof x === 'number' && Number.isInteger(x) && Math.sign(x) >= 0) return true;
-    return false;
+function isPercent(x: unknown): boolean {
+    return x !== undefined && typeof x === 'number' && Math.sign(x) >= 0 && x <= 100;
+}
+
+/**
+ * Return crop rectangle in pixels from a crop rectangle specified in percent
+ */
+export function toPixelsFromPctCrop(cropInPct: Rectangle, pixels: Size): Rectangle {
+    return {
+        x: toPixelsFromPct(cropInPct.x, pixels.width),
+        y: toPixelsFromPct(cropInPct.y, pixels.height),
+        width: toPixelsFromPct(cropInPct.width, pixels.width),
+        height: toPixelsFromPct(cropInPct.height, pixels.height),
+    };
+}
+
+function toPixelsFromPct(pct: number, pixels: number): number {
+    return Math.round(pct * 0.01 * pixels);
 }

@@ -70,6 +70,10 @@ export type ImageUpdateRequest = {
     tags?: string[];
 };
 
+export type ImageCreateRequest = ImageUpdateRequest & {
+    dimensions?: Size;
+};
+
 export type ImageThumbnailCrop = Rectangle;
 
 export type Rectangle = Point & Size;

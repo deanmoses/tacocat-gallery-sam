@@ -3,7 +3,7 @@ import { getParentAndNameFromPath, isValidImagePath } from '../../gallery_path_u
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { ConditionalCheckFailedException, DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { ImageUpdateRequest } from '../galleryTypes';
+import { ImageCreateRequest } from '../galleryTypes';
 
 /**
  * Create image in DynamoDB
@@ -11,15 +11,12 @@ import { ImageUpdateRequest } from '../galleryTypes';
  * @param imagePath Path of the image to update, like /2001/12-31/image.jpg
  * @param attributesToUpdate bag of attributes to update
  */
-export async function createImage(imagePath: string, image: ImageUpdateRequest) {
+export async function createImage(imagePath: string, image: ImageCreateRequest) {
     if (!isValidImagePath(imagePath)) {
         throw new BadRequestException(`Malformed image path: [${imagePath}]`);
     }
 
-    //
     // Construct the DynamoDB command
-    //
-
     const pathParts = getParentAndNameFromPath(imagePath);
     if (!pathParts.name) throw 'Expecting path to have a leaf, got none';
     const now = new Date().toISOString();
@@ -46,11 +43,12 @@ export async function createImage(imagePath: string, image: ImageUpdateRequest) 
         if (!!image.tags) {
             item.tags = image.tags;
         }
+        if (!!image.dimensions) {
+            item.dimensions = image.dimensions;
+        }
     }
 
-    //
     // Send command to DynamoDB
-    //
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);
     try {
