@@ -1,6 +1,7 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, ExecuteStatementCommand } from '@aws-sdk/lib-dynamodb';
 import { updateAlbum } from './updateAlbum';
+import { AlbumUpdateRequest } from '../galleryTypes';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
 const albumPath = '/2001/12-31/';
@@ -15,30 +16,7 @@ test('cannot update root album', async () => {
 });
 
 test('fail on unknown attribute', async () => {
-    await expect(updateAlbum(albumPath, { unknownAttr: '' })).rejects.toThrow(/unknown/i);
-});
-
-test('title', async () => {
-    expect.assertions(5);
-    await expect(
-        updateAlbum(albumPath, {
-            title: 'New Title 1',
-        }),
-    ).resolves.not.toThrow();
-    expect(mockDocClient.commandCalls(ExecuteStatementCommand).length).toBe(1);
-    const partiQL = mockDocClient.commandCalls(ExecuteStatementCommand)[0].args[0].input.Statement;
-    expect(partiQL).toContain('UPDATE');
-    expect(partiQL).toContain('New Title 1');
-    expect(partiQL).toContain('updatedOn');
-});
-
-test('blank title', async () => {
-    expect.assertions(1);
-    await expect(
-        updateAlbum(albumPath, {
-            title: '',
-        }),
-    ).resolves.not.toThrow();
+    await expect(updateAlbum(albumPath, { unknownAttr: '' } as AlbumUpdateRequest)).rejects.toThrow(/unknown/i);
 });
 
 test('description', async () => {
@@ -80,7 +58,6 @@ test('blank summary', async () => {
 test('all fields', async () => {
     await expect(
         updateAlbum(albumPath, {
-            title: 'Title 2',
             description: 'Description 2',
             summary: 'Summary 2',
             published: true,
@@ -132,7 +109,7 @@ test('only bad data', async () => {
     await expect(
         updateAlbum(albumPath, {
             noSuchAttribute: 'some value',
-        }),
+        } as AlbumUpdateRequest),
     ).rejects.toThrow(/noSuchAttribute/);
 });
 
@@ -140,9 +117,9 @@ test('both real and bad data', async () => {
     expect.assertions(1);
     await expect(
         updateAlbum(albumPath, {
-            title: 'New Title 3',
+            description: 'New Description 3',
             noSuchAttribute: 'some value',
-        }),
+        } as AlbumUpdateRequest),
     ).rejects.toThrow(/noSuchAttribute/);
 });
 
@@ -151,7 +128,7 @@ test('Invalid published value: true', async () => {
     await expect(
         updateAlbum(albumPath, {
             published: 'true',
-        }),
+        } as unknown as AlbumUpdateRequest),
     ).rejects.toThrow(/published/);
 });
 
@@ -159,8 +136,8 @@ test('Invalid published value: 1', async () => {
     expect.assertions(1);
     await expect(
         updateAlbum(albumPath, {
-            published: 1 as unknown as string,
-        }),
+            published: 1,
+        } as unknown as AlbumUpdateRequest),
     ).rejects.toThrow(/published/);
 });
 
@@ -169,7 +146,7 @@ test('Blank published value', async () => {
     await expect(
         updateAlbum(albumPath, {
             published: '',
-        }),
+        } as unknown as AlbumUpdateRequest),
     ).rejects.toThrow(/published/);
 });
 
@@ -178,7 +155,7 @@ test('Numerical published value', async () => {
     await expect(
         updateAlbum(albumPath, {
             published: '0',
-        }),
+        } as unknown as AlbumUpdateRequest),
     ).rejects.toThrow(/published/);
 });
 

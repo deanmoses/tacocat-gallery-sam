@@ -44,6 +44,7 @@ export type GalleryItemType = 'album' | 'image';
 
 export type AlbumThumbnailEntry = {
     path: string;
+    crop: Rectangle;
     fileUpdatedOn: string;
 };
 

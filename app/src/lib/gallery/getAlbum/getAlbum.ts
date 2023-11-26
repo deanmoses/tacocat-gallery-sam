@@ -1,15 +1,22 @@
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, BatchGetCommand } from '@aws-sdk/lib-dynamodb';
 import {
+    getNameFromPath,
     getParentAndNameFromPath,
     getParentFromPath,
     isValidAlbumPath,
+    isValidDayAlbumPath,
+    toImagePath,
     toPathFromItem,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
-import { Album, AlbumItem, GalleryItem, NavInfo, Navigable } from '../galleryTypes';
+import { Album, AlbumItem, GalleryItem, NavInfo, Navigable, Rectangle } from '../galleryTypes';
 import { getChildItems, getItem } from '../../dynamo_utils/ddbGet';
+import { findImage } from '../../gallery_client/AlbumObject';
+import { getDynamoDbTableName } from '../../lambda_utils/Env';
 
 /**
- * Retrieve an album and its children (images and subalbums) from DynamoDB.
+ * Retrieve an album and its children (images or subalbums) from DynamoDB.
  *
  * @param albumPath Path of album, like /2001/12-31/
  */
@@ -18,7 +25,33 @@ export async function getAlbumAndChildren(albumPath: string): Promise<Album | un
     const album = await getAlbum(albumPath);
     if (!album) return undefined;
     album.children = await getChildren(albumPath);
-    // root album is peerless
+    // add album's thumbnail's crop info to the album
+    // TODO: this will only work for day albums
+    // For year albums, we'll need to get thumbnail info
+    // from the leaf images
+    if (album.thumbnail?.path && album.children) {
+        console.log(`Got children`);
+        const imageName = getNameFromPath(album.thumbnail.path);
+        if (imageName) {
+            const thumbnailImage = findImage(album, imageName);
+            if (thumbnailImage) {
+                if (thumbnailImage.thumbnail) {
+                    album.thumbnail.crop = thumbnailImage.thumbnail;
+                } else {
+                    console.warn(`Found no crop info on image [${thumbnailImage.path}]`);
+                }
+                // TODO: Image Processor should save either the processed date
+                // or the file save date (maybe the uploaded to S3 date) or a
+                // version #, that'll be used as a cachebuster here.
+                // Save it to the fileUpdatedOn field of the image.
+                if (thumbnailImage.updatedOn) {
+                    album.thumbnail.fileUpdatedOn = thumbnailImage.updatedOn;
+                }
+            }
+        }
+    }
+
+    // root album is peerless. otherwise, get prev/next album
     if (albumPath !== '/') {
         const peers = await getPeers(albumPath);
         if (!!peers) {
@@ -88,6 +121,10 @@ async function getChildren(albumPath: string): Promise<Array<GalleryItem> | unde
             child.path = toPathFromItem(child);
             return child;
         });
+        // If it's a root or year album
+        if (!isValidDayAlbumPath(albumPath)) {
+            await addCropInfoToChildAlbums(children as AlbumItem[]);
+        }
     }
     return children;
 }
@@ -143,4 +180,45 @@ function itemNav(item: GalleryItem): NavInfo {
         nav.title = item.title;
     }
     return nav;
+}
+
+async function addCropInfoToChildAlbums(children: AlbumItem[]): Promise<void> {
+    const Keys: { parentPath: string; itemName: string }[] = [];
+    children.forEach((album) => {
+        if (album.thumbnail?.path) {
+            const pathParts = getParentAndNameFromPath(album.thumbnail?.path);
+            if (pathParts.name) {
+                Keys.push({
+                    parentPath: pathParts.parent,
+                    itemName: pathParts.name,
+                });
+            }
+        }
+    });
+    const ddbCommand = new BatchGetCommand({
+        RequestItems: {
+            [getDynamoDbTableName()]: {
+                Keys,
+                ProjectionExpression: 'parentPath, itemName, thumbnail',
+            },
+        },
+    });
+    const ddbClient = new DynamoDBClient();
+    const docClient = DynamoDBDocumentClient.from(ddbClient);
+    const result = await docClient.send(ddbCommand);
+    const cropInfos = new Map<string, Rectangle>();
+    result.Responses?.[getDynamoDbTableName()]?.forEach((item) => {
+        if (item.thumbnail) {
+            const imagePath = toImagePath(item.parentPath, item.itemName);
+            cropInfos.set(imagePath, item.thumbnail);
+        }
+    });
+    children.forEach((album) => {
+        if (album.thumbnail?.path) {
+            const cropInfo = cropInfos.get(album.thumbnail.path);
+            if (cropInfo) {
+                album.thumbnail.crop = cropInfo;
+            }
+        }
+    });
 }

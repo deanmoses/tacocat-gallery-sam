@@ -7,6 +7,7 @@ import { DynamoDBClient, ConditionalCheckFailedException } from '@aws-sdk/client
 import { getParentAndNameFromPath, isValidImagePath } from '../../gallery_path_utils/galleryPathUtils';
 import { getItem } from '../../dynamo_utils/ddbGet';
 import { ImageItem, Size } from '../galleryTypes';
+import { ServerException } from '../../lambda_utils/ServerException';
 
 /**
  * Store thumbnail re-cut info about an image in DynamoDB
@@ -31,7 +32,7 @@ export async function recutThumbnail(imagePath: string, cropInPct: Rectangle) {
         throw new NotFoundException(`Image not found: [${imagePath}]`);
     }
     if (!image.dimensions) {
-        throw new NotFoundException(`Image dimensions not found: [${imagePath}]`);
+        throw new ServerException(`Image dimensions not found: [${imagePath}]`);
     }
 
     // Build DynamoDB command

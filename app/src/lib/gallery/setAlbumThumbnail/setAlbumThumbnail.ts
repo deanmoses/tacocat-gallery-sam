@@ -5,8 +5,8 @@ import {
     isValidImagePath,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
-import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { DynamoDBClient, ConditionalCheckFailedException, ResourceNotFoundException } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBClient, ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import { itemExists } from '../itemExists/itemExists';
 
 /**
@@ -48,45 +48,19 @@ export async function setAlbumThumbnail(
         throw new BadRequestException(`Error setting album thumbnail. Invalid image path: [${imagePath}]`);
     }
 
+    // TODO: have an itemsExist() method that takes an array of paths
+
     if (!(await itemExists(albumPath))) {
         throw new BadRequestException(`Error setting album thumbnail. Album not found: [${albumPath}]`);
     }
 
-    const image = await getImage(imagePath);
-    const thumbnailUpdatedOn = image?.thumbnail ? image.thumbnail?.updatedOn : image?.updatedOn;
-    const thumbWasReplaced = await setThumb(albumPath, imagePath, replaceExistingThumb, thumbnailUpdatedOn);
+    if (!(await itemExists(imagePath))) {
+        throw new BadRequestException(`Error setting album thumbnail. Image not found: [${imagePath}]`);
+    }
+
+    const thumbWasReplaced = await setThumb(albumPath, imagePath, replaceExistingThumb);
     console.info(`Set Album Thumb: set album [${albumPath}] thumbnail to [${imagePath}]`);
     return thumbWasReplaced;
-}
-
-/**
- * Return the specified image from DynamoDB.
- *
- * @param imagePath Path of the image to retrieve, like /2001/12-31/image.jpg
- */
-async function getImage(imagePath: string) {
-    const pathParts = getParentAndNameFromPath(imagePath);
-    const ddbCommand = new GetCommand({
-        TableName: getDynamoDbTableName(),
-        Key: {
-            parentPath: pathParts.parent,
-            itemName: pathParts.name,
-        },
-        ProjectionExpression: 'updatedOn,thumbnail',
-    });
-
-    const ddbClient = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
-    try {
-        const result = await docClient.send(ddbCommand);
-        if (!result.Item) throw new BadRequestException(`Image not found: [${imagePath}]`);
-        return result.Item;
-    } catch (e) {
-        if (e instanceof ResourceNotFoundException) {
-            throw new BadRequestException(`Image not found: [${imagePath}]`);
-        }
-        throw e;
-    }
 }
 
 /**
@@ -98,12 +72,7 @@ async function getImage(imagePath: string) {
  * @param imageUpdatedOn ISO 8601 timestamp of when image was last updated
  * @returns True if album thumbnail was set; false if album already had thumb
  */
-async function setThumb(
-    albumPath: string,
-    imagePath: string,
-    replaceExistingThumb: boolean,
-    imageUpdatedOn: string,
-): Promise<boolean> {
+async function setThumb(albumPath: string, imagePath: string, replaceExistingThumb: boolean): Promise<boolean> {
     const albumPathParts = getParentAndNameFromPath(albumPath);
 
     // Build the command
@@ -116,7 +85,7 @@ async function setThumb(
         UpdateExpression: 'SET updatedOn = :updatedOn, thumbnail = :thumbnail',
         ExpressionAttributeValues: {
             ':updatedOn': new Date().toISOString(),
-            ':thumbnail': { path: imagePath, fileUpdatedOn: imageUpdatedOn },
+            ':thumbnail': { path: imagePath },
         },
         ConditionExpression: replaceExistingThumb
             ? 'attribute_exists (itemName)'
