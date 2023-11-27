@@ -184,6 +184,7 @@ function itemNav(item: GalleryItem): NavInfo {
 
 async function addCropInfoToChildAlbums(children: AlbumItem[]): Promise<void> {
     const Keys: { parentPath: string; itemName: string }[] = [];
+    if (!children || children.length === 0) return;
     children.forEach((album) => {
         if (album.thumbnail?.path) {
             const pathParts = getParentAndNameFromPath(album.thumbnail?.path);
@@ -195,6 +196,7 @@ async function addCropInfoToChildAlbums(children: AlbumItem[]): Promise<void> {
             }
         }
     });
+    if (Keys.length === 0) return;
     const ddbCommand = new BatchGetCommand({
         RequestItems: {
             [getDynamoDbTableName()]: {
