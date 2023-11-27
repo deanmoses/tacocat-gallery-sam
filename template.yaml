@@ -52,6 +52,8 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub "${AWS::StackName}-original-images"
+      VersioningConfiguration:
+        Status: Enabled
       PublicAccessBlockConfiguration:
         BlockPublicAcls: false
         BlockPublicPolicy: false
@@ -107,6 +109,7 @@ Resources:
   GalleryItemDDBTable:
     Type: AWS::DynamoDB::Table
     Properties:
+      TableName: !Sub "${AWS::StackName}-gallery-item-table"
       AttributeDefinitions:
         - AttributeName: parentPath
           AttributeType: S
@@ -847,7 +850,3 @@ Outputs:
   GenerateDerivedImageUrl:
     Description: URL of lambda that generates derived images
     Value: !GetAtt GenerateDerivedImageFunctionUrl.FunctionUrl
-
-  OriginalsBucketName:
-    Description: Name of S3 Bucket containing original images
-    Value: !Ref OriginalImagesBucket
