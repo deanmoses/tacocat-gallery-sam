@@ -1,8 +1,9 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
-import { AlbumThumbnail } from '../galleryTypes';
+import { AlbumThumbnail, ImageItem } from '../galleryTypes';
 import { toPathFromItem } from '../../gallery_path_utils/galleryPathUtils';
+import { getItem } from '../../dynamo_utils/ddbGet';
 
 /**
  * Retrieve the latest album in the gallery
@@ -34,8 +35,14 @@ async function getLatestAlbumInAlbum(path: string): Promise<AlbumThumbnail | und
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);
     const album = (await docClient.send(ddbCommand))?.Items?.[0];
-    if (!!album) {
+    if (album) {
         album.path = toPathFromItem(album);
+        if (album.thumbnail?.path) {
+            const image = await getItem<ImageItem>(album.thumbnail.path, ['thumbnail']);
+            if (image?.thumbnail) {
+                album.thumbnail.crop = image.thumbnail;
+            }
+        }
     }
     return album;
 }
