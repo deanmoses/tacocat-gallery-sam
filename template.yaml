@@ -54,6 +54,11 @@ Resources:
       BucketName: !Sub "${AWS::StackName}-original-images"
       VersioningConfiguration:
         Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Status: Enabled
+            Id: Delete Old Versions
+            NoncurrentVersionExpirationInDays: 1 # 24 # delete old versions after 24 days (1 for testing)
       PublicAccessBlockConfiguration:
         BlockPublicAcls: false
         BlockPublicPolicy: false
