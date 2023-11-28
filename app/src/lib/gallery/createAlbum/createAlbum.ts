@@ -40,7 +40,7 @@ export async function createAlbum(
         //
         // Ensure only these attributes are in the input
         //
-        const validKeys = new Set(['title', 'description', 'summary', 'published']);
+        const validKeys = new Set(['description', 'summary', 'published']);
         keysToUpdate.forEach((keyToUpdate) => {
             // Ensure we aren't trying to update an unknown attribute
             if (!validKeys.has(keyToUpdate)) {
@@ -72,7 +72,6 @@ export async function createAlbum(
         ConditionExpression: 'attribute_not_exists (itemName)',
     });
     if (ddbCommand?.input?.Item) {
-        if (!!attributesToSet?.title) ddbCommand.input.Item.title = attributesToSet?.title;
         if (!!attributesToSet?.description) ddbCommand.input.Item.description = attributesToSet?.description;
         if (!!attributesToSet?.summary) ddbCommand.input.Item.summary = attributesToSet?.summary;
         if (!!attributesToSet?.published) ddbCommand.input.Item.published = attributesToSet?.published;
