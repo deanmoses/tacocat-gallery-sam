@@ -35,7 +35,7 @@ export const handler: Handler = async (event: S3Event, context: Context, callbac
             }
             if (!!callback) callback(msg); // this prevents S3 from attempting to retry calling this lambda
         } else {
-            await processImageUpload(record?.s3?.bucket?.name, record?.s3?.object?.key);
+            await processImageUpload(record?.s3?.bucket?.name, record?.s3?.object?.key, record?.s3?.object?.versionId);
         }
     }
 };

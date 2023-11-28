@@ -8,7 +8,7 @@ import { reallyGetNameFromPath } from './helpers/pathHelpers';
 import { assertOriginalImageDoesNotExist, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
 
 const yearPath = '/1704/'; // unique to this suite to prevent pollution
-const albumPath = `${yearPath}09-02/`; // unique to this suite to prevent pollution
+const albumPath = `${yearPath}09-02/`;
 const imagePath = `${albumPath}image1.jpg`;
 
 beforeAll(async () => {
@@ -43,6 +43,7 @@ test('Album contains image', async () => {
     const imageName = reallyGetNameFromPath(imagePath);
     const image = findImage(album, imageName);
     if (!image) throw new Error(`Did not find child image`);
+    if (!image.versionId) throw new Error(`Image [${imageName}] has no versionId`);
     expect(image.parentPath).toBe(albumPath);
     expect(image.itemName).toBe(imageName);
     expect(image.title).toBe('Image Title');
@@ -52,6 +53,7 @@ test('Album contains image', async () => {
 test("Image was set as album's thumb", async () => {
     const album = await getAlbumAndChildren(albumPath);
     expect(album?.thumbnail?.path).toBe(imagePath);
+    if (!album?.thumbnail?.versionId) throw new Error(`Album [${albumPath}] thumbnail [${imagePath}] has no versionId`);
 });
 
 test('Delete image', async () => {

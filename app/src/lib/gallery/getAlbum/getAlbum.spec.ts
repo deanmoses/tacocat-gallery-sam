@@ -91,7 +91,7 @@ test('Week Album - Empty', async () => {
 });
 
 test('Images', async () => {
-    // Mock out the AWS method to get the album itself (no children)
+    // Mock out the AWS method that gets the album itself
     mockDocClient.on(GetCommand).resolves({
         Item: {
             parentPath: '/2001/',
@@ -100,11 +100,11 @@ test('Images', async () => {
             updatedOn: '2001-01-01T23:59:59.999Z',
         },
     });
-    // Mock out the AWS method that returns children
+    // Mock out the AWS method that gets children
     mockDocClient
         .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2001/01-01/' } })
         .resolves({ Items: mockImages, Count: 3 });
-    // Mock out the AWS method that returns peers (for next/prev)
+    // Mock out the AWS method that gets peers (for next/prev)
     mockDocClient.on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2001/' } }).resolves({});
 
     const album = await getAlbumAndChildren('/2001/01-01/');
@@ -113,9 +113,11 @@ test('Images', async () => {
     if (!children) throw new Error('Did not receive children');
     expect(children[0]?.path).toBe('/2001/01-01/image1.jpg');
     expect(children[0]?.itemName).toBe('image1.jpg');
+    expect(children[0]?.versionId).toBe('123456789');
     expect(children[0]?.title).toBe('Title 1');
     expect(children[0]?.description).toBe('Description 1');
     expect(children[0]?.updatedOn).toBe('2001-01-01T23:59:59.999Z');
+    expect(children[0]?.versionId).toBe('123456789');
     expect(children[0]?.tags).toContain('image1_tag1');
     expect(children[1]?.path).toBe('/2001/01-01/image2.jpg');
     expect(children[1]?.itemName).toBe('image2.jpg');
@@ -229,6 +231,7 @@ const mockImages = [
         itemName: 'image1.jpg',
         itemType: 'image',
         parentPath: '/2001/01-01/',
+        versionId: '123456789',
         title: 'Title 1',
         description: 'Description 1',
         updatedOn: '2001-01-01T23:59:59.999Z',
@@ -239,6 +242,7 @@ const mockImages = [
         itemName: 'image2.jpg',
         itemType: 'image',
         parentPath: '/2001/01-01/',
+        versionId: '123456789',
         title: 'Title 2',
         description: 'Description 2',
         updatedOn: '2001-01-01T23:59:59.999Z',
@@ -249,6 +253,7 @@ const mockImages = [
         itemName: 'image3.jpg',
         itemType: 'image',
         parentPath: '/2001/01-01/',
+        versionId: '123456789',
         title: 'Title 3',
         description: 'Description 3',
         updatedOn: '2001-01-01T23:59:59.999Z',

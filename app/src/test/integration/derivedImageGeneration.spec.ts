@@ -9,7 +9,7 @@ import {
 } from './helpers/s3ImageHelper';
 
 const yearPath = '/1948/'; // unique to this suite to prevent pollution
-const albumPath = `${yearPath}02-18/`; // unique to this suite to prevent pollution
+const albumPath = `${yearPath}02-18/`;
 const imagePath = `${albumPath}image1.jpg`;
 const derivedImagePath = `${imagePath}/jpeg/45x45`;
 

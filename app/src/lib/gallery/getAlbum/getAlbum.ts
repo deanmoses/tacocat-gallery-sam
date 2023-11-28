@@ -28,7 +28,8 @@ export async function getAlbumAndChildren(albumPath: string): Promise<Album | un
     // add album's thumbnail's crop info to the album
     // TODO: this will only work for day albums
     // For year albums, we'll need to get thumbnail info
-    // from the leaf images
+    // from the leaf images.  Though the album being
+    // returned here doeesn't actually need the crop info...
     if (album.thumbnail?.path && album.children) {
         console.log(`Got children`);
         const imageName = getNameFromPath(album.thumbnail.path);
@@ -37,15 +38,9 @@ export async function getAlbumAndChildren(albumPath: string): Promise<Album | un
             if (thumbnailImage) {
                 if (thumbnailImage.thumbnail) {
                     album.thumbnail.crop = thumbnailImage.thumbnail;
-                } else {
-                    console.warn(`Found no crop info on image [${thumbnailImage.path}]`);
                 }
-                // TODO: Image Processor should save either the processed date
-                // or the file save date (maybe the uploaded to S3 date) or a
-                // version #, that'll be used as a cachebuster here.
-                // Save it to the fileUpdatedOn field of the image.
-                if (thumbnailImage.updatedOn) {
-                    album.thumbnail.fileUpdatedOn = thumbnailImage.updatedOn;
+                if (thumbnailImage.versionId) {
+                    album.thumbnail.versionId = thumbnailImage.versionId;
                 }
             }
         }
@@ -108,13 +103,14 @@ async function getChildren(albumPath: string): Promise<Array<GalleryItem> | unde
         'itemName',
         'itemType',
         'updatedOn',
-        'title',
         'description',
-        'summary',
         'thumbnail',
-        'tags',
-        'published',
-        'dimensions',
+        'summary', // for albums
+        'published', // for albums
+        'versionId', // for images
+        'title', // for images
+        'tags', // for images
+        'dimensions', // for images
     ]);
     if (!!children) {
         children = children.map((child) => {
@@ -201,25 +197,29 @@ async function addCropInfoToChildAlbums(children: AlbumItem[]): Promise<void> {
         RequestItems: {
             [getDynamoDbTableName()]: {
                 Keys,
-                ProjectionExpression: 'parentPath, itemName, thumbnail',
+                ProjectionExpression: 'parentPath, itemName, thumbnail, versionId',
             },
         },
     });
     const ddbClient = new DynamoDBClient();
     const docClient = DynamoDBDocumentClient.from(ddbClient);
     const result = await docClient.send(ddbCommand);
-    const cropInfos = new Map<string, Rectangle>();
+    const imgInfos = new Map<
+        string,
+        { parentPath?: string; itemName?: string; thumbnail?: Rectangle; versionId?: string }
+    >();
     result.Responses?.[getDynamoDbTableName()]?.forEach((item) => {
-        if (item.thumbnail) {
-            const imagePath = toImagePath(item.parentPath, item.itemName);
-            cropInfos.set(imagePath, item.thumbnail);
-        }
+        const imagePath = toImagePath(item.parentPath, item.itemName);
+        imgInfos.set(imagePath, item);
     });
     children.forEach((album) => {
         if (album.thumbnail?.path) {
-            const cropInfo = cropInfos.get(album.thumbnail.path);
-            if (cropInfo) {
-                album.thumbnail.crop = cropInfo;
+            const imgInfo = imgInfos.get(album.thumbnail.path);
+            if (!imgInfo) throw new Error(`Missing basic info for image [${album.thumbnail.path}]`);
+            if (!imgInfo.versionId) throw new Error(`Missing versionId for image [${album.thumbnail.path}]`);
+            album.thumbnail.versionId = imgInfo.versionId;
+            if (imgInfo.thumbnail) {
+                album.thumbnail.crop = imgInfo.thumbnail;
             }
         }
     });

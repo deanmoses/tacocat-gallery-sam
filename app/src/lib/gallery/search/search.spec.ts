@@ -82,7 +82,7 @@ const mockScanResults: GalleryItem[] = [
     {
         itemType: 'album',
         updatedOn: '2023-11-05T22:17:45.724Z',
-        thumbnail: { fileUpdatedOn: '2023-11-05T22:17:45.503Z', path: '/2023/01-01/image.jpg' },
+        thumbnail: { versionId: '123456789', path: '/2023/01-01/image.jpg' },
         parentPath: '/2023/',
         itemName: '01-01',
     },
@@ -90,14 +90,14 @@ const mockScanResults: GalleryItem[] = [
     {
         itemType: 'album',
         updatedOn: '2023-11-06T01:08:43.661Z',
-        thumbnail: { fileUpdatedOn: '2023-11-06T01:08:43.406Z', path: '/2001/01-01/image.jpg' },
+        thumbnail: { versionId: '123456789', path: '/2001/01-01/image.jpg' },
         parentPath: '/2001/',
         itemName: '01-01',
     },
     {
         updatedOn: '2023-11-02T07:55:45.847Z',
         itemType: 'album',
-        thumbnail: { fileUpdatedOn: '2023-11-03T00:46:09.419Z', path: '/2001/12-31/new_name.jpg' },
+        thumbnail: { versionId: '123456789', path: '/2001/12-31/new_name.jpg' },
         parentPath: '/2001/',
         itemName: '12-31',
     },
@@ -111,8 +111,9 @@ const mockScanResults: GalleryItem[] = [
         title: 'A space rocket',
     },
     {
-        updatedOn: '2023-11-06T01:08:43.406Z',
         itemType: 'image',
+        versionId: '123456789',
+        updatedOn: '2023-11-06T01:08:43.406Z',
         description: 'A coffee mug',
         parentPath: '/2001/01-01/',
         itemName: 'image.jpg',
@@ -121,13 +122,15 @@ const mockScanResults: GalleryItem[] = [
     },
     {
         itemType: 'image',
+        versionId: '123456789',
         updatedOn: '2023-10-30T18:47:45.699Z',
         parentPath: '/2001/01-01/',
         itemName: 'tswift.png',
     },
     {
-        updatedOn: '2023-11-01T20:14:54.812Z',
         itemType: 'image',
+        versionId: '123456789',
+        updatedOn: '2023-11-01T20:14:54.812Z',
         description: "Portriat from the cover of Taylor's Lover album",
         parentPath: '/2001/01-01/',
         itemName: 'unique.jpg',
@@ -135,8 +138,9 @@ const mockScanResults: GalleryItem[] = [
         title: 'Taylor Swift',
     },
     {
-        updatedOn: '2023-11-01T20:20:52.735Z',
         itemType: 'image',
+        versionId: '123456789',
+        updatedOn: '2023-11-01T20:20:52.735Z',
         description: "Portriat from the cover of Taylor's Lover album",
         parentPath: '/2001/01-01/',
         itemName: 'unique2.jpg',
@@ -146,6 +150,7 @@ const mockScanResults: GalleryItem[] = [
     {
         updatedOn: '2023-11-04T21:57:25.519Z',
         itemType: 'image',
+        versionId: '123456789',
         description: "Portriat from the cover of Taylor's Lover album",
         parentPath: '/2023/01-01/',
         itemName: '1.jpg',
@@ -155,6 +160,7 @@ const mockScanResults: GalleryItem[] = [
     {
         updatedOn: '2023-11-04T21:59:43.216Z',
         itemType: 'image',
+        versionId: '123456789',
         description: "Portriat from the cover of Taylor's Lover album",
         parentPath: '/2023/01-01/',
         itemName: '2.jpg',
@@ -164,6 +170,7 @@ const mockScanResults: GalleryItem[] = [
     {
         updatedOn: '2023-11-05T22:17:45.503Z',
         itemType: 'image',
+        versionId: '123456789',
         description: 'Test description',
         parentPath: '/2023/01-01/',
         itemName: 'jupiter.jpg',
@@ -173,6 +180,7 @@ const mockScanResults: GalleryItem[] = [
     {
         updatedOn: '2023-10-28T08:57:38.641Z',
         itemType: 'image',
+        versionId: '123456789',
         parentPath: '/2001/12-31/',
         itemName: 'image-1698483261758.jpg',
         tags: ['halloween', 'dog', 'parade'],
@@ -181,6 +189,7 @@ const mockScanResults: GalleryItem[] = [
     {
         updatedOn: '2023-10-28T08:57:16.959Z',
         itemType: 'image',
+        versionId: '123456789',
         parentPath: '/2001/12-31/',
         itemName: 'image-1698483433790.jpg',
         tags: ['halloween', 'dog', 'parade'],
@@ -189,6 +198,7 @@ const mockScanResults: GalleryItem[] = [
     {
         updatedOn: '2023-10-28T09:03:19.095Z',
         itemType: 'image',
+        versionId: '123456789',
         description: 'My image description',
         parentPath: '/2001/12-31/',
         itemName: 'image-1698483795958.jpg',
@@ -198,6 +208,7 @@ const mockScanResults: GalleryItem[] = [
     {
         updatedOn: '2023-10-28T09:30:31.913Z',
         itemType: 'image',
+        versionId: '123456789',
         description: 'My image description',
         parentPath: '/2001/12-31/',
         itemName: 'image-1698485428921.jpg',
@@ -207,6 +218,7 @@ const mockScanResults: GalleryItem[] = [
     {
         updatedOn: '2023-11-03T00:46:09.419Z',
         itemType: 'image',
+        versionId: '123456789',
         description: 'My image description',
         parentPath: '/2001/12-31/',
         itemName: 'image-1698972364714.jpg',
@@ -216,6 +228,7 @@ const mockScanResults: GalleryItem[] = [
     {
         updatedOn: '2023-11-03T00:57:26.473Z',
         itemType: 'image',
+        versionId: '123456789',
         description: 'My image description',
         parentPath: '/2001/12-31/',
         itemName: 'image-1698973042977.jpg',
@@ -225,6 +238,7 @@ const mockScanResults: GalleryItem[] = [
     {
         updatedOn: '2023-11-03T00:58:35.456Z',
         itemType: 'image',
+        versionId: '123456789',
         description: 'My image description',
         parentPath: '/2001/12-31/',
         itemName: 'image-1698973112843.jpg',
@@ -234,6 +248,7 @@ const mockScanResults: GalleryItem[] = [
     {
         updatedOn: '2023-11-03T01:02:36.935Z',
         itemType: 'image',
+        versionId: '123456789',
         description: 'My image description',
         parentPath: '/2001/12-31/',
         itemName: 'image-1698973354247.jpg',
@@ -243,6 +258,7 @@ const mockScanResults: GalleryItem[] = [
     {
         updatedOn: '2023-11-03T01:17:13.994Z',
         itemType: 'image',
+        versionId: '123456789',
         description: 'My image description',
         parentPath: '/2001/12-31/',
         itemName: 'image-1698974230416.jpg',
@@ -252,6 +268,7 @@ const mockScanResults: GalleryItem[] = [
     {
         updatedOn: '2023-11-01T06:21:10.156Z',
         itemType: 'image',
+        versionId: '123456789',
         description: 'My image description',
         parentPath: '/2001/12-31/',
         itemName: 'image.jpg',

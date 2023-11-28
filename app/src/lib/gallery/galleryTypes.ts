@@ -24,6 +24,7 @@ export type AlbumItem = BaseGalleryRecord & {
 };
 
 export type ImageItem = BaseGalleryRecord & {
+    versionId: string;
     dimensions: Size;
     thumbnail?: ImageThumbnailCrop;
     title?: string;
@@ -44,8 +45,8 @@ export type GalleryItemType = 'album' | 'image';
 
 export type AlbumThumbnailEntry = {
     path: string;
-    crop: Rectangle;
-    fileUpdatedOn: string;
+    versionId: string;
+    crop?: Rectangle;
 };
 
 export type AlbumThumbnail = {
@@ -72,6 +73,8 @@ export type ImageUpdateRequest = {
 };
 
 export type ImageCreateRequest = ImageUpdateRequest & {
+    /** S3 version ID */
+    versionId: string;
     dimensions?: Size;
 };
 

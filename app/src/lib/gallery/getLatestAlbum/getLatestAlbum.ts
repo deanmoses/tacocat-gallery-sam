@@ -38,9 +38,12 @@ async function getLatestAlbumInAlbum(path: string): Promise<AlbumThumbnail | und
     if (album) {
         album.path = toPathFromItem(album);
         if (album.thumbnail?.path) {
-            const image = await getItem<ImageItem>(album.thumbnail.path, ['thumbnail']);
-            if (image?.thumbnail) {
-                album.thumbnail.crop = image.thumbnail;
+            const image = await getItem<ImageItem>(album.thumbnail.path, ['thumbnail', 'versionId']);
+            if (image) {
+                album.thumbnail.versionId = image?.versionId;
+                if (image.thumbnail) {
+                    album.thumbnail.crop = image.thumbnail;
+                }
             }
         }
     }

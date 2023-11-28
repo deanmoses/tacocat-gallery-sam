@@ -52,6 +52,7 @@ test("Image should be latest album's thumb", async () => {
     expect(album.itemName).toBe(albumPathParts.name);
     expect(album.parentPath).toBe(albumPathParts.parent);
     expect(album.thumbnail?.path).toBe(imagePath);
+    if (!album.thumbnail?.versionId) throw new Error(`Expected album [${albumPath}] to have versionId`);
 });
 
 test('Recut image thumb', async () => {
@@ -64,6 +65,7 @@ test('Latest album honors recut thumb', async () => {
     if (!album?.thumbnail) throw new Error('Expected latest album to have thumbnail');
     expect(album.thumbnail.path).toBe(imagePath);
     expect(album.thumbnail.crop).toEqual(cropInPx);
+    if (!album.thumbnail?.versionId) throw new Error(`Expected album [${albumPath}] to have versionId`);
 });
 
 test.todo("Latest album's thumbnail entry should honor an image rename");

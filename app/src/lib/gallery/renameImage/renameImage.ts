@@ -105,6 +105,7 @@ async function moveImageInDynamoDB(oldImagePath: string, newImageName: string) {
     if (!image) throw new Error(`Old image [${oldImagePath}] not found in DynamoDB`);
     image.itemName = newImageName;
     image.updatedOn = new Date().toISOString();
+    image.versionId = 'TEMPORARY'; // TODO FIXME
     const ddbCommand = new TransactWriteCommand({
         TransactItems: [
             // Create new entry

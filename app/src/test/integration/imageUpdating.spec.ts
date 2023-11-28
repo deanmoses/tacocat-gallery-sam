@@ -15,6 +15,7 @@ const albumPath = '/1705/04-26/'; // unique to this suite to prevent pollution
 let imagePath: string;
 let title: string;
 let description: string;
+let image_updatedOn: string | undefined;
 
 beforeAll(async () => {
     imagePath = `${albumPath}image_${Date.now()}.jpg`; // unique to this test run to prevent collision with bad cleanup of prior tests
@@ -41,12 +42,15 @@ afterAll(async () => {
 it('set title', async () => {
     const image = await doUpdate({ title: title });
     expect(image.title).toBe(title);
+    if (!image.updatedOn) throw new Error(`Image [${imagePath}] has no updatedOn`);
+    image_updatedOn = image.updatedOn;
 });
 
 it('set description', async () => {
     const image = await doUpdate({ description: description });
     expect(image.title).toBe(title);
     expect(image.description).toBe(description);
+    expect(image.updatedOn).not.toBe(image_updatedOn);
 });
 
 it('unset title', async () => {

@@ -9,11 +9,14 @@ import { ImageCreateRequest } from '../galleryTypes';
  * Create image in DynamoDB
  *
  * @param imagePath Path of the image to update, like /2001/12-31/image.jpg
- * @param attributesToUpdate bag of attributes to update
+ * @param image attributes to update
  */
-export async function createImage(imagePath: string, image: ImageCreateRequest) {
+export async function createImage(imagePath: string, image: ImageCreateRequest): Promise<void> {
     if (!isValidImagePath(imagePath)) {
         throw new BadRequestException(`Malformed image path: [${imagePath}]`);
+    }
+    if (!image.versionId) {
+        throw new BadRequestException(`Missing versionId`);
     }
 
     // Construct the DynamoDB command
@@ -28,6 +31,7 @@ export async function createImage(imagePath: string, image: ImageCreateRequest) 
             itemType: 'image',
             createdOn: now,
             updatedOn: now,
+            versionId: image.versionId,
         },
         ConditionExpression: 'attribute_not_exists (itemName)',
     });
@@ -52,8 +56,7 @@ export async function createImage(imagePath: string, image: ImageCreateRequest) 
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);
     try {
-        const result = await docClient.send(ddbCommand);
-        return result.$metadata;
+        await docClient.send(ddbCommand);
     } catch (e) {
         if (e instanceof ConditionalCheckFailedException) {
             throw new BadRequestException(`Image already exists: [${imagePath}]`);

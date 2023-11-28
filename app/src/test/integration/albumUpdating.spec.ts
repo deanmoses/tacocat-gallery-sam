@@ -14,6 +14,7 @@ const yearAlbumPath = '/1700/'; // unique to this suite to prevent pollution
 const albumPath = `${yearAlbumPath}04-26/`;
 let description: string;
 let summary: string;
+let album_updatedOn: string | undefined;
 
 beforeAll(async () => {
     description = `Description [${Date.now}]`;
@@ -43,6 +44,8 @@ test('get empty album', async () => {
     expect(album?.description).toBeUndefined();
     expect(album?.published).toBeUndefined();
     expect(album?.thumbnail?.path).toBeUndefined();
+    if (!album?.updatedOn) throw new Error(`Album has no updatedOn`);
+    album_updatedOn = album.updatedOn;
 });
 
 it('set description', async () => {
@@ -50,6 +53,8 @@ it('set description', async () => {
     const album = await getAlbum(albumPath);
     expect(album?.description).toBe(description);
     expect(album?.published).toBeUndefined();
+    if (!album?.updatedOn) throw new Error(`Album has no updatedOn`);
+    expect(album.updatedOn).not.toBe(album_updatedOn);
 });
 
 it('set summary', async () => {

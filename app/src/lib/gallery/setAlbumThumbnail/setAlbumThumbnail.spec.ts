@@ -40,11 +40,10 @@ describe('Valid Input', () => {
 
         const albumPath = '/2001/12-31/';
         const imagePath = '/2001/12-31/image.jpg';
-        const timestamp = new Date().toISOString();
 
         // Mock out the AWS method
         mockDocClient.on(GetCommand).resolves({
-            Item: { fileUpdatedOn: timestamp },
+            Item: { versionId: '123456789' },
         });
 
         // do the update
@@ -73,11 +72,10 @@ describe('Valid Input', () => {
 
         const albumPath = '/2001/12-31/';
         const imagePath = '/2001/12-31/anotherImage.jpg';
-        const timestamp = new Date().toISOString();
 
         // Mock out the AWS method
         mockDocClient.on(GetCommand).resolves({
-            Item: { fileUpdatedOn: timestamp },
+            Item: { versionId: '123456789' },
         });
 
         // do the update
@@ -124,11 +122,10 @@ describe('Valid Input', () => {
         expect.assertions(8);
 
         const imagePath = '/2001/12-31/anotherImage.jpg';
-        const timestamp = new Date().toISOString();
 
         // Mock out the AWS method
         mockDocClient.on(GetCommand).resolves({
-            Item: { fileUpdatedOn: timestamp },
+            Item: { versionId: '123456789' },
         });
 
         // do the update

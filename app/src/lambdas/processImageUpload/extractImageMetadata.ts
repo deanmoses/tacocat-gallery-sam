@@ -1,9 +1,9 @@
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import ExifReader from 'exifreader';
 import { Readable } from 'stream';
-import { ImageCreateRequest, ImageUpdateRequest } from '../../lib/gallery/galleryTypes';
+import { ImageCreateRequest } from '../../lib/gallery/galleryTypes';
 
-export async function extractImageMetadata(bucket: string, objectKey: string): Promise<ImageUpdateRequest> {
+export async function extractImageMetadata(bucket: string, objectKey: string): Promise<Partial<ImageCreateRequest>> {
     const s3Command = new GetObjectCommand({
         Bucket: bucket,
         Key: objectKey,
@@ -27,8 +27,8 @@ export async function extractImageMetadata(bucket: string, objectKey: string): P
 /**
  * Extract the metadata to be saved to DynamoDB
  */
-export function selectMetadata(tags: ExifReader.ExpandedTags): ImageCreateRequest {
-    const image: ImageCreateRequest = {
+export function selectMetadata(tags: ExifReader.ExpandedTags): Partial<ImageCreateRequest> {
+    const image: Partial<ImageCreateRequest> = {
         title: tags.iptc?.['Object Name']?.description || tags.iptc?.['Headline']?.description,
         description: tags.iptc?.['Caption/Abstract']?.description,
     };
