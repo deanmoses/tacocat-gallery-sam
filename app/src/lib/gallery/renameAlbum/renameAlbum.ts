@@ -138,7 +138,7 @@ async function moveAlbumInDynamoDB(oldAlbumPath: string, newAlbumPath: string): 
         });
     }
 
-    console.log(`transaction: `, JSON.stringify(ddbCommand.input.TransactItems, null, 2));
+    //console.log(`transaction: `, JSON.stringify(ddbCommand.input.TransactItems, null, 2));
 
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);
