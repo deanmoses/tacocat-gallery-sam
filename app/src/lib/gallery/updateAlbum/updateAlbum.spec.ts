@@ -1,5 +1,5 @@
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, ExecuteStatementCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { updateAlbum } from './updateAlbum';
 import { AlbumUpdateRequest } from '../galleryTypes';
 
