@@ -52,7 +52,7 @@ afterAll(async () => {
 
 // This is test setup but I feel queasy stuffing so much into beforeAll()
 test('Album should contain image with full metadata', async () => {
-    const image_noreplace = await getImageOrThrow(albumPath, imageName_noreplace);
+    const image_noreplace = await getImageOrThrow(imagePath_noreplace);
     expect(image_noreplace.title).toBe('Version 1');
     expect(image_noreplace.description).toBe('Version one.');
     expect(image_noreplace.tags?.sort()).toEqual(['animal', 'boar', 'frog', 'v1'].sort());
@@ -63,7 +63,7 @@ test('Album should contain image with full metadata', async () => {
 
 // This is test setup but I feel queasy stuffing so much into beforeAll()
 test('Album should contain image with no metadata', async () => {
-    const image_replace = await getImageOrThrow(albumPath, imageName_replace);
+    const image_replace = await getImageOrThrow(imagePath_replace);
     if (image_replace.title) throw new Error(`Image [${imageName_replace}] has a title: [${image_replace.title}]`);
     if (image_replace.description) throw new Error(`[${imageName_replace}] has a desc: [${image_replace.description}]`);
     if (image_replace.tags?.length) throw new Error(`[${imageName_replace}] has tags: [${image_replace.tags}]`);
@@ -77,7 +77,7 @@ test('Replace image with full metadata', async () => {
 }, 15000 /* increases Jest's timeout */);
 
 test('Image with full metadata should not have changed much', async () => {
-    const image_noreplace = await getImageOrThrow(albumPath, imageName_noreplace);
+    const image_noreplace = await getImageOrThrow(imagePath_noreplace);
     expect(image_noreplace.title).toBe('Version 1');
     expect(image_noreplace.description).toBe('Version one.');
     expect(image_noreplace.tags?.sort()).toEqual(['animal', 'boar', 'frog', 'v1'].sort());
@@ -92,7 +92,7 @@ test('Replace image with no metadata', async () => {
 }, 15000 /* increases Jest's timeout */);
 
 test('Image with no metadata should now have some', async () => {
-    const image_replace = await getImageOrThrow(albumPath, imageName_replace);
+    const image_replace = await getImageOrThrow(imagePath_replace);
     expect(image_replace.title).toBe('Version 2');
     expect(image_replace.description).toBe('Version two.');
     expect(image_replace.tags?.sort()).toEqual(['forest', 'v2'].sort());

@@ -4,7 +4,11 @@ import { Album, ImageItem } from '../../../lib/gallery/galleryTypes';
 import { getAlbumAndChildren } from '../../../lib/gallery/getAlbum/getAlbum';
 import { itemExists } from '../../../lib/gallery/itemExists/itemExists';
 import { findImage } from '../../../lib/gallery_client/AlbumObject';
-import { getParentFromPath, isValidAlbumPath } from '../../../lib/gallery_path_utils/galleryPathUtils';
+import {
+    getParentAndNameFromPath,
+    getParentFromPath,
+    isValidAlbumPath,
+} from '../../../lib/gallery_path_utils/galleryPathUtils';
 import { deleteOriginalsAndDerivatives } from '../../../lib/s3_utils/s3delete';
 
 /**
@@ -94,10 +98,13 @@ export async function assertDynamoDBItemDoesNotExist(path: string): Promise<void
 /**
  * Retrieve album, find image, throw if the things don't exist
  *
- * @param albumPath album path like /2001/12-31/
- * @param imageName image name like image.jpg
+ * @param imagePath image path like /2001/12-31/image.jpg
  */
-export async function getImageOrThrow(albumPath: string, imageName: string): Promise<ImageItem> {
+export async function getImageOrThrow(imagePath: string): Promise<ImageItem> {
+    const imagePathParts = getParentAndNameFromPath(imagePath);
+    const albumPath = imagePathParts.parent;
+    const imageName = imagePathParts.name;
+    if (!imageName) throw new Error(`No image name found in path [${imagePath}]`);
     const album = await getAlbumAndChildrenOrThrow(albumPath);
     return findImageOrThrow(album, imageName);
 }
@@ -109,6 +116,7 @@ export async function getImageOrThrow(albumPath: string, imageName: string): Pro
  * @param imageName image name like image.jpg
  */
 export function findImageOrThrow(album: Album, imageName: string): ImageItem {
+    if (!album.children || album.children.length === 0) throw new Error(`Album [${album.path}] has no children`);
     const image = findImage(album, imageName);
     if (!image) throw new Error(`Album [${album.path}] has no child image [${imageName}]`);
     return image;

@@ -41,8 +41,8 @@ export async function renameImage(oldImagePath: string, newName: string): Promis
     if (await itemExists(newImagePath)) {
         throw new BadRequestException(`An image already exists at [${newImagePath}]`);
     }
-    await copyOriginal(oldImagePath, newImagePath);
-    await renameImageInDynamoDB(oldImagePath, newName);
+    const newVersionId = await copyOriginal(oldImagePath, newImagePath);
+    await renameImageInDynamoDB(oldImagePath, newName, newVersionId);
     await deleteOriginalAndDerivatives(oldImagePath);
     console.info(`Rename Image: renamed image from [${oldImagePath}] to [${newImagePath}]`);
     return newImagePath;
@@ -76,12 +76,13 @@ function validateNewImageName(existingImagePath: string, newName: string) {
  *
  * @param oldImagePath Old image path like /2001/12-31/image.jpg
  * @param newImageName New image name like new_image_name.jpg
+ * @param newVersionId Version ID of new image
  */
-async function renameImageInDynamoDB(oldImagePath: string, newImageName: string) {
+async function renameImageInDynamoDB(oldImagePath: string, newImageName: string, newVersionId: string) {
     // TODO: these should all be done in a single transaction.
     // However, since updating the album thumbnail entries rely on a
     // a condition failing, the transaction would fail.  BZZZT.
-    await moveImageInDynamoDB(oldImagePath, newImageName);
+    await moveImageInDynamoDB(oldImagePath, newImageName, newVersionId);
     const albumPath = getParentFromPath(oldImagePath);
     const newImagePath = albumPath + newImageName;
     await renameAlbumThumb(albumPath, oldImagePath, newImagePath);
@@ -96,16 +97,16 @@ async function renameImageInDynamoDB(oldImagePath: string, newImageName: string)
  *
  * @param oldImagePath Path of existing image like /2001/12-31/image.jpg
  * @param newImageName New name of image like newName.jpg
- * @param entry Image entry retrieved from DynamoDB
+ * @param newVersionId Version ID of new image
  */
-async function moveImageInDynamoDB(oldImagePath: string, newImageName: string) {
+async function moveImageInDynamoDB(oldImagePath: string, newImageName: string, newVersionId: string) {
     console.info(`Rename Image: renaming image entry in DynamoDB from [${oldImagePath}] to [${newImageName}]...`);
     const oldPathParts = getParentAndNameFromPath(oldImagePath);
     const image = await getFullItemFromDynamoDB<ImageItem>(oldImagePath);
     if (!image) throw new Error(`Old image [${oldImagePath}] not found in DynamoDB`);
     image.itemName = newImageName;
     image.updatedOn = new Date().toISOString();
-    image.versionId = 'TEMPORARY'; // TODO FIXME
+    image.versionId = newVersionId;
     const ddbCommand = new TransactWriteCommand({
         TransactItems: [
             // Create new entry

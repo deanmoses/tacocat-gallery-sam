@@ -12,6 +12,7 @@ import {
     assertDynamoDBItemDoesNotExist,
     assertDynamoDBItemExists,
     cleanUpAlbumAndParents,
+    getImageOrThrow,
 } from './helpers/albumHelpers';
 import { assertOriginalImageExists, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
 
@@ -19,6 +20,7 @@ const albumPath = '/1703/10-03/'; // unique to this suite to prevent pollution
 let imagePath1: string;
 let imagePath2: string;
 let renameImagePath1: string;
+let oldImageVersionId: string;
 
 beforeAll(async () => {
     imagePath1 = `${albumPath}image1_${Date.now()}.jpg`; // unique to this test run to prevent test from not being able to run again on failure to clean up properly
@@ -48,6 +50,11 @@ beforeAll(async () => {
 afterAll(async () => {
     await cleanUpAlbumAndParents(albumPath);
 }, 20000 /* increase Jest's timeout */);
+
+test('Get old image version ID', async () => {
+    oldImageVersionId = (await getImageOrThrow(imagePath1)).versionId;
+    if (!oldImageVersionId) throw new Error(`No version ID found for image [${imagePath1}]`);
+});
 
 test('Cannot change extension', async () => {
     await expect(renameImage(imagePath1, 'invalidExtension.png')).rejects.toThrow(/extension/i);
@@ -86,6 +93,9 @@ test('GetAlbum() should reflect rename', async () => {
     if (!renamedImage) throw new Error(`Album does not contain new image [${newImageName}]`);
     expect(renamedImage.itemName).toBe(newImageName);
     expect(renamedImage.parentPath).toBe(getParentFromPath(renameImagePath1));
+    const newVersionId = renamedImage.versionId;
+    if (!newVersionId) throw new Error(`No version ID found for image [${renameImagePath1}]`);
+    expect(newVersionId).not.toBe(oldImageVersionId);
 
     // Ensure immediate parent album's thumbnail entry reflects rename
     expect(album?.thumbnail?.path).toBe(renameImagePath1);

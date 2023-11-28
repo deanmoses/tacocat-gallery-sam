@@ -14,7 +14,7 @@ import { itemExists } from '../itemExists/itemExists';
 import { copyOriginals } from '../../s3_utils/s3copy';
 import { deleteOriginalsAndDerivatives } from '../../s3_utils/s3delete';
 import { getFullChildrenFromDynamoDB, getFullItemFromDynamoDB, getItem } from '../../dynamo_utils/ddbGet';
-import { AlbumItem } from '../galleryTypes';
+import { AlbumItem, ImageItem } from '../galleryTypes';
 
 /**
  * Rename a day album in both DynamoDB and S3.
@@ -54,8 +54,8 @@ export async function renameAlbum(oldAlbumPath: string, newName: string): Promis
         throw new BadRequestException(`An album already exists at [${newAlbumPath}]`);
     }
 
-    await copyOriginals(oldAlbumPath, newAlbumPath);
-    await moveAlbumInDynamoDB(oldAlbumPath, newAlbumPath); // handles renaming thumbnail on parent album
+    const newVersionIds = await copyOriginals(oldAlbumPath, newAlbumPath);
+    await moveAlbumInDynamoDB(oldAlbumPath, newAlbumPath, newVersionIds); // handles renaming thumbnail on parent album
     await renameAlbumThumb(getParentFromPath(oldAlbumPath), oldAlbumPath, newAlbumPath); // rename thumb on grandparent album
     await deleteOriginalsAndDerivatives(oldAlbumPath);
 
@@ -68,14 +68,17 @@ export async function renameAlbum(oldAlbumPath: string, newName: string): Promis
  * Does not update the thumbnails that should be changed in any other albums.
  * Does not touch S3.
  *
- * @param oldAlbumPath Path of existing image like /2001/12-31/image.jpg
- * @param newAlbumPath New name of image like newName.jpg
+ * @param oldAlbumPath Path of existing album like /2001/12-31/
+ * @param newAlbumPath New name of album like 12-29
+ * @param newVersionIds Map of new image paths to new version IDs
  * @param entry Image entry retrieved from DynamoDB
  */
-async function moveAlbumInDynamoDB(oldAlbumPath: string, newAlbumPath: string): Promise<void> {
-    console.info(
-        `Rename Album: moving album and image entries in DynamoDB from [${oldAlbumPath}] to [${newAlbumPath}]...`,
-    );
+async function moveAlbumInDynamoDB(
+    oldAlbumPath: string,
+    newAlbumPath: string,
+    newVersionIds: Map<string, string>,
+): Promise<void> {
+    console.info(`Rename Album: moving album and images in DynamoDB from [${oldAlbumPath}] to [${newAlbumPath}]...`);
     const oldAlbumPathParts = getParentAndNameFromPath(oldAlbumPath);
     const newAlbumPathParts = getParentAndNameFromPath(newAlbumPath);
     const now = new Date().toISOString();
@@ -114,8 +117,13 @@ async function moveAlbumInDynamoDB(oldAlbumPath: string, newAlbumPath: string): 
     const children = await getFullChildrenFromDynamoDB(oldAlbumPath);
     if (!!children) {
         children.forEach((child) => {
-            child.parentPath = newAlbumPath;
-            child.updatedOn = now;
+            const imagePath = newAlbumPath + child.itemName;
+            const newVersionId = newVersionIds.get(imagePath);
+            if (!newVersionId) throw new Error(`No new version ID found for image [${imagePath}]`);
+            const image = child as ImageItem;
+            image.parentPath = newAlbumPath;
+            image.updatedOn = now;
+            image.versionId = newVersionId;
             ddbCommand.input.TransactItems?.push(
                 // Create new image entry
                 {
