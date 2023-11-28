@@ -106,7 +106,7 @@ const listResponseWithItems: ListObjectsV2CommandOutput = {
             Key: 'i/2001/01-01/tswift.jpg/jpeg/81x81',
             LastModified: new Date(),
             ETag: '"40618a08c72ce4198889f8f009900e12"',
-            Size: 1706,
+            Size: 2706,
             StorageClass: 'STANDARD',
         },
         {
