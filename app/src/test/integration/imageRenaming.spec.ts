@@ -47,7 +47,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
     await cleanUpAlbumAndParents(albumPath);
-});
+}, 20000 /* increase Jest's timeout */);
 
 test('Cannot change extension', async () => {
     await expect(renameImage(imagePath1, 'invalidExtension.png')).rejects.toThrow(/extension/i);
