@@ -1,6 +1,14 @@
+import { mockClient } from 'aws-sdk-client-mock';
+import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import path from 'path';
 import { selectMetadata } from './extractImageMetadata';
 import ExifReader from 'exifreader';
+
+const mockDocClient = mockClient(DynamoDBDocumentClient);
+
+afterEach(() => {
+    mockDocClient.reset();
+});
 
 describe('selectMetadata', () => {
     const images = [
