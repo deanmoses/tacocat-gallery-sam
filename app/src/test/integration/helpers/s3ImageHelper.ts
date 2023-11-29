@@ -4,6 +4,7 @@ import { HeadObjectCommand, PutObjectCommand, NotFound, S3Client } from '@aws-sd
 import { isValidImagePath } from '../../../lib/gallery_path_utils/galleryPathUtils';
 import { getDerivedImagesBucketName, getOriginalImagesBucketName } from '../../../lib/lambda_utils/Env';
 import { fromPathToS3OriginalBucketKey } from '../../../lib/s3_utils/s3path';
+import mime from 'mime/lite';
 
 /**
  * Upload specified image to the Original Images S3 bucket.
@@ -21,6 +22,10 @@ export async function uploadImage(nameOfImageOnDisk: string, imagePath: string):
         Key: fromPathToS3OriginalBucketKey(imagePath),
         Body: fs.createReadStream(filePath),
     });
+    const mimeType = mime.getType(filePath);
+    if (mimeType) {
+        command.input.ContentType = mimeType;
+    }
     const client = new S3Client({});
     const response = await client.send(command);
     if (response.$metadata.httpStatusCode != 200) {

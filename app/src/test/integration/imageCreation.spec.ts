@@ -22,7 +22,7 @@ beforeAll(async () => {
 
     await uploadImage('image.jpg', imagePath);
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
-}, 20000 /* increase Jest's timeout */);
+}, 25000 /* increase Jest's timeout */);
 
 afterAll(async () => {
     await cleanUpAlbum(albumPath);

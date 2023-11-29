@@ -18,12 +18,14 @@
         "@aws-sdk/util-dynamodb": "^3.451.0",
         "@nozbe/microfuzz": "^1.0.0",
         "exifreader": "^4.16.0",
+        "mime": "^3.0.0",
         "sharp": "^0.32.6"
     },
     "devDependencies": {
         "@aws-sdk/types": "^3.451.0",
         "@types/aws-lambda": "^8.10.126",
         "@types/jest": "^29.5.8",
+        "@types/mime": "^3.0.4",
         "@types/node": "^20.9.0",
         "@typescript-eslint/eslint-plugin": "^6.11.0",
         "@typescript-eslint/parser": "^6.11.0",
