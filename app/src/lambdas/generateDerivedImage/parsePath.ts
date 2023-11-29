@@ -1,31 +1,33 @@
-import { env } from './env';
 import { isImageFormat, OptimizingParams } from './optimizeImage';
 
-// IMAGE_ID_PATTERN should match starting and trailing slash.
-// Because it is hard to verify this in the pattern itself we do it at runtime
-const pathImageIdPattern = new RegExp(env('IMAGE_PATH_ID_PATTERN'));
+const pathImageIdPattern =
+    /^\/i\/(?<ID>\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/[a-zA-Z0-9_-]+\.(jpg|jpeg|gif|png))\/(?<VERSION>[^\/]+)/;
 
 export type PathParams = OptimizingParams & {
     id?: string;
+    versionId?: string;
     error?: string;
 };
 
-// parse params from path
-// example: /path/to/image/uuid/webp/300x400/fp=200,100/crop=10,20,400,540
-
-export const parsePath = (path: string): PathParams => {
-    //console.debug('regex: ' + pathImageIdPattern);
+/**
+ * Parse parameters from the URL path
+ *
+ * @param path like /i/2001/12-31/image.jpg/VERSIONID/webp/300x400/fp=200,100/crop=10,20,400,540
+ */
+export function parsePath(path: string): PathParams {
     const match = path.match(pathImageIdPattern);
-    if (!match) return { error: 'missing image id' };
-    // if (!path.startsWith(match[0]))
-    //   throw Error('IMAGE_PATH_ID_PATTERN must match leading and trailing slash')
+    if (!match) return { error: 'missing image id or version id' };
 
     const id = match.groups?.ID; // named capture group ID must be the image id
+    const versionId = match.groups?.VERSION; // named capture group VERSION must be the version id
     const segments = path.substring(match[0].length).split('/');
 
     // go through all remaining segments and try to parse them, merge the results
-    return segments.reduce<PathParams>((params, segment) => ({ ...params, ...parseSegment(segment) }), { id });
-};
+    return segments.reduce<PathParams>((params, segment) => ({ ...params, ...parseSegment(segment) }), {
+        id,
+        versionId,
+    });
+}
 
 const parseSegment = (segment: string) =>
     ignoreEmptySegment(segment) ||

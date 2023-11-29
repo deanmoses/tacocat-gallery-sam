@@ -52,10 +52,14 @@ export function getJpegQuality(): string {
     return getEnv('THUMBNAIL_IMAGE_QUALITY');
 }
 
+export function getDerivedImageDomain(): string {
+    return getEnv('DERIVED_IMAGE_DOMAIN');
+}
+
 function getEnv(name: string): string {
     const value = !!testEnv ? testEnv[name] : process.env[name];
     if (!value) {
-        throw `Environment misconfiguration: no [${name}] defined`;
+        throw `No such environment variable [${name}]`;
     }
     return value;
 }

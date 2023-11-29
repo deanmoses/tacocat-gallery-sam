@@ -1,42 +1,34 @@
 import * as fs from 'fs';
 import path from 'path';
-import { HeadObjectCommand, NotFound, S3Client } from '@aws-sdk/client-s3';
-import { Upload } from '@aws-sdk/lib-storage';
+import { HeadObjectCommand, PutObjectCommand, NotFound, S3Client } from '@aws-sdk/client-s3';
 import { isValidImagePath } from '../../../lib/gallery_path_utils/galleryPathUtils';
 import { getDerivedImagesBucketName, getOriginalImagesBucketName } from '../../../lib/lambda_utils/Env';
+import { fromPathToS3OriginalBucketKey } from '../../../lib/s3_utils/s3path';
 
 /**
  * Upload specified image to the Original Images S3 bucket.
  *
  * @param nameOfImageOnDisk name of an image in the test images folder
  * @param imagePath path of gallery image to which to upload it, such as /2001/12-31/image.jpg
+ * @returns S3 versionId of uploaded image
  */
-export async function uploadImage(nameOfImageOnDisk: string, imagePath: string) {
+export async function uploadImage(nameOfImageOnDisk: string, imagePath: string): Promise<string> {
     console.info(`Uploading image [${nameOfImageOnDisk}] to [${imagePath}]...`);
     if (!isValidImagePath(imagePath)) throw new Error(`Invalid image path: [${imagePath}]`);
     const filePath = path.resolve(__dirname, '..', '..', 'data/images/', nameOfImageOnDisk);
-    const fileStream = fs.createReadStream(filePath);
-    const key = imagePath.substring(1);
-    const upload = new Upload({
-        params: {
-            Bucket: getOriginalImagesBucketName(),
-            Key: key,
-            Body: fileStream,
-        },
-        queueSize: 4, // optional concurrency configuration
-        leavePartsOnError: false, // optional manually handle dropped parts
-        client: new S3Client({}),
+    const command = new PutObjectCommand({
+        Bucket: getOriginalImagesBucketName(),
+        Key: fromPathToS3OriginalBucketKey(imagePath),
+        Body: fs.createReadStream(filePath),
     });
-
-    // upload.on('httpUploadProgress', (progress: unknown) => {
-    //     console.info(progress);
-    // });
-
-    const results = await upload.done();
-    if (results.$metadata.httpStatusCode != 200) {
-        throw Error(`Got non-200 status code [${results.$metadata.httpStatusCode}] uploading image`);
+    const client = new S3Client({});
+    const response = await client.send(command);
+    if (response.$metadata.httpStatusCode != 200) {
+        throw Error(`Got non-200 status code [${response.$metadata.httpStatusCode}] uploading image`);
     }
-    console.info(`Uploaded image [${nameOfImageOnDisk}] to [${imagePath}]`);
+    if (!response.VersionId) throw Error(`No versionId from uploading image`);
+    console.info(`Uploaded image [${nameOfImageOnDisk}] to [${imagePath}]. Version [${response.VersionId}]`);
+    return response.VersionId;
 }
 
 /**

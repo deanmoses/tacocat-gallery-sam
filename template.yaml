@@ -257,10 +257,7 @@ Resources:
         Variables:
           ORIGINAL_IMAGES_BUCKET: !Ref OriginalImagesBucket
           DERIVED_IMAGES_BUCKET: !Ref DerivedImagesBucket
-          ORIGINAL_IMAGE_KEY: ${ID}
-          IMAGE_PATH_ID_PATTERN: ^/i/(?<ID>\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/[a-zA-Z0-9_-]+\.(jpg|jpeg|gif|png))
           IMAGE_QUALITY: "80"
-          CACHE_CONTROL: "public, max-age=31536000"
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref OriginalImagesBucket

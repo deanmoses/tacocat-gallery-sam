@@ -1,5 +1,6 @@
 import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
+import { getDerivedImageDomain } from '../../lib/lambda_utils/Env';
 import { cleanUpAlbumAndParents } from './helpers/albumHelpers';
 import {
     assertDerivedImageDoesNotExist,
@@ -8,10 +9,11 @@ import {
     uploadImage,
 } from './helpers/s3ImageHelper';
 
-const yearPath = '/1948/'; // unique to this suite to prevent pollution
+const yearPath = '/1707/'; // unique to this suite to prevent pollution
 const albumPath = `${yearPath}02-18/`;
 const imagePath = `${albumPath}image1.jpg`;
-const derivedImagePath = `${imagePath}/jpeg/45x45`;
+const derivedImageSuffix = `jpeg/45x45`;
+let derivedImagePath: string;
 
 beforeAll(async () => {
     expect(isValidAlbumPath(yearPath)).toBe(true);
@@ -21,23 +23,29 @@ beforeAll(async () => {
     await assertOriginalImageDoesNotExist(imagePath);
     await assertDerivedImageDoesNotExist(imagePath);
 
-    await uploadImage('image.jpg', imagePath);
+    const imageVersionId = await uploadImage('image.jpg', imagePath);
+    derivedImagePath = `${imagePath}/${imageVersionId}/${derivedImageSuffix}`;
+
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
-}, 10000 /* increase Jest's timeout */);
+}, 10000 /* increases Jest's timeout */);
 
 afterAll(async () => {
     await cleanUpAlbumAndParents(albumPath);
-});
+}, 10000 /* increases Jest's timeout */);
 
 test('Generate derived image', async () => {
-    const derivedImageBaseUrl = 'https://2ulsytomrhi5tvj7ybwoqd247a0qnbat.lambda-url.us-east-1.on.aws/i'; // TODO: get URL from env variable
-    const derivedImageUrl = derivedImageBaseUrl + derivedImagePath;
+    const derivedImageUrl = `https://${getDerivedImageDomain()}/i${derivedImagePath}`;
     const response = await fetch(derivedImageUrl, { cache: 'no-store' });
-    expect(response.status).toBe(200);
+    if (response.status !== 200)
+        throw new Error(
+            `Error fetching [${derivedImageUrl}]: ${response.status} - ${
+                response.statusText
+            } - ${await response.text()}}`,
+        );
     if (!(await derivedImageExists(derivedImagePath))) {
         throw new Error(`[${derivedImagePath}] doesn't exist in derived image bucket`);
     }
-}, 15000 /* increase Jest's timeout */);
+}, 15000 /* increases Jest's timeout */);
 
 test('Delete image', async () => {
     await expect(deleteImage(imagePath)).resolves.not.toThrow();

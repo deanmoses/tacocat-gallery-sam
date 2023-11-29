@@ -3,26 +3,23 @@ import { env } from './env';
 
 const originalImagesBucket = env('ORIGINAL_IMAGES_BUCKET');
 const optimizedImagesBucket = env('DERIVED_IMAGES_BUCKET');
-const originalImageKey = env('ORIGINAL_IMAGE_KEY');
 
 const s3 = new S3Client({});
 
-export const loadOriginalImage = async (id: string): Promise<Uint8Array | undefined> => {
+export const loadOriginalImage = async (id: string, versionId: string): Promise<Uint8Array | undefined> => {
     try {
         const response = await s3.send(
             new GetObjectCommand({
                 Bucket: originalImagesBucket,
-                Key: originalImageKey.replace('${ID}', id),
+                Key: id,
+                VersionId: versionId,
             }),
         );
         return response.Body && response.Body.transformToByteArray();
     } catch (err) {
         if (err instanceof NoSuchKey) return undefined;
         console.error(
-            `Error loading original image from bucket[${originalImagesBucket}] key [${originalImageKey.replace(
-                '${ID}',
-                id,
-            )}]: `,
+            `Error loading original image from bucket [${originalImagesBucket}] key [${id}] version [${versionId}]: `,
             err,
         );
         throw err;

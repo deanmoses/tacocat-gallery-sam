@@ -2,7 +2,6 @@ import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from '
 import { parsePath } from './parsePath';
 import { loadOriginalImage, saveOptimizedImage } from './s3';
 import { optimizeImage } from './optimizeImage';
-import { env } from './env';
 
 /**
  * AWS Lambda Function Urls reuse TypeScript types from APIGateway,
@@ -40,14 +39,15 @@ export async function handleRequest(method: string, path: string): Promise<Lambd
 
     if (path.includes('favico')) return notFound;
 
-    const { id, error, ...params } = parsePath(path);
+    const { id, versionId, error, ...params } = parsePath(path);
     if (error) {
         console.error('Generate Derived Image: error: ' + error);
     }
     if (error) return badRequest;
+    if (!versionId) return badRequest;
     if (!id) return notFound;
 
-    const original = await loadOriginalImage(id);
+    const original = await loadOriginalImage(id, versionId);
     if (!original) return notFound;
 
     const { buffer, format } = await optimizeImage(original, params);
@@ -72,7 +72,7 @@ const textResponse = (statusCode: number, body: string) => ({
     body,
     isBase64Encoded: false,
 });
-const cacheControl = env('CACHE_CONTROL');
+const cacheControl = 'public, max-age=123';
 const badRequest = textResponse(400, 'bad request');
 //const forbidden = textResponse(403, 'forbidden');
 const notFound = textResponse(404, 'not found');
