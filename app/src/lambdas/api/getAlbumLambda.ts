@@ -17,11 +17,11 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
 
         const album = await getAlbumAndChildren(albumPath);
         if (!album) {
-            return respond404NotFound('Album Not Found');
+            return respond404NotFound(event, 'Album Not Found');
         } else {
-            return respondHttp(album);
+            return respondHttp(event, album);
         }
     } catch (e) {
-        return handleHttpExceptions(e);
+        return handleHttpExceptions(event, e);
     }
 };

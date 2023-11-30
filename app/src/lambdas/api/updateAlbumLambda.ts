@@ -17,8 +17,8 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         const albumPath = getAlbumPath(event);
         const attributesToUpdate = getBodyAsJson(event);
         await updateAlbum(albumPath, attributesToUpdate);
-        return respondSuccessMessage(`Updated album [${albumPath}]`);
+        return respondSuccessMessage(event, `Updated album [${albumPath}]`);
     } catch (e) {
-        return handleHttpExceptions(e);
+        return handleHttpExceptions(event, e);
     }
 };

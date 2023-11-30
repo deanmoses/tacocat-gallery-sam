@@ -15,8 +15,8 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         ensureHttpMethod(event, HttpMethod.HEAD);
         const imagePath = getImagePath(event);
         const imageExists = await itemExists(imagePath);
-        return imageExists ? respondSuccessMessage('Image Found') : respond404NotFound('Image Not Found');
+        return imageExists ? respondSuccessMessage(event, 'Image Found') : respond404NotFound(event, 'Image Not Found');
     } catch (e) {
-        return handleHttpExceptions(e);
+        return handleHttpExceptions(event, e);
     }
 };

@@ -18,8 +18,8 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         const body = getBodyAsJson(event);
         const imagePath = body.imagePath;
         await setAlbumThumbnail(albumPath, imagePath);
-        return respondSuccessMessage(`Album [${albumPath}] thumbnail set to [${imagePath}]`);
+        return respondSuccessMessage(event, `Album [${albumPath}] thumbnail set to [${imagePath}]`);
     } catch (e) {
-        return handleHttpExceptions(e);
+        return handleHttpExceptions(event, e);
     }
 };

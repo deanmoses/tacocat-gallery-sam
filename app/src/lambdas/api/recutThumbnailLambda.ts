@@ -18,8 +18,8 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         const imagePath = getImagePath(event);
         const crop: Rectangle = getBodyAsJson(event);
         await recutThumbnail(imagePath, crop);
-        return respondSuccessMessage(`Image [${imagePath}] thumbnail re-cut]`);
+        return respondSuccessMessage(event, `Image [${imagePath}] thumbnail re-cut]`);
     } catch (e) {
-        return handleHttpExceptions(e);
+        return handleHttpExceptions(event, e);
     }
 };

@@ -14,11 +14,11 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         ensureHttpMethod(event, HttpMethod.GET);
         const album = await getLatestAlbum();
         if (!album) {
-            return respondHttp({});
+            return respondHttp(event, {});
         } else {
-            return respondHttp(album);
+            return respondHttp(event, album);
         }
     } catch (e) {
-        return handleHttpExceptions(e);
+        return handleHttpExceptions(event, e);
     }
 };

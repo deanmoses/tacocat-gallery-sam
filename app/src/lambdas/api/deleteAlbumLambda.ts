@@ -11,8 +11,8 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         ensureHttpMethod(event, HttpMethod.DELETE);
         const albumPath = getAlbumPath(event);
         await deleteAlbum(albumPath);
-        return respondSuccessMessage(`Album [${albumPath}] deleted`);
+        return respondSuccessMessage(event, `Album [${albumPath}] deleted`);
     } catch (e) {
-        return handleHttpExceptions(e);
+        return handleHttpExceptions(event, e);
     }
 };

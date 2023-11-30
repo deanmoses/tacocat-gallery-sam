@@ -803,6 +803,11 @@ Resources:
         Authorizers:
           CognitoAuthorizer:
             UserPoolArn: !Ref CognitoUserPoolArn
+      Cors:
+        AllowMethods: "'GET,OPTIONS'"
+        AllowHeaders: "'content-type,origin'"
+        AllowOrigin: "'https://*.tacocat.com'"
+        AllowCredentials: true
 
   # ---------------------------------------------------------------------------
   # Lambda that processes uploaded image, extracts metadata and saves to DyanmoDB

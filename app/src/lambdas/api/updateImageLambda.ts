@@ -17,8 +17,8 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         const imagePath = getImagePath(event);
         const attributesToUpdate = getBodyAsJson(event);
         await updateImage(imagePath, attributesToUpdate);
-        return respondSuccessMessage(`Updated image [${imagePath}]`);
+        return respondSuccessMessage(event, `Updated image [${imagePath}]`);
     } catch (e) {
-        return handleHttpExceptions(e);
+        return handleHttpExceptions(event, e);
     }
 };

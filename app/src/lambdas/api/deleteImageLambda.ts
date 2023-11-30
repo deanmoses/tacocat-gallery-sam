@@ -11,8 +11,8 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         ensureHttpMethod(event, HttpMethod.DELETE);
         const imagePath = getImagePath(event);
         await deleteImage(imagePath);
-        return respondSuccessMessage(`Image [${imagePath}] deleted`);
+        return respondSuccessMessage(event, `Image [${imagePath}] deleted`);
     } catch (e) {
-        return handleHttpExceptions(e);
+        return handleHttpExceptions(event, e);
     }
 };

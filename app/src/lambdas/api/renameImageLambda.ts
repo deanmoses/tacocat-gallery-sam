@@ -17,8 +17,8 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         const imagePath = getImagePath(event);
         const newName = getBodyAsJson(event)?.newName;
         const newImagePath = await renameImage(imagePath, newName);
-        return respondSuccessMessage(`Renamed image [${imagePath}] to [${newImagePath}]`);
+        return respondSuccessMessage(event, `Renamed image [${imagePath}] to [${newImagePath}]`);
     } catch (e) {
-        return handleHttpExceptions(e);
+        return handleHttpExceptions(event, e);
     }
 };

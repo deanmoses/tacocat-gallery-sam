@@ -17,8 +17,8 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         const albumPath = getAlbumPath(event);
         const newName = getBodyAsJson(event)?.newName;
         const newAlbumPath = await renameAlbum(albumPath, newName);
-        return respondSuccessMessage(`Renamed album [${albumPath}] to [${newAlbumPath}]`);
+        return respondSuccessMessage(event, `Renamed album [${albumPath}] to [${newAlbumPath}]`);
     } catch (e) {
-        return handleHttpExceptions(e);
+        return handleHttpExceptions(event, e);
     }
 };

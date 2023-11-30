@@ -11,8 +11,8 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         ensureHttpMethod(event, HttpMethod.GET);
         const searchTerms = event?.pathParameters?.searchTerms;
         const searchResults = await search(searchTerms);
-        return respondHttp(searchResults);
+        return respondHttp(event, searchResults);
     } catch (e) {
-        return handleHttpExceptions(e);
+        return handleHttpExceptions(event, e);
     }
 };
