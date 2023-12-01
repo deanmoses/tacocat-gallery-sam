@@ -114,18 +114,12 @@ tacocat-gallery-sam$ sam logs --include-traces --tail
 
 This tails ALL the Lambda functions in your AWS account:
 
-```bash
-tacocat-gallery-sam$ sam logs -n HelloWorldFunction --tail
-```
-
-This works for all AWS Lambda functions, not just the ones deployed using SAM.
-
 ## Cleanup
 
 To entirely delete the application from AWS:
 
 ```bash
-sam delete --stack-name tacocat-gallery-sam
+sam delete
 ```
 
-⚠️ :warning: This _might_ delete the S3 bucket with all the photos and the DynamoDB database, though I _think_ it's set up not to delete them if they contain stuff.
+⚠️ :warning: This _should_ delete the dev version.  But since I've never tested it, this _might_ delete the prod version with the S3 bucket with all the photos and the DynamoDB database, though I _think_ it's set up not to delete them if they contain stuff.
