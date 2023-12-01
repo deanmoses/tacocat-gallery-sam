@@ -29,12 +29,12 @@ Parameters:
     Default: dev # For prod, set in samconfig.toml
   GalleryAppDomain:
     Type: String
-    Default: staging-pix.tacocat.com
-    Description: Domain of the Tacocat photo gallery web app, like pix.tacocat.com # For prod, set in samconfig.toml
-  ApiDomainCertificateArn:
+    Description: Domain of the Tacocat photo gallery web app 
+    Default: staging-pix.tacocat.com # For prod, set in samconfig.toml
+  DomainCertificateArn:
     Type: String
     Description: ARN of the ACM certificate for the GalleryAppDomain domain
-    Default: arn:aws:acm:us-east-1:010410881828:certificate/a85d1634-2234-4a5d-b59a-9a38e9ca7747 # For prod, set in samconfig.toml
+    Default: arn:aws:acm:us-east-1:010410881828:certificate/092ab57c-f87d-4c44-a72c-63cfbbb55800 # For prod, set in samconfig.toml
   CognitoUserPoolArn:
     Type: String
     Description: ARN of the Cognito User Pool for gallery admins
@@ -56,7 +56,7 @@ Globals:
     Name: !Sub "Tacocat Gallery API - ${StageName}"
     Domain:
       DomainName: !Sub "api.${GalleryAppDomain}"
-      CertificateArn: !Ref ApiDomainCertificateArn
+      CertificateArn: !Ref DomainCertificateArn
     Cors:
       AllowMethods: "'GET,OPTIONS,POST,PUT,PATCH,DELETE'"
       AllowHeaders: "'content-type,origin'"
@@ -167,12 +167,14 @@ Resources:
     Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:
-        Comment: !Sub Images for ${AWS::StackName}
         Enabled: true
-        # Aliases: # Custom domain
-        #   - YOUR CNAME HERE # For tacocat.com, must be configured in DreamHost
+        Comment: !Sub Images for ${AWS::StackName}
+        Aliases:
+        - !Sub img.${GalleryAppDomain}
         ViewerCertificate:
-          CloudFrontDefaultCertificate: true
+          AcmCertificateArn: !Ref DomainCertificateArn
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
         Origins:
           - Id: original-images-bucket
             DomainName: !GetAtt OriginalImagesBucket.DomainName
