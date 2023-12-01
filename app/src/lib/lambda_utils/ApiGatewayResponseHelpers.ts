@@ -30,9 +30,9 @@ export function respondHttp(event: APIGatewayProxyEvent, body: object, statusCod
         body: JSON.stringify(body),
         headers: {
             'Access-Control-Allow-Headers': 'X-Requested-With,Content-Type',
-            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS, POST, PUT, PATCH, DELETE',
             'Access-Control-Allow-Credentials': 'true',
-            'Access-Control-Allow-Origin': event.headers.origin || '*',
+            'Access-Control-Allow-Origin': event.headers.origin || '*', // The * is wrong: can't have a wildcard origin with credentials.  However, I assume we'll always get an origin header?
         },
     };
 }

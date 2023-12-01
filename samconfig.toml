@@ -6,11 +6,6 @@ version = 0.1
 [default.global.parameters]
 stack_name = "tacocat-gallery-sam-dev"
 
-[prod]
-[prod.global]
-[prod.global.parameters]
-stack_name = "tacocat-gallery-sam-prod"
-
 [default.validate.parameters]
 lint = true
 
@@ -38,8 +33,15 @@ region = "us-east-1"
 image_repositories = []
 capabilities = "CAPABILITY_IAM"
 
+[prod]
+[prod.global]
+[prod.global.parameters]
+stack_name = "tacocat-gallery-sam-prod"
+
+[prod.sync]
+[prod.sync.parameters]
+watch = false
+
 [prod.deploy.parameters]
 s3_prefix = "tacocat-gallery-sam/prod"
-region = "eu-west-1"
-capabilities = "CAPABILITY_IAM"
-parameter_overrides = "Environment=prod"
+parameter_overrides = "Environment=prod StageName=prod"

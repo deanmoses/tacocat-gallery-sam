@@ -23,9 +23,21 @@ Description: Tacocat Gallery SAM App
 # This is the only way to define constants for use elsewhere in the template
 # -----------------------------------------------------------------------------
 Parameters:
+  StageName:
+    Type: String
+    Description: Either 'dev' or 'prod'
+    Default: dev # For prod, set in samconfig.toml
+  GalleryAppDomain:
+    Type: String
+    Default: staging-pix.tacocat.com
+    Description: Domain of the Tacocat photo gallery web app, like pix.tacocat.com # For prod, set in samconfig.toml
+  ApiDomainCertificateArn:
+    Type: String
+    Description: ARN of the ACM certificate for the GalleryAppDomain domain
+    Default: arn:aws:acm:us-east-1:010410881828:certificate/a85d1634-2234-4a5d-b59a-9a38e9ca7747 # For prod, set in samconfig.toml
   CognitoUserPoolArn:
     Type: String
-    Description: ARN of the Cognito User Pool for Tacocat Gallery Admins
+    Description: ARN of the Cognito User Pool for gallery admins
     Default: arn:aws:cognito-idp:us-east-1:010410881828:userpool/us-east-1_DdPFtamLz
   SharpLayerArn:
     Type: String
@@ -40,6 +52,22 @@ Globals:
     Runtime: nodejs18.x
     MemorySize: 256
     Timeout: 100
+  Api:
+    Name: !Sub "Tacocat Gallery API - ${StageName}"
+    Domain:
+      DomainName: !Sub "api.${GalleryAppDomain}"
+      CertificateArn: !Ref ApiDomainCertificateArn
+    Cors:
+      AllowMethods: "'GET,OPTIONS,POST,PUT,PATCH,DELETE'"
+      AllowHeaders: "'content-type,origin'"
+      AllowOrigin: !Sub "'https://*.${GalleryAppDomain}'"
+      AllowCredentials: true
+    Auth:
+      Authorizers:
+        CognitoAuthorizer:
+          UserPoolArn: !Ref CognitoUserPoolArn
+
+
 
 # -----------------------------------------------------------------------------
 # Resources are the actual assets that will be provisioned on AWS
@@ -139,7 +167,7 @@ Resources:
     Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:
-        Comment: !Sub Distributes the images for ${AWS::StackName}
+        Comment: !Sub Images for ${AWS::StackName}
         Enabled: true
         # Aliases: # Custom domain
         #   - YOUR CNAME HERE # For tacocat.com, must be configured in DreamHost
@@ -253,6 +281,7 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-GenerateDerivedImage
       CodeUri: app/src/lambdas/generateDerivedImage/
       Handler: generateDerivedImageLambda.handler
+      Description: Generates derived images
       Environment:
         Variables:
           ORIGINAL_IMAGES_BUCKET: !Ref OriginalImagesBucket
@@ -289,12 +318,11 @@ Resources:
       Handler: searchLambda.handler
       Description: API Gateway lambda to search for albums and images in DynamoDB
       Events:
-        ApiEvent:
+        Api:
           Type: Api
           Properties:
             Path: /search/{searchTerms+}
             Method: GET
-            RestApiId: !Ref ImageApi
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -320,12 +348,11 @@ Resources:
       Handler: getLatestAlbumLambda.handler
       Description: API Gateway lambda function that gets the latest album from DynamoDB
       Events:
-        ApiEvent:
+        Api:
           Type: Api
           Properties:
             Path: /latest-album
             Method: GET
-            RestApiId: !Ref ImageApi
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -351,18 +378,16 @@ Resources:
       Handler: albumExistsLambda.handler
       Description: API Gateway function to determine whether album exists
       Events:
-        ApiEvent:
+        Api:
           Type: Api
           Properties:
             Path: /album/{albumPath+}
             Method: HEAD
-            RestApiId: !Ref ImageApi
         ApiRootEvent:
           Type: Api
           Properties:
             Path: /album # root album
             Method: HEAD
-            RestApiId: !Ref ImageApi
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -388,12 +413,11 @@ Resources:
       Handler: imageExistsLambda.handler
       Description: API Gateway function to determine whether image exists
       Events:
-        ApiEvent:
+        Api:
           Type: Api
           Properties:
             Path: /image/{imagePath+}
             Method: HEAD
-            RestApiId: !Ref ImageApi
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -419,18 +443,16 @@ Resources:
       Handler: getAlbumLambda.handler
       Description: API Gateway function that returns an album and its children from DynamoDB
       Events:
-        ApiEvent:
+        Api:
           Type: Api
           Properties:
             Path: /album/{albumPath+}
             Method: GET
-            RestApiId: !Ref ImageApi
         ApiRootEvent:
           Type: Api
           Properties:
             Path: /album # root album
             Method: GET
-            RestApiId: !Ref ImageApi
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -456,12 +478,11 @@ Resources:
       Handler: createAlbumLambda.handler
       Description: API Gateway function that creates a new album in DynamoDB
       Events:
-        ApiEvent:
+        Api:
           Type: Api
           Properties:
             Path: /album/{albumPath+}
             Method: PUT
-            RestApiId: !Ref ImageApi
       #           Auth:
       #             Authorizer: CognitoAuthorizer
       Environment:
@@ -489,12 +510,11 @@ Resources:
       Handler: updateAlbumLambda.handler
       Description: API Gateway function that updates an existing album in DynamoDB
       Events:
-        ApiEvent:
+        Api:
           Type: Api
           Properties:
             Path: /album/{albumPath+}
             Method: PATCH
-            RestApiId: !Ref ImageApi
       #           Auth:
       #             Authorizer: CognitoAuthorizer
       Environment:
@@ -527,12 +547,11 @@ Resources:
       Handler: updateImageLambda.handler
       Description: API Gateway function that updates an existing image in DynamoDB
       Events:
-        ApiEvent:
+        Api:
           Type: Api
           Properties:
             Path: /image/{imagePath+}
             Method: PATCH
-            RestApiId: !Ref ImageApi
       #            Auth:
       #              Authorizer: CognitoAuthorizer
       Environment:
@@ -565,12 +584,11 @@ Resources:
       Handler: setAlbumThumbnailLambda.handler
       Description: API Gateway function that sets an album's thumbnail in DynamoDB
       Events:
-        ApiEvent:
+        Api:
           Type: Api
           Properties:
             Path: /album-thumb/{albumPath+}
             Method: PATCH
-            RestApiId: !Ref ImageApi
       #            Auth:
       #              Authorizer: CognitoAuthorizer
       Environment:
@@ -598,12 +616,11 @@ Resources:
       Handler: recutThumbnailLambda.handler
       Description: API Gateway function recuts an album's thumbnail in DynamoDB
       Events:
-        ApiEvent:
+        Api:
           Type: Api
           Properties:
             Path: /thumb/{imagePath+}
             Method: PATCH
-            RestApiId: !Ref ImageApi
       #            Auth:
       #              Authorizer: CognitoAuthorizer
       Environment:
@@ -631,12 +648,11 @@ Resources:
       Handler: renameImageLambda.handler
       Description: API Gateway function that renames an image in DynamoDB and S3
       Events:
-        ApiEvent:
+        Api:
           Type: Api
           Properties:
             Path: /image-rename/{imagePath+}
             Method: POST
-            RestApiId: !Ref ImageApi
       #            Auth:
       #              Authorizer: CognitoAuthorizer
       Environment:
@@ -675,12 +691,11 @@ Resources:
       Handler: renameAlbumLambda.handler
       Description: API Gateway function that renames an album in DynamoDB and S3
       Events:
-        ApiEvent:
+        Api:
           Type: Api
           Properties:
             Path: /album-rename/{albumPath+}
             Method: POST
-            RestApiId: !Ref ImageApi
       #            Auth:
       #              Authorizer: CognitoAuthorizer
       Environment:
@@ -719,12 +734,11 @@ Resources:
       Handler: deleteAlbumLambda.handler
       Description: API Gateway function that deletes an album from DynamoDB
       Events:
-        ApiEvent:
+        Api:
           Type: Api
           Properties:
             Path: /album/{albumPath+}
             Method: DELETE
-            RestApiId: !Ref ImageApi
       #            Auth:
       #              Authorizer: CognitoAuthorizer
       Environment:
@@ -757,12 +771,11 @@ Resources:
       Handler: deleteImageLambda.handler
       Description: API Gateway function that deletes an image from DynamoDB and S3
       Events:
-        ApiEvent:
+        Api:
           Type: Api
           Properties:
             Path: /image/{imagePath+}
             Method: DELETE
-            RestApiId: !Ref ImageApi
       #            Auth:
       #              Authorizer: CognitoAuthorizer
       Environment:
@@ -790,24 +803,6 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - deleteImageLambda.ts
-
-  # ---------------------------------------------------------------------------
-  # API Gateway Image API
-  # ---------------------------------------------------------------------------
-  ImageApi:
-    Type: AWS::Serverless::Api
-    Properties:
-      Name: Tacocat Gallery Image API
-      StageName: Prod
-      Auth:
-        Authorizers:
-          CognitoAuthorizer:
-            UserPoolArn: !Ref CognitoUserPoolArn
-      Cors:
-        AllowMethods: "'GET,OPTIONS'"
-        AllowHeaders: "'content-type,origin'"
-        AllowOrigin: "'https://*.tacocat.com'"
-        AllowCredentials: true
 
   # ---------------------------------------------------------------------------
   # Lambda that processes uploaded image, extracts metadata and saves to DyanmoDB
@@ -847,12 +842,16 @@ Resources:
 # Outputs
 # -----------------------------------------------------------------------------
 Outputs:
-  ImageApi:
-    Description: URL of Image API - Prod stage
-    Value: !Sub https://${ImageApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/
+  AwsApi:
+    Description: AWS API URL (not used)
+    Value: !Sub https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Stage/
+
+  Api:
+      Description: API URL (use this)
+      Value: !Sub "https://api.${GalleryAppDomain}"
 
   ImageDomain:
-    Description: URL of CloudFront CDN image distribution
+    Description: CloudFront image distribution
     Value: !Sub https://${ImageDistribution.DomainName}/
 
   GenerateDerivedImageUrl:
