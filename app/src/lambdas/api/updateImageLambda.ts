@@ -6,6 +6,7 @@ import {
     getBodyAsJson,
     getImagePath,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
+import { ensureAuthorized } from '../../lib/lambda_utils/AuthorizationHelpers';
 import { updateImage } from '../../lib/gallery/updateImage/updateImage';
 
 /**
@@ -14,6 +15,7 @@ import { updateImage } from '../../lib/gallery/updateImage/updateImage';
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
         ensureHttpMethod(event, HttpMethod.PATCH);
+        ensureAuthorized(event);
         const imagePath = getImagePath(event);
         const attributesToUpdate = getBodyAsJson(event);
         await updateImage(imagePath, attributesToUpdate);

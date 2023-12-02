@@ -78,5 +78,5 @@ export async function getChildItems(
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);
     const results = await docClient.send(ddbCommand);
-    return results.Items;
+    return results?.Items;
 }

@@ -1,5 +1,5 @@
 import createFuzzySearch, { FuzzyResult } from '@nozbe/microfuzz';
-import { BaseGalleryRecord } from '../galleryTypes';
+import { AlbumItem, BaseGalleryRecord } from '../galleryTypes';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
@@ -23,6 +23,14 @@ export async function search(searchTerms: string | undefined): Promise<FuzzyResu
     let searchResults = searchInHaystack(searchTerms, haystack);
     console.info(`Search: searched gallery for [${searchTerms}].  Item count [${searchResults.length}]`);
     if (!!searchResults) {
+        // filter out unpublished albums
+        // TODO: filter out images in upublished albums - I have the haystack with all the albums, so I can do this w/o any further calls to DynamoDB
+        searchResults = searchResults.filter(
+            (result) =>
+                result.item.itemType === 'image' ||
+                (result.item.itemType === 'album' && (result.item as AlbumItem).published),
+        );
+        // add path to each item
         searchResults = searchResults.map((result) => {
             result.item.path = toPathFromItem(result.item);
             return result;

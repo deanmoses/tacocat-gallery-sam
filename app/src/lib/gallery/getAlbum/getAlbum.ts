@@ -20,11 +20,14 @@ import { getDynamoDbTableName } from '../../lambda_utils/Env';
  *
  * @param albumPath Path of album, like /2001/12-31/
  */
-export async function getAlbumAndChildren(albumPath: string): Promise<Album | undefined> {
+export async function getAlbumAndChildren(
+    albumPath: string,
+    includeUnpublishedAlbums: boolean = false,
+): Promise<Album | undefined> {
     if (!isValidAlbumPath(albumPath)) throw new BadRequestException(`Malformed album path: [${albumPath}]`);
-    const album = await getAlbum(albumPath);
-    if (!album) return undefined;
-    album.children = await getChildren(albumPath);
+    const album = await getAlbum(albumPath, includeUnpublishedAlbums);
+    if (!album) return;
+    album.children = await getChildren(albumPath, includeUnpublishedAlbums);
     // add album's thumbnail's crop info to the album
     // TODO: this will only work for day albums
     // For year albums, we'll need to get thumbnail info
@@ -48,9 +51,9 @@ export async function getAlbumAndChildren(albumPath: string): Promise<Album | un
 
     // root album is peerless. otherwise, get prev/next album
     if (albumPath !== '/') {
-        const peers = await getPeers(albumPath);
+        const peers = await getPeers(albumPath, includeUnpublishedAlbums);
         if (!!peers) {
-            const nav = getPrevAndNext(albumPath, peers);
+            const nav = getPrevAndNext(albumPath, peers, includeUnpublishedAlbums);
             album.next = nav.next;
             album.prev = nav.prev;
         }
@@ -63,7 +66,10 @@ export async function getAlbumAndChildren(albumPath: string): Promise<Album | un
  *
  * @param albumPath Path of album, like /2001/12-31/
  */
-export async function getAlbum(albumPath: string): Promise<Album | undefined> {
+export async function getAlbum(
+    albumPath: string,
+    includeUnpublishedAlbums: boolean = false,
+): Promise<Album | undefined> {
     if (!isValidAlbumPath(albumPath)) {
         throw new BadRequestException(`Malformed album path: [${albumPath}]`);
     }
@@ -86,7 +92,9 @@ export async function getAlbum(albumPath: string): Promise<Album | undefined> {
             'thumbnail',
             'published',
         ]);
-        if (!!album) album.path = toPathFromItem(album);
+        if (!album) return;
+        if (!album.published && !includeUnpublishedAlbums) return;
+        album.path = toPathFromItem(album);
         return album;
     }
 }
@@ -97,7 +105,10 @@ export async function getAlbum(albumPath: string): Promise<Album | undefined> {
  *
  * @param albumPath Path of album, like /2001/12-31/
  */
-async function getChildren(albumPath: string): Promise<Array<GalleryItem> | undefined> {
+async function getChildren(
+    albumPath: string,
+    includeUnpublishedAlbums: boolean,
+): Promise<Array<GalleryItem> | undefined> {
     let children = await getChildItems(albumPath, [
         'parentPath',
         'itemName',
@@ -113,12 +124,18 @@ async function getChildren(albumPath: string): Promise<Array<GalleryItem> | unde
         'dimensions', // for images
     ]);
     if (!!children) {
+        // Add path to each child
         children = children.map((child) => {
             child.path = toPathFromItem(child);
             return child;
         });
-        // If it's a root or year album
+        // If the children are albums not images (meaning it's a root or year album, not a day album)
         if (!isValidDayAlbumPath(albumPath)) {
+            if (!includeUnpublishedAlbums) {
+                // Filter out unpublished albums
+                children = (children as AlbumItem[]).filter((child) => child.published);
+            }
+            // Augment album thumbnail entries with info from the image record in DynamoDB
             await addCropInfoToChildAlbums(children as AlbumItem[]);
         }
     }
@@ -128,9 +145,14 @@ async function getChildren(albumPath: string): Promise<Array<GalleryItem> | unde
 /**
  * Get the peers of this album, so as to do prev/next
  */
-async function getPeers(albumPath: string): Promise<Array<GalleryItem> | undefined> {
+async function getPeers(albumPath: string, includeUnpublishedAlbums: boolean): Promise<Array<GalleryItem> | undefined> {
     const parentAlbumPath = getParentFromPath(albumPath);
-    return await getChildItems(parentAlbumPath, ['parentPath', 'itemName', 'itemType', 'published', 'title']);
+    let peers = await getChildItems(parentAlbumPath, ['parentPath', 'itemName', 'itemType', 'published', 'title']);
+    // If we're only including published albums, and the album contains child albums (meaning it's a root or year album, not a day album)
+    if (peers && !includeUnpublishedAlbums && !isValidDayAlbumPath(albumPath)) {
+        peers = (peers as AlbumItem[])?.filter((peer) => peer.published);
+    }
+    return peers;
 }
 
 /**
@@ -142,7 +164,7 @@ async function getPeers(albumPath: string): Promise<Array<GalleryItem> | undefin
  * @param path Path of the item, like /2001/12-31/ or /2001/12-31/felix.jpg
  * @param peers The item and its peers
  */
-function getPrevAndNext(path: string, peers: GalleryItem[]): Navigable {
+function getPrevAndNext(path: string, peers: GalleryItem[], includeUnpublishedAlbums: boolean): Navigable {
     const pathParts = getParentAndNameFromPath(path);
     const nav: Navigable = {};
     if (!!peers) {
@@ -152,13 +174,17 @@ function getPrevAndNext(path: string, peers: GalleryItem[]): Navigable {
             if (!foundCurrent) {
                 if (peer.itemName === pathParts.name) {
                     foundCurrent = true;
-                } else if (peer.itemType === 'image' || ('published' in peer && peer.published)) {
+                } else if (
+                    peer.itemType === 'image' ||
+                    includeUnpublishedAlbums ||
+                    ('published' in peer && peer.published)
+                ) {
                     nav.prev = itemNav(peer);
                 }
             }
             // else we're past the current item and searching for the next published album
             else {
-                if (peer.itemType === 'image' || ('published' in peer && peer.published)) {
+                if (peer.itemType === 'image' || includeUnpublishedAlbums || ('published' in peer && peer.published)) {
                     nav.next = itemNav(peer);
                     return true; // functions as a break, stops the execution of some()
                 }
@@ -178,6 +204,11 @@ function itemNav(item: GalleryItem): NavInfo {
     return nav;
 }
 
+/**
+ * Augment each child album's thumbnail entry with info from the image record in DynamoDB
+ *
+ * @param children child albums of an album
+ */
 async function addCropInfoToChildAlbums(children: AlbumItem[]): Promise<void> {
     const Keys: { parentPath: string; itemName: string }[] = [];
     if (!children || children.length === 0) return;

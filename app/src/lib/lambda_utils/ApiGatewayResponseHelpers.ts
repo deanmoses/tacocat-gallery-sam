@@ -1,6 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { NotFoundException } from './NotFoundException';
 import { BadRequestException } from './BadRequestException';
+import { UnauthorizedException } from './UnauthorizedException';
 import { ServerException } from './ServerException';
 import { getGalleryAppDomain } from './Env';
 
@@ -47,6 +48,8 @@ export function handleHttpExceptions(event: APIGatewayProxyEvent, e: unknown): A
         return respondHttp(event, { errorMessage: e.message }, 400);
     } else if (e instanceof NotFoundException) {
         return respond404NotFound(event, e.message);
+    } else if (e instanceof UnauthorizedException) {
+        return respondHttp(event, { errorMessage: e.message }, 401);
     } else if (e instanceof ServerException) {
         return respondHttp(event, { errorMessage: e.message }, 500);
     }

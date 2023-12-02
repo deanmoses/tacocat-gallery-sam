@@ -62,13 +62,9 @@ Globals:
       CertificateArn: !Ref DomainCertificateArn
     Cors:
       AllowMethods: "'GET,OPTIONS,POST,PUT,PATCH,DELETE'"
-      AllowHeaders: "'content-type,origin'"
+      AllowHeaders: "'Content-Type'"
       AllowOrigin: !Sub "'https://${GalleryAppDomain}'"
       AllowCredentials: true
-    Auth:
-      Authorizers:
-        CognitoAuthorizer:
-          UserPoolArn: !Ref CognitoUserPoolArn
 
 # -----------------------------------------------------------------------------
 # Resources are the actual AWS assets to be provisioned
@@ -486,8 +482,6 @@ Resources:
           Properties:
             Path: /album/{albumPath+}
             Method: PUT
-      #           Auth:
-      #             Authorizer: CognitoAuthorizer
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -518,8 +512,6 @@ Resources:
           Properties:
             Path: /album/{albumPath+}
             Method: PATCH
-      #           Auth:
-      #             Authorizer: CognitoAuthorizer
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -555,8 +547,6 @@ Resources:
           Properties:
             Path: /image/{imagePath+}
             Method: PATCH
-      #            Auth:
-      #              Authorizer: CognitoAuthorizer
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -592,8 +582,6 @@ Resources:
           Properties:
             Path: /album-thumb/{albumPath+}
             Method: PATCH
-      #            Auth:
-      #              Authorizer: CognitoAuthorizer
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -624,8 +612,6 @@ Resources:
           Properties:
             Path: /thumb/{imagePath+}
             Method: PATCH
-      #            Auth:
-      #              Authorizer: CognitoAuthorizer
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -656,8 +642,6 @@ Resources:
           Properties:
             Path: /image-rename/{imagePath+}
             Method: POST
-      #            Auth:
-      #              Authorizer: CognitoAuthorizer
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -699,8 +683,6 @@ Resources:
           Properties:
             Path: /album-rename/{albumPath+}
             Method: POST
-      #            Auth:
-      #              Authorizer: CognitoAuthorizer
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -742,8 +724,6 @@ Resources:
           Properties:
             Path: /album/{albumPath+}
             Method: DELETE
-      #            Auth:
-      #              Authorizer: CognitoAuthorizer
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -779,8 +759,6 @@ Resources:
           Properties:
             Path: /image/{imagePath+}
             Method: DELETE
-      #            Auth:
-      #              Authorizer: CognitoAuthorizer
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable

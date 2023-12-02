@@ -5,7 +5,8 @@ import {
     respondSuccessMessage,
 } from '../../lib/lambda_utils/ApiGatewayResponseHelpers';
 import { HttpMethod, ensureHttpMethod, getImagePath } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
-import { itemExists } from '../../lib/gallery/itemExists/itemExists';
+import { imageExists } from '../../lib/gallery/itemExists/itemExists';
+import { isAuthenticated } from '../../lib/lambda_utils/AuthorizationHelpers';
 
 /**
  * A Lambda function that responds whether an image exists or not
@@ -14,8 +15,9 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
     try {
         ensureHttpMethod(event, HttpMethod.HEAD);
         const imagePath = getImagePath(event);
-        const imageExists = await itemExists(imagePath);
-        return imageExists ? respondSuccessMessage(event, 'Image Found') : respond404NotFound(event, 'Image Not Found');
+        const includeUnpublishedAlbums = await isAuthenticated(event);
+        const exists = await imageExists(imagePath, includeUnpublishedAlbums);
+        return exists ? respondSuccessMessage(event, 'Image Found') : respond404NotFound(event, 'Image Not Found');
     } catch (e) {
         return handleHttpExceptions(event, e);
     }

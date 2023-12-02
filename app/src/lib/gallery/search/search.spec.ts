@@ -1,6 +1,6 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
-import { GalleryItem, ImageItem } from '../galleryTypes';
+import { AlbumItem, GalleryItem, ImageItem } from '../galleryTypes';
 import { search } from './search';
 
 const mockDDBClient = mockClient(DynamoDBDocumentClient);
@@ -76,6 +76,14 @@ test('Should find diacriticals', async () => {
     expect((searchResults[0].item as ImageItem).title).toBe('Café Français');
 });
 
+test('Should not return unpublished albums', async () => {
+    mockDDBClient.on(ScanCommand).resolves({ Items: mockScanResults }); // Mock out the DDB table scan
+    const searchResults = await search('pppp');
+    expect(searchResults.length).toBe(1);
+    expect((searchResults[0].item as AlbumItem).path).toBe('/2018/01-26/');
+});
+
+test.todo('Should not return images in unpublished albums');
 test.todo('Should search 35k images fast enough');
 
 const mockScanResults: GalleryItem[] = [
@@ -85,6 +93,7 @@ const mockScanResults: GalleryItem[] = [
         thumbnail: { versionId: '123456789', path: '/2023/01-01/image.jpg' },
         parentPath: '/2023/',
         itemName: '01-01',
+        published: true,
     },
     { itemType: 'album', updatedOn: '2023-10-26T08:37:27.428Z', parentPath: '/2023/', itemName: '01-07' },
     {
@@ -93,22 +102,70 @@ const mockScanResults: GalleryItem[] = [
         thumbnail: { versionId: '123456789', path: '/2001/01-01/image.jpg' },
         parentPath: '/2001/',
         itemName: '01-01',
+        published: true,
     },
     {
-        updatedOn: '2023-11-02T07:55:45.847Z',
         itemType: 'album',
+        updatedOn: '2023-11-02T07:55:45.847Z',
         thumbnail: { versionId: '123456789', path: '/2001/12-31/new_name.jpg' },
         parentPath: '/2001/',
         itemName: '12-31',
+        published: true,
     },
     { itemType: 'album', updatedOn: '2023-10-26T23:23:48.108Z', parentPath: '/2003/', itemName: '01-01' },
+    { itemType: 'album', updatedOn: '2023-11-06T06:55:26.287Z', parentPath: '/', itemName: '1949', published: true },
     {
-        updatedOn: '2023-10-27T04:38:02.690Z',
         itemType: 'album',
+        updatedOn: '2023-11-06T00:48:51.138Z',
+        description: "Here's what we did this year",
+        parentPath: '/',
+        itemName: '2001',
+        title: '',
+        published: true,
+    },
+    {
+        itemType: 'album',
+        updatedOn: '2023-10-23T16:05:35.650Z',
+        parentPath: '/',
+        itemName: '2002',
+        title: 'My Brand New Title',
+        published: true,
+    },
+    { itemType: 'album', updatedOn: '2023-10-23T22:34:38.741Z', parentPath: '/', itemName: '2003', published: true },
+    { itemType: 'album', updatedOn: '2023-10-23T22:35:51.477Z', parentPath: '/', itemName: '2004', published: true },
+    { itemType: 'album', updatedOn: '2023-10-23T22:43:25.557Z', parentPath: '/', itemName: '2005', published: true },
+    { itemType: 'album', updatedOn: '2023-10-24T15:00:14.905Z', parentPath: '/', itemName: '2023', published: true },
+    {
+        itemType: 'album',
+        updatedOn: '2023-10-27T04:45:57.951Z',
+        parentPath: '/2019/',
+        itemName: '01-24',
+        published: true,
+    },
+    {
+        itemType: 'album',
+        updatedOn: '2023-10-27T04:38:02.690Z',
         description: 'Updated description 1',
         parentPath: '/2018/',
         itemName: '01-24',
         title: 'A space rocket',
+        published: true,
+    },
+    {
+        itemType: 'album',
+        updatedOn: '2023-10-27T04:38:02.690Z',
+        description: 'pppp unpublished',
+        parentPath: '/2018/',
+        itemName: '01-25',
+        /* not published */
+    },
+    {
+        itemType: 'album',
+        updatedOn: '2023-10-27T04:38:02.690Z',
+        description: 'pppp published',
+        parentPath: '/2018/',
+        itemName: '01-26',
+        published: true,
     },
     {
         itemType: 'image',
@@ -275,25 +332,4 @@ const mockScanResults: GalleryItem[] = [
         tags: ['halloween', 'dog', 'parade'],
         title: 'My Image Title',
     },
-    { itemType: 'album', updatedOn: '2023-11-06T06:55:26.287Z', parentPath: '/', itemName: '1949' },
-    {
-        updatedOn: '2023-11-06T00:48:51.138Z',
-        itemType: 'album',
-        description: "Here's what we did this year",
-        parentPath: '/',
-        itemName: '2001',
-        title: '',
-    },
-    {
-        itemType: 'album',
-        updatedOn: '2023-10-23T16:05:35.650Z',
-        parentPath: '/',
-        itemName: '2002',
-        title: 'My Brand New Title',
-    },
-    { itemType: 'album', updatedOn: '2023-10-23T22:34:38.741Z', parentPath: '/', itemName: '2003' },
-    { itemType: 'album', updatedOn: '2023-10-23T22:35:51.477Z', parentPath: '/', itemName: '2004' },
-    { itemType: 'album', updatedOn: '2023-10-23T22:43:25.557Z', parentPath: '/', itemName: '2005' },
-    { itemType: 'album', updatedOn: '2023-10-24T15:00:14.905Z', parentPath: '/', itemName: '2023' },
-    { itemType: 'album', updatedOn: '2023-10-27T04:45:57.951Z', parentPath: '/2019/', itemName: '01-24' },
 ];
