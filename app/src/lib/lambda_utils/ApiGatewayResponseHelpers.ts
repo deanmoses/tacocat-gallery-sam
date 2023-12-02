@@ -2,6 +2,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { NotFoundException } from './NotFoundException';
 import { BadRequestException } from './BadRequestException';
 import { ServerException } from './ServerException';
+import { getGalleryAppDomain } from './Env';
 
 /**
  * Create a 200 OK API Gateway lambda function response
@@ -32,7 +33,7 @@ export function respondHttp(event: APIGatewayProxyEvent, body: object, statusCod
             'Access-Control-Allow-Headers': 'X-Requested-With,Content-Type',
             'Access-Control-Allow-Methods': 'GET, OPTIONS, POST, PUT, PATCH, DELETE',
             'Access-Control-Allow-Credentials': 'true',
-            'Access-Control-Allow-Origin': event.headers.origin || '*', // The * is wrong: can't have a wildcard origin with credentials.  However, I assume we'll always get an origin header?
+            'Access-Control-Allow-Origin': `https://${getGalleryAppDomain()}`,
         },
     };
 }

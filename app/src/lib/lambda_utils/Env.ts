@@ -4,6 +4,14 @@
 let testEnv: Record<string, string>;
 
 /**
+ * The domain serving the HTML of the gallery app,
+ * such as pix.tacocat.com or staging-pix.tacocat.com
+ */
+export function getGalleryAppDomain(): string {
+    return getEnv('GALLERY_APP_DOMAIN');
+}
+
+/**
  * Name of DyanmoDB Table in which Gallery Items are stored
  */
 export function getDynamoDbTableName(): string {

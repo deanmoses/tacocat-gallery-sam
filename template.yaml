@@ -52,6 +52,9 @@ Globals:
     Runtime: nodejs18.x
     MemorySize: 256
     Timeout: 100
+    Environment:
+        Variables:
+          GALLERY_APP_DOMAIN: !Ref GalleryAppDomain
   Api:
     Name: !Sub "Tacocat Gallery API - ${StageName}"
     Domain:
@@ -60,17 +63,15 @@ Globals:
     Cors:
       AllowMethods: "'GET,OPTIONS,POST,PUT,PATCH,DELETE'"
       AllowHeaders: "'content-type,origin'"
-      AllowOrigin: !Sub "'https://*.${GalleryAppDomain}'"
+      AllowOrigin: !Sub "'https://${GalleryAppDomain}'"
       AllowCredentials: true
     Auth:
       Authorizers:
         CognitoAuthorizer:
           UserPoolArn: !Ref CognitoUserPoolArn
 
-
-
 # -----------------------------------------------------------------------------
-# Resources are the actual assets that will be provisioned on AWS
+# Resources are the actual AWS assets to be provisioned
 # -----------------------------------------------------------------------------
 Resources:
   # -----------------------------------------------------------------------------
