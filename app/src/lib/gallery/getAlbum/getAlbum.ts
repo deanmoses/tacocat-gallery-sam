@@ -34,7 +34,6 @@ export async function getAlbumAndChildren(
     // from the leaf images.  Though the album being
     // returned here doeesn't actually need the crop info...
     if (album.thumbnail?.path && album.children) {
-        console.log(`Got children`);
         const imageName = getNameFromPath(album.thumbnail.path);
         if (imageName) {
             const thumbnailImage = findImage(album, imageName);
