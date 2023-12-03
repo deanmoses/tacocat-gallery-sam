@@ -31,7 +31,7 @@ export function respondHttp(event: APIGatewayProxyEvent, body: object, statusCod
         statusCode: statusCode,
         body: JSON.stringify(body),
         headers: {
-            'Access-Control-Allow-Headers': 'X-Requested-With,Content-Type',
+            'Access-Control-Allow-Headers': 'Content-Type',
             'Access-Control-Allow-Methods': 'HEAD, GET, OPTIONS, POST, PUT, PATCH, DELETE',
             'Access-Control-Allow-Credentials': 'true',
             'Access-Control-Allow-Origin': `https://${getGalleryAppDomain()}`,

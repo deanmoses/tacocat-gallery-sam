@@ -35,10 +35,6 @@ Parameters:
     Type: String
     Description: ARN of the ACM certificate for the GalleryAppDomain domain
     Default: arn:aws:acm:us-east-1:010410881828:certificate/092ab57c-f87d-4c44-a72c-63cfbbb55800 # For prod, set in samconfig.toml
-  CognitoUserPoolArn:
-    Type: String
-    Description: ARN of the Cognito User Pool for gallery admins
-    Default: arn:aws:cognito-idp:us-east-1:010410881828:userpool/us-east-1_DdPFtamLz
   SharpLayerArn:
     Type: String
     Description: ARN of the Lambda Layer containing the Sharp image processing library
