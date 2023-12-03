@@ -15,11 +15,11 @@ import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
         ensureHttpMethod(event, HttpMethod.PUT);
-        ensureAuthorized(event);
+        await ensureAuthorized(event);
         const albumPath = getAlbumPath(event);
         const attributesToSet = getBodyAsJson(event);
         await createAlbum(albumPath, attributesToSet);
-        return respondSuccessMessage(event, `Album [${albumPath}] saved`);
+        return respondSuccessMessage(event, `Album [${albumPath}] created`);
     } catch (e) {
         return handleHttpExceptions(event, e);
     }

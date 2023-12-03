@@ -16,7 +16,7 @@ import { Rectangle } from '../generateDerivedImage/focusCrop';
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
         ensureHttpMethod(event, HttpMethod.PATCH);
-        ensureAuthorized(event);
+        await ensureAuthorized(event);
         const imagePath = getImagePath(event);
         const crop: Rectangle = getBodyAsJson(event);
         await recutThumbnail(imagePath, crop);

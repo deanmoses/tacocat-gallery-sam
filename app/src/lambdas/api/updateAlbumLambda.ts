@@ -15,7 +15,7 @@ import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
         ensureHttpMethod(event, HttpMethod.PATCH);
-        ensureAuthorized(event);
+        await ensureAuthorized(event);
         const albumPath = getAlbumPath(event);
         const attributesToUpdate = getBodyAsJson(event);
         await updateAlbum(albumPath, attributesToUpdate);

@@ -10,7 +10,7 @@ import { deleteAlbum } from '../../lib/gallery/deleteAlbum/deleteAlbum';
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
         ensureHttpMethod(event, HttpMethod.DELETE);
-        ensureAuthorized(event);
+        await ensureAuthorized(event);
         const albumPath = getAlbumPath(event);
         await deleteAlbum(albumPath);
         return respondSuccessMessage(event, `Album [${albumPath}] deleted`);

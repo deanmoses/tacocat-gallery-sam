@@ -61,7 +61,7 @@ Globals:
       DomainName: !Sub "api.${GalleryAppDomain}"
       CertificateArn: !Ref DomainCertificateArn
     Cors:
-      AllowMethods: "'GET,OPTIONS,POST,PUT,PATCH,DELETE'"
+      AllowMethods: "'GET,OPTIONS,HEAD,POST,PUT,PATCH,DELETE'"
       AllowHeaders: "'Content-Type'"
       AllowOrigin: !Sub "'https://${GalleryAppDomain}'"
       AllowCredentials: true

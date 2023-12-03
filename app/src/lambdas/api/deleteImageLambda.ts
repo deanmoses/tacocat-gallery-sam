@@ -10,7 +10,7 @@ import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
         ensureHttpMethod(event, HttpMethod.DELETE);
-        ensureAuthorized(event);
+        await ensureAuthorized(event);
         const imagePath = getImagePath(event);
         await deleteImage(imagePath);
         return respondSuccessMessage(event, `Image [${imagePath}] deleted`);
