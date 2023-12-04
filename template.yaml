@@ -99,6 +99,7 @@ Resources:
               - "*"
             ExposedHeaders:
               - ETag
+              - x-amz-version-id # Necessary so that client can receive version ID of uploaded image
 
   # Allow upload from my guest cognito identity pool
   # This was erroring, I think with an invalid principal
