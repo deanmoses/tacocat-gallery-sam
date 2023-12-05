@@ -34,6 +34,7 @@ export async function cleanUpAlbum(albumPath: string): Promise<void> {
     try {
         const children = (await getAlbumAndChildren(albumPath))?.children;
         if (!!children) {
+            // TODO: speed this up by deleting all images in parallel using Promise.allSettled()
             for (const child of children) {
                 try {
                     if (!child.parentPath) throw 'child has no parent path';

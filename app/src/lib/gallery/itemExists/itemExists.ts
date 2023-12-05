@@ -37,7 +37,8 @@ export async function imageExists(imagePath: string, includeUnpublishedAlbums: b
         throw new BadRequestException(`Invalid image path [${imagePath}]`);
     }
     // TODO: this could be optimized by retrieving both the album and the image in one query
-    // but that'd entail owning a lot more code
+    // but that'd entail owning a lot more code.  Another way to speed it up would be to
+    // parallelize the two queries via Promise.allSettled()
     if (!includeUnpublishedAlbums) {
         const albumPath = getParentFromPath(imagePath);
         const parentAlbumExists = await albumExists(albumPath, includeUnpublishedAlbums);
