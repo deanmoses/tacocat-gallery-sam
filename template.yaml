@@ -35,10 +35,6 @@ Parameters:
     Type: String
     Description: ARN of the ACM certificate for the GalleryAppDomain domain
     Default: arn:aws:acm:us-east-1:010410881828:certificate/092ab57c-f87d-4c44-a72c-63cfbbb55800 # For prod, set in samconfig.toml
-  SharpLayerArn:
-    Type: String
-    Description: ARN of the Lambda Layer containing the Sharp image processing library
-    Default: arn:aws:lambda:us-east-1:010410881828:layer:Sharp-0_31_2:1
 
 # -----------------------------------------------------------------------------
 # Configuration properties inherited by all resources, such as Lambda functions
@@ -323,7 +319,9 @@ Resources:
         - S3WritePolicy:
             BucketName: !Ref DerivedImagesBucket
       Layers:
-        - !Ref SharpLayerArn
+        # ARN of the Lambda Layer containing the Sharp image processing library
+        # I tried setting this as a parameter, but it didn't update when I changed it
+        - arn:aws:lambda:us-east-1:010410881828:layer:Sharp-0_33_0:1 
       FunctionUrlConfig:
         AuthType: NONE #TODO: authentication
         InvokeMode: RESPONSE_STREAM
