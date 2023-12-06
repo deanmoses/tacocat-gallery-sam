@@ -23,18 +23,26 @@ Description: Tacocat Gallery SAM App
 # This is the only way to define constants for use elsewhere in the template
 # -----------------------------------------------------------------------------
 Parameters:
-  StageName:
+  Env:
+    Description: Environment for which the infrastructure will be deployed
     Type: String
-    Description: Either 'dev' or 'prod'
-    Default: dev # For prod, set in samconfig.toml
+    AllowedValues:
+      - dev
+      - prod
+    ConstraintDescription: Must be either 'dev' or 'prod'
   GalleryAppDomain:
-    Type: String
     Description: Domain of the Tacocat photo gallery web app 
-    Default: staging-pix.tacocat.com # For prod, set in samconfig.toml
-  DomainCertificateArn:
     Type: String
+    AllowedValues:
+      - staging-pix.tacocat.com
+      - pix.tacocat.com
+    ConstraintDescription: Must be either 'staging-pix.tacocat.com' or 'pix.tacocat.com'
+  DomainCertificateArn:
     Description: ARN of the ACM certificate for the GalleryAppDomain domain
-    Default: arn:aws:acm:us-east-1:010410881828:certificate/092ab57c-f87d-4c44-a72c-63cfbbb55800 # For prod, set in samconfig.toml
+    Type: String
+    AllowedValues:
+      - arn:aws:acm:us-east-1:010410881828:certificate/092ab57c-f87d-4c44-a72c-63cfbbb55800 # staging-pix.tacocat.com
+      - arn:aws:acm:us-east-1:010410881828:certificate/e142cda0-96db-4651-92fd-35dd9a52e9a2 # pix.tacocat.com
 
 # -----------------------------------------------------------------------------
 # Configuration properties inherited by all resources, such as Lambda functions
@@ -48,9 +56,9 @@ Globals:
         Variables:
           GALLERY_APP_DOMAIN: !Ref GalleryAppDomain
   Api:
-    Name: !Sub "Tacocat Gallery API - ${StageName}"
+    Name: !Sub Tacocat Gallery API - ${Env}
     Domain:
-      DomainName: !Sub "api.${GalleryAppDomain}"
+      DomainName: !Sub api.${GalleryAppDomain}
       CertificateArn: !Ref DomainCertificateArn
     Cors:
       AllowMethods: "'GET,OPTIONS,HEAD,POST,PUT,PATCH,DELETE'"
@@ -68,7 +76,7 @@ Resources:
   OriginalImagesBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::StackName}-original-images"
+      BucketName: !Sub ${AWS::StackName}-original-images
       VersioningConfiguration:
         Status: Enabled
       LifecycleConfiguration:
@@ -118,7 +126,7 @@ Resources:
   DerivedImagesBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::StackName}-derived-images"
+      BucketName: !Sub ${AWS::StackName}-derived-images
       # Autodelete derived images after a while
       # If someone asks for them again they'll be regenerated
       LifecycleConfiguration:
@@ -133,7 +141,7 @@ Resources:
   GalleryItemDDBTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub "${AWS::StackName}-gallery-item-table"
+      TableName: !Sub ${AWS::StackName}-gallery-item-table
       AttributeDefinitions:
         - AttributeName: parentPath
           AttributeType: S
@@ -158,7 +166,7 @@ Resources:
     Properties:
       DistributionConfig:
         Enabled: true
-        Comment: !Sub Images forr ${AWS::StackName}
+        Comment: !Sub Images for ${AWS::StackName}
         Aliases:
         - !Sub img.${GalleryAppDomain}
         ViewerCertificate:
@@ -169,11 +177,11 @@ Resources:
           - Id: original-images-bucket
             DomainName: !GetAtt OriginalImagesBucket.DomainName
             S3OriginConfig:
-              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${OriginalImagesCloudFrontOriginAccessIdentity}"
+              OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${OriginalImagesCloudFrontOriginAccessIdentity}
           - Id: derived-images-bucket
             DomainName: !GetAtt DerivedImagesBucket.DomainName
             S3OriginConfig:
-              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${DerivedImagesCloudFrontOriginAccessIdentity}"
+              OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${DerivedImagesCloudFrontOriginAccessIdentity}
           - Id: generate-derived-image-lambda
             DomainName: # parse DomainName from FunctionUrl which looks like 'https://12341232.lambda-url.on.aws/'
               !Select [
@@ -202,6 +210,9 @@ Resources:
               QueryString: false
               Cookies:
                 Forward: none
+#            FunctionAssociations:
+#              - EventType: viewer-request
+#                FunctionARN: !GetAtt DerivedImagesUrlRewriteFunction.Arn
         DefaultCacheBehavior:
           TargetOriginId: original-images-bucket
           Compress: true
@@ -298,6 +309,22 @@ Resources:
       CloudFrontOriginAccessIdentityConfig:
         Comment: !Ref DerivedImagesBucket
 
+  # CloudFront Function to rewrite URL to derived images bucket
+#  DerivedImagesUrlRewriteFunction:
+#    Condition: IsStaticMode
+#    Type: AWS::CloudFront::Function
+#    Properties:
+#      Name: !Sub RewriteDerivedImagesUrl-${AWS::StackName}
+#      AutoPublish: true
+#      FunctionConfig:
+#        Comment: !Sub Rewrite URL to derived images bucket for ${AWS::StackName}
+#        Runtime: cloudfront-js-1.0
+#      FunctionCode: |+2
+#        function handler(event) {
+#          event.request.headers['x-mo-url'] = {value:'MO DID THIS'};
+#          return request;
+#        }
+
   # ---------------------------------------------------------------------------
   # Lambda to generate derived images
   # ---------------------------------------------------------------------------
@@ -330,7 +357,7 @@ Resources:
       BuildProperties:
         Minify: true
         Sourcemap: true
-        Target: "es2020"
+        Target: es2020
         EntryPoints:
           - generateDerivedImageLambda.ts
         External:
@@ -361,7 +388,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "es2020"
+        Target: es2020
         Sourcemap: true
         EntryPoints:
           - searchLambda.ts
@@ -391,7 +418,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "es2020"
+        Target: es2020
         Sourcemap: true
         EntryPoints:
           - getLatestAlbumLambda.ts
@@ -426,7 +453,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "es2020"
+        Target: es2020
         Sourcemap: true
         EntryPoints:
           - albumExistsLambda.ts
@@ -456,7 +483,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "es2020"
+        Target: es2020
         Sourcemap: true
         EntryPoints:
           - imageExistsLambda.ts
@@ -491,7 +518,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "es2020"
+        Target: es2020
         Sourcemap: true
         EntryPoints:
           - getAlbumLambda.ts
@@ -521,7 +548,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "es2020"
+        Target: es2020
         Sourcemap: true
         EntryPoints:
           - createAlbumLambda.ts
@@ -556,7 +583,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "es2020"
+        Target: es2020
         Sourcemap: true
         EntryPoints:
           - updateAlbumLambda.ts
@@ -591,7 +618,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "es2020"
+        Target: es2020
         Sourcemap: true
         EntryPoints:
           - updateImageLambda.ts
@@ -621,7 +648,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "es2020"
+        Target: es2020
         Sourcemap: true
         EntryPoints:
           - setAlbumThumbnailLambda.ts
@@ -651,7 +678,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "es2020"
+        Target: es2020
         Sourcemap: true
         EntryPoints:
           - recutThumbnailLambda.ts
@@ -692,7 +719,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "es2020"
+        Target: es2020
         Sourcemap: true
         EntryPoints:
           - renameImageLambda.ts
@@ -733,7 +760,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "es2020"
+        Target: es2020
         Sourcemap: true
         EntryPoints:
           - renameAlbumLambda.ts
@@ -768,7 +795,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "es2020"
+        Target: es2020
         Sourcemap: true
         EntryPoints:
           - deleteAlbumLambda.ts
@@ -809,7 +836,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "es2020"
+        Target: es2020
         Sourcemap: true
         EntryPoints:
           - deleteImageLambda.ts
@@ -843,7 +870,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "es2020"
+        Target: es2020
         Sourcemap: true
         EntryPoints:
           - processImageUploadLambda.ts

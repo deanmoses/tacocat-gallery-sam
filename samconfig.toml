@@ -32,16 +32,46 @@ confirm_changeset = true
 region = "us-east-1"
 image_repositories = []
 capabilities = "CAPABILITY_IAM"
+parameter_overrides = [
+    "Env=dev",
+    "GalleryAppDomain=staging-pix.tacocat.com",
+    "ApiDomainCertificateArn=arn:aws:acm:us-east-1:010410881828:certificate/092ab57c-f87d-4c44-a72c-63cfbbb55800",
+]
 
 [prod]
 [prod.global]
 [prod.global.parameters]
 stack_name = "tacocat-gallery-sam-prod"
 
+[prod.validate.parameters]
+lint = true
+
+[prod.build.parameters]
+cached = true
+parallel = true
+
+[prod.package.parameters]
+resolve_s3 = true
+
 [prod.sync]
 [prod.sync.parameters]
 watch = false
 
+[prod.local_start_api.parameters]
+warm_containers = "EAGER"
+
+[prod.local_start_lambda.parameters]
+warm_containers = "EAGER"
+
 [prod.deploy.parameters]
 s3_prefix = "tacocat-gallery-sam/prod"
-parameter_overrides = "Environment=prod StageName=prod"
+resolve_s3 = true
+confirm_changeset = true
+region = "us-east-1"
+image_repositories = []
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = [
+    "Env=prod",
+    "GalleryAppDomain=pix.tacocat.com",
+    "ApiDomainCertificateArn=arn:aws:acm:us-east-1:010410881828:certificate/e142cda0-96db-4651-92fd-35dd9a52e9a2",
+]
