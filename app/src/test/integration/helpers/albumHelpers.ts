@@ -31,11 +31,15 @@ export async function cleanUpAlbumAndParents(albumPath: string): Promise<void> {
  * @param albumPath path of album, like /2001/12-31/
  */
 export async function cleanUpAlbum(albumPath: string): Promise<void> {
+    console.log(`Album Cleanup: cleaning up album [${albumPath}]`);
     try {
-        const children = (await getAlbumAndChildren(albumPath))?.children;
+        const album = await getAlbumAndChildren(albumPath, true /* include unpublished albums*/);
+        if (!album) throw new Error(`Album [${albumPath}] does not exist`);
+        const children = album?.children;
         if (!!children) {
             // TODO: speed this up by deleting all images in parallel using Promise.allSettled()
             for (const child of children) {
+                console.log(`Album Cleanup: cleaning up album [${albumPath}]'s child [${child?.itemName}]`);
                 try {
                     if (!child.parentPath) throw 'child has no parent path';
                     const childPath = child.parentPath + child.itemName;
@@ -44,6 +48,7 @@ export async function cleanUpAlbum(albumPath: string): Promise<void> {
                             `Album Cleanup: album [${albumPath}] contains child album [${child?.itemName}].  Delete child albums before parent albums.  Continuing.`,
                         );
                     } else {
+                        console.log(`Album Cleanup: deleting album [${albumPath}]'s image [${childPath}]`);
                         await deleteImage(childPath);
                     }
                 } catch (e) {
@@ -53,6 +58,8 @@ export async function cleanUpAlbum(albumPath: string): Promise<void> {
                     );
                 }
             }
+        } else {
+            console.log(`Album Cleanup: album [${albumPath}] has no children, skipping the child cleanup phase.`);
         }
     } catch (e) {
         console.error(`Album Cleanup: error deleting children of album [${albumPath}].  Continuing.`, e);
@@ -101,12 +108,15 @@ export async function assertDynamoDBItemDoesNotExist(path: string): Promise<void
  *
  * @param imagePath image path like /2001/12-31/image.jpg
  */
-export async function getImageOrThrow(imagePath: string): Promise<ImageItem> {
+export async function getImageOrThrow(
+    imagePath: string,
+    includeUnpublishedAlbums: boolean = false,
+): Promise<ImageItem> {
     const imagePathParts = getParentAndNameFromPath(imagePath);
     const albumPath = imagePathParts.parent;
     const imageName = imagePathParts.name;
     if (!imageName) throw new Error(`No image name found in path [${imagePath}]`);
-    const album = await getAlbumAndChildrenOrThrow(albumPath);
+    const album = await getAlbumAndChildrenOrThrow(albumPath, includeUnpublishedAlbums);
     return findImageOrThrow(album, imageName);
 }
 
@@ -128,8 +138,11 @@ export function findImageOrThrow(album: Album, imageName: string): ImageItem {
  *
  * @param albumPath album path like /2001/12-31/
  */
-export async function getAlbumAndChildrenOrThrow(albumPath: string): Promise<Album> {
-    const album = await getAlbumAndChildren(albumPath);
+export async function getAlbumAndChildrenOrThrow(
+    albumPath: string,
+    includeUnpublishedAlbums: boolean = false,
+): Promise<Album> {
+    const album = await getAlbumAndChildren(albumPath, includeUnpublishedAlbums);
     if (!album) throw new Error(`No album [${albumPath}]`);
     return album;
 }
