@@ -33,31 +33,10 @@ export function getOriginalImagesBucketName(): string {
 }
 
 /**
- * S3 key prefix under which to read original image
+ * JPEG quality of derived images
  */
-export function getOriginalImagePrefix(): string {
-    return getEnv('ORIGINAL_IMAGE_S3_PREFIX');
-}
-
-/**
- * S3 key prefix under which to store resized image
- */
-export function getThumbnailImagePrefix(): string {
-    return getEnv('THUMBNAIL_IMAGE_S3_PREFIX');
-}
-
-/**
- * Longest edge of the resized image, in pixels
- */
-export function getEdgeSize(): string {
-    return getEnv('THUMBNAIL_IMAGE_SIZE');
-}
-
-/**
- * JPEG quality of the resized image
- */
-export function getJpegQuality(): string {
-    return getEnv('THUMBNAIL_IMAGE_QUALITY');
+export function getJpegQuality(): number {
+    return getEnvAsInt('IMAGE_QUALITY');
 }
 
 export function getDerivedImageDomain(): string {
@@ -70,6 +49,10 @@ function getEnv(name: string): string {
         throw `No such environment variable [${name}]`;
     }
     return value;
+}
+
+function getEnvAsInt(name: string): number {
+    return parseInt(getEnv(name), 10);
 }
 
 /**

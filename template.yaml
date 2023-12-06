@@ -312,7 +312,7 @@ Resources:
         Variables:
           ORIGINAL_IMAGES_BUCKET: !Ref OriginalImagesBucket
           DERIVED_IMAGES_BUCKET: !Ref DerivedImagesBucket
-          IMAGE_QUALITY: "80"
+          IMAGE_QUALITY: 85
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref OriginalImagesBucket
