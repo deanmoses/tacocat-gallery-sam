@@ -210,9 +210,9 @@ Resources:
               QueryString: false
               Cookies:
                 Forward: none
-#            FunctionAssociations:
-#              - EventType: viewer-request
-#                FunctionARN: !GetAtt DerivedImagesUrlRewriteFunction.Arn
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt DerivedImagesUrlRewriteFunction.FunctionMetadata.FunctionARN
         DefaultCacheBehavior:
           TargetOriginId: original-images-bucket
           Compress: true
@@ -310,20 +310,26 @@ Resources:
         Comment: !Ref DerivedImagesBucket
 
   # CloudFront Function to rewrite URL to derived images bucket
-#  DerivedImagesUrlRewriteFunction:
-#    Condition: IsStaticMode
-#    Type: AWS::CloudFront::Function
-#    Properties:
-#      Name: !Sub RewriteDerivedImagesUrl-${AWS::StackName}
-#      AutoPublish: true
-#      FunctionConfig:
-#        Comment: !Sub Rewrite URL to derived images bucket for ${AWS::StackName}
-#        Runtime: cloudfront-js-1.0
-#      FunctionCode: |+2
-#        function handler(event) {
-#          event.request.headers['x-mo-url'] = {value:'MO DID THIS'};
-#          return request;
-#        }
+  DerivedImagesUrlRewriteFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub RewriteDerivedImagesUrl-${AWS::StackName}
+      AutoPublish: true
+      FunctionConfig:
+        Comment: !Sub Rewrite URL to derived images bucket for ${AWS::StackName}
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |+2
+        function handler(event) {
+            const r = event.request;
+            const v = r.querystring['version'], c = r.querystring['crop'], s = r.querystring['size'];
+            if (!v) return { statusCode: 400, statusDescription: 'Missing Version' };
+            if (!s) return { statusCode: 400, statusDescription: 'Missing Size' };
+            r.uri += path(v) + '/jpeg' + path(s) + crop(c);
+            r.querystring = {};
+            return r;
+        }
+        function path(p) { return p ? '/' + p.value : ''; }
+        function crop(p) { return p ? '/crop=' + p.value : ''; }
 
   # ---------------------------------------------------------------------------
   # Lambda to generate derived images
