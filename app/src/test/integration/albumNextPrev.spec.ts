@@ -9,20 +9,25 @@ const currentAlbumPath = `${yearPath}06-21/`;
 const nextAlbumPath = `${yearPath}06-22/`;
 
 beforeAll(async () => {
-    await assertDynamoDBItemDoesNotExist(prevAlbumPath);
-    await assertDynamoDBItemDoesNotExist(currentAlbumPath);
-    await assertDynamoDBItemDoesNotExist(nextAlbumPath);
-
-    await createAlbum(yearPath);
-    await createAlbum(prevAlbumPath);
-    await createAlbum(currentAlbumPath);
-    await createAlbum(nextAlbumPath);
+    await Promise.all([
+        assertDynamoDBItemDoesNotExist(prevAlbumPath),
+        assertDynamoDBItemDoesNotExist(currentAlbumPath),
+        assertDynamoDBItemDoesNotExist(nextAlbumPath),
+    ]);
+    await Promise.all([
+        createAlbum(yearPath),
+        createAlbum(prevAlbumPath),
+        createAlbum(currentAlbumPath, { published: true }),
+        createAlbum(nextAlbumPath),
+    ]);
 }, 20000 /* increase Jest's timeout */);
 
 afterAll(async () => {
-    await cleanUpAlbum(prevAlbumPath);
-    await cleanUpAlbum(currentAlbumPath);
-    await cleanUpAlbum(nextAlbumPath);
+    await Promise.allSettled([
+        cleanUpAlbum(prevAlbumPath),
+        cleanUpAlbum(currentAlbumPath),
+        cleanUpAlbum(nextAlbumPath),
+    ]);
     await cleanUpAlbum(yearPath);
 }, 20000 /* increase Jest's timeout */);
 
