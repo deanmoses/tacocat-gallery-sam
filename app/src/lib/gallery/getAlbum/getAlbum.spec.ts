@@ -89,7 +89,7 @@ describe('getAlbumAndChildren()', () => {
         expect.assertions(1);
         // Mock out AWS method to get album
         mockDocClient.on(GetCommand).resolves({});
-        const result = await getAlbumAndChildren('/1900/01-01/');
+        const result = await getAlbumAndChildren('/1899/01-01/');
         expect(result).toBeUndefined();
     });
 
