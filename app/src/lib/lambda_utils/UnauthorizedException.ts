@@ -1,5 +1,5 @@
 /**
- * Exception that instructs the lambda function to return a 403
+ * Exception that instructs the lambda function to return a 401
  */
 export class UnauthorizedException extends Error {
     __proto__ = Error;
