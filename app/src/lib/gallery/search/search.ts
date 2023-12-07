@@ -24,69 +24,19 @@ export async function search(searchTerms: string | undefined): Promise<FuzzyResu
     let searchResults = searchInHaystack(searchTerms, haystack);
     console.info(`Search: searched gallery for [${searchTerms}].  Item count [${searchResults.length}]`);
     if (!!searchResults) {
+        // Remove unpublished albums and images in unpublished albums
         searchResults = searchResults.filter((result) => isPublished(result.item, haystack));
         searchResults = searchResults.map((result) => {
             // add path to each item
             result.item.path = toPathFromItem(result.item);
             // add thumbnail info to albums
             if (result.item.itemType === 'album') {
-                const album = result.item as AlbumItem;
-                if (!!album.thumbnail?.path) {
-                    const image = getItemFromHaystack(haystack, album.thumbnail.path) as ImageItem;
-                    if (!!image) {
-                        if (image?.versionId) {
-                            album.thumbnail.versionId = image.versionId;
-                            if (image.thumbnail) {
-                                album.thumbnail.crop = image.thumbnail;
-                            }
-                        } else {
-                            console.error(
-                                `Did not find versionId for thumbnail [${album.thumbnail.path}] in haystack}`,
-                            );
-                        }
-                    } else {
-                        console.log(`Did not find thumbnail [${album.thumbnail.path}] in haystack}`);
-                    }
-                }
+                addThumbnailInfoToAlbum(result.item as AlbumItem, haystack);
             }
             return result;
         });
     }
     return searchResults;
-}
-
-/** True if album is published or image is in a published album */
-function isPublished(item: BaseGalleryRecord, haystack: BaseGalleryRecord[]): boolean {
-    return (item.itemType === 'image' && imageIsInPublishedAlbum(item, haystack)) || !!(item as AlbumItem)?.published;
-}
-
-/** True if image is in a published album */
-function imageIsInPublishedAlbum(image: BaseGalleryRecord, haystack: BaseGalleryRecord[]): boolean {
-    const album = getItemFromHaystack(haystack, image.parentPath) as AlbumItem;
-    if (!album) console.error(`Did not find album [${image.parentPath}] in haystack}`);
-    return !!album?.published;
-}
-
-/** Retrieve image or album from haystack */
-function getItemFromHaystack(haystack: BaseGalleryRecord[], path: string | undefined): BaseGalleryRecord | undefined {
-    if (!!path) {
-        const pathParths = getParentAndNameFromPath(path);
-        return haystack.find((item) => item.parentPath === pathParths.parent && item.itemName === pathParths.name);
-    }
-}
-
-/**
- * Search over the specified data
- *
- * @param searchTerms string containing search terms like 'milo UCSB'
- * @param haystack data to search over
- */
-function searchInHaystack(searchTerms: string, haystack: BaseGalleryRecord[]): FuzzyResult<BaseGalleryRecord>[] {
-    const search = createFuzzySearch(haystack, {
-        // TODO: don't include album itemNames, just image itemNames
-        getText: (item) => [item.itemName, item.title, item.description, item.summary, item?.tags?.toString()],
-    });
-    return search(searchTerms);
 }
 
 /**
@@ -104,6 +54,58 @@ async function getAllGalleryItems(): Promise<BaseGalleryRecord[]> {
     const docClient = DynamoDBDocumentClient.from(ddbClient);
     const result = await docClient.send(ddbCommand);
     console.info(`Search: retrieved contents of entire DynamoDB table. Item count [${result?.Items?.length}]`);
-    //console.info('Scan results: ', JSON.stringify(result));
     return result.Items || [];
+}
+
+/**
+ * Search over the specified data
+ *
+ * @param searchTerms string containing search terms like 'milo UCSB'
+ * @param haystack data to search over
+ */
+function searchInHaystack(searchTerms: string, haystack: BaseGalleryRecord[]): FuzzyResult<BaseGalleryRecord>[] {
+    const search = createFuzzySearch(haystack, {
+        // TODO: don't include album itemNames, just image itemNames
+        getText: (item) => [item.itemName, item.title, item.description, item.summary, item?.tags?.toString()],
+    });
+    return search(searchTerms);
+}
+
+/** Retrieve image or album from haystack */
+function getItemFromHaystack(haystack: BaseGalleryRecord[], path: string | undefined): BaseGalleryRecord | undefined {
+    if (!!path) {
+        const pathParths = getParentAndNameFromPath(path);
+        return haystack.find((item) => item.parentPath === pathParths.parent && item.itemName === pathParths.name);
+    }
+}
+
+/** True if album is published or image is in a published album */
+function isPublished(item: BaseGalleryRecord, haystack: BaseGalleryRecord[]): boolean {
+    return (item.itemType === 'image' && imageIsInPublishedAlbum(item, haystack)) || !!(item as AlbumItem)?.published;
+}
+
+/** True if image is in a published album */
+function imageIsInPublishedAlbum(image: BaseGalleryRecord, haystack: BaseGalleryRecord[]): boolean {
+    const album = getItemFromHaystack(haystack, image.parentPath) as AlbumItem;
+    if (!album) console.error(`Did not find album [${image.parentPath}] in haystack}`);
+    return !!album?.published;
+}
+
+/** Add thumbnail info to album */
+function addThumbnailInfoToAlbum(album: AlbumItem, haystack: BaseGalleryRecord[]): void {
+    if (!!album.thumbnail?.path) {
+        const image = getItemFromHaystack(haystack, album.thumbnail.path) as ImageItem;
+        if (!!image) {
+            if (image?.versionId) {
+                album.thumbnail.versionId = image.versionId;
+                if (image.thumbnail) {
+                    album.thumbnail.crop = image.thumbnail;
+                }
+            } else {
+                console.error(`Did not find versionId for thumbnail [${album.thumbnail.path}] in haystack}`);
+            }
+        } else {
+            console.log(`Did not find thumbnail [${album.thumbnail.path}] in haystack}`);
+        }
+    }
 }
