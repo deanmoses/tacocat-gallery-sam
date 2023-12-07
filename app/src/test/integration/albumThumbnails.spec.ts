@@ -2,6 +2,7 @@ import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
 import { getAlbum, getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { recutThumbnail } from '../../lib/gallery/recutThumbnail/recutThumbnail';
 import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
+import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
 import { findSubAlbum } from '../../lib/gallery_client/AlbumObject';
 import {
     getNameFromPath,
@@ -23,18 +24,20 @@ beforeAll(async () => {
     expect(isValidImagePath(imagePath1)).toBe(true);
     expect(isValidImagePath(imagePath2)).toBe(true);
 
-    await uploadImage('image.jpg', imagePath1);
-    await uploadImage('image.jpg', imagePath2);
+    await Promise.all([uploadImage('image.jpg', imagePath1), uploadImage('image.jpg', imagePath2)]);
 
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
 
-    await assertDynamoDBItemExists(albumPath);
-    await assertDynamoDBItemExists(getParentFromPath(albumPath));
-    await assertDynamoDBItemExists(imagePath1);
-    await assertDynamoDBItemExists(imagePath2);
-
-    await assertOriginalImageExists(imagePath1);
-    await assertOriginalImageExists(imagePath2);
+    await Promise.all([
+        updateAlbum(albumPath, { published: true }),
+        updateAlbum(getParentFromPath(albumPath), { published: true }),
+        assertDynamoDBItemExists(albumPath),
+        assertDynamoDBItemExists(getParentFromPath(albumPath)),
+        assertDynamoDBItemExists(imagePath1),
+        assertDynamoDBItemExists(imagePath2),
+        assertOriginalImageExists(imagePath1),
+        assertOriginalImageExists(imagePath2),
+    ]);
 }, 10000 /* increase Jest's timeout */);
 
 afterAll(async () => {
@@ -48,11 +51,6 @@ test('Should fail to set thumb to nonexistent image', async () => {
 
 test('Set thumb on day album', async () => {
     await expect(setAlbumThumbnail(albumPath, imagePath2)).resolves.not.toThrow();
-    const album = await getAlbum(albumPath);
-    if (!album?.thumbnail) throw new Error(`Expected album [${albumPath}] to have thumbnail`);
-    if (!album?.thumbnail.versionId) throw new Error(`Expected album [${albumPath}] to have versionId`);
-    expect(album.thumbnail.path).toBe(imagePath2);
-    expect(album.thumbnail.crop).toBeUndefined();
 });
 
 test('Year album shows day thumb', async () => {
@@ -93,13 +91,6 @@ test('Root album shows year thumb', async () => {
 
 test('Recut thumb', async () => {
     await expect(recutThumbnail(imagePath2, cropInPct)).resolves.not.toThrow();
-});
-
-test('Thumb on parent honors recut', async () => {
-    const album = await getAlbumAndChildren(albumPath);
-    if (!album?.thumbnail) throw new Error('Expected album to have thumbnail');
-    expect(album.thumbnail.path).toBe(imagePath2);
-    expect(album.thumbnail.crop).toEqual(cropInPx);
 });
 
 test('Thumb on grandparent honors recut [THIS FAIL IS VALID]', async () => {

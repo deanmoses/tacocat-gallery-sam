@@ -1,8 +1,14 @@
 import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
-import { findImage } from '../../lib/gallery_client/AlbumObject';
-import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
+import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
+import { findImage, findSubAlbum } from '../../lib/gallery_client/AlbumObject';
+import {
+    getNameFromPath,
+    getParentFromPath,
+    isValidAlbumPath,
+    isValidImagePath,
+} from '../../lib/gallery_path_utils/galleryPathUtils';
 import { assertDynamoDBItemDoesNotExist, cleanUpAlbum } from './helpers/albumHelpers';
 import { reallyGetNameFromPath } from './helpers/pathHelpers';
 import { assertOriginalImageDoesNotExist, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
@@ -16,12 +22,19 @@ beforeAll(async () => {
     expect(isValidAlbumPath(albumPath)).toBe(true);
     expect(isValidImagePath(imagePath)).toBe(true);
 
-    await assertDynamoDBItemDoesNotExist(yearPath);
-    await assertDynamoDBItemDoesNotExist(albumPath);
-    await assertOriginalImageDoesNotExist(imagePath);
+    await Promise.all([
+        assertDynamoDBItemDoesNotExist(yearPath),
+        assertDynamoDBItemDoesNotExist(albumPath),
+        assertOriginalImageDoesNotExist(imagePath),
+    ]);
 
     await uploadImage('image.jpg', imagePath);
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
+
+    await Promise.all([
+        updateAlbum(albumPath, { published: true }),
+        updateAlbum(getParentFromPath(albumPath), { published: true }),
+    ]);
 }, 25000 /* increase Jest's timeout */);
 
 afterAll(async () => {
@@ -51,7 +64,10 @@ test('Album contains image', async () => {
 });
 
 test("Image was set as album's thumb", async () => {
-    const album = await getAlbumAndChildren(albumPath);
+    const parentAlbum = await getAlbumAndChildren(getParentFromPath(albumPath));
+    if (!parentAlbum) throw new Error(`Parent album [${getParentFromPath(albumPath)}] not found`);
+    const album = findSubAlbum(parentAlbum, getNameFromPath(albumPath));
+    if (!album) throw new Error(`Album [${albumPath}] not found in parent [${getParentFromPath(albumPath)}]`);
     expect(album?.thumbnail?.path).toBe(imagePath);
     if (!album?.thumbnail?.versionId) throw new Error(`Album [${albumPath}] thumbnail [${imagePath}] has no versionId`);
 });

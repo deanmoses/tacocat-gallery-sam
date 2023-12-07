@@ -1,5 +1,6 @@
 import { ImageItem } from '../../lib/gallery/galleryTypes';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
+import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
 import { updateImage } from '../../lib/gallery/updateImage/updateImage';
 import { findImage } from '../../lib/gallery_client/AlbumObject';
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
@@ -25,14 +26,13 @@ beforeAll(async () => {
     expect(isValidAlbumPath(albumPath)).toBe(true);
     expect(isValidImagePath(imagePath)).toBe(true);
 
-    await assertDynamoDBItemDoesNotExist(albumPath);
-    await assertOriginalImageDoesNotExist(imagePath);
+    await Promise.all([assertDynamoDBItemDoesNotExist(albumPath), assertOriginalImageDoesNotExist(imagePath)]);
 
     await uploadImage('image.jpg', imagePath);
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
 
-    await assertDynamoDBItemExists(albumPath);
-    await assertOriginalImageExists(imagePath);
+    await Promise.all([assertDynamoDBItemExists(albumPath), assertOriginalImageExists(imagePath)]);
+    await updateAlbum(albumPath, { published: true });
 }, 10000 /* increase Jest's timeout */);
 
 afterAll(async () => {

@@ -6,7 +6,7 @@ import { Album, AlbumItem, ImageItem } from '../gallery/galleryTypes';
  * @param album album object
  * @param imagePath name of image, like image.jpg
  */
-export function findImage(album: Album, imageName: string): ImageItem | undefined {
+export function findImage(album: Album | undefined, imageName: string | undefined): ImageItem | undefined {
     return album?.children?.find((child) => child.itemName === imageName) as ImageItem;
 }
 
@@ -16,6 +16,6 @@ export function findImage(album: Album, imageName: string): ImageItem | undefine
  * @param album album object
  * @param albumName name of album, like 12-31
  */
-export function findSubAlbum(album: Album, albumName: string): AlbumItem | undefined {
+export function findSubAlbum(album: Album | undefined, albumName: string | undefined): AlbumItem | undefined {
     return album?.children?.find((child) => child.itemName === albumName) as AlbumItem;
 }
