@@ -1,7 +1,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, BatchGetCommand } from '@aws-sdk/lib-dynamodb';
 import {
-    getNameFromPath,
     getParentAndNameFromPath,
     getParentFromPath,
     isValidAlbumPath,
@@ -12,7 +11,6 @@ import {
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { Album, AlbumItem, GalleryItem, NavInfo, Navigable, Rectangle } from '../galleryTypes';
 import { getChildItems, getItem } from '../../dynamo_utils/ddbGet';
-import { findImage } from '../../gallery_client/AlbumObject';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 
 /**
@@ -25,38 +23,21 @@ export async function getAlbumAndChildren(
     includeUnpublishedAlbums: boolean = false,
 ): Promise<Album | undefined> {
     if (!isValidAlbumPath(albumPath)) throw new BadRequestException(`Malformed album path: [${albumPath}]`);
-    const album = await getAlbum(albumPath, includeUnpublishedAlbums);
+
+    const [album, children, peers] = await Promise.all([
+        getAlbum(albumPath, includeUnpublishedAlbums),
+        getChildren(albumPath, includeUnpublishedAlbums),
+        getPeers(albumPath, includeUnpublishedAlbums),
+    ]);
+
     if (!album) return;
-    album.children = await getChildren(albumPath, includeUnpublishedAlbums);
-    // add album's thumbnail's crop info to the album
-    // TODO: this will only work for day albums
-    // For year albums, we'll need to get thumbnail info
-    // from the leaf images.  Though the album being
-    // returned here doeesn't actually need the crop info...
-    if (album.thumbnail?.path && album.children) {
-        const imageName = getNameFromPath(album.thumbnail.path);
-        if (imageName) {
-            const thumbnailImage = findImage(album, imageName);
-            if (thumbnailImage) {
-                if (thumbnailImage.thumbnail) {
-                    album.thumbnail.crop = thumbnailImage.thumbnail;
-                }
-                if (thumbnailImage.versionId) {
-                    album.thumbnail.versionId = thumbnailImage.versionId;
-                }
-            }
-        }
+    album.children = children;
+    if (!!peers) {
+        const nav = getPrevAndNext(albumPath, peers, includeUnpublishedAlbums);
+        album.next = nav.next;
+        album.prev = nav.prev;
     }
 
-    // root album is peerless. otherwise, get prev/next album
-    if (albumPath !== '/') {
-        const peers = await getPeers(albumPath, includeUnpublishedAlbums);
-        if (!!peers) {
-            const nav = getPrevAndNext(albumPath, peers, includeUnpublishedAlbums);
-            album.next = nav.next;
-            album.prev = nav.prev;
-        }
-    }
     return album;
 }
 
@@ -145,6 +126,7 @@ async function getChildren(
  * Get the peers of this album, so as to do prev/next
  */
 async function getPeers(albumPath: string, includeUnpublishedAlbums: boolean): Promise<Array<GalleryItem> | undefined> {
+    if (albumPath === '/') return; // root album is peerless
     const parentAlbumPath = getParentFromPath(albumPath);
     let peers = await getChildItems(parentAlbumPath, ['parentPath', 'itemName', 'itemType', 'published', 'title']);
     // If we're only including published albums, and the album contains child albums (meaning it's a root or year album, not a day album)
