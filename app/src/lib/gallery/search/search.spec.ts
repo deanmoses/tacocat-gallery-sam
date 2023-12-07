@@ -441,6 +441,13 @@ const mockScanResults: GalleryItem[] = [
         dimensions: { width: 1000, height: 1000 },
     } satisfies ImageItem,
     {
+        itemType: 'album',
+        parentPath: '/2018/',
+        itemName: '01-24',
+        updatedOn: '2023-10-27T04:38:02.690Z',
+        published: true,
+    } satisfies AlbumItem,
+    {
         itemType: 'image',
         parentPath: '/2018/01-24/',
         itemName: 'image.jpg',
