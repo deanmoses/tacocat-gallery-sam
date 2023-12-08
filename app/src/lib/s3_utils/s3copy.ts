@@ -14,29 +14,49 @@ import { getNameFromPath, isValidAlbumPath, isValidImagePath } from '../gallery_
  */
 export async function copyOriginals(oldAlbumPath: string, newAlbumPath: string): Promise<Map<string, string>> {
     console.info(`Copying original images from album [${oldAlbumPath}] to [${newAlbumPath}]...`);
-    if (!isValidAlbumPath(oldAlbumPath)) throw new Error(`Cannot copy, invalid old album path [${oldAlbumPath}]`);
-    if (!isValidAlbumPath(newAlbumPath)) throw new Error(`Cannot copy, invalid new album path [${newAlbumPath}]`);
+    if (!isValidAlbumPath(oldAlbumPath)) throw new Error(`Invalid old album path [${oldAlbumPath}]`);
+    if (!isValidAlbumPath(newAlbumPath)) throw new Error(`Invalid new album path [${newAlbumPath}]`);
 
-    // I'm pretty sure this is the right way to copy a "folder" of images:
-    // just iterate over all the objects and copy them individually.
-    // AWS *does* have a batch job thing, but it's for large scale, millions of objects.
-    // But it's weird because I can bulk DELETE, why the inconsistency?
-    const newVersionIds: Map<string, string> = new Map();
-    const list = await listOriginalImages(oldAlbumPath);
-    list.Contents?.forEach(async (oldItem) => {
-        if (!oldItem.Key) throw new Error(`Blank key in S3 image item ${oldItem}`);
-        const oldImagePath = fromS3OriginalBucketKeyToPath(oldItem.Key);
-        if (isValidAlbumPath(oldImagePath)) {
-            console.info(`S3 listed album folder [${oldImagePath}] as an object, skipping from delete`);
-        } else {
+    // Build list of images to copy
+    const imagesToCopy: { oldImagePath: string; newImagePath: string }[] = [];
+    const s3List = await listOriginalImages(oldAlbumPath);
+    if (s3List.Contents) {
+        for (const oldItem of s3List?.Contents) {
+            if (!oldItem.Key) throw new Error(`No S3 key for image [${oldItem}]`);
+            const oldImagePath = fromS3OriginalBucketKeyToPath(oldItem.Key);
+            if (isValidAlbumPath(oldImagePath)) {
+                console.info(`S3 listed album [${oldImagePath}] as an object, skipping from delete`);
+                break;
+            }
+            if (!isValidImagePath(oldImagePath)) {
+                throw new Error(`S3 listed invalid image path [${oldImagePath}]`);
+            }
             const imageName = getNameFromPath(oldImagePath);
             if (!imageName) throw new Error(`No image name found in path [${oldImagePath}]`);
             const newImagePath = newAlbumPath + imageName;
-            const newVersionId = await copyOriginal(oldImagePath, newImagePath);
-            newVersionIds.set(newImagePath, newVersionId);
+            imagesToCopy.push({ oldImagePath, newImagePath });
         }
-    });
+    }
+    // Do the copy
+    const newVersionIds: Map<string, string> = new Map();
+    if (imagesToCopy.length === 0) {
+        console.info(`No S3 objects to copy from [${oldAlbumPath}] to [${newAlbumPath}]`);
+    } else {
+        console.info(`Copying ${imagesToCopy.length} S3 objects from [${oldAlbumPath}] to [${newAlbumPath}]...`);
+        // The right way to copy a "folder" of images appears to be to
+        // iterate over all the objects and copy them individually.
+        // AWS *does* have a batch job thing, but it's for large scale, millions of objects.
+        // But it's weird because I can bulk DELETE, why the inconsistency?
+        await Promise.all(imagesToCopy.map((image) => cpOrig(image.oldImagePath, image.newImagePath, newVersionIds)));
+        console.info(`Copied ${imagesToCopy.length} S3 objects from [${oldAlbumPath}] to [${newAlbumPath}]`);
+    }
     return newVersionIds;
+}
+
+/** Do the S3 copy and stick new version ID in the map */
+async function cpOrig(oldImagePath: string, newImagePath: string, newVersionIds: Map<string, string>): Promise<void> {
+    const versionId = await copyOriginal(oldImagePath, newImagePath);
+    newVersionIds.set(newImagePath, versionId);
 }
 
 /**
@@ -58,6 +78,7 @@ export async function copyOriginal(oldImagePath: string, newImagePath: string): 
     });
     const client = new S3Client({});
     const response = await client.send(copyCommand);
-    if (!response.VersionId) throw new Error(`No version ID returned from S3 copy command`);
+    if (!response.VersionId)
+        throw new Error(`No version ID returned from S3 copy from [${oldImagePath}] to [${newImagePath}]`);
     return response.VersionId;
 }
