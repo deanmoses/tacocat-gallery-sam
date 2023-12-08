@@ -10,17 +10,19 @@ import { isValidAlbumPath, isValidImagePath } from '../gallery_path_utils/galler
  * @param imagePath Path of image, like /2001/12-31/image.jpg
  */
 export async function deleteOriginalsAndDerivatives(imagePath: string): Promise<void> {
+    // TODO: parallelize
     await deleteOriginals(imagePath);
     await deleteDerivedImagesForAlbum(imagePath);
 }
 
 /**
- * Delete image from S3, both original and any derived images.
+ * Delete single image from S3, both original and any derived images.
  * Does not touch DynamoDB.
  *
  * @param imagePath Path of image, like /2001/12-31/image.jpg
  */
 export async function deleteOriginalAndDerivatives(imagePath: string): Promise<void> {
+    // TODO: parallelize
     await deleteOriginalImage(imagePath);
     await deleteDerivedImages(imagePath);
 }
