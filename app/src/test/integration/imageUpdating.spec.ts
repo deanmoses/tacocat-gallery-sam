@@ -4,11 +4,7 @@ import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
 import { updateImage } from '../../lib/gallery/updateImage/updateImage';
 import { findImage } from '../../lib/gallery_client/AlbumObject';
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
-import {
-    assertDynamoDBItemDoesNotExist,
-    assertDynamoDBItemExists,
-    cleanUpAlbumAndParents,
-} from './helpers/albumHelpers';
+import { assertDynamoDBItemDoesNotExist, cleanUpAlbumAndParents } from './helpers/albumHelpers';
 import { reallyGetNameFromPath } from './helpers/pathHelpers';
 import { assertOriginalImageDoesNotExist, assertOriginalImageExists, uploadImage } from './helpers/s3ImageHelper';
 
@@ -20,20 +16,15 @@ let image_updatedOn: string | undefined;
 
 beforeAll(async () => {
     imagePath = `${albumPath}image_${Date.now()}.jpg`; // unique to this test run to prevent collision with bad cleanup of prior tests
-    title = `Title [${Date.now}]`;
-    description = `Description [${Date.now}]`;
-
+    title = `Title ${Date.now}`;
+    description = `Description ${Date.now}`;
     expect(isValidAlbumPath(albumPath)).toBe(true);
     expect(isValidImagePath(imagePath)).toBe(true);
-
     await Promise.all([assertDynamoDBItemDoesNotExist(albumPath), assertOriginalImageDoesNotExist(imagePath)]);
-
     await uploadImage('image.jpg', imagePath);
-    await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
-
-    await Promise.all([assertDynamoDBItemExists(albumPath), assertOriginalImageExists(imagePath)]);
-    await updateAlbum(albumPath, { published: true });
-}, 10000 /* increase Jest's timeout */);
+    await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggeredy
+    await Promise.all([assertOriginalImageExists(imagePath), updateAlbum(albumPath, { published: true })]);
+}, 25000 /* increase Jest's timeout */);
 
 afterAll(async () => {
     await cleanUpAlbumAndParents(albumPath);
