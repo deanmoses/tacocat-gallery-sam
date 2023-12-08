@@ -1,6 +1,6 @@
 import { deleteAlbum } from '../../../lib/gallery/deleteAlbum/deleteAlbum';
 import { deleteImage } from '../../../lib/gallery/deleteImage/deleteImage';
-import { Album, ImageItem } from '../../../lib/gallery/galleryTypes';
+import { Album, GalleryItem, ImageItem } from '../../../lib/gallery/galleryTypes';
 import { getAlbumAndChildren } from '../../../lib/gallery/getAlbum/getAlbum';
 import { itemExists } from '../../../lib/gallery/itemExists/itemExists';
 import { findImage } from '../../../lib/gallery_client/AlbumObject';
@@ -8,6 +8,7 @@ import {
     getParentAndNameFromPath,
     getParentFromPath,
     isValidAlbumPath,
+    isValidDayAlbumName,
 } from '../../../lib/gallery_path_utils/galleryPathUtils';
 import { deleteOriginalsAndDerivatives } from '../../../lib/s3_utils/s3delete';
 
@@ -18,9 +19,17 @@ import { deleteOriginalsAndDerivatives } from '../../../lib/s3_utils/s3delete';
  * @param albumPath path of album, like /2001/12-31/
  */
 export async function cleanUpAlbumAndParents(albumPath: string): Promise<void> {
-    await cleanUpAlbum(albumPath);
+    try {
+        await cleanUpAlbum(albumPath);
+    } catch (e) {
+        console.error(`Album Cleanup: error deleting album [${albumPath}].  Continuing.`, e);
+    }
     const parentAlbumPath = getParentFromPath(albumPath);
-    await cleanUpAlbum(parentAlbumPath);
+    try {
+        await cleanUpAlbum(parentAlbumPath);
+    } catch (e) {
+        console.error(`Album Cleanup: error deleting parent album [${parentAlbumPath}].  Continuing.`, e);
+    }
 }
 
 /**
@@ -32,45 +41,24 @@ export async function cleanUpAlbumAndParents(albumPath: string): Promise<void> {
  */
 export async function cleanUpAlbum(albumPath: string): Promise<void> {
     console.log(`Album Cleanup: cleaning up album [${albumPath}]`);
-    try {
-        const album = await getAlbumAndChildren(albumPath, true /* include unpublished albums*/);
-        if (!album) throw new Error(`Album [${albumPath}] does not exist`);
-        const children = album?.children;
-        if (!!children) {
-            // TODO: speed this up by deleting all images in parallel using Promise.allSettled()
-            for (const child of children) {
-                console.log(`Album Cleanup: cleaning up album [${albumPath}]'s child [${child?.itemName}]`);
-                try {
-                    if (!child.parentPath) throw 'child has no parent path';
-                    const childPath = child.parentPath + child.itemName;
-                    if (isValidAlbumPath(childPath)) {
-                        console.error(
-                            `Album Cleanup: album [${albumPath}] contains child album [${child?.itemName}].  Delete child albums before parent albums.  Continuing.`,
-                        );
-                    } else {
-                        console.log(`Album Cleanup: deleting album [${albumPath}]'s image [${childPath}]`);
-                        await deleteImage(childPath);
-                    }
-                } catch (e) {
-                    console.error(
-                        `Album Cleanup: error deleting [${child?.itemName}] from album [${albumPath}].  Continuing.`,
-                        e,
-                    );
-                }
-            }
-        } else {
-            console.log(`Album Cleanup: album [${albumPath}] has no children, skipping the child cleanup phase.`);
+    if (!isValidAlbumPath(albumPath)) {
+        console.error(`Album Cleanup: album path [${albumPath}] is invalid`);
+        return;
+    }
+    if (!(await itemExists(albumPath))) {
+        console.warn(`Album Cleanup: album [${albumPath}] does not exist`);
+    } else {
+        try {
+            await cleanUpChildren(albumPath);
+        } catch (e) {
+            console.error(`Album Cleanup: error deleting children of album [${albumPath}].  Continuing.`, e);
         }
-    } catch (e) {
-        console.error(`Album Cleanup: error deleting children of album [${albumPath}].  Continuing.`, e);
+        try {
+            await deleteAlbum(albumPath);
+        } catch (e) {
+            console.error(`Album Cleanup: error deleting album [${albumPath}].  Continuing.`, e);
+        }
     }
-
-    try {
-        await deleteAlbum(albumPath);
-    } catch (e) {
-        console.error(`Album Cleanup: error deleting album [${albumPath}].  Continuing.`, e);
-    }
-
     try {
         // This will clean up images from DynamoDB that don't have an album entry.
         // This will happen when I have really broken services that copy the images in S3
@@ -82,6 +70,40 @@ export async function cleanUpAlbum(albumPath: string): Promise<void> {
             `Album Cleanup: error last-chance deleting all S3 images for album [${albumPath}].  Continuing.`,
             e,
         );
+    }
+    console.log(`Album Cleanup: cleaned up album [${albumPath}]`);
+}
+
+/** Clean up children of specified album */
+async function cleanUpChildren(albumPath: string): Promise<void> {
+    const album = await getAlbumAndChildren(albumPath, true /* include unpublished albums*/);
+    if (!album) throw new Error(`Album [${albumPath}] does not exist`);
+    if (!!album?.children?.length) {
+        console.log(`Album Cleanup: cleaning up album [${albumPath}]'s [${album.children.length}] children...`);
+        await Promise.allSettled(album.children.map((child) => cleanUpChildImage(albumPath, child)));
+    } else {
+        console.log(`Album Cleanup: album [${albumPath}] has no children, skipping child cleanup phase`);
+    }
+}
+
+/** Clean up single child image */
+async function cleanUpChildImage(albumPath: string, child: GalleryItem): Promise<void> {
+    console.log(`Album Cleanup: cleaning up album [${albumPath}]'s child [${child?.itemName}]`);
+    try {
+        if (!child.itemName) throw 'child has no name';
+        if (isValidDayAlbumName(child.itemName)) {
+            console.error(
+                `Album Cleanup: album [${albumPath}] contains child album [${child?.itemName}].  Delete child albums before parent albums.  Continuing.`,
+            );
+        } else {
+            if (!child.parentPath) throw 'child has no parent path';
+            const childPath = child.parentPath + child.itemName;
+            console.log(`Album Cleanup: deleting album [${albumPath}]'s image [${childPath}]`);
+            await deleteImage(childPath);
+            console.log(`Album Cleanup: deleted album [${albumPath}]'s image [${childPath}]`);
+        }
+    } catch (e) {
+        console.error(`Album Cleanup: error deleting [${child?.itemName}] from album [${albumPath}].  Continuing.`, e);
     }
 }
 
