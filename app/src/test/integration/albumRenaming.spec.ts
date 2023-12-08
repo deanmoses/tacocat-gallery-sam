@@ -1,5 +1,4 @@
 import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
-import { Album } from '../../lib/gallery/galleryTypes';
 import { getAlbum } from '../../lib/gallery/getAlbum/getAlbum';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { renameAlbum } from '../../lib/gallery/renameAlbum/renameAlbum';
@@ -12,7 +11,6 @@ import {
     cleanUpAlbum,
     cleanUpAlbumAndParents,
     getAlbumAndChildrenOrThrow,
-    getImageOrThrow,
 } from './helpers/albumHelpers';
 import { assertIsValidAlbumPath, assertIsValidImagePath, assertIsValidYearAlbumPath } from './helpers/pathHelpers';
 import { assertOriginalImageExists, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
