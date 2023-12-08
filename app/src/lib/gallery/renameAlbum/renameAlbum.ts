@@ -27,7 +27,6 @@ import { AlbumItem, ImageItem } from '../galleryTypes';
  */
 export async function renameAlbum(oldAlbumPath: string, newName: string): Promise<string> {
     console.info(`Rename Album: renaming [${oldAlbumPath}] to [${newName}]...`);
-
     if (!isValidAlbumPath(oldAlbumPath)) {
         throw new BadRequestException(`Existing album path is invalid: [${oldAlbumPath}]`);
     }
@@ -53,12 +52,10 @@ export async function renameAlbum(oldAlbumPath: string, newName: string): Promis
     if (await itemExists(newAlbumPath)) {
         throw new BadRequestException(`An album already exists at [${newAlbumPath}]`);
     }
-
     const newVersionIds = await copyOriginals(oldAlbumPath, newAlbumPath);
     await moveAlbumInDynamoDB(oldAlbumPath, newAlbumPath, newVersionIds); // handles renaming thumbnail on parent album
     await renameAlbumThumb(getParentFromPath(oldAlbumPath), oldAlbumPath, newAlbumPath); // rename thumb on grandparent album
     await deleteOriginalsAndDerivatives(oldAlbumPath);
-
     console.info(`Rename Album: renamed [${oldAlbumPath}] to [${newAlbumPath}]`);
     return newAlbumPath;
 }
@@ -119,7 +116,10 @@ async function moveAlbumInDynamoDB(
         children.forEach((child) => {
             const imagePath = newAlbumPath + child.itemName;
             const newVersionId = newVersionIds.get(imagePath);
-            if (!newVersionId) throw new Error(`No new version ID found for image [${imagePath}]`);
+            if (!newVersionId) {
+                console.error(`No new version ID found for image [${imagePath}].  VersionIDs: `, newVersionIds);
+                throw new Error(`No new version ID found for image [${imagePath}]`);
+            }
             const image = child as ImageItem;
             image.parentPath = newAlbumPath;
             image.updatedOn = now;
