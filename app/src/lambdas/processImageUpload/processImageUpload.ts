@@ -29,8 +29,7 @@ export async function processImageUpload(bucket: string, key: string, versionId:
     if (!versionId) {
         throw new Error(`Image Processor: missing versionId`);
     }
-    // The only time that parent albums won't exist is when I'm manually
-    // uploading via the AWS Console.
+    // The only time parent albums won't exist is when I manually upload via AWS Console
     console.info(`Image Processor: ensuring parent albums exist for image [${key}]`);
     const albumPath = getParentFromPath(imagePath);
     const albumWasCreated = await createAlbumNoThrow(albumPath);
@@ -43,7 +42,7 @@ export async function processImageUpload(bucket: string, key: string, versionId:
         versionId,
         ...(await extractImageMetadata(bucket, key)),
     };
-    console.info(`Image Processor: creating image [${imagePath}] in DynamoDB`, imageCreateRequest);
+    console.info(`Image Processor: creating image [${imagePath}] in DynamoDB\n`, imageCreateRequest);
     await upsertImage(imagePath, imageCreateRequest);
     console.info(`Image Processor: setting image [${imagePath}] as thumbnail of parent album if none exists`);
     await setImageAsParentAlbumThumbnailIfNoneExists(imagePath);
