@@ -46,18 +46,25 @@ export async function renameAlbum(oldAlbumPath: string, newName: string): Promis
     if (newAlbumPath === oldAlbumPath) {
         throw new BadRequestException(`New album [${newAlbumPath}] cannot be same as old [${oldAlbumPath}]`);
     }
-    if (!(await itemExists(oldAlbumPath))) {
-        throw new BadRequestException(`Album not found: [${oldAlbumPath}]`);
-    }
-    if (await itemExists(newAlbumPath)) {
-        throw new BadRequestException(`An album already exists at [${newAlbumPath}]`);
-    }
+    await Promise.all([assertAlbumExists(oldAlbumPath), assertAlbumDoesNotExist(newAlbumPath)]);
     const newVersionIds = await copyOriginals(oldAlbumPath, newAlbumPath);
     await moveAlbumInDynamoDB(oldAlbumPath, newAlbumPath, newVersionIds); // handles renaming thumbnail on parent album
     await renameAlbumThumb(getParentFromPath(oldAlbumPath), oldAlbumPath, newAlbumPath); // rename thumb on grandparent album
     await deleteOriginalsAndDerivatives(oldAlbumPath);
     console.info(`Rename Album: renamed [${oldAlbumPath}] to [${newAlbumPath}]`);
     return newAlbumPath;
+}
+
+async function assertAlbumExists(albumPath: string): Promise<void> {
+    if (!(await itemExists(albumPath))) {
+        throw new BadRequestException(`Album not found [${albumPath}]`);
+    }
+}
+
+async function assertAlbumDoesNotExist(albumPath: string): Promise<void> {
+    if (await itemExists(albumPath)) {
+        throw new BadRequestException(`Album already exists [${albumPath}]`);
+    }
 }
 
 /**
