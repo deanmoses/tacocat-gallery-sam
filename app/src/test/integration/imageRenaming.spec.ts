@@ -26,25 +26,21 @@ beforeAll(async () => {
     imagePath1 = `${albumPath}image1_${Date.now()}.jpg`; // unique to this test run to prevent test from not being able to run again on failure to clean up properly
     imagePath2 = `${albumPath}image2_${Date.now()}.jpg`; // unique to this test run to prevent test from not being able to run again on failure to clean up properly
     renameImagePath1 = `${albumPath}image1_renamed_${Date.now()}.jpg`;
-
     expect(isValidAlbumPath(albumPath)).toBe(true);
     expect(isValidImagePath(imagePath1)).toBe(true);
     expect(isValidImagePath(imagePath2)).toBe(true);
-
     await assertDynamoDBItemDoesNotExist(albumPath);
-
-    await uploadImage('image.jpg', imagePath1);
-    await uploadImage('image.jpg', imagePath2);
+    await Promise.all([await uploadImage('image.jpg', imagePath1), await uploadImage('image.jpg', imagePath2)]);
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
-
-    await assertDynamoDBItemExists(albumPath);
-    await assertDynamoDBItemExists(imagePath1);
-    await assertDynamoDBItemExists(imagePath2);
-    await assertOriginalImageExists(imagePath1);
-    await assertOriginalImageExists(imagePath2);
-
-    await setAlbumThumbnail(albumPath, imagePath1); // Set image as thumbnail of immediate parent album
-    await setAlbumThumbnail(getParentFromPath(albumPath), imagePath1); // Set image as thumbnail of grandparent album
+    await Promise.all([
+        assertDynamoDBItemExists(albumPath),
+        assertDynamoDBItemExists(imagePath1),
+        assertDynamoDBItemExists(imagePath2),
+        assertOriginalImageExists(imagePath1),
+        assertOriginalImageExists(imagePath2),
+        setAlbumThumbnail(albumPath, imagePath1),
+        setAlbumThumbnail(getParentFromPath(albumPath), imagePath1),
+    ]);
 }, 20000 /* increase Jest's timeout */);
 
 afterAll(async () => {
@@ -52,7 +48,7 @@ afterAll(async () => {
 }, 20000 /* increase Jest's timeout */);
 
 test('Get old image version ID', async () => {
-    oldImageVersionId = (await getImageOrThrow(imagePath1)).versionId;
+    oldImageVersionId = (await getImageOrThrow(imagePath1, true /* include unpublished albums */)).versionId;
     if (!oldImageVersionId) throw new Error(`No version ID found for image [${imagePath1}]`);
 });
 
@@ -77,7 +73,7 @@ test('Do the rename', async () => {
 });
 
 test('GetAlbum() should reflect rename', async () => {
-    const album = await getAlbumAndChildren(albumPath);
+    const album = await getAlbumAndChildren(albumPath, true /* include unpublished albums */);
     if (!album) throw new Error('no album');
     if (!album?.children) throw new Error('no children');
 
@@ -102,7 +98,7 @@ test('GetAlbum() should reflect rename', async () => {
 });
 
 test("Grandparent album's thumbnail entry should reflect the image rename", async () => {
-    const album = await getAlbumAndChildren(getParentFromPath(albumPath));
+    const album = await getAlbumAndChildren(getParentFromPath(albumPath), true /* include unpublished albums */);
     if (!album) throw new Error('no grandparent album');
     expect(album?.thumbnail?.path).toBe(renameImagePath1);
 });
