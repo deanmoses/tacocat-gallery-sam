@@ -83,7 +83,6 @@ export async function assertDerivedImageDoesNotExist(imagePath: string): Promise
  */
 export async function originalImageExists(imagePath: string): Promise<boolean> {
     if (!isValidImagePath(imagePath)) throw new Error(`Invalid image path: [${imagePath}]`);
-
     return await imageExists(imagePath, getOriginalImagesBucketName());
 }
 
