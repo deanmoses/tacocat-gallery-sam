@@ -44,7 +44,6 @@ test('Set Fields', async () => {
     mockDocClient.on(PutCommand).resolves(mockSuccessResponse);
     await expect(
         createAlbum('/2001/', {
-            title: 'Title 1',
             description: 'Description 1',
             summary: 'Summary 1',
             published: true,
