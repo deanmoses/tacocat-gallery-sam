@@ -30,22 +30,33 @@ import { ImageItem } from '../galleryTypes';
  */
 export async function renameImage(oldImagePath: string, newName: string): Promise<string> {
     console.info(`Rename Image: renaming [${oldImagePath}] to [${newName}]...`);
-    if (!isValidImagePath(oldImagePath)) {
-        throw new BadRequestException(`Existing image path is invalid: [${oldImagePath}]`);
-    }
+    assertIsValidImagePath(oldImagePath);
     validateNewImageName(oldImagePath, newName);
     const newImagePath = getParentFromPath(oldImagePath) + newName;
-    if (!(await itemExists(oldImagePath))) {
-        throw new BadRequestException(`Image not found: [${oldImagePath}]`);
-    }
-    if (await itemExists(newImagePath)) {
-        throw new BadRequestException(`An image already exists at [${newImagePath}]`);
-    }
+    await Promise.all([assertImageExists(oldImagePath), assertImageDoesNotExist(newImagePath)]);
     const newVersionId = await copyOriginal(oldImagePath, newImagePath);
     await renameImageInDynamoDB(oldImagePath, newName, newVersionId);
     await deleteOriginalAndDerivatives(oldImagePath);
     console.info(`Rename Image: renamed image from [${oldImagePath}] to [${newImagePath}]`);
     return newImagePath;
+}
+
+function assertIsValidImagePath(imagePath: string): void {
+    if (!isValidImagePath(imagePath)) {
+        throw new BadRequestException(`Invalid image path: [${imagePath}]`);
+    }
+}
+
+async function assertImageExists(imagePath: string): Promise<void> {
+    if (!(await itemExists(imagePath))) {
+        throw new BadRequestException(`Image not found: [${imagePath}]`);
+    }
+}
+
+async function assertImageDoesNotExist(imagePath: string): Promise<void> {
+    if (await itemExists(imagePath)) {
+        throw new BadRequestException(`An image already exists at [${imagePath}]`);
+    }
 }
 
 /**
@@ -79,15 +90,17 @@ function validateNewImageName(existingImagePath: string, newName: string) {
  * @param newVersionId Version ID of new image
  */
 async function renameImageInDynamoDB(oldImagePath: string, newImageName: string, newVersionId: string) {
+    const albumPath = getParentFromPath(oldImagePath);
+    const newImagePath = albumPath + newImageName;
+    const grandparentAlbumPath = getParentFromPath(albumPath);
     // TODO: these should all be done in a single transaction.
     // However, since updating the album thumbnail entries rely on a
     // a condition failing, the transaction would fail.  BZZZT.
-    await moveImageInDynamoDB(oldImagePath, newImageName, newVersionId);
-    const albumPath = getParentFromPath(oldImagePath);
-    const newImagePath = albumPath + newImageName;
-    await renameAlbumThumb(albumPath, oldImagePath, newImagePath);
-    const grandparentAlbumPath = getParentFromPath(albumPath);
-    await renameAlbumThumb(grandparentAlbumPath, oldImagePath, newImagePath);
+    await Promise.all([
+        moveImageInDynamoDB(oldImagePath, newImageName, newVersionId),
+        renameAlbumThumb(albumPath, oldImagePath, newImagePath),
+        renameAlbumThumb(grandparentAlbumPath, oldImagePath, newImagePath),
+    ]);
 }
 
 /**

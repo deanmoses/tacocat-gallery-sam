@@ -7,12 +7,10 @@ import { isValidAlbumPath, isValidImagePath } from '../gallery_path_utils/galler
  * Delete album's images from S3, both original and any derived images.
  * Does not touch DynamoDB.
  *
- * @param imagePath Path of image, like /2001/12-31/image.jpg
+ * @param albumPath Path of album, like /2001/12-31/
  */
-export async function deleteOriginalsAndDerivatives(imagePath: string): Promise<void> {
-    // TODO: parallelize
-    await deleteOriginals(imagePath);
-    await deleteDerivedImagesForAlbum(imagePath);
+export async function deleteOriginalsAndDerivatives(albumPath: string): Promise<void> {
+    await Promise.allSettled([deleteOriginals(albumPath), deleteDerivedImagesForAlbum(albumPath)]);
 }
 
 /**
@@ -22,9 +20,7 @@ export async function deleteOriginalsAndDerivatives(imagePath: string): Promise<
  * @param imagePath Path of image, like /2001/12-31/image.jpg
  */
 export async function deleteOriginalAndDerivatives(imagePath: string): Promise<void> {
-    // TODO: parallelize
-    await deleteOriginalImage(imagePath);
-    await deleteDerivedImages(imagePath);
+    await Promise.allSettled([deleteOriginalImage(imagePath), deleteDerivedImages(imagePath)]);
 }
 
 /**
