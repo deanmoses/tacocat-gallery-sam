@@ -52,6 +52,11 @@ export function handleHttpExceptions(event: APIGatewayProxyEvent, e: unknown): A
         return respondHttp(event, { errorMessage: e.message }, 401);
     } else if (e instanceof ServerException) {
         return respondHttp(event, { errorMessage: e.message }, 500);
+    } else {
+        console.error('Unexpected exception', e);
+        // If we let the API Gateway handle the exception, it won't
+        // include the CORS headers and it'll look to the browser like
+        // a CORS error.
+        return respondHttp(event, { errorMessage: 'Server Error' }, 500);
     }
-    throw e;
 }
