@@ -49,7 +49,7 @@ export async function imageExists(imagePath: string, includeUnpublishedAlbums: b
 
 /**
  * Return true if the specified album or image exists in DynamoDB.
- * Doesn't respect album published status; if there's a record in the database, it returns true.
+ * Doesn't respect album published status; simply checks if there's a record in the database.
  *
  * @param path path of the album or image, like /2001/12-31/ or /2001/12-31/image.jpg
  */
