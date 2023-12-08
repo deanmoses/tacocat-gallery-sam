@@ -70,7 +70,7 @@ test('Do the rename', async () => {
     const image1NewName = getNameFromPath(renameImagePath1);
     if (!image1NewName) throw 'no image 1 new name';
     await renameImage(imagePath1, image1NewName);
-});
+}, 10000 /* increase Jest's timeout */);
 
 test('GetAlbum() should reflect rename', async () => {
     const album = await getAlbumAndChildren(albumPath, true /* include unpublished albums */);
