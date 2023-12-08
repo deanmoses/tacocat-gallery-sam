@@ -9,7 +9,6 @@ import {
     assertDynamoDBItemDoesNotExist,
     assertDynamoDBItemExists,
     cleanUpAlbum,
-    cleanUpAlbumAndParents,
     getAlbumAndChildrenOrThrow,
 } from './helpers/albumHelpers';
 import { assertIsValidAlbumPath, assertIsValidImagePath, assertIsValidYearAlbumPath } from './helpers/pathHelpers';
@@ -45,6 +44,7 @@ beforeAll(async () => {
         assertDynamoDBItemDoesNotExist(oldAlbumPath),
         assertDynamoDBItemDoesNotExist(newAlbumPath),
         assertDynamoDBItemDoesNotExist(anotherAlbumPath),
+        assertDynamoDBItemDoesNotExist(yearAlbumPath),
         assertDynamoDBItemDoesNotExist(imagePath),
         assertDynamoDBItemDoesNotExist(image2Path),
         assertDynamoDBItemDoesNotExist(image3Path),
@@ -73,7 +73,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
     await Promise.allSettled([cleanUpAlbum(anotherAlbumPath), cleanUpAlbum(newAlbumPath)]);
-    await cleanUpAlbumAndParents(oldAlbumPath);
+    await cleanUpAlbum(oldAlbumPath); // just in case the rename failed
+    await cleanUpAlbum(yearAlbumPath);
 }, 20000 /* increases Jest's timeout */);
 
 test('Cannot rename to same name', async () => {
