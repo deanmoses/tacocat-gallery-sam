@@ -375,6 +375,7 @@ Resources:
   SearchFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub ${AWS::StackName}-Search
       CodeUri: app/src/lambdas/api/
       Handler: searchLambda.handler
       Description: API Gateway lambda to search for albums and images in DynamoDB
@@ -405,6 +406,7 @@ Resources:
   GetLatestAlbumFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub ${AWS::StackName}-GetLatestAlbum
       CodeUri: app/src/lambdas/api/
       Handler: getLatestAlbumLambda.handler
       Description: API Gateway lambda function that gets the latest album from DynamoDB
@@ -435,6 +437,7 @@ Resources:
   AlbumExistsFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub ${AWS::StackName}-AlbumExists
       CodeUri: app/src/lambdas/api/
       Handler: albumExistsLambda.handler
       Description: API Gateway function to determine whether album exists
@@ -470,6 +473,7 @@ Resources:
   ImageExistsFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub ${AWS::StackName}-ImageExists
       CodeUri: app/src/lambdas/api/
       Handler: imageExistsLambda.handler
       Description: API Gateway function to determine whether image exists
@@ -500,6 +504,7 @@ Resources:
   GetAlbumFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub ${AWS::StackName}-GetAlbum
       CodeUri: app/src/lambdas/api/
       Handler: getAlbumLambda.handler
       Description: API Gateway function that returns an album and its children from DynamoDB
@@ -535,6 +540,7 @@ Resources:
   CreateAlbumFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub ${AWS::StackName}-CreateAlbum
       CodeUri: app/src/lambdas/api/
       Handler: createAlbumLambda.handler
       Description: API Gateway function that creates a new album in DynamoDB
@@ -565,6 +571,7 @@ Resources:
   UpdateAlbumFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub ${AWS::StackName}-UpdateAlbum
       CodeUri: app/src/lambdas/api/
       Handler: updateAlbumLambda.handler
       Description: API Gateway function that updates an existing album in DynamoDB
@@ -600,6 +607,7 @@ Resources:
   UpdateImageFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub ${AWS::StackName}-UpdateImage
       CodeUri: app/src/lambdas/api/
       Handler: updateImageLambda.handler
       Description: API Gateway function that updates an existing image in DynamoDB
@@ -635,6 +643,7 @@ Resources:
   SetAlbumThumbnailFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub ${AWS::StackName}-SetAlbumThumbnail
       CodeUri: app/src/lambdas/api/
       Handler: setAlbumThumbnailLambda.handler
       Description: API Gateway function that sets an album's thumbnail in DynamoDB
@@ -665,6 +674,7 @@ Resources:
   RecutThumbnailFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub ${AWS::StackName}-RecutThumbnail
       CodeUri: app/src/lambdas/api/
       Handler: recutThumbnailLambda.handler
       Description: API Gateway function recuts an album's thumbnail in DynamoDB
@@ -695,6 +705,7 @@ Resources:
   RenameImageFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub ${AWS::StackName}-RenameImage
       CodeUri: app/src/lambdas/api/
       Handler: renameImageLambda.handler
       Description: API Gateway function that renames an image in DynamoDB and S3
@@ -736,6 +747,7 @@ Resources:
   RenameAlbumFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub ${AWS::StackName}-RenameAlbum
       CodeUri: app/src/lambdas/api/
       Handler: renameAlbumLambda.handler
       Description: API Gateway function that renames an album in DynamoDB and S3
@@ -777,6 +789,7 @@ Resources:
   DeleteAlbumFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub ${AWS::StackName}-DeleteAlbum
       CodeUri: app/src/lambdas/api/
       Handler: deleteAlbumLambda.handler
       Description: API Gateway function that deletes an album from DynamoDB
@@ -812,6 +825,7 @@ Resources:
   DeleteImageFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub ${AWS::StackName}-DeleteImage
       CodeUri: app/src/lambdas/api/
       Handler: deleteImageLambda.handler
       Description: API Gateway function that deletes an image from DynamoDB and S3
@@ -853,6 +867,7 @@ Resources:
   ProcessImageUploadFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub ${AWS::StackName}-ProcessImageUpload
       CodeUri: app/src/lambdas/processImageUpload/
       Handler: processImageUploadLambda.handler
       Description: Lambda that processes images uploaded to S3, extracts metadata and saves to DyanmoDB
