@@ -49,7 +49,7 @@ Parameters:
 # -----------------------------------------------------------------------------
 Globals:
   Function:
-    Runtime: nodejs18.x
+    Runtime: nodejs20.x
     MemorySize: 256
     Timeout: 100
     Environment:
