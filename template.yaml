@@ -51,7 +51,9 @@ Globals:
   Function:
     Runtime: nodejs20.x
     MemorySize: 256
-    Timeout: 100
+    Timeout: 100 # TODO decrease this; the default is 3!
+    LoggingConfig:
+      LogFormat: JSON
     Environment:
         Variables:
           GALLERY_APP_DOMAIN: !Ref GalleryAppDomain
