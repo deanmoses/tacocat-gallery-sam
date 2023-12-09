@@ -10,12 +10,7 @@ sam local invoke GenerateDerivedImageFunction -e app/src/test/data/events/Genera
 sam local invoke GenerateDerivedImageFunction -e app/src/test/data/events/GenerateDerivedImage.json -n .env.json -d 5858 
 sam local invoke GenerateDerivedImageFunction -e app/src/test/data/events/GenerateDerivedImage-crop.json -n .env.json -d 5858 
 
-
-
-
 [SetAlbumThumbnailFunction]
 sam local invoke SetAlbumThumbnailFunction -e events/SetAlbumThumbnail.json -n .env.json
 sam local invoke SetAlbumThumbnailFunction -e events/SetAlbumThumbnail.json -n .env.json -d 5858
 sam local invoke SetAlbumThumbnailFunction -e events/SetAlbumThumbnail-AlbumDoesNotExist.json -n .env.json -d 5858
-
-

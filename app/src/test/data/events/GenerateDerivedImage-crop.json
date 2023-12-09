@@ -15,7 +15,6 @@
         "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
         "x-amzn-tls-cipher-suite": "ECDHE-RSA-AES128-GCM-SHA256",
         "x-amzn-trace-id": "Root=1-65405b33-4db5a9fc6499e51d790b6cc8",
-        "host": "2ulsytomrhi5tvj7ybwoqd247a0qnbat.lambda-url.us-east-1.on.aws",
         "upgrade-insecure-requests": "1",
         "accept-encoding": "gzip, deflate, br",
         "sec-fetch-dest": "document",
@@ -23,9 +22,6 @@
     },
     "requestContext": {
         "accountId": "anonymous",
-        "apiId": "2ulsytomrhi5tvj7ybwoqd247a0qnbat",
-        "domainName": "2ulsytomrhi5tvj7ybwoqd247a0qnbat.lambda-url.us-east-1.on.aws",
-        "domainPrefix": "2ulsytomrhi5tvj7ybwoqd247a0qnbat",
         "http": {
             "method": "GET",
             "path": "/2001/01-01/tswift.jpg/jpeg/400x300",

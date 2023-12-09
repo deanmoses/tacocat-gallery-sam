@@ -19,7 +19,7 @@ const cropInPx = { x: 0, y: 0, width: 220, height: 212 };
 beforeAll(async () => {
     albumPath = getAlbumPathForToday(); // use current year so that getLatestAlbum will always return something
     imagePath = albumPath + imageName;
-    await assertDynamoDBItemDoesNotExist(albumPath);
+    await Promise.all([assertDynamoDBItemDoesNotExist(albumPath), assertDynamoDBItemDoesNotExist(imagePath)]);
     await createAlbum(albumPath, { published: true });
 });
 

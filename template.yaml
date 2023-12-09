@@ -28,20 +28,23 @@ Parameters:
     Type: String
     AllowedValues:
       - dev
+      - test
       - prod
-    ConstraintDescription: Must be either 'dev' or 'prod'
+    ConstraintDescription: Must be either 'dev', 'test' or 'prod'
   GalleryAppDomain:
     Description: Domain of the Tacocat photo gallery web app 
     Type: String
     AllowedValues:
       - staging-pix.tacocat.com
+      - test-pix.tacocat.com
       - pix.tacocat.com
-    ConstraintDescription: Must be either 'staging-pix.tacocat.com' or 'pix.tacocat.com'
+    ConstraintDescription: Must be either 'staging-pix.tacocat.com', 'test-pix.tacocat.com' or 'pix.tacocat.com'
   DomainCertificateArn:
     Description: ARN of the ACM certificate for the GalleryAppDomain domain
     Type: String
     AllowedValues:
       - arn:aws:acm:us-east-1:010410881828:certificate/092ab57c-f87d-4c44-a72c-63cfbbb55800 # staging-pix.tacocat.com
+      - arn:aws:acm:us-east-1:010410881828:certificate/9fbd8ee9-f1d1-42a5-b97c-9713ce6e076d # test-pix.tacocat.com
       - arn:aws:acm:us-east-1:010410881828:certificate/e142cda0-96db-4651-92fd-35dd9a52e9a2 # pix.tacocat.com
 
 # -----------------------------------------------------------------------------
@@ -143,7 +146,7 @@ Resources:
   GalleryItemDDBTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub ${AWS::StackName}-gallery-item-table
+      TableName: !Sub ${AWS::StackName}-items
       AttributeDefinitions:
         - AttributeName: parentPath
           AttributeType: S
@@ -347,7 +350,7 @@ Resources:
         Variables:
           ORIGINAL_IMAGES_BUCKET: !Ref OriginalImagesBucket
           DERIVED_IMAGES_BUCKET: !Ref DerivedImagesBucket
-          IMAGE_QUALITY: 85
+          JPEG_QUALITY: 85
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref OriginalImagesBucket
@@ -380,7 +383,7 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-Search
       CodeUri: app/src/lambdas/api/
       Handler: searchLambda.handler
-      Description: API Gateway lambda to search for albums and images in DynamoDB
+      Description: Search for albums and images in DynamoDB
       Events:
         Api:
           Type: Api
@@ -411,7 +414,7 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-GetLatestAlbum
       CodeUri: app/src/lambdas/api/
       Handler: getLatestAlbumLambda.handler
-      Description: API Gateway lambda function that gets the latest album from DynamoDB
+      Description: Get latest album from DynamoDB
       Events:
         Api:
           Type: Api
@@ -442,7 +445,7 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-AlbumExists
       CodeUri: app/src/lambdas/api/
       Handler: albumExistsLambda.handler
-      Description: API Gateway function to determine whether album exists
+      Description: Determine whether album exists
       Events:
         Api:
           Type: Api
@@ -478,7 +481,7 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-ImageExists
       CodeUri: app/src/lambdas/api/
       Handler: imageExistsLambda.handler
-      Description: API Gateway function to determine whether image exists
+      Description: Determine whether image exists
       Events:
         Api:
           Type: Api
@@ -509,7 +512,7 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-GetAlbum
       CodeUri: app/src/lambdas/api/
       Handler: getAlbumLambda.handler
-      Description: API Gateway function that returns an album and its children from DynamoDB
+      Description: Get album and its children from DynamoDB
       Events:
         Api:
           Type: Api
@@ -545,7 +548,7 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-CreateAlbum
       CodeUri: app/src/lambdas/api/
       Handler: createAlbumLambda.handler
-      Description: API Gateway function that creates a new album in DynamoDB
+      Description: Create new album in DynamoDB
       Events:
         Api:
           Type: Api
@@ -576,7 +579,7 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-UpdateAlbum
       CodeUri: app/src/lambdas/api/
       Handler: updateAlbumLambda.handler
-      Description: API Gateway function that updates an existing album in DynamoDB
+      Description: Update existing album in DynamoDB
       Events:
         Api:
           Type: Api
@@ -612,7 +615,7 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-UpdateImage
       CodeUri: app/src/lambdas/api/
       Handler: updateImageLambda.handler
-      Description: API Gateway function that updates an existing image in DynamoDB
+      Description: Update existing image in DynamoDB
       Events:
         Api:
           Type: Api
@@ -648,7 +651,7 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-SetAlbumThumbnail
       CodeUri: app/src/lambdas/api/
       Handler: setAlbumThumbnailLambda.handler
-      Description: API Gateway function that sets an album's thumbnail in DynamoDB
+      Description: Set album thumbnail in DynamoDB
       Events:
         Api:
           Type: Api
@@ -679,7 +682,7 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-RecutThumbnail
       CodeUri: app/src/lambdas/api/
       Handler: recutThumbnailLambda.handler
-      Description: API Gateway function recuts an album's thumbnail in DynamoDB
+      Description: Recut thumbnail in DynamoDB
       Events:
         Api:
           Type: Api
@@ -710,7 +713,7 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-RenameImage
       CodeUri: app/src/lambdas/api/
       Handler: renameImageLambda.handler
-      Description: API Gateway function that renames an image in DynamoDB and S3
+      Description: Rename image in DynamoDB and S3
       Events:
         Api:
           Type: Api
@@ -752,7 +755,7 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-RenameAlbum
       CodeUri: app/src/lambdas/api/
       Handler: renameAlbumLambda.handler
-      Description: API Gateway function that renames an album in DynamoDB and S3
+      Description: Rename album in DynamoDB and S3
       Events:
         Api:
           Type: Api
@@ -794,7 +797,7 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-DeleteAlbum
       CodeUri: app/src/lambdas/api/
       Handler: deleteAlbumLambda.handler
-      Description: API Gateway function that deletes an album from DynamoDB
+      Description: Delete album from DynamoDB
       Events:
         Api:
           Type: Api
@@ -830,7 +833,7 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-DeleteImage
       CodeUri: app/src/lambdas/api/
       Handler: deleteImageLambda.handler
-      Description: API Gateway function that deletes an image from DynamoDB and S3
+      Description: Delete image from DynamoDB and S3
       Events:
         Api:
           Type: Api

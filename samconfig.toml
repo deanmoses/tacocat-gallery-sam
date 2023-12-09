@@ -1,77 +1,150 @@
 # The AWS Serverless Application Model (SAM) CLI configuration file
 version = 0.1
 
+# There are three stacks / environments:
+#  - default: development
+#  - test: jest integration tests run by jest
+#  - prod
+
+#
+# global: parameters that apply to all sam commands
+#
+
 [default]
 [default.global]
 [default.global.parameters]
 stack_name = "tacocat-gallery-sam-dev"
 
-[default.validate.parameters]
-lint = true
-
-[default.build.parameters]
-cached = true
-parallel = true
-
-[default.package.parameters]
-resolve_s3 = true
-
-[default.sync.parameters]
-watch = true
-
-[default.local_start_api.parameters]
-warm_containers = "EAGER"
-
-[default.local_start_lambda.parameters]
-warm_containers = "EAGER"
-
-[default.deploy.parameters]
-s3_prefix = "tacocat-gallery-sam/dev"
-resolve_s3 = true
-confirm_changeset = true
-region = "us-east-1"
-image_repositories = []
-capabilities = "CAPABILITY_IAM"
-parameter_overrides = [
-    "Env=dev",
-    "GalleryAppDomain=staging-pix.tacocat.com",
-    "ApiDomainCertificateArn=arn:aws:acm:us-east-1:010410881828:certificate/092ab57c-f87d-4c44-a72c-63cfbbb55800",
-]
+[test]
+[test.global]
+[test.global.parameters]
+stack_name = "tacocat-gallery-sam-test"
 
 [prod]
 [prod.global]
 [prod.global.parameters]
 stack_name = "tacocat-gallery-sam-prod"
 
+#
+# deploy: parameters that apply to the sam deploy command
+#
+
+[default.deploy.parameters]
+s3_prefix = "tacocat-gallery-sam/dev" # Prefix (folder name) added to the names of artifacts uploaded to S3
+parameter_overrides = [
+    "Env=dev",
+    "GalleryAppDomain=staging-pix.tacocat.com",
+    "DomainCertificateArn=arn:aws:acm:us-east-1:010410881828:certificate/092ab57c-f87d-4c44-a72c-63cfbbb55800",
+]
+confirm_changeset = true
+resolve_s3 = true
+region = "us-east-1"
+image_repositories = []
+capabilities = "CAPABILITY_IAM"
+
+[test.deploy.parameters]
+s3_prefix = "tacocat-gallery-sam/test" # Prefix (folder name) added to the names of artifacts uploaded to S3
+parameter_overrides = [
+    "Env=test",
+    "GalleryAppDomain=test-pix.tacocat.com",
+    "DomainCertificateArn=arn:aws:acm:us-east-1:010410881828:certificate/9fbd8ee9-f1d1-42a5-b97c-9713ce6e076d",
+]
+confirm_changeset = false
+resolve_s3 = true
+region = "us-east-1"
+image_repositories = []
+capabilities = "CAPABILITY_IAM"
+
+[prod.deploy.parameters]
+s3_prefix = "tacocat-gallery-sam/prod" # Prefix (folder name) added to the names of artifacts uploaded to S3
+parameter_overrides = [
+    "Env=prod",
+    "GalleryAppDomain=pix.tacocat.com",
+    "DomainCertificateArn=arn:aws:acm:us-east-1:010410881828:certificate/e142cda0-96db-4651-92fd-35dd9a52e9a2",
+]
+confirm_changeset = true
+resolve_s3 = true
+region = "us-east-1"
+image_repositories = []
+capabilities = "CAPABILITY_IAM"
+
+#
+# validate: parameters that apply to the sam validate command
+#
+
+[default.validate.parameters]
+lint = true
+
+[test.validate.parameters]
+lint = true
+
 [prod.validate.parameters]
 lint = true
+
+#
+# build: parameters that apply to the sam build command
+#
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+[test.build.parameters]
+cached = true
+parallel = true
 
 [prod.build.parameters]
 cached = true
 parallel = true
 
+#
+# package: parameters that apply to the sam package command
+#
+
+[default.package.parameters]
+resolve_s3 = true
+
+[test.package.parameters]
+resolve_s3 = true
+
 [prod.package.parameters]
 resolve_s3 = true
 
-[prod.sync]
+#
+# sync: parameters that apply to the sam sync command
+#
+
+[default.sync.parameters]
+watch = true
+
+[test.sync.parameters]
+watch = true
+
 [prod.sync.parameters]
 watch = false
+
+#
+# local_start_api: parameters that apply to the sam local start-api command
+#
+
+[default.local_start_api.parameters]
+warm_containers = "EAGER"
+
+[test.local_start_api.parameters]
+warm_containers = "EAGER"
 
 [prod.local_start_api.parameters]
 warm_containers = "EAGER"
 
-[prod.local_start_lambda.parameters]
+#
+# local_start_lambda: parameters that apply to the sam local start-lambda command
+#
+
+[default.local_start_lambda.parameters]
 warm_containers = "EAGER"
 
-[prod.deploy.parameters]
-s3_prefix = "tacocat-gallery-sam/prod"
-resolve_s3 = true
-confirm_changeset = true
-region = "us-east-1"
-image_repositories = []
-capabilities = "CAPABILITY_IAM"
-parameter_overrides = [
-    "Env=prod",
-    "GalleryAppDomain=pix.tacocat.com",
-    "ApiDomainCertificateArn=arn:aws:acm:us-east-1:010410881828:certificate/e142cda0-96db-4651-92fd-35dd9a52e9a2",
-]
+[test.local_start_lambda.parameters]
+warm_containers = "EAGER"
+
+[prod.local_start_lambda.parameters]
+warm_containers = "EAGER"
