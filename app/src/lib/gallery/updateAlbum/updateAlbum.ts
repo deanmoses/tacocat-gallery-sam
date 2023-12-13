@@ -60,7 +60,7 @@ export async function updateAlbum(albumPath: string, attributesToUpdate: AlbumUp
             if (attributesToUpdate.published === true && isValidDayAlbumPath(albumPath)) {
                 const yearAlbumPath = getParentFromPath(albumPath);
                 if (!(await getAlbum(yearAlbumPath))?.published) {
-                    throw new BadRequestException(`Cannot publish [${albumPath}] because parent isn't published`);
+                    throw new BadRequestException(`Cannot publish until parent is published`);
                 }
             }
         }
