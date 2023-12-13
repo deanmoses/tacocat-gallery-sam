@@ -32,8 +32,14 @@ export function selectMetadata(tags: ExifReader.ExpandedTags): Partial<ImageCrea
         title: tags.iptc?.['Object Name']?.description || tags.iptc?.['Headline']?.description,
         description: tags.iptc?.['Caption/Abstract']?.description,
     };
-    const height = tags.file?.['Image Height']?.description || tags.exif?.ImageLength?.description;
-    const width = tags.file?.['Image Width']?.description || tags.exif?.ImageWidth?.description;
+    const height =
+        tags.file?.['Image Height']?.description ||
+        tags.exif?.ImageLength?.description ||
+        tags.pngFile?.['Image Height']?.description;
+    const width =
+        tags.file?.['Image Width']?.description ||
+        tags.exif?.ImageWidth?.description ||
+        tags.pngFile?.['Image Width']?.description;
     if (height && width) {
         image.dimensions = {
             height: Number.parseInt(height, 10),
@@ -42,6 +48,7 @@ export function selectMetadata(tags: ExifReader.ExpandedTags): Partial<ImageCrea
     } else {
         console.error(`Image [${image.title}] has no dimensions`);
     }
+
     if (tags.iptc?.Keywords?.length) {
         image.tags = [];
         tags.iptc?.Keywords?.forEach((keyword) => {

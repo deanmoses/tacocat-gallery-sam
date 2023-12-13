@@ -67,3 +67,36 @@ describe('selectMetadata', () => {
         });
     });
 });
+
+describe('process png', () => {
+    test('png', async () => {
+        const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/pngFormat.png');
+        const tags = await ExifReader.load(filePath, { expanded: true });
+        console.dir(tags, { depth: null });
+        const md = selectMetadata(tags);
+        expect(md.dimensions).toEqual({ height: 212, width: 220 });
+    });
+    test('windows png', async () => {
+        const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/pngWindows.png');
+        const tags = await ExifReader.load(filePath, { expanded: true });
+        console.dir(tags, { depth: null });
+        const md = selectMetadata(tags);
+        expect(md.dimensions).toEqual({ height: 843, width: 1500 });
+    });
+});
+
+describe('process gif', () => {
+    // GIFs are not supported by exifreader
+    // I don't believe GIFs have EXIF metadata
+    //
+    // To support gifs I'd need to use Sharp to get the gif's dimensions
+    //
+    // I don't want to add the Sharp layer to this lambda because
+    // it's lot of extra heft for Tacocat's three gifs (really, 3!).
+    //
+    // Instead, farm out the gif processing to a different lambda
+    // that only runs when a gif is uploaded.  This lambda would
+    // send some sort of 'process gif' event/message that would
+    // trigger the other lambda.
+    test.todo('gif - not supported by exifreader');
+});
