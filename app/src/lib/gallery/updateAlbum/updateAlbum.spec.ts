@@ -1,7 +1,7 @@
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { updateAlbum } from './updateAlbum';
-import { AlbumUpdateRequest } from '../galleryTypes';
+import { AlbumItem, AlbumUpdateRequest } from '../galleryTypes';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
 const albumPath = '/2001/12-31/';
@@ -55,30 +55,71 @@ test('blank summary', async () => {
     ).resolves.not.toThrow();
 });
 
-test('all fields', async () => {
+test('published->true, parent not published', async () => {
+    expect.assertions(1);
+    // Mock out AWS method to get parent album
+    mockDocClient.on(GetCommand, {}).resolves({
+        Item: {
+            parentPath: '/2001/',
+            itemName: '01-01',
+            itemType: 'album',
+            published: false,
+        } satisfies AlbumItem,
+    });
+    await expect(updateAlbum(albumPath, { published: true })).rejects.toThrow(/parent/);
+});
+
+test('published->true, parent published', async () => {
+    expect.assertions(1);
+    // Mock out AWS method to get parent album
+    mockDocClient.on(GetCommand, {}).resolves({
+        Item: {
+            parentPath: '/2001/',
+            itemName: '01-01',
+            itemType: 'album',
+            published: true,
+        } satisfies AlbumItem,
+    });
+    await expect(
+        updateAlbum(albumPath, {
+            published: true,
+        }),
+    ).resolves.not.toThrow();
+});
+
+test('published->false, parent not published', async () => {
+    expect.assertions(1);
+    // Mock out AWS method to get parent album
+    mockDocClient.on(GetCommand, {}).resolves({
+        Item: {
+            parentPath: '/2001/',
+            itemName: '01-01',
+            itemType: 'album',
+            published: false,
+        } satisfies AlbumItem,
+    });
+    await expect(
+        updateAlbum(albumPath, {
+            published: false,
+        }),
+    ).resolves.not.toThrow();
+});
+
+test('all fields, parent published', async () => {
+    // Mock out AWS method to get parent album
+    mockDocClient.on(GetCommand, {}).resolves({
+        Item: {
+            parentPath: '/2001/',
+            itemName: '01-01',
+            itemType: 'album',
+            published: true,
+        } satisfies AlbumItem,
+    });
     await expect(
         updateAlbum(albumPath, {
             description: 'Description 2',
             summary: 'Summary 2',
             published: true,
-        }),
-    ).resolves.not.toThrow();
-});
-
-test('published->true', async () => {
-    expect.assertions(1);
-    await expect(
-        updateAlbum(albumPath, {
-            published: true,
-        }),
-    ).resolves.not.toThrow();
-});
-
-test('published->false', async () => {
-    expect.assertions(1);
-    await expect(
-        updateAlbum(albumPath, {
-            published: false,
         }),
     ).resolves.not.toThrow();
 });

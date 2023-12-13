@@ -1,11 +1,17 @@
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { NotFoundException } from '../../lambda_utils/NotFoundException';
-import { getParentAndNameFromPath, isValidAlbumPath } from '../../gallery_path_utils/galleryPathUtils';
+import {
+    getParentAndNameFromPath,
+    getParentFromPath,
+    isValidAlbumPath,
+    isValidDayAlbumPath,
+} from '../../gallery_path_utils/galleryPathUtils';
 import { buildUpdatePartiQL } from '../../dynamo_utils/DynamoUpdateBuilder';
 import { ConditionalCheckFailedException, DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ExecuteStatementCommand } from '@aws-sdk/lib-dynamodb';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { AlbumItem, AlbumUpdateRequest } from '../galleryTypes';
+import { getAlbum } from '../getAlbum/getAlbum';
 
 /**
  * Update an album's attributes (like description and summary) in DynamoDB
@@ -37,7 +43,7 @@ export async function updateAlbum(albumPath: string, attributesToUpdate: AlbumUp
     //
 
     const validKeys = new Set(['description', 'summary', 'published']);
-    keysToUpdate.forEach((keyToUpdate) => {
+    for (const keyToUpdate of keysToUpdate) {
         // Ensure we aren't trying to update an unknown attribute
         if (!validKeys.has(keyToUpdate)) {
             throw new BadRequestException('Unknown attribute: ' + keyToUpdate);
@@ -50,8 +56,15 @@ export async function updateAlbum(albumPath: string, attributesToUpdate: AlbumUp
                     `Invalid value: 'published' must be a boolean.  I got: [${attributesToUpdate.published}]`,
                 );
             }
+            // Only allow day albums to be published if parent year album is already published
+            if (attributesToUpdate.published === true && isValidDayAlbumPath(albumPath)) {
+                const yearAlbumPath = getParentFromPath(albumPath);
+                if (!(await getAlbum(yearAlbumPath))?.published) {
+                    throw new BadRequestException(`Cannot publish [${albumPath}] because parent isn't published`);
+                }
+            }
         }
-    });
+    }
 
     //
     // Construct the DynamoDB update statement
