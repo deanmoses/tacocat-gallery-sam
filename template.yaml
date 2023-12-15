@@ -98,40 +98,18 @@ Resources:
             NoncurrentVersionExpirationInDays: 1 # 24 # delete old versions after 24 days (1 for testing)
             ExpiredObjectDeleteMarker: true
             Status: Enabled
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: false
-        BlockPublicPolicy: false
-        IgnorePublicAcls: false
-        RestrictPublicBuckets: false
       CorsConfiguration:
         CorsRules:
           - AllowedHeaders:
               - "*"
             AllowedMethods:
-              - HEAD
-              - GET
-              - PUT
-              - POST
+              - PUT # used by presigned URLs to upload images
             AllowedOrigins:
-              - "*"
+#              - "*"
+              - !Sub "https://${GalleryAppDomain}"
             ExposedHeaders:
               - ETag
               - x-amz-version-id # Necessary so that client can receive version ID of uploaded image
-
-  # Allow upload from my guest cognito identity pool
-  # This was erroring, I think with an invalid principal
-  #OriginalImagesBucketPolicy:
-  #  Type: AWS::S3::BucketPolicy
-  #  Properties:
-  #    Bucket: !Ref OriginalImagesBucket
-  #    PolicyDocument:
-  #      Version: "2012-10-17"
-  #      Statement:
-  #        - Effect: Allow
-  #          Action: s3:PutObject
-  #          Resource: !Ref OriginalImagesBucket
-  #          Principal:
-  #            AWS: "arn:aws:iam::010410881828:role/service-role/TacocatGalleryGuestUser" # guest cognito identity pool role
 
   # -----------------------------------------------------------------------------
   # S3 bucket for derived images
@@ -835,6 +813,40 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - deleteAlbumLambda.ts
+
+  # ---------------------------------------------------------------------------
+  # API Gateway lambda to generate presigned URLs to upload images
+  # ---------------------------------------------------------------------------
+  GenerateUploadImageUrlsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-GenerateUploadUrls
+      CodeUri: app/src/lambdas/api/
+      Handler: generateUploadUrlsLambda.handler
+      Description: Generate presigned URLs to upload images
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /presigned/{albumPath+}
+            Method: POST
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+          ORIGINAL_IMAGES_BUCKET: !Ref OriginalImagesBucket
+      Policies:
+        - S3WritePolicy: # needed to generate presigned URLs with the authority to upload images
+            BucketName: !Ref OriginalImagesBucket
+        - DynamoDBReadPolicy:
+            TableName: !Ref GalleryItemDDBTable
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - generateUploadUrlsLambda.ts
 
   # ---------------------------------------------------------------------------
   # API Gateway lambda to delete image
