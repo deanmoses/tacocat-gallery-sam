@@ -63,7 +63,7 @@ export async function upsertImage(imagePath: string, image: ImageCreateRequest):
         expressionAttributeValues[':tags'] = image.tags;
     }
     if (!!image.dimensions) {
-        updateExpression += `, dimensions = if_not_exists(dimensions, :dimensions)`;
+        updateExpression += `, dimensions = :dimensions`;
         expressionAttributeValues[':dimensions'] = image.dimensions;
     }
     ddbCommand.input.UpdateExpression = updateExpression;
