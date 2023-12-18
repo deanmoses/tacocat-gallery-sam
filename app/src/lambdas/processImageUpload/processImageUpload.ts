@@ -3,7 +3,8 @@ import { setImageAsParentAlbumThumbnailIfNoneExists } from '../../lib/gallery/se
 import { getParentFromPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { createAlbumNoThrow } from '../../lib/gallery/createAlbum/createAlbum';
 import { upsertImage } from '../../lib/gallery/upsertImage/upsertImage';
-import { ImageCreateRequest } from '../../lib/gallery/galleryTypes';
+import { ImageCreateRequest, Size } from '../../lib/gallery/galleryTypes';
+import { getGalleryAppDomain } from '../../lib/lambda_utils/Env';
 
 /**
  * Process an file uploaded to S3.
@@ -46,5 +47,57 @@ export async function processImageUpload(bucket: string, key: string, versionId:
     await upsertImage(imagePath, imageCreateRequest);
     console.info(`Image Processor: setting image [${imagePath}] as thumbnail of parent album if none exists`);
     await setImageAsParentAlbumThumbnailIfNoneExists(imagePath);
-    console.info(`Image Processor: created or updated image [${imagePath}]`);
+    console.info(`Image Processor: generating detail image for [${imagePath}]`);
+    if (!!imageCreateRequest.dimensions) {
+        await generateDetailImage(imagePath, versionId, imageCreateRequest.dimensions);
+    } else {
+        console.error(
+            `Image Processor: not generating detail image for [${imagePath}] because no dimensions were extracted`,
+        );
+    }
+    console.info(`Image Processor: done processing image [${imagePath}]`);
+}
+
+async function generateDetailImage(imagePath: string, versionId: string, dimensions: Size): Promise<void> {
+    const width = detailWidth(dimensions.width, dimensions.height);
+    const height = detailHeight(dimensions.width, dimensions.height);
+    const sizing = width > height ? width.toString() : 'x' + height.toString();
+    const detailImageUrl = imageDetailUrl(imagePath, versionId, sizing);
+    console.info(`Image Processor: detail image URL for [${imagePath}] is [${detailImageUrl}]`);
+    const result = await fetch(imageDetailUrl(imagePath, versionId, sizing));
+    if (!result.ok) {
+        console.error(
+            `Image Processor: error generating detail image for [${imagePath}] ${result.status}`,
+            result.statusText,
+        );
+    }
+}
+
+/** Return URL of the format https://img.pix.tacocat.com/i/2001/12-01/image.jpg?version=VERSION&size=x1024 */
+function imageDetailUrl(imagePath: string, versionId: string, size: string) {
+    return `https://img.${getGalleryAppDomain()}/i${imagePath}?version=${versionId}&size=${size}`;
+}
+
+/** Width of detail image */
+function detailWidth(width: number, height: number): number {
+    if (!width) {
+        return 1024;
+    } else if (!height || width > height) {
+        // Don't enlarge images smaller than 1024
+        return width < 1024 ? width : 1024;
+    } else {
+        return Math.round(1024 * (width / height));
+    }
+}
+
+/** Height of detail image */
+function detailHeight(width: number, height: number): number {
+    if (!height) {
+        return 1024;
+    } else if (!width || height > width) {
+        // Don't enlarge images smaller than 1024
+        return height < 1024 ? height : 1024;
+    } else {
+        return Math.round(1024 * (height / width));
+    }
 }
