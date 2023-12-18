@@ -3,6 +3,7 @@ import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import path from 'path';
 import { selectMetadata } from './extractImageMetadata';
 import ExifReader from 'exifreader';
+import { existsSync } from 'fs';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
 
@@ -58,6 +59,7 @@ describe('selectMetadata', () => {
     images.forEach((image) => {
         test(`File [${image.fileName}]`, async () => {
             const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/', image.fileName);
+            if (!existsSync(filePath)) throw new Error(`File [${filePath}] does not exist`);
             const tags = await ExifReader.load(filePath, { expanded: true });
             const md = selectMetadata(tags);
             expect(md.title).toBe(image.title);
@@ -71,6 +73,7 @@ describe('selectMetadata', () => {
 describe('process png', () => {
     test('png', async () => {
         const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/pngFormat.png');
+        if (!existsSync(filePath)) throw new Error(`File [${filePath}] does not exist`);
         const tags = await ExifReader.load(filePath, { expanded: true });
         console.dir(tags, { depth: null });
         const md = selectMetadata(tags);
@@ -78,6 +81,7 @@ describe('process png', () => {
     });
     test('windows png', async () => {
         const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/pngWindows.png');
+        if (!existsSync(filePath)) throw new Error(`File [${filePath}] does not exist`);
         const tags = await ExifReader.load(filePath, { expanded: true });
         console.dir(tags, { depth: null });
         const md = selectMetadata(tags);
@@ -86,17 +90,12 @@ describe('process png', () => {
 });
 
 describe('process gif', () => {
-    // GIFs are not supported by exifreader
-    // I don't believe GIFs have EXIF metadata
-    //
-    // To support gifs I'd need to use Sharp to get the gif's dimensions
-    //
-    // I don't want to add the Sharp layer to this lambda because
-    // it's lot of extra heft for Tacocat's three gifs (really, 3!).
-    //
-    // Instead, farm out the gif processing to a different lambda
-    // that only runs when a gif is uploaded.  This lambda would
-    // send some sort of 'process gif' event/message that would
-    // trigger the other lambda.
-    test.todo('gif - not supported by exifreader');
+    test('gif', async () => {
+        const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/gifFormat.gif');
+        if (!existsSync(filePath)) throw new Error(`File [${filePath}] does not exist`);
+        const tags = await ExifReader.load(filePath, { expanded: true });
+        console.dir(tags, { depth: null });
+        const md = selectMetadata(tags);
+        expect(md.dimensions).toEqual({ height: 240, width: 360 });
+    });
 });
