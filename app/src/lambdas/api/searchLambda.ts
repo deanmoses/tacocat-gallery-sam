@@ -9,7 +9,8 @@ import { search } from '../../lib/gallery/search/search';
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
         ensureHttpMethod(event, HttpMethod.GET);
-        const searchTerms = event?.pathParameters?.searchTerms;
+        const encodedSearchTerms = event?.pathParameters?.searchTerms;
+        const searchTerms = !!encodedSearchTerms ? decodeURIComponent(encodedSearchTerms) : undefined;
         const searchResults = await search(searchTerms);
         return respondHttp(event, searchResults);
     } catch (e) {

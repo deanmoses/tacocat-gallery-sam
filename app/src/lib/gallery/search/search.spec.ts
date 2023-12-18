@@ -75,7 +75,7 @@ test('Should find multiple by tag', async () => {
     expect((searchResults[0].item as ImageItem).tags).toContain('parade');
 });
 
-test('Should find "taylor swift" all over', async () => {
+test('Should find multiple words', async () => {
     mockDDBClient.on(ScanCommand).resolves({ Items: mockScanResults }); // Mock out the DDB table scan
     const searchResults = await search('taylor swift');
     expect(searchResults.length).toBeGreaterThanOrEqual(4);
@@ -92,6 +92,13 @@ test('Should find diacriticals', async () => {
     searchResults = await search('francais');
     expect(searchResults.length).toBe(1);
     expect((searchResults[0].item as ImageItem).title).toBe('Café Français');
+});
+
+test('Should find emojis', async () => {
+    mockDDBClient.on(ScanCommand).resolves({ Items: mockScanResults }); // Mock out the DDB table scan
+    const searchResults = await search('Happy 🎂');
+    expect(searchResults.length).toBe(1);
+    expect((searchResults[0].item as AlbumItem).description).toBe('Happy Birthday, Pat 🎂');
 });
 
 test('Should ignore case', async () => {
@@ -176,7 +183,14 @@ const mockScanResults: GalleryItem[] = [
         thumbnail: { x: 10, y: 10, width: 400, height: 400 },
         dimensions: { width: 1000, height: 1000 },
     } satisfies ImageItem,
-
+    {
+        itemType: 'album',
+        updatedOn: '2023-10-26T23:23:48.108Z',
+        parentPath: '/2014/',
+        itemName: '08-14',
+        description: 'Happy Birthday, Pat 🎂',
+        published: true,
+    } satisfies AlbumItem,
     {
         itemType: 'album',
         updatedOn: '2023-10-26T23:23:48.108Z',
