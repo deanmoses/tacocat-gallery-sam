@@ -1,5 +1,5 @@
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import ExifReader, { NumberFileTag } from 'exifreader';
+import ExifReader from 'exifreader';
 import { Readable } from 'stream';
 import { ImageCreateRequest } from '../../lib/gallery/galleryTypes';
 
@@ -24,19 +24,10 @@ export async function extractImageMetadata(bucket: string, objectKey: string): P
     return selectMetadata(tags);
 }
 
-// TODO: once ExifReader adds TypeScript types for gif, remove this
-interface GifFileTags {
-    gif: {
-        'Image Width'?: NumberFileTag;
-        'Image Height'?: NumberFileTag;
-    };
-}
-
 /**
  * Extract the metadata to be saved to DynamoDB
  */
-export function selectMetadata(tagz: ExifReader.ExpandedTags): Partial<ImageCreateRequest> {
-    const tags = tagz as ExifReader.ExpandedTags & GifFileTags;
+export function selectMetadata(tags: ExifReader.ExpandedTags): Partial<ImageCreateRequest> {
     const image: Partial<ImageCreateRequest> = {
         title: tags.iptc?.['Object Name']?.description || tags.iptc?.['Headline']?.description,
         description: tags.iptc?.['Caption/Abstract']?.description,
