@@ -2,7 +2,7 @@ import sharp, { Metadata, Region } from 'sharp';
 import { focusCrop, Point, Rectangle, Size } from './focusCrop';
 import { getJpegQuality } from '../../lib/lambda_utils/Env';
 
-export const imageFormats = ['webp', 'jpeg', 'avif'] as const;
+export const imageFormats = ['webp', 'jpeg', 'avif', 'gif'] as const;
 export type ImageFormat = (typeof imageFormats)[number];
 export const isImageFormat = (value: unknown): value is ImageFormat => imageFormats.includes(value as ImageFormat);
 
@@ -13,7 +13,10 @@ type TransformParams = {
     focus?: Point;
     crop?: Rectangle;
     quality?: number;
-    background?: string; // background color to blend alpha channel with
+    /** Background color to blend alpha channel with */
+    background?: string;
+    /** Preserve animation (defaults to false) */
+    animated?: boolean;
 };
 
 export type OptimizingParams = Partial<TransformParams>;
@@ -21,17 +24,31 @@ export type OptimizingParams = Partial<TransformParams>;
 export const optimizeImage = async (image: Uint8Array, params: OptimizingParams) => {
     if (params.format) return transformImage(image, params as TransformParams);
 
+    const meta = await sharp(image).metadata();
+
+    // Always return jpegs as jpegs
+    if (['jpeg'].includes(meta.format ?? '')) {
+        return await transformImage(image, { ...params, format: 'jpeg' });
+    }
+
+    // Always return gifs as gifs
+    if (['gif'].includes(meta.format ?? '')) {
+        // to avoid animated thumbnails, only animate if new size is larger than 200px
+        const animated = (!!params.width && params.width > 200) || (!!params.height && params.height > 200);
+        return await transformImage(image, { ...params, format: 'gif', animated });
+    }
+
+    // For source images with format `png` or an alpha channel always
+    // prefer webp for better image quality
+    if (meta.hasAlpha || ['png', 'gif', 'webp', 'tif', 'tiff'].includes(meta.format ?? '')) {
+        return await transformImage(image, { ...params, format: 'webp' });
+    }
+
     // The compression between webp and jpeg (mozjpg) is very similiar.
     // actually, for photos with lots of details mozjpg produces smaller images
     // and for low detail images (screenshots, diagrams, ...) webp produces smaller ones.
     // Because jpeg and webp are supported by all modern browsers, we can
     // pick the format that has the best compression, if no format was specified.
-    // For source images with format `png` or an alpha channel we always
-    // prefer webp for better image quality
-    const meta = await sharp(image).metadata();
-    if (meta.hasAlpha || ['png', 'gif', 'tif', 'tiff'].includes(meta.format ?? '')) {
-        return await transformImage(image, { ...params, format: 'webp' });
-    }
     const results = await Promise.all([
         transformImage(image, { ...params, format: 'webp' }),
         transformImage(image, { ...params, format: 'jpeg' }),
@@ -40,7 +57,8 @@ export const optimizeImage = async (image: Uint8Array, params: OptimizingParams)
 };
 
 const transformImage = async (image: Uint8Array, params: TransformParams) => {
-    const sharpImage = sharp(image);
+    const animated = params.animated ?? false;
+    const sharpImage = sharp(image, { animated });
     const meta = await sharpImage.metadata();
     const size = getImageSize(meta);
     const {
@@ -76,12 +94,15 @@ export const getQuality = (format: ImageFormat, size: Size): number => {
         if (pixels < 400 * 400) return 55;
         if (pixels < 800 * 800) return 45;
         return 35;
+    } else if (format === 'gif') {
+        return 95;
     }
     throw Error(`automatic quality for format ${format} not implemented`);
 };
 
-export const getImageSize = ({ width, height, orientation }: Metadata) => {
+export const getImageSize = ({ width, height, pageHeight, orientation }: Metadata) => {
     if (!width || !height) throw Error('original image has no size');
+    if (!!pageHeight) height = pageHeight; // animated gif, use pageHeight instead of height because height is all frames combined
     // if present, orientation is 1 2 3 4 5 6 7 8 and describes rotation and mirroring, see https://exiftool.org/TagNames/EXIF.html
     return orientation && orientation > 4 && orientation <= 8
         ? { width: height, height: width } // rotate 90 degrees for orientation 5, 6, 7 and 8

@@ -319,7 +319,7 @@ Resources:
             const v = r.querystring['version'], c = r.querystring['crop'], s = r.querystring['size'];
             if (!v) return { statusCode: 400, statusDescription: 'Missing Version' };
             if (!s) return { statusCode: 400, statusDescription: 'Missing Size' };
-            r.uri += path(v) + '/jpeg' + path(s) + crop(c);
+            r.uri += path(v) + path(s) + crop(c);
             r.querystring = {};
             return r;
         }
