@@ -72,9 +72,8 @@ const textResponse = (statusCode: number, body: string) => ({
     body,
     isBase64Encoded: false,
 });
-const cacheControl = 'public, max-age=123';
+const cacheControl = 'public, max-age=31536000'; // 1 year
 const badRequest = textResponse(400, 'bad request');
-//const forbidden = textResponse(403, 'forbidden');
 const notFound = textResponse(404, 'not found');
 const methodNotAllowed = textResponse(405, 'method not allowed');
 const internalServerError = textResponse(500, 'internal server error');

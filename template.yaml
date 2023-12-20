@@ -16,7 +16,7 @@ Transform: AWS::Serverless-2016-10-31
 # -----------------------------------------------------------------------------
 # This particular template defines the back end of the Tacocat photo gallery
 # -----------------------------------------------------------------------------
-Description: Tacocat Gallery SAM App
+Description: Tacocat Gallery image storage, database, and API
 
 # -----------------------------------------------------------------------------
 # Parameters that can be specified when deploying this stack
@@ -95,7 +95,7 @@ Resources:
       LifecycleConfiguration:
         Rules:
           - Id: Delete Old Versions
-            NoncurrentVersionExpirationInDays: 1 # 24 # delete old versions after 24 days (1 for testing)
+            NoncurrentVersionExpirationInDays: 24 # delete old versions after 24 days
             ExpiredObjectDeleteMarker: true
             Status: Enabled
       CorsConfiguration:
@@ -120,13 +120,6 @@ Resources:
     UpdateReplacePolicy: !If [ "IsProd", "Retain", "Delete" ] # don't delete in prod
     Properties:
       BucketName: !Sub ${AWS::StackName}-derived-images
-      # Autodelete derived images after a while
-      # If someone asks for them again they'll be regenerated
-      LifecycleConfiguration:
-        Rules:
-          - Id: Housekeeping
-            Status: Enabled
-            ExpirationInDays: 60 # delete files after 60 days
 
   # -----------------------------------------------------------------------------
   # DynamoDB table containing the album and image metadata
@@ -352,7 +345,6 @@ Resources:
         - arn:aws:lambda:us-east-1:010410881828:layer:Sharp-0_33_0:1 
       FunctionUrlConfig:
         AuthType: NONE #TODO: authentication
-        InvokeMode: RESPONSE_STREAM
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
