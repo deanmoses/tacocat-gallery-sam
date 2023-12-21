@@ -227,7 +227,10 @@ async function addCropInfoToChildAlbums(children: AlbumItem[]): Promise<void> {
     children.forEach((album) => {
         if (album.thumbnail?.path) {
             const imgInfo = imgInfos.get(album.thumbnail.path);
-            if (!imgInfo) throw new Error(`Missing basic info for image [${album.thumbnail.path}]`);
+            if (!imgInfo)
+                throw new Error(
+                    `Album [${album.path}]: failed to get thumbnail info for image [${album.thumbnail.path}]`,
+                );
             if (!imgInfo.versionId) throw new Error(`Missing versionId for image [${album.thumbnail.path}]`);
             album.thumbnail.versionId = imgInfo.versionId;
             if (imgInfo.thumbnail) {
