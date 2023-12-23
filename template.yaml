@@ -375,6 +375,9 @@ Resources:
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+          REDIS_HOST: redis-13894.c321.us-east-1-2.ec2.cloud.redislabs.com:13894
+          REDIS_USERNAME: prodsearcher
+          REDIS_PASSWORD: "{{resolve:secretsmanager:Tacocat/Gallery/Authentication:SecretString:RedisSearchPassword}}"
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref GalleryItemDDBTable

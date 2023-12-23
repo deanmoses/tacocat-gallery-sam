@@ -28,6 +28,18 @@ export function getDerivedImageGeneratorDomain(): string {
     return getEnv('DERIVED_IMAGE_GENERATOR_DOMAIN');
 }
 
+export function getRedisHost(): string {
+    return getEnv('REDIS_HOST');
+}
+
+export function getRedisUsername(): string {
+    return getEnv('REDIS_USERNAME');
+}
+
+export function getRedisPassword(): string {
+    return getEnv('REDIS_PASSWORD');
+}
+
 function getEnvAsInt(name: string): number {
     return parseInt(getEnv(name), 10);
 }

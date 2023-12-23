@@ -54,6 +54,11 @@ async function getAllGalleryItems(): Promise<BaseGalleryRecord[]> {
     const docClient = DynamoDBDocumentClient.from(ddbClient);
     const result = await docClient.send(ddbCommand);
     console.info(`Search: retrieved contents of entire DynamoDB table. Item count [${result?.Items?.length}]`);
+    if (result.LastEvaluatedKey) {
+        console.warn(
+            `Search: DynamoDB table scan incomplete, hit page limit. LastEvaluatedKey [${result.LastEvaluatedKey}]`,
+        );
+    }
     return result.Items || [];
 }
 
