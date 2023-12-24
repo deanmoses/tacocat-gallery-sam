@@ -31,10 +31,8 @@ beforeAll(async () => {
     await uploadImage('image.jpg', imagePath);
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
 
-    await Promise.all([
-        updateAlbum(albumPath, { published: true }),
-        updateAlbum(getParentFromPath(albumPath), { published: true }),
-    ]);
+    updateAlbum(getParentFromPath(albumPath), { published: true }); // must publish parent first
+    updateAlbum(albumPath, { published: true }); // cannot publish child before parent
 }, 25000 /* increase Jest's timeout */);
 
 afterAll(async () => {
