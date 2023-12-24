@@ -1,17 +1,14 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, BatchGetCommand } from '@aws-sdk/lib-dynamodb';
 import {
     getParentAndNameFromPath,
     getParentFromPath,
     isValidAlbumPath,
     isValidDayAlbumPath,
-    toImagePath,
     toPathFromItem,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
-import { Album, AlbumItem, GalleryItem, NavInfo, Navigable, Rectangle } from '../galleryTypes';
+import { Album, AlbumItem, GalleryItem, NavInfo, Navigable } from '../galleryTypes';
 import { getChildItems, getItem } from '../../dynamo_utils/ddbGet';
-import { getDynamoDbTableName } from '../../lambda_utils/Env';
+import { augmentAlbumThumbnailsWithImageInfo } from '../../dynamo_utils/albumThumbnailHelper';
 
 /**
  * Retrieve an album and its children (images or subalbums) from DynamoDB.
@@ -116,7 +113,7 @@ async function getChildren(
                 children = (children as AlbumItem[]).filter((child) => child.published);
             }
             // Augment album thumbnail entries with info from the image record in DynamoDB
-            await addCropInfoToChildAlbums(children as AlbumItem[]);
+            await augmentAlbumThumbnailsWithImageInfo(children as AlbumItem[]);
         }
     }
     return children;
@@ -183,59 +180,4 @@ function itemNav(item: GalleryItem): NavInfo {
         nav.title = item.title;
     }
     return nav;
-}
-
-/**
- * Augment each child album's thumbnail entry with info from the image record in DynamoDB
- *
- * @param children child albums of an album
- */
-async function addCropInfoToChildAlbums(children: AlbumItem[]): Promise<void> {
-    const Keys: { parentPath: string; itemName: string }[] = [];
-    if (!children || children.length === 0) return;
-    children.forEach((album) => {
-        if (album.thumbnail?.path) {
-            const pathParts = getParentAndNameFromPath(album.thumbnail?.path);
-            if (pathParts.name) {
-                Keys.push({
-                    parentPath: pathParts.parent,
-                    itemName: pathParts.name,
-                });
-            }
-        }
-    });
-    if (Keys.length === 0) return;
-    const ddbCommand = new BatchGetCommand({
-        RequestItems: {
-            [getDynamoDbTableName()]: {
-                Keys,
-                ProjectionExpression: 'parentPath, itemName, thumbnail, versionId',
-            },
-        },
-    });
-    const ddbClient = new DynamoDBClient();
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
-    const result = await docClient.send(ddbCommand);
-    const imgInfos = new Map<
-        string,
-        { parentPath?: string; itemName?: string; thumbnail?: Rectangle; versionId?: string }
-    >();
-    result.Responses?.[getDynamoDbTableName()]?.forEach((item) => {
-        const imagePath = toImagePath(item.parentPath, item.itemName);
-        imgInfos.set(imagePath, item);
-    });
-    children.forEach((album) => {
-        if (album.thumbnail?.path) {
-            const imgInfo = imgInfos.get(album.thumbnail.path);
-            if (!imgInfo)
-                throw new Error(
-                    `Album [${album.path}]: failed to get thumbnail info for image [${album.thumbnail.path}]`,
-                );
-            if (!imgInfo.versionId) throw new Error(`Missing versionId for image [${album.thumbnail.path}]`);
-            album.thumbnail.versionId = imgInfo.versionId;
-            if (imgInfo.thumbnail) {
-                album.thumbnail.crop = imgInfo.thumbnail;
-            }
-        }
-    });
 }

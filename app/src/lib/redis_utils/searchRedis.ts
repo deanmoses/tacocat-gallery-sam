@@ -1,12 +1,21 @@
 import { SearchOptions as RedisSearchOptions, createClient } from 'redis';
 import { getRedisHost, getRedisPassword, getRedisUsername } from '../lambda_utils/Env';
 import { AlbumItem, GalleryItem, GalleryItemType, ImageItem } from '../gallery/galleryTypes';
+import { augmentAlbumThumbnailsWithImageInfo } from '../dynamo_utils/albumThumbnailHelper';
 
 /**
  * Search Redis for images and albums
  */
 export async function searchRedis(query: RedisSearchQuery): Promise<SearchResults> {
-    console.log('Search', query);
+    const results = await doSearch(query);
+    await augmentAlbumThumbnailsWithImageInfo(results.items);
+    return results;
+}
+
+/**
+ * Search Redis for images and albums
+ */
+async function doSearch(query: RedisSearchQuery): Promise<SearchResults> {
     const client = await createClient({ url: getRedisConnectionString() })
         .on('error', (err) => console.log('Redis Client Error', err))
         .connect();
@@ -31,6 +40,7 @@ export async function searchRedis(query: RedisSearchQuery): Promise<SearchResult
         const itemType = query.itemType ? ` @itemType:{${query.itemType}}` : '';
         const range = getRange(query.startDate, query.endDate);
         const results = await client.ft.search('idx:gallery', query.terms + itemType + range, searchOptions);
+
         return {
             total: results.total,
             items: results.documents.map((doc) => toGalleryItem(doc as unknown as RedisResult)),
@@ -78,13 +88,14 @@ function toGalleryItem(doc: RedisResult): GalleryItem {
 
 function toAlbumItem(doc: RedisResult): AlbumItem {
     const v = doc.value as RedisItem;
+    if (!v['$.thumbnail']) throw new Error(`Album ${doc.id} has no thumbnail`);
     const item: AlbumItem = {
         path: doc.id as string,
         parentPath: v['$.parentPath'],
         itemName: v['$.itemName'],
         itemType: 'album',
         published: v['$.published'],
-        thumbnail: undefined, // TODO
+        thumbnail: JSON.parse(v['$.thumbnail']),
     };
     if (v.summary) item.summary = v.summary;
     return item;

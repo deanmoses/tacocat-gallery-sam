@@ -1,6 +1,6 @@
-import { searchRedis } from '../../lib/redis_utils/searchRedis';
+import { search } from '../../lib/gallery/search/search';
 
 it('search', async () => {
-    const results = await searchRedis({ terms: 'soccer', itemType: 'image', startDate: new Date('2000-01-01') });
+    const results = await search({ terms: 'soccer', newestYear: '2020' });
     console.log(`Total results: ${results.total}\n`, results.items);
 });
