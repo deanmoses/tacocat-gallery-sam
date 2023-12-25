@@ -46,6 +46,29 @@ Parameters:
       - arn:aws:acm:us-east-1:010410881828:certificate/092ab57c-f87d-4c44-a72c-63cfbbb55800 # staging-pix.tacocat.com
       - arn:aws:acm:us-east-1:010410881828:certificate/9fbd8ee9-f1d1-42a5-b97c-9713ce6e076d # test-pix.tacocat.com
       - arn:aws:acm:us-east-1:010410881828:certificate/e142cda0-96db-4651-92fd-35dd9a52e9a2 # pix.tacocat.com
+  RedisHost:
+    Description: Hostname and port of the Redis search instance
+    Type: String
+    AllowedValues:
+      - redis-14907.c321.us-east-1-2.ec2.cloud.redislabs.com:14907 # dev
+      - redis-13894.c321.us-east-1-2.ec2.cloud.redislabs.com:13894 # prod
+    Default: redis-14907.c321.us-east-1-2.ec2.cloud.redislabs.com:14907
+  RedisSearchUsername:
+    Description: Name of user permitted to execute a search on Redis
+    Type: String
+    AllowedValues:
+      - devsearcher
+      - prodsearcher
+    ConstraintDescription: Must be devsearcher or prodsearcher
+    Default: devsearcher
+  RedisWriteUsername:
+    Description: Name of user permitted to write to Redis
+    Type: String
+    AllowedValues:
+      - devwriter
+      - prodwriter
+    ConstraintDescription: Must be devwriter or prodwriter
+    Default: devwriter
 
 # -----------------------------------------------------------------------------
 # Conditions are boolean conditions that can be used to control resources
@@ -143,6 +166,8 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 3
         WriteCapacityUnits: 3
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
 
   # -----------------------------------------------------------------------------
   # CloudFront CDN distribution that serves the images
@@ -357,6 +382,39 @@ Resources:
           - sharp
 
   # ---------------------------------------------------------------------------
+  # Lambda to shlep DynamoDB data to Redis
+  # ---------------------------------------------------------------------------
+  DynamoToRedisFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-DynamoToRedis
+      CodeUri: app/src/lambdas/dynamoToRedis/
+      Handler: dynamoToRedisLambda.handler
+      Description: Shlep DynamoDB data to Redis
+      Events:
+        DynamoDBEvent:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt GalleryItemDDBTable.StreamArn
+            StartingPosition: LATEST
+            BatchSize: 100
+      Environment:
+        Variables:
+          REDIS_HOST: !Ref RedisHost
+          REDIS_USERNAME: !Ref RedisWriteUsername
+          REDIS_PASSWORD: !If [ "IsProd",
+            "{{resolve:secretsmanager:Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordProd}}",
+            "{{resolve:secretsmanager:Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordDev}}" ]
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Sourcemap: true
+        Target: es2020
+        EntryPoints:
+          - dynamoToRedisLambda.ts
+
+  # ---------------------------------------------------------------------------
   # API Gateway lambda to search for albums and images
   # ---------------------------------------------------------------------------
   SearchFunction:
@@ -375,9 +433,11 @@ Resources:
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
-          REDIS_HOST: redis-13894.c321.us-east-1-2.ec2.cloud.redislabs.com:13894
-          REDIS_USERNAME: prodsearcher
-          REDIS_PASSWORD: "{{resolve:secretsmanager:Tacocat/Gallery/Authentication:SecretString:RedisSearchPassword}}"
+          REDIS_HOST: !Ref RedisHost
+          REDIS_USERNAME: !Ref RedisSearchUsername
+          REDIS_PASSWORD: !If [ "IsProd",
+            "{{resolve:secretsmanager:Tacocat/Gallery/Authentication:SecretString:RedisSearchPasswordProd}}",
+            "{{resolve:secretsmanager:Tacocat/Gallery/Authentication:SecretString:RedisSearchPasswordDev}}" ]
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref GalleryItemDDBTable

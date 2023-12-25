@@ -35,6 +35,9 @@ parameter_overrides = [
     "Env=dev",
     "GalleryAppDomain=staging-pix.tacocat.com",
     "DomainCertificateArn=arn:aws:acm:us-east-1:010410881828:certificate/092ab57c-f87d-4c44-a72c-63cfbbb55800",
+    "RedisHost=redis-14907.c321.us-east-1-2.ec2.cloud.redislabs.com:14907",
+    "RedisSearchUsername=devsearcher",
+    "RedisWriteUsername=devwriter",
 ]
 confirm_changeset = true
 resolve_s3 = true
@@ -61,6 +64,9 @@ parameter_overrides = [
     "Env=prod",
     "GalleryAppDomain=pix.tacocat.com",
     "DomainCertificateArn=arn:aws:acm:us-east-1:010410881828:certificate/e142cda0-96db-4651-92fd-35dd9a52e9a2",
+    "RedisHost=redis-13894.c321.us-east-1-2.ec2.cloud.redislabs.com:13894",
+    "RedisSearchUsername=prodsearcher",
+    "RedisWriteUsername=prodwriter",
 ]
 confirm_changeset = true
 resolve_s3 = true

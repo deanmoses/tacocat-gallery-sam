@@ -169,6 +169,16 @@ export function albumPathToDate(albumPath: string): Date {
     return new Date(year, 0, 1); // Use Jan 1 for year albums
 }
 
+/**
+ * Convert from any path to a date.
+ * @param path album or image path
+ */
+export function pathToDate(path: string): Date {
+    if (isValidAlbumPath(path)) return albumPathToDate(path);
+    if (isValidImagePath(path)) return albumPathToDate(getParentFromPath(path));
+    throw new Error(`Invalid path: [${path}]`);
+}
+
 export function toPathFromItem(item: BaseGalleryRecord): string {
     switch (item?.itemType) {
         case 'album':

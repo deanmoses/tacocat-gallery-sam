@@ -1,7 +1,7 @@
 import { SearchOptions as RedisSearchOptions, createClient } from 'redis';
-import { getRedisHost, getRedisPassword, getRedisUsername } from '../lambda_utils/Env';
 import { AlbumItem, GalleryItem, GalleryItemType, ImageItem } from '../gallery/galleryTypes';
 import { augmentAlbumThumbnailsWithImageInfo } from '../dynamo_utils/albumThumbnailHelper';
+import { getRedisConnectionString } from './redisClientUtils';
 
 /**
  * Search Redis for images and albums
@@ -114,10 +114,6 @@ function toImageItem(doc: RedisResult): ImageItem {
     if (v.title) item.title = v.title;
     if (v['$.thumbnail']) item.thumbnail = JSON.parse(v['$.thumbnail']);
     return item;
-}
-
-function getRedisConnectionString() {
-    return `redis://${getRedisUsername()}:${getRedisPassword()}@${getRedisHost()}`;
 }
 
 type RedisResult = {
