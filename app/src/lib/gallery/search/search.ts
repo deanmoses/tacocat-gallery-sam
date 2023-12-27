@@ -1,5 +1,5 @@
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
-import { RedisSearchQuery, SearchResults, searchRedis } from '../../redis_utils/searchRedis';
+import { RedisSearchQuery, SearchResults, searchRedis } from '../../redis_utils/redisSearch';
 
 export async function search(query: SearchQuery): Promise<SearchResults> {
     console.info(`Search: searching gallery for `, query);

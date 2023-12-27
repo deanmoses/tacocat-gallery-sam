@@ -32,12 +32,20 @@ export function getRedisHost(): string {
     return getEnv('REDIS_HOST');
 }
 
-export function getRedisUsername(): string {
-    return getEnv('REDIS_USERNAME');
+export function getRedisWriteUsername(): string {
+    return getEnv('REDIS_WRITE_USERNAME');
 }
 
-export function getRedisPassword(): string {
-    return getEnv('REDIS_PASSWORD');
+export function getRedisWritePassword(): string {
+    return getEnv('REDIS_WRITE_PASSWORD');
+}
+
+export function getRedisSearchUsername(): string {
+    return getEnv('REDIS_SEARCH_USERNAME');
+}
+
+export function getRedisSearchPassword(): string {
+    return getEnv('REDIS_SEARCH_PASSWORD');
 }
 
 function getEnvAsInt(name: string): number {

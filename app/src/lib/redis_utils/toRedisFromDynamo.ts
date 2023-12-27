@@ -1,6 +1,6 @@
-import { AlbumItem, GalleryItem, GalleryItemType, ImageItem } from '../../lib/gallery/galleryTypes';
-import { pathToDate } from '../../lib/gallery_path_utils/galleryPathUtils';
-import { RedisAlbumItem, RedisGalleryItem, RedisImageItem } from '../../lib/redis_utils/redisTypes';
+import { AlbumItem, GalleryItem, GalleryItemType, ImageItem } from '../gallery/galleryTypes';
+import { pathToDate } from '../gallery_path_utils/galleryPathUtils';
+import { RedisAlbumItem, RedisGalleryItem, RedisImageItem } from './redisTypes';
 
 /**
  * Convert from an AWS gallery item to a Redis gallery item
@@ -41,13 +41,12 @@ function toRedisImage(awsImageItem: ImageItem): RedisImageItem {
 function toRedisAlbum(awsAlbumItem: AlbumItem): RedisAlbumItem {
     const path = toPath(awsAlbumItem);
     if (!awsAlbumItem.thumbnail) throw new Error(`[${path}]: missing thumbnail`);
-    if (!awsAlbumItem.published) throw new Error(`[${path}]: missing published`);
     const redisAlbumItem: RedisAlbumItem = {
         parentPath: getParentPath(awsAlbumItem.parentPath),
         itemName: getItemName(awsAlbumItem.itemName),
         itemType: getItemType(awsAlbumItem.itemType),
         albumDate: toTimestampFromPath(path),
-        published: awsAlbumItem.published,
+        published: awsAlbumItem.published ?? false,
         thumbnail: awsAlbumItem.thumbnail,
     };
     if (awsAlbumItem.description) redisAlbumItem.description = awsAlbumItem.description;

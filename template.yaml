@@ -401,8 +401,8 @@ Resources:
       Environment:
         Variables:
           REDIS_HOST: !Ref RedisHost
-          REDIS_USERNAME: !Ref RedisWriteUsername
-          REDIS_PASSWORD: !If [ "IsProd",
+          REDIS_WRITE_USERNAME: !Ref RedisWriteUsername
+          REDIS_WRITE_PASSWORD: !If [ "IsProd",
             "{{resolve:secretsmanager:Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordProd}}",
             "{{resolve:secretsmanager:Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordDev}}" ]
     Metadata:
@@ -413,6 +413,42 @@ Resources:
         Target: es2020
         EntryPoints:
           - dynamoToRedisLambda.ts
+
+  # ---------------------------------------------------------------------------
+  # API Gateway lambda to reset Redis search engine
+  # ---------------------------------------------------------------------------
+  ResetRedisFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-ResetRedis
+      CodeUri: app/src/lambdas/api/
+      Handler: resetRedisLambda.handler
+      Description: Reset Redis search engine
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /redis-reset
+            Method: POST
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+          REDIS_HOST: !Ref RedisHost
+          REDIS_WRITE_USERNAME: !Ref RedisWriteUsername
+          REDIS_WRITE_PASSWORD: !If [ "IsProd",
+            "{{resolve:secretsmanager:Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordProd}}",
+            "{{resolve:secretsmanager:Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordDev}}" ]
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref GalleryItemDDBTable
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - resetRedisLambda.ts
 
   # ---------------------------------------------------------------------------
   # API Gateway lambda to search for albums and images
@@ -434,8 +470,8 @@ Resources:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
           REDIS_HOST: !Ref RedisHost
-          REDIS_USERNAME: !Ref RedisSearchUsername
-          REDIS_PASSWORD: !If [ "IsProd",
+          REDIS_SEARCH_USERNAME: !Ref RedisSearchUsername
+          REDIS_SEARCH_PASSWORD: !If [ "IsProd",
             "{{resolve:secretsmanager:Tacocat/Gallery/Authentication:SecretString:RedisSearchPasswordProd}}",
             "{{resolve:secretsmanager:Tacocat/Gallery/Authentication:SecretString:RedisSearchPasswordDev}}" ]
       Policies:

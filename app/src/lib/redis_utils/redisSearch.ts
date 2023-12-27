@@ -1,7 +1,7 @@
-import { SearchOptions as RedisSearchOptions, createClient } from 'redis';
+import { SearchOptions as RedisSearchOptions } from 'redis';
 import { AlbumItem, GalleryItem, GalleryItemType, ImageItem } from '../gallery/galleryTypes';
 import { augmentAlbumThumbnailsWithImageInfo } from '../dynamo_utils/albumThumbnailHelper';
-import { getRedisConnectionString } from './redisClientUtils';
+import { createRedisSearchClient } from './redisClientUtils';
 
 /**
  * Search Redis for images and albums
@@ -12,13 +12,9 @@ export async function searchRedis(query: RedisSearchQuery): Promise<SearchResult
     return results;
 }
 
-/**
- * Search Redis for images and albums
- */
+/** Do the actual search */
 async function doSearch(query: RedisSearchQuery): Promise<SearchResults> {
-    const client = await createClient({ url: getRedisConnectionString() })
-        .on('error', (err) => console.log('Redis Client Error', err))
-        .connect();
+    const client = await createRedisSearchClient();
     try {
         const DIRECTION = query.direction || 'DESC';
         const LIMIT = query.limit || { from: 0, size: 40 };

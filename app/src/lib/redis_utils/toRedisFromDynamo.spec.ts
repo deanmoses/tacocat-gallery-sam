@@ -1,6 +1,6 @@
-import { ImageItem } from '../../lib/gallery/galleryTypes';
-import { RedisImageItem } from '../../lib/redis_utils/redisTypes';
-import { toRedisItem, toSearchableItemName } from './convertDynamoToRedis';
+import { ImageItem } from '../gallery/galleryTypes';
+import { RedisImageItem } from './redisTypes';
+import { toRedisItem, toSearchableItemName } from './toRedisFromDynamo';
 
 describe('searchable filenames', () => {
     const tests: { itemName: string; expected: string }[] = [
