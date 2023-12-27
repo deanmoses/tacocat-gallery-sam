@@ -40,15 +40,14 @@ function toRedisImage(awsImageItem: ImageItem): RedisImageItem {
 
 function toRedisAlbum(awsAlbumItem: AlbumItem): RedisAlbumItem {
     const path = toPath(awsAlbumItem);
-    if (!awsAlbumItem.thumbnail) throw new Error(`[${path}]: missing thumbnail`);
     const redisAlbumItem: RedisAlbumItem = {
         parentPath: getParentPath(awsAlbumItem.parentPath),
         itemName: getItemName(awsAlbumItem.itemName),
         itemType: getItemType(awsAlbumItem.itemType),
         albumDate: toTimestampFromPath(path),
         published: awsAlbumItem.published ?? false,
-        thumbnail: awsAlbumItem.thumbnail,
     };
+    if (awsAlbumItem.thumbnail) redisAlbumItem.thumbnail = awsAlbumItem.thumbnail;
     if (awsAlbumItem.description) redisAlbumItem.description = awsAlbumItem.description;
     if (awsAlbumItem.summary) redisAlbumItem.summary = awsAlbumItem.summary;
     return redisAlbumItem;
