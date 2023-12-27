@@ -1,5 +1,5 @@
 import { unmarshall } from '@aws-sdk/util-dynamodb';
-import { DynamoDBStreamEvent, DynamoDBStreamHandler } from 'aws-lambda';
+import { DynamoDBBatchResponse, DynamoDBStreamEvent, DynamoDBStreamHandler } from 'aws-lambda';
 import { AttributeValue } from '@aws-sdk/client-dynamodb';
 import { toRedisItem } from '../../lib/redis_utils/toRedisFromDynamo';
 import { RedisGalleryItem } from '../../lib/redis_utils/redisTypes';
@@ -10,12 +10,13 @@ import { createRedisWriteClient } from '../../lib/redis_utils/redisClientUtils';
 /**
  * A Lambda that receives DynamoDB stream events and replicates the data to Redis
  */
-export const handler: DynamoDBStreamHandler = async (event: DynamoDBStreamEvent) => {
+export const handler: DynamoDBStreamHandler = async (event: DynamoDBStreamEvent, context, callback) => {
     console.info(`DynamoDB to Redis: processing ${event?.Records?.length} records`);
     const { itemsToSave, pathsToDelete } = toRedisItems(event);
     console.info(`DynamoDB to Redis: saving ${itemsToSave.length} items and deleting ${pathsToDelete.length}`);
     syncToRedis(itemsToSave, pathsToDelete);
     console.info(`DynamoDB to Redis: processed ${event?.Records?.length} records`);
+    callback(null);
 };
 
 /** Extract Redis items from DynamoDB stream event */
@@ -23,7 +24,7 @@ function toRedisItems(event: DynamoDBStreamEvent): { itemsToSave: RedisGalleryIt
     const itemsToSave: RedisGalleryItem[] = [];
     const pathsToDelete: string[] = [];
     for (const record of event.Records) {
-        if (record.dynamodb && record.dynamodb.NewImage) {
+        if (record?.dynamodb?.NewImage) {
             const newImage = unmarshall(record.dynamodb.NewImage as { [key: string]: AttributeValue });
             const redisItem = toRedisItem(newImage);
             itemsToSave.push(redisItem);
