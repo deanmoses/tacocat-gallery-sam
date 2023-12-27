@@ -1,5 +1,5 @@
 import { unmarshall } from '@aws-sdk/util-dynamodb';
-import { DynamoDBBatchResponse, DynamoDBStreamEvent, DynamoDBStreamHandler } from 'aws-lambda';
+import { DynamoDBStreamEvent, DynamoDBStreamHandler } from 'aws-lambda';
 import { AttributeValue } from '@aws-sdk/client-dynamodb';
 import { toRedisItem } from '../../lib/redis_utils/toRedisFromDynamo';
 import { RedisGalleryItem } from '../../lib/redis_utils/redisTypes';
