@@ -6,7 +6,7 @@ import type { Config } from 'jest';
 import * as dotenv from 'dotenv';
 import path from 'path';
 
-const envFile = path.join(__dirname, '..', '.env_integration_tests');
+const envFile = path.join(__dirname, '..', '.env.test');
 dotenv.config({ path: envFile });
 
 const config: Config = {
