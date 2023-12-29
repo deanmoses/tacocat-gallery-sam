@@ -20,7 +20,7 @@ export async function extractImageMetadata(bucket: string, objectKey: string): P
     //const tags = await ExifReader.load(urlToS3Object);
     const stream = response.Body as Readable;
     const fileContents = Buffer.concat(await stream.toArray());
-    const tags = ExifReader.load(fileContents, { expanded: true });
+    const tags = await ExifReader.load(fileContents, { async: true, expanded: true });
     return selectMetadata(tags);
 }
 
