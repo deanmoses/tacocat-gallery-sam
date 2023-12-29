@@ -5,26 +5,35 @@ import { getDynamoDbTableName } from '../lambda_utils/Env';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 
 /**
- * Augment each album's thumbnail entry with info from the image record
- * in DynamoDB, such as the image's versionId and crop info.
- * Ignores any image entries in the galleryItems array.
+ * Augment album thumbnails with info from the image,
+ * such as versionId and crop info.
+ * Ignores any image entries in the passed-in array.
  */
 export async function augmentAlbumThumbnailsWithImageInfo(galleryItems: GalleryItem[]): Promise<void> {
     if (!galleryItems || galleryItems.length === 0) return;
-    const Keys: { parentPath: string; itemName: string }[] = [];
+    // Collect all the images paths in a Set to de-dupe them.
+    // Dupes will happen if the search returns both an album and its parent album,
+    // both of which have the same image as their thumbnail.
+    const imagePaths = new Set<string>();
     for (const galleryItem of galleryItems) {
         if ('image' === galleryItem.itemType) continue;
         const album = galleryItem as AlbumItem;
+        // some albums don't have thumbnails
         if (album.thumbnail?.path) {
-            const pathParts = getParentAndNameFromPath(album.thumbnail?.path);
-            if (pathParts.name) {
-                Keys.push({
-                    parentPath: pathParts.parent,
-                    itemName: pathParts.name,
-                });
-            }
+            imagePaths.add(album.thumbnail.path);
         }
     }
+    if (imagePaths.size === 0) return;
+    const Keys: { parentPath: string; itemName: string }[] = [];
+    imagePaths.forEach((path) => {
+        const pathParts = getParentAndNameFromPath(path);
+        if (pathParts.name) {
+            Keys.push({
+                parentPath: pathParts.parent,
+                itemName: pathParts.name,
+            });
+        }
+    });
     if (Keys.length === 0) return;
     const ddbCommand = new BatchGetCommand({
         RequestItems: {
