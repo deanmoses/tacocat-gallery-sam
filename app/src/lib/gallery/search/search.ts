@@ -29,7 +29,7 @@ function convertToRedisSearchQuery(query: SearchQuery): RedisSearchQuery {
         rquery.startDate = new Date(query.oldestYear);
     }
     if (query.newestYear) {
-        rquery.endDate = new Date(query.newestYear);
+        rquery.endDate = new Date(parseInt(query.newestYear), 11 /* December */, 31, 23, 59, 59); // last second of the year
     }
     return rquery;
 }
