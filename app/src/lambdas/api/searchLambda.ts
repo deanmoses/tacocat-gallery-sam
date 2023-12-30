@@ -15,6 +15,8 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
             oldestYear: event?.queryStringParameters?.oldest,
             newestYear: event?.queryStringParameters?.newest,
             oldestFirst: event?.queryStringParameters?.oldestFirst,
+            pageSize: event?.queryStringParameters?.pageSize,
+            startAt: event?.queryStringParameters?.startAt,
         });
         return respondHttp(event, searchResults);
     } catch (e) {

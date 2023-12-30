@@ -36,7 +36,6 @@ async function doSearch(query: RedisSearchQuery): Promise<SearchResults> {
         const itemType = query.itemType ? ` @itemType:{${query.itemType}}` : '';
         const range = getRange(query.startDate, query.endDate);
         const results = await client.ft.search('idx:gallery', query.terms + itemType + range, searchOptions);
-
         return {
             total: results.total,
             items: results.documents.map((doc) => toGalleryItem(doc as unknown as RedisResult)),
