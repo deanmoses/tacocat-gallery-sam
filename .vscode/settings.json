@@ -1,5 +1,6 @@
 {
   "editor.formatOnSave": true,
+  "jest.rootPath": "app",
   "jest.autoRun": { "watch": false },
   "jest.showCoverageOnLoad": false
 }

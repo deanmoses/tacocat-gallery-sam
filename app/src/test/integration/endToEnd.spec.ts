@@ -37,7 +37,7 @@ describe('create', () => {
         });
 
         test('getLatestAlbum() with empty album', async () => {
-            const album = (await getLatestAlbum())?.album;
+            const album = await getLatestAlbum();
             if (!album) throw new Error(`No latest album`);
 
             const albumPathParts = getParentAndNameFromPath(albumPath);
