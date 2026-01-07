@@ -4,7 +4,7 @@ import { HeadObjectCommand, PutObjectCommand, NotFound, S3Client } from '@aws-sd
 import { isValidImagePath } from '../../../lib/gallery_path_utils/galleryPathUtils';
 import { getDerivedImagesBucketName, getOriginalImagesBucketName } from '../../../lib/lambda_utils/Env';
 import { fromPathToS3OriginalBucketKey } from '../../../lib/s3_utils/s3path';
-import mime from 'mime/lite';
+import mime from 'mime';
 
 /**
  * Upload specified image to the Original Images S3 bucket.

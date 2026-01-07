@@ -3,7 +3,8 @@ import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { toRedisItem } from '../../redis_utils/toRedisFromDynamo';
 import { RedisClient, SEARCH_INDEX_NAME, createRedisWriteClient } from '../../redis_utils/redisClientUtils';
-import { ErrorReply, SchemaFieldTypes } from 'redis';
+import { ErrorReply } from 'redis';
+import { SCHEMA_FIELD_TYPE } from '@redis/search';
 import { saveToRedis } from '../../redis_utils/redisMset';
 
 /**
@@ -43,31 +44,31 @@ async function createIndex(redisClient: RedisClient): Promise<void> {
         SEARCH_INDEX_NAME,
         {
             '$.itemType': {
-                type: SchemaFieldTypes.TAG,
+                type: SCHEMA_FIELD_TYPE.TAG,
                 AS: 'itemType',
             },
             '$.itemNameSearchable': {
-                type: SchemaFieldTypes.TEXT,
+                type: SCHEMA_FIELD_TYPE.TEXT,
                 AS: 'name',
             },
             '$.description': {
-                type: SchemaFieldTypes.TEXT,
+                type: SCHEMA_FIELD_TYPE.TEXT,
                 AS: 'description',
             },
             '$.title': {
-                type: SchemaFieldTypes.TEXT,
+                type: SCHEMA_FIELD_TYPE.TEXT,
                 AS: 'title',
             },
             '$.summary': {
-                type: SchemaFieldTypes.TEXT,
+                type: SCHEMA_FIELD_TYPE.TEXT,
                 AS: 'summary',
             },
             '$.tags': {
-                type: SchemaFieldTypes.TEXT,
+                type: SCHEMA_FIELD_TYPE.TEXT,
                 AS: 'tags',
             },
             '$.albumDate': {
-                type: SchemaFieldTypes.NUMERIC,
+                type: SCHEMA_FIELD_TYPE.NUMERIC,
                 AS: 'date',
                 SORTABLE: true,
             },
