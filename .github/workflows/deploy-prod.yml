@@ -9,6 +9,17 @@ concurrency:
 
 env:
     HUSKY: 0 # Skip git hooks in CI
+    # Dummy values for unit tests (all AWS calls are mocked)
+    GALLERY_ITEM_DDB_TABLE: no-such-table
+    ORIGINAL_IMAGES_BUCKET: no-such-bucket
+    DERIVED_IMAGES_BUCKET: no-such-bucket
+    GALLERY_APP_DOMAIN: no-such-domain
+    DERIVED_IMAGE_GENERATOR_DOMAIN: no-such-domain
+    REDIS_HOST: no-such-host
+    REDIS_WRITE_USERNAME: no-such-user
+    REDIS_WRITE_PASSWORD: no-such-password
+    REDIS_SEARCH_USERNAME: no-such-user
+    REDIS_SEARCH_PASSWORD: no-such-password
 
 jobs:
     build-and-test:
