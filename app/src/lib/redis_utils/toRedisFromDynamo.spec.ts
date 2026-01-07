@@ -34,7 +34,7 @@ test('convert image', () => {
         parentPath: '/2001/12-31/',
         itemName: 'image.jpg',
         itemNameSearchable: 'image jpg',
-        albumDate: 1009785600000,
+        albumDate: new Date(2001, 11, 31).getTime(), // Dec 31, 2001 in local timezone
         versionId: 'VERSION',
         title: 'HTML & Entity',
         description: '<p>HTML &amp; Entity</p>',

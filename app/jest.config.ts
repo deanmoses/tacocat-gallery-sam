@@ -6,13 +6,13 @@ import type { Config } from 'jest';
 import * as dotenv from 'dotenv';
 import path from 'path';
 
-const envFile = path.join(__dirname, '..', '.env.test');
+const envFile = path.join(__dirname, '..', '.env.integration-test');
 dotenv.config({ path: envFile });
 
 const baseConfig = {
     transform: { '^.+\\.ts?$': 'ts-jest' },
     clearMocks: true,
-    setupFiles: ['dotenv/config'],
+    setupFiles: ['<rootDir>/jest.setup.ts'],
 };
 
 const config: Config = {

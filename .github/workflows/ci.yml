@@ -1,0 +1,93 @@
+name: CI
+
+on:
+    push:
+        branches: [main]
+        paths-ignore:
+            - '*.md'
+            - 'LICENSE'
+            - '.gitignore'
+            - 'docs/**'
+    pull_request:
+        branches: [main]
+        paths-ignore:
+            - '*.md'
+            - 'LICENSE'
+            - '.gitignore'
+            - 'docs/**'
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    HUSKY: 0 # Skip git hooks in CI
+
+jobs:
+    build-and-test:
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '24'
+                  cache: 'npm'
+                  cache-dependency-path: app/package-lock.json
+
+            - name: Setup AWS SAM CLI
+              uses: aws-actions/setup-sam@v2
+              with:
+                  use-installer: true
+
+            - name: Install dependencies
+              working-directory: app
+              run: npm ci
+
+            - name: Install esbuild globally
+              run: npm install -g esbuild
+
+            - name: Lint
+              working-directory: app
+              run: npm run lint
+
+            - name: Type check
+              working-directory: app
+              run: npm run compile
+
+            - name: Unit tests
+              working-directory: app
+              run: npm test
+
+            - name: SAM build
+              run: sam build
+
+    deploy:
+        needs: build-and-test
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup AWS SAM CLI
+              uses: aws-actions/setup-sam@v2
+              with:
+                  use-installer: true
+
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                  aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                  aws-region: us-east-1
+
+            - name: SAM build
+              run: sam build
+
+            - name: Deploy to staging
+              run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset
