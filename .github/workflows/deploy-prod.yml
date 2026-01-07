@@ -13,6 +13,7 @@ env:
 jobs:
     build-and-test:
         runs-on: ubuntu-latest
+        timeout-minutes: 15
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -51,6 +52,7 @@ jobs:
     deploy:
         needs: build-and-test
         runs-on: ubuntu-latest
+        timeout-minutes: 30
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -76,6 +78,7 @@ jobs:
     create-release:
         needs: deploy
         runs-on: ubuntu-latest
+        timeout-minutes: 5
         permissions:
             contents: write # Required for tags and releases
         steps:
@@ -87,6 +90,8 @@ jobs:
             - name: Create release tag
               id: tag
               run: |
+                  set -e
+
                   # Get current year
                   year=$(date +%Y)
 
