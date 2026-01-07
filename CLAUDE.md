@@ -24,20 +24,15 @@ All commands run from the `app/` directory unless noted:
 
 ```bash
 # Testing and linting
-npm test              # Run unit tests (compile + Jest, excludes integration)
-npm run test:integration  # Run integration tests (requires AWS credentials)
-npm run test:all      # Run all tests (unit + integration)
+npm test              # unit tests (compile + Jest, excludes integration)
+npm run test:integration  # integration tests (requires AWS credentials)
+npm run test:all      # all tests (unit + integration)
 npm run lint          # ESLint with auto-fix
 
 # Building and deploying (from project root)
 sam build             # Build SAM application
 sam deploy            # Deploy to dev environment
-sam deploy --config-env prod  # Deploy to production
 sam sync              # Watch mode for rapid dev iteration
-
-# Local development (from project root)
-sam local start-api   # Run API locally on port 3000
-sam local invoke <FunctionName> -d 5858  # Debug mode (attach to port 5858)
 
 # Logs
 sam logs --include-traces --tail         # All function logs
@@ -125,22 +120,24 @@ Prettier config (4-space indent, single quotes, 120 char width, trailing commas)
 - Integration tests hit actual AWS resources (require valid credentials)
 - Production resources have `Retain` deletion policy
 
-## Tools & CI
+## Tools & CI/CD
 
 - **gh CLI**: Use the `gh` CLI tool for GitHub operations.
 - **Branch protection**: The `main` branch is protected. All changes require a pull request.
 - **Pre-commit hooks**: Husky runs gitleaks (secret scanning), lint-staged, type checking, and unit tests on commit.
+- **CI workflow**: On PR and push to main, runs lint, type check, unit tests, and SAM build. On push to main, also deploys to staging.
+- **Production deploy**: Manual workflow dispatch from GitHub Actions. Runs tests, deploys to prod, creates a release tag (YYYYvN format), and generates release notes.
 
 ## Branch, Commit and PR types
 
 Use these types for branch names, commit messages, and PR titles:
-- `feat` - User-facing features or behavior changes (must change production code)
-- `fix` - Bug fixes (must change production code)
-- `docs` - Documentation only
-- `style` - Code style/formatting (no logic changes)
-- `refactor` - Code restructuring without behavior change
-- `test` - Adding or updating tests
-- `chore` - CI/CD, tooling, dependency bumps, configs (no production code)
+- `feat`: User-facing features or behavior changes (must change production code)
+- `fix`: Bug fixes (must change production code)
+- `docs`: Documentation only
+- `style`: Code style/formatting (no logic changes)
+- `refactor`: Code restructuring without behavior change
+- `test`: Adding or updating tests
+- `chore`: CI/CD, tooling, dependency bumps, configs (no production code)
 
 ## Branch Naming
 
