@@ -51,9 +51,10 @@ export function selectMetadata(tags: ExifReader.ExpandedTags): Partial<ImageCrea
         console.error(`Image [${image.title}] has no dimensions`);
     }
 
-    if (tags.iptc?.Keywords?.length) {
+    const keywords = tags.iptc?.Keywords;
+    if (keywords && Array.isArray(keywords) && keywords.length) {
         image.tags = [];
-        tags.iptc?.Keywords?.forEach((keyword) => {
+        keywords.forEach((keyword) => {
             image.tags?.push(keyword.description);
         });
     }

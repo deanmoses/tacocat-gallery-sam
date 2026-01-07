@@ -23,7 +23,7 @@ const newAlbumPath = `${yearAlbumPath}${newAlbumName}/`;
 const anotherAlbumPath = `${yearAlbumPath}${anotherAlbumName}/`;
 let imageName: string;
 let imagePath: string;
-let oldImageVersionId: string;
+let oldImageVersionId: string | undefined;
 let image2Path: string;
 let image3Path: string;
 
