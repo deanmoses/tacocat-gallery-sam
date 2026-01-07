@@ -156,7 +156,14 @@ Prettier config (4-space indent, single quotes, 120 char width, trailing commas)
 
 ## Branch, Commit and PR types
 
-- **Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+Use these types for branch names, commit messages, and PR titles:
+- `feat` - User-facing features or behavior changes (must change production code)
+- `fix` - Bug fixes (must change production code)
+- `docs` - Documentation only
+- `style` - Code style/formatting (no logic changes)
+- `refactor` - Code restructuring without behavior change
+- `test` - Adding or updating tests
+- `chore` - CI/CD, tooling, dependency bumps, configs (no production code)
 
 ## Branch Naming
 
