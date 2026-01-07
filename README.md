@@ -32,7 +32,7 @@ This installs dependencies defined in `app/package.json`, compiles TypeScript wi
 
 It does NOT deploy to AWS; that comes later.
 
-## Unit & integration tests
+## Tests
 
 Use NPM to install the [Jest test framework](https://jestjs.io/) and run unit tests...
 
@@ -44,79 +44,27 @@ app$ npm run test
 
 ... or better yet use Visual Studio Code's Jest support rather than dealing with the command line.
 
-## Invoke lambdas locally
+## Don't attempt to run on localhost
 
-Run Lambda functions locally via `sam local invoke` (this requires Docker) and passing it a test event:
+SAM provides some tools to simulate the AWS cloud stack locally, but I've found they're much more hassle than they're worth.  Instead, deploy to staging and test your changes there.
 
-```bash
-tacocat-gallery-sam$ sam local invoke HelloWorldFunction --event app/src/test/data/events/some-event.json
-```
 
-An event is a JSON document that represents the input that the function receives from the event source. Some test events are in the `app/src/test/data/events` folder.
+## Deploy to staging
 
-## Debug lambdas locally
+Staging is the tacocat-gallery-sam-dev AWS stack. The web app at <https://staging-pix.tacocat.com> is connected to this stack.
 
-To debug a Lambda function locally, run the function in debug mode by adding `-d 5858`...
+**Automatic deploy:** When a PR is merged into `main`, GitHub Actions automatically runs tests and deploys to staging.
 
-```bash
-sam local invoke HelloWorldFunction -e app/src/test/data/events/events/some-event.json -n .env.json -d 5858
-```
-
-... then attach to the function in Visual Studio's debugger. You have to configure each Lambda individuall in `.vscode/launch.json`. Yes that's a hassle.
-
-## Run API locally
-
-Use `sam local start-api` to run the API locally on port 3000:
+**Manual deploy:** To deploy your local changes during development:
 
 ```bash
-tacocat-gallery-sam$ sam local start-api
-tacocat-gallery-sam$ curl http://localhost:3000/
+sam build && sam deploy   # One-time deploy
+sam sync                  # Watch mode: auto-deploys on file changes
 ```
 
-## Environments
+Use `sam sync` for faster iteration—it bypasses CloudFormation and deploys Lambda changes directly.
 
-The project can create three environments. Each environment is a separate AWS infrastructure stack.
-
-| Environment | Stack Name | Web App | Purpose |
-|-------------|------------|--------|---------|
-| dev | tacocat-gallery-sam-dev | staging-pix.tacocat.com | Staging for manual testing |
-| test | tacocat-gallery-sam-test | test-pix.tacocat.com | Integration tests (CI) |
-| prod | tacocat-gallery-sam-prod | pix.tacocat.com | Production |
-
-The web app is not in this project; it's built and hosted in other projects.
-
-## Deploy for the first time
-
-To deploy your application to AWS for the first time:
-
-```bash
-sam build
-sam deploy --guided
-```
-
-`sam deploy --guided` will package and deploy your application to AWS, with a series of prompts.
-
-After the first time configures everything, use `sam deploy` or `sam sync` after that (see next section)
-
-## Deploy during development
-
-While developing, run `sam sync` to keep watch over your lambda functions as they change and automatically deploy them to AWS. This skips the normal CloudFormation machinery and is thus much faster:
-
-```bash
-sam sync
-```
-
-## CI/CD
-
-### Automatic staging deploy
-
-When you merge a PR to `main`, GitHub Actions automatically:
-1. Runs lint, type check, and unit tests
-2. Builds the SAM application
-3. Deploys to staging (the tacocat-gallery-sam-dev AWS stack)
-4. The web app at <https://staging-pix.tacocat.com> is attached to the staging stack
-
-### Deploy to production
+## Deploy to production
 
 To deploy to prod:
 
@@ -129,13 +77,6 @@ To deploy to prod:
       1. The live web app <https://pix.tacocat.com/> is attached to the prod stack
    3. Creates a GitHub release with auto-generated release notes
 
-Technically, you could also deploy manually from your localhost command line, if you have all the AWS credentials configured.  However, it won't ensure you're deploying from main (it'll pick up whatever random code changes are on your local filesystem), and it won't create a GitHub release, so don't do it:
-
-```bash
-sam deploy --config-env prod
-```
-
-This will change the name of the stack to tacocat-gallery-sam-prod (look in `samconfig.toml` for how).
 
 ## Working with remote logs
 
