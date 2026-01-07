@@ -10,6 +10,7 @@ import {
     assertDynamoDBItemExists,
     cleanUpAlbum,
     getAlbumAndChildrenOrThrow,
+    getImageOrThrow,
 } from './helpers/albumHelpers';
 import { assertIsValidAlbumPath, assertIsValidImagePath, assertIsValidYearAlbumPath } from './helpers/pathHelpers';
 import { assertOriginalImageExists, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
@@ -23,7 +24,7 @@ const newAlbumPath = `${yearAlbumPath}${newAlbumName}/`;
 const anotherAlbumPath = `${yearAlbumPath}${anotherAlbumName}/`;
 let imageName: string;
 let imagePath: string;
-let oldImageVersionId: string | undefined;
+let oldImageVersionId: string;
 let image2Path: string;
 let image3Path: string;
 
@@ -76,6 +77,11 @@ afterAll(async () => {
     await cleanUpAlbum(oldAlbumPath); // just in case the rename failed
     await cleanUpAlbum(yearAlbumPath);
 }, 20000 /* increases Jest's timeout */);
+
+test('Get old image version ID', async () => {
+    oldImageVersionId = (await getImageOrThrow(imagePath, true /* include unpublished albums */)).versionId;
+    if (!oldImageVersionId) throw new Error(`No version ID found for image [${imagePath}]`);
+});
 
 test('Cannot rename to same name', async () => {
     await expect(renameAlbum(oldAlbumPath, oldAlbumName)).rejects.toThrow(/same/i);
