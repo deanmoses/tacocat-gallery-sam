@@ -1,4 +1,4 @@
-import { SearchOptions as RedisSearchOptions } from 'redis';
+import { FtSearchOptions, SearchReply } from '@redis/search';
 import { AlbumItem, GalleryItem, GalleryItemType, ImageItem } from '../gallery/galleryTypes';
 import { augmentAlbumThumbnailsWithImageInfo } from '../dynamo_utils/albumThumbnailHelper';
 import { createRedisSearchClient } from './redisClientUtils';
@@ -18,7 +18,7 @@ async function doSearch(query: RedisSearchQuery): Promise<SearchResults> {
     try {
         const DIRECTION = query.direction || 'DESC';
         const LIMIT = query.limit || { from: 0, size: 40 };
-        const searchOptions: RedisSearchOptions = {
+        const searchOptions: FtSearchOptions = {
             SORTBY: { BY: 'date', DIRECTION },
             LIMIT,
             RETURN: [
@@ -35,7 +35,11 @@ async function doSearch(query: RedisSearchQuery): Promise<SearchResults> {
         };
         const itemType = query.itemType ? ` @itemType:{${query.itemType}}` : '';
         const range = getRange(query.startDate, query.endDate);
-        const results = await client.ft.search('idx:gallery', query.terms + itemType + range, searchOptions);
+        const results = (await client.ft.search(
+            'idx:gallery',
+            query.terms + itemType + range,
+            searchOptions,
+        )) as SearchReply;
         return {
             total: results.total,
             items: results.documents.map((doc) => toGalleryItem(doc as unknown as RedisResult)),
