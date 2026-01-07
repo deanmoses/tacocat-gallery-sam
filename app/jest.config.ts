@@ -12,7 +12,7 @@ dotenv.config({ path: envFile });
 const baseConfig = {
     transform: { '^.+\\.ts?$': 'ts-jest' },
     clearMocks: true,
-    setupFiles: ['dotenv/config'],
+    setupFiles: ['<rootDir>/jest.setup.ts'],
 };
 
 const config: Config = {
