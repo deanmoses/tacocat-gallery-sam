@@ -114,7 +114,7 @@ To deploy to prod:
 sam deploy --config-env prod
 ```
 
-This will change the name of the stack to tacocat-gallery-auth-prod (look in `samconfig.toml` for how).  Changing the name of the stack will create an entirely new stack with different resources.
+This will change the name of the stack to tacocat-gallery-sam-prod (look in `samconfig.toml` for how).  Changing the name of the stack will create an entirely new stack with different resources.
 
 ## Work with remote logs
 
