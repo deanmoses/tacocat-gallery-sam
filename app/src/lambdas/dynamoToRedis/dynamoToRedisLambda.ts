@@ -10,13 +10,12 @@ import { createRedisWriteClient } from '../../lib/redis_utils/redisClientUtils';
 /**
  * A Lambda that receives DynamoDB stream events and replicates the data to Redis
  */
-export const handler: DynamoDBStreamHandler = async (event: DynamoDBStreamEvent, context, callback) => {
+export const handler: DynamoDBStreamHandler = async (event) => {
     console.info(`DynamoDB to Redis: processing ${event?.Records?.length} records`);
     const { itemsToSave, pathsToDelete } = toRedisItems(event);
     console.info(`DynamoDB to Redis: saving ${itemsToSave.length} items and deleting ${pathsToDelete.length}`);
-    syncToRedis(itemsToSave, pathsToDelete);
+    await syncToRedis(itemsToSave, pathsToDelete);
     console.info(`DynamoDB to Redis: processed ${event?.Records?.length} records`);
-    callback(null);
 };
 
 /** Extract Redis items from DynamoDB stream event */
