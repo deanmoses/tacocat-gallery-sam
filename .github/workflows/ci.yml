@@ -61,6 +61,9 @@ jobs:
               working-directory: app
               run: npm ci
 
+            - name: Install esbuild globally
+              run: npm install -g esbuild
+
             - name: Lint
               working-directory: app
               run: npm run lint
