@@ -5,11 +5,13 @@
     "author": "Dean Moses",
     "license": "Apache-2.0",
     "scripts": {
-        "unit": "jest",
+        "test": "npm run compile && jest --selectProjects=unit",
+        "test:integration": "npm run compile && jest --selectProjects=integration",
+        "test:all": "npm run compile && jest",
         "lint": "eslint '*.ts' --quiet --fix",
-        "prepare": "husky install",
+        "prepare": "cd .. && husky",
         "compile": "tsc",
-        "test": "npm run compile && npm run unit"
+        "agent-docs": "node ../scripts/build-agent-docs.mjs"
     },
     "dependencies": {
         "@aws-sdk/client-dynamodb": "^3.481.0",

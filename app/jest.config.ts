@@ -9,16 +9,29 @@ import path from 'path';
 const envFile = path.join(__dirname, '..', '.env.test');
 dotenv.config({ path: envFile });
 
-const config: Config = {
-    transform: {
-        '^.+\\.ts?$': 'ts-jest',
-    },
+const baseConfig = {
+    transform: { '^.+\\.ts?$': 'ts-jest' },
     clearMocks: true,
+    setupFiles: ['dotenv/config'],
+};
+
+const config: Config = {
     collectCoverage: false,
     coverageDirectory: 'coverage',
     coverageProvider: 'v8',
-    testMatch: ['**/*.spec.ts'],
-    setupFiles: ['dotenv/config'],
+    projects: [
+        {
+            ...baseConfig,
+            displayName: 'unit',
+            testMatch: ['<rootDir>/src/**/*.spec.ts'],
+            testPathIgnorePatterns: ['/node_modules/', '/src/test/integration/'],
+        },
+        {
+            ...baseConfig,
+            displayName: 'integration',
+            testMatch: ['<rootDir>/src/test/integration/**/*.spec.ts'],
+        },
+    ],
 };
 
 export default config;

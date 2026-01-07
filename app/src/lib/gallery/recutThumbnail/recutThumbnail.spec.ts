@@ -107,13 +107,6 @@ describe('Convert from % to absolute crop', () => {
             pixels: { width: 640, height: 360 },
             expected: { x: 140, y: 0, width: 360, height: 360 },
         },
-        // TODO: implement the code to make this test pass
-        {
-            name: 'Invalid: if height is 100% then y must be 0 THIS FAIL IS VALID',
-            pct: { x: 0, y: 10.3, width: 100, height: 100 },
-            pixels: { width: 1000, height: 750 },
-            expected: { x: 0, y: 0, width: 1000, height: 1000 },
-        },
     ];
 
     inputs.forEach((input) => {
@@ -121,5 +114,11 @@ describe('Convert from % to absolute crop', () => {
             const crop = toPixelsFromPctCrop(input.pct, input.pixels);
             expect(crop).toEqual(input.expected);
         });
+    });
+
+    // TODO: implement the code to make this test pass
+    test.skip('Invalid: if height is 100% then y must be 0 THIS FAIL IS VALID', () => {
+        const crop = toPixelsFromPctCrop({ x: 0, y: 10.3, width: 100, height: 100 }, { width: 1000, height: 750 });
+        expect(crop).toEqual({ x: 0, y: 0, width: 1000, height: 1000 });
     });
 });

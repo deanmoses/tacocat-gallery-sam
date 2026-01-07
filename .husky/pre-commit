@@ -4,7 +4,7 @@ set -e
 ./scripts/guard-generated-agent-docs.sh
 
 # Regenerate agent docs if source changed
-if git diff --cached --name-only | grep -qE "(docs/AGENTS\.src\.md|app/scripts/build-agent-docs\.mjs)$"; then
+if git diff --cached --name-only | grep -qE "(docs/AGENTS\.src\.md|scripts/build-agent-docs\.mjs)$"; then
     node scripts/build-agent-docs.mjs
     git add CLAUDE.md AGENTS.md
 fi
@@ -16,11 +16,10 @@ else
     echo "Warning: gitleaks not installed, skipping secret scan"
 fi
 
+cd app
+
 # Run lint-staged (formats and lints staged files only)
 npx lint-staged
 
-# Type check
-npm run compile
-
-# Run unit tests
-npm run unit
+# Run unit tests (includes type check)
+npm test
