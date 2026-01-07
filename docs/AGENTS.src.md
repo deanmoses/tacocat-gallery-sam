@@ -18,6 +18,7 @@ START_CLAUDE
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 END_CLAUDE
 
 START_AGENTS
@@ -25,6 +26,7 @@ START_AGENTS
 # AGENTS.md
 
 This file provides guidance to AI programming agents when working with code in this repository.
+
 END_AGENTS
 
 ## Project Overview
@@ -67,6 +69,18 @@ sam logs -n FunctionName --tail          # Specific function logs
 # Documentation
 npm run agent-docs    # Regenerate CLAUDE.md and AGENTS.md from docs/AGENTS.src.md
 ```
+
+## Environments
+
+The project can create three environments. Each environment is a separate AWS infrastructure stack.
+
+| Environment | Stack Name | Web App | Purpose |
+|-------------|------------|--------|---------|
+| dev | tacocat-gallery-sam-dev | staging-pix.tacocat.com | Staging for manual testing |
+| test | tacocat-gallery-sam-test | test-pix.tacocat.com | Integration tests (CI) |
+| prod | tacocat-gallery-sam-prod | pix.tacocat.com | Production |
+
+The web app is not in this project; it's built and hosted in other projects.
 
 ## Architecture
 
