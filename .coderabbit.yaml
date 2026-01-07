@@ -1,0 +1,15 @@
+# CodeRabbit AI Code Review Configuration
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+reviews:
+    path_filters:
+        - '!app/package-lock.json'
+        - '!.aws-sam/**'
+        - '!*.min.js'
+        - '!app/src/test/data/**'
+
+knowledge_base:
+    code_guidelines:
+        enabled: true
+        filePatterns:
+            - '**/CLAUDE.md'
