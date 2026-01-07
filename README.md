@@ -73,6 +73,18 @@ tacocat-gallery-sam$ sam local start-api
 tacocat-gallery-sam$ curl http://localhost:3000/
 ```
 
+## Environments
+
+The project can create three environments. Each environment is a separate AWS infrastructure stack.
+
+| Environment | Stack Name | Web App | Purpose |
+|-------------|------------|--------|---------|
+| dev | tacocat-gallery-sam-dev | staging-pix.tacocat.com | Staging for manual testing |
+| test | tacocat-gallery-sam-test | test-pix.tacocat.com | Integration tests (CI) |
+| prod | tacocat-gallery-sam-prod | pix.tacocat.com | Production |
+
+The web app is not in this project; it's built and hosted in other projects.
+
 ## Deploy for the first time
 
 To deploy your application to AWS for the first time:
