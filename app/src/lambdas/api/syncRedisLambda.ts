@@ -2,7 +2,14 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult, Handler } from 'aws-lambda
 import { LambdaClient, InvokeCommand, InvocationType } from '@aws-sdk/client-lambda';
 import { handleHttpExceptions, respondHttp } from '../../lib/lambda_utils/ApiGatewayResponseHelpers';
 import { ensureAuthorized } from '../../lib/lambda_utils/AuthorizationHelpers';
-import { syncRedis, initRedis, SyncMode, SyncResult, InitResult } from '../../lib/gallery/syncRedis/syncRedis';
+import {
+    syncRedis,
+    initRedis,
+    SyncMode,
+    SyncResult,
+    SyncErrorResult,
+    InitResult,
+} from '../../lib/gallery/syncRedis/syncRedis';
 import { BadRequestException } from '../../lib/lambda_utils/BadRequestException';
 
 // Reuse client across warm invocations
@@ -31,7 +38,10 @@ export type SyncRedisEvent = APIGatewayProxyEvent | DirectInvokeEvent;
  * - { "mode": "fix", "continuationToken": "..." } - Retry failed batch
  * - { "mode": "init" } - Create search index if missing
  */
-export const handler: Handler<SyncRedisEvent, APIGatewayProxyResult | SyncResult | InitResult> = async (event) => {
+export const handler: Handler<
+    SyncRedisEvent,
+    APIGatewayProxyResult | SyncResult | SyncErrorResult | InitResult
+> = async (event) => {
     // Detect direct invoke vs API Gateway
     // API Gateway always has requestContext; direct invoke with { mode: "..." } does not
     const isDirectInvoke = !('requestContext' in event);
