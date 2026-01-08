@@ -415,21 +415,32 @@ Resources:
           - dynamoToRedisLambda.ts
 
   # ---------------------------------------------------------------------------
-  # API Gateway lambda to reset Redis search engine
+  # API Gateway lambda to sync DynamoDB to Redis
   # ---------------------------------------------------------------------------
-  ResetRedisFunction:
+  SyncRedisFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-ResetRedis
+      FunctionName: !Sub ${AWS::StackName}-SyncRedis
       CodeUri: app/src/lambdas/api/
-      Handler: resetRedisLambda.handler
-      Description: Reset Redis search engine
+      Handler: syncRedisLambda.handler
+      Description: Sync DynamoDB to Redis (diagnose or fix discrepancies)
+      Timeout: 900 # 15 minutes for direct invoke
       Events:
-        Api:
+        ApiGet:
           Type: Api
           Properties:
-            Path: /redis-reset
+            Path: /redis-sync
+            Method: GET
+        ApiPost:
+          Type: Api
+          Properties:
+            Path: /redis-sync
             Method: POST
+        ApiPut:
+          Type: Api
+          Properties:
+            Path: /redis-sync
+            Method: PUT
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -441,6 +452,11 @@ Resources:
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref GalleryItemDDBTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: lambda:InvokeFunction
+              Resource: !GetAtt SyncRedisFunction.Arn
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -448,7 +464,7 @@ Resources:
         Target: es2020
         Sourcemap: true
         EntryPoints:
-          - resetRedisLambda.ts
+          - syncRedisLambda.ts
 
   # ---------------------------------------------------------------------------
   # API Gateway lambda to search for albums and images
