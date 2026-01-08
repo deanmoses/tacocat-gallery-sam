@@ -456,7 +456,7 @@ Resources:
           Statement:
             - Effect: Allow
               Action: lambda:InvokeFunction
-              Resource: !GetAtt SyncRedisFunction.Arn
+              Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-SyncRedis
     Metadata:
       BuildMethod: esbuild
       BuildProperties:

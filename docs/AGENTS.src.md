@@ -54,6 +54,7 @@ npm run lint          # ESLint with auto-fix
 
 # Building and deploying (from project root)
 sam build             # Build SAM application
+sam deploy --no-execute-changeset  # Validate template without deploying
 sam deploy            # Deploy to dev environment
 sam sync              # Watch mode for rapid dev iteration
 
