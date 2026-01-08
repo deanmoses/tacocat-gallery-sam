@@ -112,7 +112,7 @@ export async function syncRedis(options: SyncOptions): Promise<SyncResult> {
 
             lastEvaluatedKey = nextKey;
 
-            if (mode === 'fix' && lastEvaluatedKey) {
+            if (lastEvaluatedKey) {
                 await delay(BATCH_DELAY_MS);
             }
         } while (lastEvaluatedKey);
