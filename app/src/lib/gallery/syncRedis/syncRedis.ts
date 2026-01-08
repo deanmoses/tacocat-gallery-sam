@@ -14,6 +14,7 @@ export type SyncMode = 'diagnose' | 'fix' | 'init';
 /** Result of a sync operation (diagnose or fix mode) */
 export interface SyncResult {
     totalInDynamoDB: number;
+    totalInRedis: number;
     inSync: number;
     missing: number;
     mismatched: number;
@@ -47,7 +48,11 @@ interface SyncStats {
     inSync: number;
     missing: number;
     mismatched: number;
+    /** Count of items logged (to limit verbose logging) */
+    itemsLogged: number;
 }
+
+const MAX_ITEMS_TO_LOG = 10;
 
 /** Result of processing a single batch */
 interface BatchResult {
@@ -77,7 +82,13 @@ export async function syncRedis(options: SyncOptions): Promise<SyncResult> {
             await ensureIndexExists(redisClient);
         }
 
-        const stats: SyncStats = { totalInDynamoDB: 0, inSync: 0, missing: 0, mismatched: 0 };
+        const stats: SyncStats = {
+            totalInDynamoDB: 0,
+            inSync: 0,
+            missing: 0,
+            mismatched: 0,
+            itemsLogged: 0,
+        };
         let batchNumber = 0;
         let lastEvaluatedKey = decodeContinuationToken(continuationToken);
 
@@ -89,7 +100,7 @@ export async function syncRedis(options: SyncOptions): Promise<SyncResult> {
             if (items.length > 0) {
                 console.log(JSON.stringify({ event: 'scan_page', page: batchNumber, itemCount: items.length }));
 
-                const batchResult = await compareBatch(items, redisClient, batchNumber, lastEvaluatedKey);
+                const batchResult = await compareBatch(items, redisClient, batchNumber, lastEvaluatedKey, stats);
                 accumulateStats(stats, batchResult);
 
                 if (mode === 'fix') {
@@ -107,9 +118,17 @@ export async function syncRedis(options: SyncOptions): Promise<SyncResult> {
         } while (lastEvaluatedKey);
 
         const durationMs = Date.now() - startTime;
-        logSyncComplete(stats, durationMs);
+        const totalInRedis = await redisClient.dbSize();
+        logSyncComplete(stats, totalInRedis, durationMs);
 
-        return { ...stats, durationMs };
+        return {
+            totalInDynamoDB: stats.totalInDynamoDB,
+            totalInRedis,
+            inSync: stats.inSync,
+            missing: stats.missing,
+            mismatched: stats.mismatched,
+            durationMs,
+        };
     } finally {
         if (shouldCloseRedis) {
             await redisClient.quit();
@@ -159,6 +178,7 @@ async function compareBatch(
     redisClient: RedisClient,
     batchNumber: number,
     lastEvaluatedKey?: Record<string, unknown>,
+    stats?: SyncStats,
 ): Promise<BatchResult> {
     const paths = items.map(toPath);
     const expectedItems = items.map(toRedisItem);
@@ -174,10 +194,16 @@ async function compareBatch(
 
         if (!actual) {
             result.missing.push(expected);
-            console.log(JSON.stringify({ event: 'item_missing', path }));
+            if (!stats || stats.itemsLogged < MAX_ITEMS_TO_LOG) {
+                console.log(JSON.stringify({ event: 'item_missing', path }));
+                if (stats) stats.itemsLogged++;
+            }
         } else if (!deepEqual(expected, actual)) {
             result.mismatched.push(expected);
-            console.log(JSON.stringify({ event: 'item_mismatched', path }));
+            if (!stats || stats.itemsLogged < MAX_ITEMS_TO_LOG) {
+                console.log(JSON.stringify({ event: 'item_mismatched', path }));
+                if (stats) stats.itemsLogged++;
+            }
         } else {
             result.inSync++;
         }
@@ -249,11 +275,12 @@ function logBatchComplete(batchNumber: number, result: BatchResult): void {
 }
 
 /** Log sync completion */
-function logSyncComplete(stats: SyncStats, durationMs: number): void {
+function logSyncComplete(stats: SyncStats, totalInRedis: number, durationMs: number): void {
     console.log(
         JSON.stringify({
             event: 'sync_complete',
-            totalItems: stats.totalInDynamoDB,
+            totalInDynamoDB: stats.totalInDynamoDB,
+            totalInRedis,
             missing: stats.missing,
             mismatched: stats.mismatched,
             durationMs,

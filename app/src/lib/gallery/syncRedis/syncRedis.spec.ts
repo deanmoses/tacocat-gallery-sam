@@ -17,6 +17,7 @@ interface MockRedisClient {
         info: jest.Mock;
         create: jest.Mock;
     };
+    dbSize: jest.Mock;
     quit: jest.Mock;
 }
 
@@ -29,6 +30,7 @@ const createMockRedisClient = (): MockRedisClient => ({
         info: jest.fn(),
         create: jest.fn(),
     },
+    dbSize: jest.fn().mockResolvedValue(0),
     quit: jest.fn(),
 });
 
@@ -390,6 +392,39 @@ describe('syncRedis', () => {
         });
 
         expect(result.durationMs).toBeGreaterThanOrEqual(0);
+    });
+
+    test('logs only first 10 missing/mismatched items', async () => {
+        const consoleSpy = jest.spyOn(console, 'log');
+        const mockRedis = createMockRedisClient();
+
+        // Create 15 items, all missing from Redis
+        const items = Array.from({ length: 15 }, (_, i) => ({
+            ...mockDynamoImage,
+            itemName: `image${i}.jpg`,
+        }));
+
+        // All items missing from Redis
+        mockRedis.json.mGet.mockResolvedValue(items.map(() => null));
+
+        mockDocClient.on(ScanCommand).resolves({
+            Items: items,
+            Count: 15,
+        });
+
+        const result = await syncRedis({
+            mode: 'diagnose',
+            redisClient: mockRedis as unknown as RedisClient,
+        });
+
+        // Should report all 15 as missing
+        expect(result.missing).toBe(15);
+
+        // But only log 10 individual item_missing events
+        const missingLogs = consoleSpy.mock.calls.filter((call) => (call[0] as string).includes('item_missing'));
+        expect(missingLogs).toHaveLength(10);
+
+        consoleSpy.mockRestore();
     });
 });
 

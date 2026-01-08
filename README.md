@@ -18,7 +18,9 @@ Database (DynamoDB), image storage (S3), APIs (API Gateway), CDN (CloudFront), i
 ## Install
 
 - Clone this project from github
-- Install dependencies: `cd` into its directory, `cd app` and then install dependencies with `npm install` or `pnpm install` or `yarn`. *Note the `app` subdirectory!* Due to the way SAM handles Typescript, the package.json and all the Node.js stuff is under `app`.
+- Install dependencies: `cd` into the project directory, `cd app` and then install dependencies with `npm install` or `pnpm install` or `yarn`.
+
+*Note the `app` subdirectory!* Due to the way SAM handles Typescript, `package.json` and all the Node.js stuff lives under `app`.
 
 ## Build
 
@@ -34,48 +36,44 @@ It does NOT deploy to AWS; that comes later.
 
 ## Tests
 
-Use NPM to install the [Jest test framework](https://jestjs.io/) and run unit tests...
+To run the Jest tests, note you have to `cd app`, that's where the Node project is.
 
 ```bash
 tacocat-gallery-sam$ cd app
-app$ npm install
 app$ npm run test
 ```
 
-... or better yet use Visual Studio Code's Jest support rather than dealing with the command line.
+## Don't bother trying to run the code locally
 
-## Don't attempt to run on localhost
-
-SAM provides some tools to simulate the AWS cloud stack locally, but I've found they're much more hassle than they're worth.  Instead, deploy to staging and test your changes there.
+SAM provides some tools to simulate the AWS cloud stack locally, but they're MUCH more hassle than they're worth.  Instead, test your changes by deploying to AWS as described below.
 
 
-## Deploy to staging
+## Deploy while developing
 
-Staging is the tacocat-gallery-sam-dev AWS stack. The web app at <https://staging-pix.tacocat.com> is connected to this stack.
-
-**Automatic deploy:** When a PR is merged into `main`, GitHub Actions automatically runs tests and deploys to staging.
-
-**Manual deploy:** To deploy your local changes during development:
+To deploy your local changes during development:
 
 ```bash
-sam build && sam deploy   # One-time deploy
-sam sync                  # Watch mode: auto-deploys on file changes
+sam sync --watch   # --watch redeploys on file changes
 ```
 
-Use `sam sync` for faster iteration—it bypasses CloudFormation and deploys Lambda changes directly.
+This deploys to the `tacocat-gallery-sam-dev` AWS stack. The web app at <https://staging-pix.tacocat.com> is connected to this stack. 
+
+## Automatic deployment when merging to `main`
+
+When a PR is merged into `main`, the CI/CD system (GitHub Actions) automatically runs tests and deploys to staging.  This overwrites anything you deployed to it with `sam sync`. 
 
 ## Deploy to production
 
 To deploy to prod:
 
-1. Get access to the [repo](https://github.com/deanmoses/tacocat-gallery-sam/)
-2. Go to [*Actions* > *Deploy to Production*](https://github.com/deanmoses/tacocat-gallery-sam/actions/workflows/deploy-prod.yml)
+1. Ask Dean Moses for access to the [repo](https://github.com/deanmoses/tacocat-gallery-sam/)
+2. On GitHub, go to [*Actions* > *Deploy to Production*](https://github.com/deanmoses/tacocat-gallery-sam/actions/workflows/deploy-prod.yml)
 3. Click "Run workflow" and select the `main` branch
 4. The workflow:
    1. Runs tests
-   2. Deploys to prod (the tacocat-gallery-sam-prod AWS stack)
+   2. Deploys to prod (the `tacocat-gallery-sam-prod` AWS stack)
       1. The live web app <https://pix.tacocat.com/> is attached to the prod stack
-   3. Creates a GitHub release with auto-generated release notes
+   3. Creates a GitHub release (like 2027v2) with auto-generated release notes
 
 
 ## Working with remote logs
