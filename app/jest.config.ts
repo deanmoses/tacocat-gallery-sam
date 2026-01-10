@@ -10,9 +10,10 @@ const envFile = path.join(process.cwd(), '..', '.env.integration-test');
 dotenv.config({ path: envFile });
 
 const baseConfig = {
-    transform: { '^.+\\.ts?$': 'ts-jest' },
+    transform: { '^.+\\.(ts|js)$': 'ts-jest' },
+    // mime v4+ is ESM-only; tell Jest to transform it instead of skipping
+    transformIgnorePatterns: ['/node_modules/(?!(mime)/)'],
     clearMocks: true,
-    setupFiles: ['<rootDir>/jest.setup.ts'],
 };
 
 const config: Config = {
@@ -25,11 +26,13 @@ const config: Config = {
             displayName: 'unit',
             testMatch: ['<rootDir>/src/**/*.spec.ts'],
             testPathIgnorePatterns: ['/node_modules/', '/src/test/integration/'],
+            setupFiles: ['<rootDir>/jest.setup.unit.ts'],
         },
         {
             ...baseConfig,
             displayName: 'integration',
             testMatch: ['<rootDir>/src/test/integration/**/*.spec.ts'],
+            setupFiles: ['<rootDir>/jest.setup.integration.ts'],
         },
     ],
 };

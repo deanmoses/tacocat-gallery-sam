@@ -1,9 +1,9 @@
 /**
- * Jest setup file that provides dummy environment variables for unit tests.
+ * Jest setup file for UNIT tests.
  *
  * All AWS calls are mocked in unit tests, but the AWS SDK still requires
- * these values to be set during initialization. These dummy values ensure
- * tests can run in any environment (local or CI) without external config.
+ * credential and config values to be set during initialization. These dummy
+ * values ensure tests can run in any environment without external config.
  */
 
 // AWS SDK requires these even when all calls are mocked
