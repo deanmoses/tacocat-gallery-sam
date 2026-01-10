@@ -10,12 +10,13 @@ const nextAlbumPath = `${yearPath}06-22/`;
 
 beforeAll(async () => {
     await Promise.all([
+        assertDynamoDBItemDoesNotExist(yearPath),
         assertDynamoDBItemDoesNotExist(prevAlbumPath),
         assertDynamoDBItemDoesNotExist(currentAlbumPath),
         assertDynamoDBItemDoesNotExist(nextAlbumPath),
     ]);
+    await createAlbum(yearPath, { published: true });
     await Promise.all([
-        createAlbum(yearPath),
         createAlbum(prevAlbumPath),
         createAlbum(currentAlbumPath, { published: true }),
         createAlbum(nextAlbumPath),

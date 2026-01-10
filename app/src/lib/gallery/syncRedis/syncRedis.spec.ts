@@ -16,6 +16,7 @@ interface MockRedisClient {
     ft: {
         info: jest.Mock;
         create: jest.Mock;
+        _list: jest.Mock;
     };
     dbSize: jest.Mock;
     quit: jest.Mock;
@@ -29,6 +30,7 @@ const createMockRedisClient = (): MockRedisClient => ({
     ft: {
         info: jest.fn(),
         create: jest.fn(),
+        _list: jest.fn().mockResolvedValue([]),
     },
     dbSize: jest.fn().mockResolvedValue(0),
     quit: jest.fn(),
@@ -223,7 +225,7 @@ describe('syncRedis', () => {
 
     test('fix mode writes missing items to Redis', async () => {
         const mockRedis = createMockRedisClient();
-        mockRedis.ft.info.mockResolvedValue({}); // Index exists
+        mockRedis.ft._list.mockResolvedValue(['idx:gallery']); // Index exists
         mockRedis.json.mGet.mockResolvedValue([null]); // Missing
 
         mockDocClient.on(ScanCommand).resolves({
@@ -244,7 +246,7 @@ describe('syncRedis', () => {
 
     test('fix mode writes mismatched items to Redis', async () => {
         const mockRedis = createMockRedisClient();
-        mockRedis.ft.info.mockResolvedValue({}); // Index exists
+        mockRedis.ft._list.mockResolvedValue(['idx:gallery']); // Index exists
         mockRedis.json.mGet.mockResolvedValue([
             [
                 {
@@ -272,7 +274,7 @@ describe('syncRedis', () => {
 
     test('fix mode throws error if index does not exist', async () => {
         const mockRedis = createMockRedisClient();
-        mockRedis.ft.info.mockRejectedValue(new Error('Unknown Index name'));
+        mockRedis.ft._list.mockResolvedValue([]); // Index does not exist
 
         await expect(
             syncRedis({
@@ -449,7 +451,7 @@ describe('syncRedis', () => {
 describe('initRedis', () => {
     test('creates index when it does not exist', async () => {
         const mockRedis = createMockRedisClient();
-        mockRedis.ft.info.mockRejectedValue(new Error('Unknown Index name'));
+        mockRedis.ft._list.mockResolvedValue([]); // Index does not exist
         mockRedis.ft.create.mockResolvedValue('OK');
 
         const result = await initRedis({
@@ -464,7 +466,7 @@ describe('initRedis', () => {
 
     test('does not create index when it already exists', async () => {
         const mockRedis = createMockRedisClient();
-        mockRedis.ft.info.mockResolvedValue({}); // Index exists
+        mockRedis.ft._list.mockResolvedValue(['idx:gallery']); // Index exists
 
         const result = await initRedis({
             redisClient: mockRedis as unknown as RedisClient,
@@ -476,9 +478,9 @@ describe('initRedis', () => {
         expect(result.durationMs).toBeGreaterThanOrEqual(0);
     });
 
-    test('propagates errors other than unknown index', async () => {
+    test('propagates errors from _list', async () => {
         const mockRedis = createMockRedisClient();
-        mockRedis.ft.info.mockRejectedValue(new Error('Connection refused'));
+        mockRedis.ft._list.mockRejectedValue(new Error('Connection refused'));
 
         await expect(
             initRedis({

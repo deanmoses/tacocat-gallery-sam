@@ -11,6 +11,7 @@ import {
 } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { assertDynamoDBItemDoesNotExist, cleanUpAlbum } from './helpers/albumHelpers';
 import { reallyGetNameFromPath } from './helpers/pathHelpers';
+import { assertRedisItemDoesNotExist, assertRedisItemExists } from './helpers/redisHelper';
 import { assertOriginalImageDoesNotExist, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
 
 const yearPath = '/1704/'; // unique to this suite to prevent pollution
@@ -31,8 +32,8 @@ beforeAll(async () => {
     await uploadImage('image.jpg', imagePath);
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
 
-    updateAlbum(getParentFromPath(albumPath), { published: true }); // must publish parent first
-    updateAlbum(albumPath, { published: true }); // cannot publish child before parent
+    await updateAlbum(getParentFromPath(albumPath), { published: true }); // must publish parent first
+    await updateAlbum(albumPath, { published: true }); // cannot publish child before parent
 }, 25000 /* increase Jest's timeout */);
 
 afterAll(async () => {
@@ -70,6 +71,10 @@ test("Image was set as album's thumb", async () => {
     if (!album?.thumbnail?.versionId) throw new Error(`Album [${albumPath}] thumbnail [${imagePath}] has no versionId`);
 });
 
+test('Image exists in Redis', async () => {
+    await assertRedisItemExists(imagePath);
+}, 15000);
+
 test('Delete image', async () => {
     await expect(deleteImage(imagePath)).resolves.not.toThrow();
 });
@@ -78,8 +83,8 @@ test('Album should not contain deleted image', async () => {
     const album = await getAlbumAndChildren(albumPath);
     if (!album) throw 'no album';
     const imageName = reallyGetNameFromPath(imagePath);
-    const image = findImage(album, imagePath);
-    if (!!image) throw new Error(`Image [${imageName}] should not exist in album [${albumPath}]`);
+    const image = findImage(album, imageName);
+    if (image) throw new Error(`Image [${imageName}] should not exist in album [${albumPath}]`);
 });
 
 test('Image should no longer be album thumb', async () => {
@@ -90,3 +95,7 @@ test('Image should no longer be album thumb', async () => {
 test('Original images bucket should no longer contain image', async () => {
     if (await originalImageExists(imagePath)) throw new Error(`[${imagePath}] should not exist in originals bucket`);
 });
+
+test('Image no longer exists in Redis', async () => {
+    await assertRedisItemDoesNotExist(imagePath);
+}, 15000);
