@@ -415,7 +415,7 @@ Resources:
           - dynamoToRedisLambda.ts
 
   # ---------------------------------------------------------------------------
-  # API Gateway lambda to sync DynamoDB to Redis
+  # Lambda to sync DynamoDB to Redis (direct invoke only, no API Gateway)
   # ---------------------------------------------------------------------------
   SyncRedisFunction:
     Type: AWS::Serverless::Function
@@ -424,23 +424,7 @@ Resources:
       CodeUri: app/src/lambdas/api/
       Handler: syncRedisLambda.handler
       Description: Sync DynamoDB to Redis (diagnose or fix discrepancies)
-      Timeout: 900 # 15 minutes for direct invoke
-      Events:
-        ApiGet:
-          Type: Api
-          Properties:
-            Path: /redis-sync
-            Method: GET
-        ApiPost:
-          Type: Api
-          Properties:
-            Path: /redis-sync
-            Method: POST
-        ApiPut:
-          Type: Api
-          Properties:
-            Path: /redis-sync
-            Method: PUT
+      Timeout: 900 # 15 minutes
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -452,11 +436,6 @@ Resources:
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref GalleryItemDDBTable
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action: lambda:InvokeFunction
-              Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-SyncRedis
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
