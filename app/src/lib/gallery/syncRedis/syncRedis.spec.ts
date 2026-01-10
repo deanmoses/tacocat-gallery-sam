@@ -1,6 +1,6 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
-import { syncRedis, initRedis, deepEqual } from './syncRedis';
+import { syncRedis, initRedis, deepEqual, SyncResult, isSyncErrorResult } from './syncRedis';
 import { ImageItem, AlbumItem } from '../galleryTypes';
 import { RedisImageItem, RedisAlbumItem } from '../../redis_utils/redisTypes';
 import { RedisClient } from '../../redis_utils/redisClientUtils';
@@ -140,10 +140,12 @@ describe('syncRedis', () => {
             redisClient: mockRedis as unknown as RedisClient,
         });
 
-        expect(result.totalInDynamoDB).toBe(1);
-        expect(result.missing).toBe(1);
-        expect(result.mismatched).toBe(0);
-        expect(result.inSync).toBe(0);
+        expect(isSyncErrorResult(result)).toBe(false);
+        const successResult = result as SyncResult;
+        expect(successResult.totalInDynamoDB).toBe(1);
+        expect(successResult.missing).toBe(1);
+        expect(successResult.mismatched).toBe(0);
+        expect(successResult.inSync).toBe(0);
         expect(mockRedis.json.mSet).not.toHaveBeenCalled();
     });
 
@@ -169,10 +171,12 @@ describe('syncRedis', () => {
             redisClient: mockRedis as unknown as RedisClient,
         });
 
-        expect(result.totalInDynamoDB).toBe(1);
-        expect(result.missing).toBe(0);
-        expect(result.mismatched).toBe(1);
-        expect(result.inSync).toBe(0);
+        expect(isSyncErrorResult(result)).toBe(false);
+        const successResult = result as SyncResult;
+        expect(successResult.totalInDynamoDB).toBe(1);
+        expect(successResult.missing).toBe(0);
+        expect(successResult.mismatched).toBe(1);
+        expect(successResult.inSync).toBe(0);
         expect(mockRedis.json.mSet).not.toHaveBeenCalled();
     });
 
@@ -191,10 +195,12 @@ describe('syncRedis', () => {
             redisClient: mockRedis as unknown as RedisClient,
         });
 
-        expect(result.totalInDynamoDB).toBe(1);
-        expect(result.missing).toBe(0);
-        expect(result.mismatched).toBe(0);
-        expect(result.inSync).toBe(1);
+        expect(isSyncErrorResult(result)).toBe(false);
+        const successResult = result as SyncResult;
+        expect(successResult.totalInDynamoDB).toBe(1);
+        expect(successResult.missing).toBe(0);
+        expect(successResult.mismatched).toBe(0);
+        expect(successResult.inSync).toBe(1);
         expect(mockRedis.json.mSet).not.toHaveBeenCalled();
     });
 
@@ -230,7 +236,9 @@ describe('syncRedis', () => {
             redisClient: mockRedis as unknown as RedisClient,
         });
 
-        expect(result.missing).toBe(1);
+        expect(isSyncErrorResult(result)).toBe(false);
+        const successResult = result as SyncResult;
+        expect(successResult.missing).toBe(1);
         expect(mockRedis.json.mSet).toHaveBeenCalled();
     });
 
@@ -256,7 +264,9 @@ describe('syncRedis', () => {
             redisClient: mockRedis as unknown as RedisClient,
         });
 
-        expect(result.mismatched).toBe(1);
+        expect(isSyncErrorResult(result)).toBe(false);
+        const successResult = result as SyncResult;
+        expect(successResult.mismatched).toBe(1);
         expect(mockRedis.json.mSet).toHaveBeenCalled();
     });
 
@@ -286,7 +296,9 @@ describe('syncRedis', () => {
             redisClient: mockRedis as unknown as RedisClient,
         });
 
-        expect(result.inSync).toBe(1);
+        expect(isSyncErrorResult(result)).toBe(false);
+        const successResult = result as SyncResult;
+        expect(successResult.inSync).toBe(1);
     });
 
     test('handles multiple items in single scan', async () => {
@@ -312,9 +324,11 @@ describe('syncRedis', () => {
             redisClient: mockRedis as unknown as RedisClient,
         });
 
-        expect(result.totalInDynamoDB).toBe(2);
-        expect(result.inSync).toBe(1);
-        expect(result.missing).toBe(1);
+        expect(isSyncErrorResult(result)).toBe(false);
+        const successResult = result as SyncResult;
+        expect(successResult.totalInDynamoDB).toBe(2);
+        expect(successResult.inSync).toBe(1);
+        expect(successResult.missing).toBe(1);
     });
 
     test('handles pagination across multiple scans', async () => {
@@ -350,8 +364,10 @@ describe('syncRedis', () => {
             redisClient: mockRedis as unknown as RedisClient,
         });
 
-        expect(result.totalInDynamoDB).toBe(2);
-        expect(result.inSync).toBe(2);
+        expect(isSyncErrorResult(result)).toBe(false);
+        const successResult = result as SyncResult;
+        expect(successResult.totalInDynamoDB).toBe(2);
+        expect(successResult.inSync).toBe(2);
     });
 
     test('continuation token resumes from previous position', async () => {
@@ -417,8 +433,10 @@ describe('syncRedis', () => {
             redisClient: mockRedis as unknown as RedisClient,
         });
 
+        expect(isSyncErrorResult(result)).toBe(false);
+        const successResult = result as SyncResult;
         // Should report all 15 as missing
-        expect(result.missing).toBe(15);
+        expect(successResult.missing).toBe(15);
 
         // But only log 10 individual item_missing events
         const missingLogs = consoleSpy.mock.calls.filter((call) => (call[0] as string).includes('item_missing'));

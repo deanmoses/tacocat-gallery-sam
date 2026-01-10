@@ -11,7 +11,7 @@ import { RedisGalleryItem } from '../../redis_utils/redisTypes';
 /** Sync mode: diagnose (read-only), fix (write corrections), or init (create index) */
 export type SyncMode = 'diagnose' | 'fix' | 'init';
 
-/** Result of a sync operation (diagnose or fix mode) */
+/** Result of a successful sync operation (diagnose or fix mode) */
 export interface SyncResult {
     totalInDynamoDB: number;
     totalInRedis: number;
@@ -19,6 +19,23 @@ export interface SyncResult {
     missing: number;
     mismatched: number;
     durationMs: number;
+}
+
+/** Result of a failed sync operation */
+export interface SyncErrorResult {
+    error: string;
+    batchesSuccessfullyProcessed: number;
+    totalInDynamoDBInTheseBatches: number;
+    inSyncInTheseBatches: number;
+    missingInTheseBatches: number;
+    mismatchedInTheseBatches: number;
+    continuationToken?: string;
+    durationMs: number;
+}
+
+/** Type guard to check if result is an error result */
+export function isSyncErrorResult(result: SyncResult | SyncErrorResult): result is SyncErrorResult {
+    return 'error' in result;
 }
 
 /** Result of an init operation */
@@ -66,7 +83,7 @@ interface BatchResult {
  * Sync DynamoDB to Redis.
  * Compares all items in DynamoDB to Redis and reports/fixes discrepancies.
  */
-export async function syncRedis(options: SyncOptions): Promise<SyncResult> {
+export async function syncRedis(options: SyncOptions): Promise<SyncResult | SyncErrorResult> {
     const startTime = Date.now();
     const { mode, continuationToken } = options;
 
@@ -95,22 +112,43 @@ export async function syncRedis(options: SyncOptions): Promise<SyncResult> {
         do {
             batchNumber++;
 
-            const { items, nextKey } = await scanDynamoBatch(docClient, lastEvaluatedKey);
+            try {
+                const { items, nextKey } = await scanDynamoBatch(docClient, lastEvaluatedKey);
 
-            if (items.length > 0) {
-                console.log(JSON.stringify({ event: 'scan_page', page: batchNumber, itemCount: items.length }));
+                if (items.length > 0) {
+                    console.log(JSON.stringify({ event: 'scan_page', page: batchNumber, itemCount: items.length }));
 
-                const batchResult = await compareBatch(items, redisClient, batchNumber, lastEvaluatedKey, stats);
-                accumulateStats(stats, batchResult);
+                    const batchResult = await compareBatch(items, redisClient, stats);
 
-                if (mode === 'fix') {
-                    await fixBatch(redisClient, batchResult);
+                    if (mode === 'fix') {
+                        await fixBatch(redisClient, batchResult);
+                    }
+
+                    logBatchComplete(batchNumber, batchResult);
+                    accumulateStats(stats, batchResult);
                 }
 
-                logBatchComplete(batchNumber, batchResult);
-            }
+                lastEvaluatedKey = nextKey;
+            } catch (e) {
+                const errorMessage = e instanceof Error ? e.message : String(e);
+                const token = lastEvaluatedKey
+                    ? Buffer.from(JSON.stringify(lastEvaluatedKey)).toString('base64')
+                    : undefined;
+                logBatchError(batchNumber, e, lastEvaluatedKey);
 
-            lastEvaluatedKey = nextKey;
+                // Return partial results with error info instead of throwing
+                const durationMs = Date.now() - startTime;
+                return {
+                    error: errorMessage,
+                    batchesSuccessfullyProcessed: batchNumber - 1, // Current batch failed, so completed batches is n-1
+                    totalInDynamoDBInTheseBatches: stats.totalInDynamoDB,
+                    inSyncInTheseBatches: stats.inSync,
+                    missingInTheseBatches: stats.missing,
+                    mismatchedInTheseBatches: stats.mismatched,
+                    continuationToken: token,
+                    durationMs,
+                };
+            }
 
             if (lastEvaluatedKey) {
                 await delay(BATCH_DELAY_MS);
@@ -173,17 +211,11 @@ async function scanDynamoBatch(
 }
 
 /** Compare a batch of DynamoDB items against Redis */
-async function compareBatch(
-    items: GalleryItem[],
-    redisClient: RedisClient,
-    batchNumber: number,
-    lastEvaluatedKey?: Record<string, unknown>,
-    stats?: SyncStats,
-): Promise<BatchResult> {
+async function compareBatch(items: GalleryItem[], redisClient: RedisClient, stats?: SyncStats): Promise<BatchResult> {
     const paths = items.map(toPath);
     const expectedItems = items.map(toRedisItem);
 
-    const actualItems = await fetchFromRedis(redisClient, paths, batchNumber, lastEvaluatedKey);
+    const actualItems = await fetchFromRedis(redisClient, paths);
 
     const result: BatchResult = { checked: items.length, inSync: 0, missing: [], mismatched: [] };
 
@@ -213,36 +245,15 @@ async function compareBatch(
 }
 
 /** Fetch items from Redis using batch mGet */
-async function fetchFromRedis(
-    redisClient: RedisClient,
-    paths: string[],
-    batchNumber: number,
-    lastEvaluatedKey?: Record<string, unknown>,
-): Promise<(RedisGalleryItem | null)[]> {
-    try {
-        const mGetResult = await redisClient.json.mGet(paths, '$');
-        return mGetResult.map((result) => {
-            if (!result) return null;
-            if (Array.isArray(result) && result.length > 0) {
-                return result[0] as RedisGalleryItem;
-            }
-            return null;
-        });
-    } catch (e) {
-        const token = lastEvaluatedKey ? Buffer.from(JSON.stringify(lastEvaluatedKey)).toString('base64') : undefined;
-        console.log(
-            JSON.stringify({
-                event: 'batch_error',
-                batch: batchNumber,
-                error: e instanceof Error ? e.message : String(e),
-                firstItem: paths[0],
-                lastItem: paths[paths.length - 1],
-                continuationToken: token,
-                resumeFromStart: !token,
-            }),
-        );
-        throw e;
-    }
+async function fetchFromRedis(redisClient: RedisClient, paths: string[]): Promise<(RedisGalleryItem | null)[]> {
+    const mGetResult = await redisClient.json.mGet(paths, '$');
+    return mGetResult.map((result) => {
+        if (!result) return null;
+        if (Array.isArray(result) && result.length > 0) {
+            return result[0] as RedisGalleryItem;
+        }
+        return null;
+    });
 }
 
 /** Write missing/mismatched items to Redis */
@@ -270,6 +281,20 @@ function logBatchComplete(batchNumber: number, result: BatchResult): void {
             checked: result.checked,
             missing: result.missing.length,
             mismatched: result.mismatched.length,
+        }),
+    );
+}
+
+/** Log batch error with continuation token for resuming */
+function logBatchError(batchNumber: number, e: unknown, lastEvaluatedKey?: Record<string, unknown>): void {
+    const token = lastEvaluatedKey ? Buffer.from(JSON.stringify(lastEvaluatedKey)).toString('base64') : undefined;
+    console.error(
+        JSON.stringify({
+            event: 'batch_error',
+            batch: batchNumber,
+            error: e instanceof Error ? e.message : String(e),
+            continuationToken: token,
+            resumeFromStart: !token,
         }),
     );
 }
