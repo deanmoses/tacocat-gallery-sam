@@ -1,0 +1,76 @@
+name: Integration Tests
+
+on:
+    workflow_dispatch:
+
+env:
+    HUSKY: 0
+
+jobs:
+    integration-test:
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '24'
+                  cache: 'npm'
+                  cache-dependency-path: app/package-lock.json
+
+            - name: Install esbuild globally
+              run: npm install -g esbuild
+
+            - name: Install dependencies
+              working-directory: app
+              run: npm ci
+
+            - name: Setup AWS SAM CLI
+              uses: aws-actions/setup-sam@v2
+              with:
+                  use-installer: true
+
+            - name: SAM build
+              run: sam build
+
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                  aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                  aws-region: us-east-1
+
+            - name: Deploy to test stack
+              run: sam deploy --config-env test --no-confirm-changeset --no-fail-on-empty-changeset
+
+            - name: Get stack outputs
+              id: stack-outputs
+              run: |
+                  LAMBDA_URL=$(aws cloudformation describe-stacks \
+                    --stack-name tacocat-gallery-sam-test \
+                    --query "Stacks[0].Outputs[?OutputKey=='GenerateDerivedImageUrl'].OutputValue" \
+                    --output text)
+                  if [ -z "$LAMBDA_URL" ] || [ "$LAMBDA_URL" = "None" ]; then
+                    echo "::error::Failed to retrieve GenerateDerivedImageUrl from stack outputs"
+                    exit 1
+                  fi
+                  DOMAIN=$(echo "$LAMBDA_URL" | sed 's|https://||' | sed 's|/$||')
+                  echo "derived_image_domain=$DOMAIN" >> "$GITHUB_OUTPUT"
+
+            - name: Run integration tests
+              working-directory: app
+              env:
+                  GALLERY_ITEM_DDB_TABLE: tacocat-gallery-sam-test-items
+                  ORIGINAL_IMAGES_BUCKET: tacocat-gallery-sam-test-original-images
+                  DERIVED_IMAGES_BUCKET: tacocat-gallery-sam-test-derived-images
+                  DERIVED_IMAGE_GENERATOR_DOMAIN: ${{ steps.stack-outputs.outputs.derived_image_domain }}
+                  GALLERY_APP_DOMAIN: test-pix.tacocat.com
+                  REDIS_HOST: ${{ secrets.REDIS_TEST_HOST }}
+                  REDIS_WRITE_USERNAME: ${{ secrets.REDIS_TEST_WRITE_USERNAME }}
+                  REDIS_WRITE_PASSWORD: ${{ secrets.REDIS_TEST_WRITE_PASSWORD }}
+                  REDIS_SEARCH_USERNAME: ${{ secrets.REDIS_TEST_SEARCH_USERNAME }}
+                  REDIS_SEARCH_PASSWORD: ${{ secrets.REDIS_TEST_SEARCH_PASSWORD }}
+              run: npm run test:integration
