@@ -395,18 +395,10 @@ export async function initRedis(options: Pick<SyncOptions, 'redisClient'>): Prom
     }
 }
 
-/** Check if search index exists */
+/** Check if the search index exists */
 async function indexExists(redisClient: RedisClient): Promise<boolean> {
-    try {
-        await redisClient.ft.info(SEARCH_INDEX_NAME);
-        return true;
-    } catch (e) {
-        // Redis throws error if index doesn't exist
-        if (e instanceof Error && e.message.toLowerCase().includes('unknown index')) {
-            return false;
-        }
-        throw e;
-    }
+    const indices = await redisClient.ft._list();
+    return indices.includes(SEARCH_INDEX_NAME);
 }
 
 /** Create the search index */

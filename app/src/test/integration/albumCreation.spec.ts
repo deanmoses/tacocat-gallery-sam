@@ -4,17 +4,25 @@ import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { getParentAndNameFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { assertDynamoDBItemDoesNotExist } from './helpers/albumHelpers';
+import { assertRedisItemDoesNotExist, assertRedisItemExists } from './helpers/redisHelper';
 import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
 
-const albumPath = '/1701/08-13/'; // unique to this suite to prevent pollution
-const albumPath2 = '/1701/08-14/';
+const yearPath = '/1701/'; // unique to this suite to prevent pollution
+const albumPath = `${yearPath}08-13/`;
+const albumPath2 = `${yearPath}08-14/`;
 
 beforeAll(async () => {
-    await Promise.all([assertDynamoDBItemDoesNotExist(albumPath), assertDynamoDBItemDoesNotExist(albumPath2)]);
+    await Promise.all([
+        assertDynamoDBItemDoesNotExist(yearPath),
+        assertDynamoDBItemDoesNotExist(albumPath),
+        assertDynamoDBItemDoesNotExist(albumPath2),
+    ]);
+    await createAlbum(yearPath, { published: true });
 });
 
 afterAll(async () => {
     await Promise.allSettled([deleteAlbum(albumPath), deleteAlbum(albumPath2)]);
+    await deleteAlbum(yearPath);
 });
 
 it('should fail on invalid album path', async () => {
@@ -61,6 +69,10 @@ test('retrieving published album should succeed', async () => {
     expect(album?.thumbnail?.path).toBeUndefined();
 });
 
+test('Album exists in Redis', async () => {
+    await assertRedisItemExists(albumPath);
+}, 15000);
+
 it('should fail to create album that already exists', async () => {
     await expect(createAlbum(albumPath)).rejects.toThrow(/exists/i);
 });
@@ -72,6 +84,10 @@ it('should fail on unknown attribute', async () => {
 test('delete succeeds on empty album', async () => {
     await expect(deleteAlbum(albumPath)).resolves.not.toThrow();
 });
+
+test('Album no longer exists in Redis', async () => {
+    await assertRedisItemDoesNotExist(albumPath);
+}, 15000);
 
 it('create with attributes', async () => {
     await createAlbum(albumPath2, {

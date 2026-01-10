@@ -11,6 +11,7 @@ import {
 } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { getAlbumPathForToday, getUniqueImagePathForToday } from './helpers/pathHelpers';
 import { uploadImage } from './helpers/s3ImageHelper';
+import { cleanUpAlbumAndParents } from './helpers/albumHelpers';
 
 let albumPath: string;
 let imagePath: string;
@@ -18,6 +19,10 @@ let imagePath: string;
 beforeAll(() => {
     albumPath = getAlbumPathForToday(); // use current year so that getLatestAlbum will always return something
     imagePath = getUniqueImagePathForToday();
+});
+
+afterAll(async () => {
+    await cleanUpAlbumAndParents(albumPath);
 });
 
 test('validate test setup', async () => {

@@ -10,7 +10,9 @@ import {
 const yearPath = '/1708/'; // unique to this suite to prevent pollution
 const albumPath = `${yearPath}02-19/`;
 const imagePath = `${albumPath}image1.jpg`;
-const imageCdnDomain = 'img.staging-pix.tacocat.com';
+const galleryAppDomain = process.env.GALLERY_APP_DOMAIN;
+if (!galleryAppDomain) throw new Error('GALLERY_APP_DOMAIN environment variable is not set');
+const imageCdnDomain = `img.${galleryAppDomain}`;
 const derivedImageSize = `45x45`;
 let derivedImageVersionId: string;
 let derivedImagePath: string;

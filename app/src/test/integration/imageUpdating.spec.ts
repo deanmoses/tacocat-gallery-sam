@@ -8,7 +8,8 @@ import { assertDynamoDBItemDoesNotExist, cleanUpAlbumAndParents } from './helper
 import { reallyGetNameFromPath } from './helpers/pathHelpers';
 import { assertOriginalImageDoesNotExist, assertOriginalImageExists, uploadImage } from './helpers/s3ImageHelper';
 
-const albumPath = '/1705/04-26/'; // unique to this suite to prevent pollution
+const yearPath = '/1705/'; // unique to this suite to prevent pollution
+const albumPath = `${yearPath}04-26/`;
 let imagePath: string;
 let title: string;
 let description: string;
@@ -22,8 +23,10 @@ beforeAll(async () => {
     expect(isValidImagePath(imagePath)).toBe(true);
     await Promise.all([assertDynamoDBItemDoesNotExist(albumPath), assertOriginalImageDoesNotExist(imagePath)]);
     await uploadImage('image.jpg', imagePath);
-    await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggeredy
-    await Promise.all([assertOriginalImageExists(imagePath), updateAlbum(albumPath, { published: true })]);
+    await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
+    await assertOriginalImageExists(imagePath);
+    await updateAlbum(yearPath, { published: true });
+    await updateAlbum(albumPath, { published: true });
 }, 25000 /* increase Jest's timeout */);
 
 afterAll(async () => {
