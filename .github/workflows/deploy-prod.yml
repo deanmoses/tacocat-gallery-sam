@@ -11,7 +11,7 @@ env:
     HUSKY: 0 # Skip git hooks in CI
 
 jobs:
-    build-and-test:
+    build-and-unit-test:
         runs-on: ubuntu-latest
         timeout-minutes: 15
         steps:
@@ -52,8 +52,13 @@ jobs:
             - name: SAM build
               run: sam build
 
+    integration-test:
+        needs: build-and-unit-test
+        uses: ./.github/workflows/integration-tests.yml
+        secrets: inherit
+
     deploy:
-        needs: build-and-test
+        needs: integration-test
         runs-on: ubuntu-latest
         timeout-minutes: 30
         steps:

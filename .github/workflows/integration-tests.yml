@@ -2,9 +2,11 @@ name: Integration Tests
 
 on:
     workflow_dispatch:
+    workflow_call:
+        # Makes this workflow callable from other workflows
 
 env:
-    HUSKY: 0
+    HUSKY: 0 # Skip git hooks in CI
 
 jobs:
     integration-test:
