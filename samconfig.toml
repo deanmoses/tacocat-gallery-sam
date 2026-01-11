@@ -38,6 +38,8 @@ parameter_overrides = [
     "RedisHost=redis-14907.c321.us-east-1-2.ec2.cloud.redislabs.com:14907",
     "RedisSearchUsername=devsearcher",
     "RedisWriteUsername=devwriter",
+    "RedisSearchPasswordSecret=Tacocat/Gallery/Authentication:SecretString:RedisSearchPasswordDev",
+    "RedisWritePasswordSecret=Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordDev",
 ]
 confirm_changeset = true
 resolve_s3 = true
@@ -51,6 +53,11 @@ parameter_overrides = [
     "Env=test",
     "GalleryAppDomain=test-pix.tacocat.com",
     "DomainCertificateArn=arn:aws:acm:us-east-1:010410881828:certificate/9fbd8ee9-f1d1-42a5-b97c-9713ce6e076d",
+    "RedisHost=redis-16860.c321.us-east-1-2.ec2.cloud.redislabs.com:16860",
+    "RedisSearchUsername=testsearcher",
+    "RedisWriteUsername=testwriter",
+    "RedisSearchPasswordSecret=Tacocat/Gallery/Authentication:SecretString:RedisSearchPasswordTest",
+    "RedisWritePasswordSecret=Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordTest",
 ]
 confirm_changeset = false
 resolve_s3 = true
@@ -67,6 +74,8 @@ parameter_overrides = [
     "RedisHost=redis-13894.c321.us-east-1-2.ec2.cloud.redislabs.com:13894",
     "RedisSearchUsername=prodsearcher",
     "RedisWriteUsername=prodwriter",
+    "RedisSearchPasswordSecret=Tacocat/Gallery/Authentication:SecretString:RedisSearchPasswordProd",
+    "RedisWritePasswordSecret=Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordProd",
 ]
 confirm_changeset = true
 resolve_s3 = true

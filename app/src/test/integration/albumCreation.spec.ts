@@ -3,7 +3,7 @@ import { deleteAlbum } from '../../lib/gallery/deleteAlbum/deleteAlbum';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { getParentAndNameFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
-import { assertDynamoDBItemDoesNotExist } from './helpers/albumHelpers';
+import { cleanUpAlbum } from './helpers/albumHelpers';
 import { assertRedisItemDoesNotExist, assertRedisItemExists } from './helpers/redisHelper';
 import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
 
@@ -12,11 +12,8 @@ const albumPath = `${yearPath}08-13/`;
 const albumPath2 = `${yearPath}08-14/`;
 
 beforeAll(async () => {
-    await Promise.all([
-        assertDynamoDBItemDoesNotExist(yearPath),
-        assertDynamoDBItemDoesNotExist(albumPath),
-        assertDynamoDBItemDoesNotExist(albumPath2),
-    ]);
+    // Clean up leftover data from previous failed runs
+    await cleanUpAlbum(yearPath);
     await createAlbum(yearPath, { published: true });
 });
 
@@ -70,7 +67,7 @@ test('retrieving published album should succeed', async () => {
 });
 
 test('Album exists in Redis', async () => {
-    await assertRedisItemExists(albumPath);
+    await assertRedisItemExists(albumPath, 14000);
 }, 15000);
 
 it('should fail to create album that already exists', async () => {
@@ -86,7 +83,7 @@ test('delete succeeds on empty album', async () => {
 });
 
 test('Album no longer exists in Redis', async () => {
-    await assertRedisItemDoesNotExist(albumPath);
+    await assertRedisItemDoesNotExist(albumPath, 14000);
 }, 15000);
 
 it('create with attributes', async () => {

@@ -29,8 +29,6 @@ beforeAll(async () => {
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
 
     await Promise.all([
-        updateAlbum(albumPath, { published: true }),
-        updateAlbum(getParentFromPath(albumPath), { published: true }),
         assertDynamoDBItemExists(albumPath),
         assertDynamoDBItemExists(getParentFromPath(albumPath)),
         assertDynamoDBItemExists(imagePath1),
@@ -38,6 +36,9 @@ beforeAll(async () => {
         assertOriginalImageExists(imagePath1),
         assertOriginalImageExists(imagePath2),
     ]);
+
+    await updateAlbum(getParentFromPath(albumPath), { published: true }); // must publish parent first
+    await updateAlbum(albumPath, { published: true }); // cannot publish child before parent
 }, 10000 /* increase Jest's timeout */);
 
 afterAll(async () => {

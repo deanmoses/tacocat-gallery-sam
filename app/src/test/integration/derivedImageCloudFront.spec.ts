@@ -26,7 +26,7 @@ beforeAll(async () => {
     await assertDerivedImageDoesNotExist(imagePath);
 
     derivedImageVersionId = await uploadImage('image.jpg', imagePath);
-    derivedImagePath = `${imagePath}/${derivedImageVersionId}/jpeg/${derivedImageSize}`;
+    derivedImagePath = `${imagePath}/${derivedImageVersionId}/${derivedImageSize}`;
 
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
 }, 10000 /* increases Jest's timeout */);
