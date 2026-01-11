@@ -50,25 +50,39 @@ Parameters:
     Description: Hostname and port of the Redis search instance
     Type: String
     AllowedValues:
+      - redis-16860.c321.us-east-1-2.ec2.cloud.redislabs.com:16860 # test
       - redis-14907.c321.us-east-1-2.ec2.cloud.redislabs.com:14907 # dev
       - redis-13894.c321.us-east-1-2.ec2.cloud.redislabs.com:13894 # prod
-    Default: redis-14907.c321.us-east-1-2.ec2.cloud.redislabs.com:14907
   RedisSearchUsername:
     Description: Name of user permitted to execute a search on Redis
     Type: String
     AllowedValues:
+      - testsearcher
       - devsearcher
       - prodsearcher
-    ConstraintDescription: Must be devsearcher or prodsearcher
-    Default: devsearcher
+    ConstraintDescription: Must be testsearcher, devsearcher or prodsearcher
   RedisWriteUsername:
     Description: Name of user permitted to write to Redis
     Type: String
     AllowedValues:
+      - testwriter
       - devwriter
       - prodwriter
-    ConstraintDescription: Must be devwriter or prodwriter
-    Default: devwriter
+    ConstraintDescription: Must be testwriter, devwriter or prodwriter
+  RedisSearchPasswordSecret:
+    Description: AWS Secrets Manager reference for Redis search password
+    Type: String
+    AllowedValues:
+      - Tacocat/Gallery/Authentication:SecretString:RedisSearchPasswordTest
+      - Tacocat/Gallery/Authentication:SecretString:RedisSearchPasswordDev
+      - Tacocat/Gallery/Authentication:SecretString:RedisSearchPasswordProd
+  RedisWritePasswordSecret:
+    Description: AWS Secrets Manager reference for Redis write password
+    Type: String
+    AllowedValues:
+      - Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordTest
+      - Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordDev
+      - Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordProd
 
 # -----------------------------------------------------------------------------
 # Conditions are boolean conditions that can be used to control resources
@@ -402,9 +416,7 @@ Resources:
         Variables:
           REDIS_HOST: !Ref RedisHost
           REDIS_WRITE_USERNAME: !Ref RedisWriteUsername
-          REDIS_WRITE_PASSWORD: !If [ "IsProd",
-            "{{resolve:secretsmanager:Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordProd}}",
-            "{{resolve:secretsmanager:Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordDev}}" ]
+          REDIS_WRITE_PASSWORD: !Sub "{{resolve:secretsmanager:${RedisWritePasswordSecret}}}"
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -430,9 +442,7 @@ Resources:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
           REDIS_HOST: !Ref RedisHost
           REDIS_WRITE_USERNAME: !Ref RedisWriteUsername
-          REDIS_WRITE_PASSWORD: !If [ "IsProd",
-            "{{resolve:secretsmanager:Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordProd}}",
-            "{{resolve:secretsmanager:Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordDev}}" ]
+          REDIS_WRITE_PASSWORD: !Sub "{{resolve:secretsmanager:${RedisWritePasswordSecret}}}"
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref GalleryItemDDBTable
@@ -466,9 +476,7 @@ Resources:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
           REDIS_HOST: !Ref RedisHost
           REDIS_SEARCH_USERNAME: !Ref RedisSearchUsername
-          REDIS_SEARCH_PASSWORD: !If [ "IsProd",
-            "{{resolve:secretsmanager:Tacocat/Gallery/Authentication:SecretString:RedisSearchPasswordProd}}",
-            "{{resolve:secretsmanager:Tacocat/Gallery/Authentication:SecretString:RedisSearchPasswordDev}}" ]
+          REDIS_SEARCH_PASSWORD: !Sub "{{resolve:secretsmanager:${RedisSearchPasswordSecret}}}"
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref GalleryItemDDBTable

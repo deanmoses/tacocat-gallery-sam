@@ -6,7 +6,7 @@
     "license": "Apache-2.0",
     "scripts": {
         "test": "npm run compile && jest --selectProjects=unit",
-        "test:integration": "npm run compile && jest --selectProjects=integration",
+        "test:integration": "npm run compile && jest --selectProjects=integration --silent",
         "test:all": "npm run compile && jest",
         "lint": "eslint '*.ts' --quiet --fix",
         "prepare": "cd .. && husky",

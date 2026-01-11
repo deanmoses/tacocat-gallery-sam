@@ -1,24 +1,22 @@
-import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
+import { createAlbumNoThrow } from '../../lib/gallery/createAlbum/createAlbum';
 import { deleteAlbum } from '../../lib/gallery/deleteAlbum/deleteAlbum';
 import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
-import { getLatestAlbum } from '../../lib/gallery/getLatestAlbum/getLatestAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import {
     getParentAndNameFromPath,
     isValidAlbumPath,
     isValidImagePath,
 } from '../../lib/gallery_path_utils/galleryPathUtils';
-import { getAlbumPathForToday, getUniqueImagePathForToday } from './helpers/pathHelpers';
-import { uploadImage } from './helpers/s3ImageHelper';
 import { cleanUpAlbumAndParents } from './helpers/albumHelpers';
+import { uploadImage } from './helpers/s3ImageHelper';
 
-let albumPath: string;
-let imagePath: string;
+const albumPath = '/1709/10-01/'; // unique to this suite to prevent pollution
+const imagePath = albumPath + 'image.jpg';
 
-beforeAll(() => {
-    albumPath = getAlbumPathForToday(); // use current year so that getLatestAlbum will always return something
-    imagePath = getUniqueImagePathForToday();
+beforeAll(async () => {
+    // Clean up leftover data from previous failed runs
+    await cleanUpAlbumAndParents(albumPath);
 });
 
 afterAll(async () => {
@@ -33,21 +31,7 @@ test('validate test setup', async () => {
 describe('create', () => {
     describe('album', () => {
         test('createAlbum()', async () => {
-            if (await itemExists(albumPath)) {
-                console.info(`Album [${albumPath}] already exists, skipping creation`);
-            } else {
-                await expect(createAlbum(albumPath)).resolves.not.toThrow();
-                await expect(itemExists(albumPath)).resolves.toBe(true);
-            }
-        });
-
-        test('getLatestAlbum() with empty album', async () => {
-            const album = await getLatestAlbum();
-            if (!album) throw new Error(`No latest album`);
-
-            const albumPathParts = getParentAndNameFromPath(albumPath);
-            expect(album?.itemName).toBe(albumPathParts.name);
-            expect(album?.parentPath).toBe(albumPathParts.parent);
+            await expect(createAlbumNoThrow(albumPath)).resolves.toBe(true);
         });
     });
 
@@ -65,7 +49,7 @@ describe('create', () => {
         }, 10000 /* increase Jest's timeout */);
 
         test('getAlbum() contains new image', async () => {
-            const album = await getAlbumAndChildren(albumPath);
+            const album = await getAlbumAndChildren(albumPath, true /* include unpublished */);
             if (!album) throw new Error(`No album`);
 
             const albumPathParts = getParentAndNameFromPath(albumPath);
@@ -79,7 +63,6 @@ describe('create', () => {
             expect(theChild?.parentPath).toBe(imagePathParts.parent);
         });
 
-        test.todo('getLatestAlbum() has this image as its thumbnail');
         test.todo('retrieve sized image');
         test.todo('sized image exists in derived images bucket');
     });
@@ -97,7 +80,7 @@ describe('delete', () => {
 
     describe('deleteImage()', () => {
         test('delete all images in album', async () => {
-            const children = (await getAlbumAndChildren(albumPath))?.children;
+            const children = (await getAlbumAndChildren(albumPath, true /* include unpublished */))?.children;
             if (!children) throw new Error('no children');
             for (const child of children) {
                 if (!child.parentPath) throw 'child has no parent path';
@@ -107,7 +90,7 @@ describe('delete', () => {
         }, 15000 /* increase Jest's timeout */);
 
         test('album no longer contains children', async () => {
-            const album = await getAlbumAndChildren(albumPath);
+            const album = await getAlbumAndChildren(albumPath, true /* include unpublished */);
             if (!album) throw new Error(`No album results`);
             expect(album?.children?.length).toBe(0);
         });

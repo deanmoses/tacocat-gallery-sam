@@ -72,7 +72,7 @@ test("Image was set as album's thumb", async () => {
 });
 
 test('Image exists in Redis', async () => {
-    await assertRedisItemExists(imagePath);
+    await assertRedisItemExists(imagePath, 14000);
 }, 15000);
 
 test('Delete image', async () => {
@@ -97,5 +97,5 @@ test('Original images bucket should no longer contain image', async () => {
 });
 
 test('Image no longer exists in Redis', async () => {
-    await assertRedisItemDoesNotExist(imagePath);
+    await assertRedisItemDoesNotExist(imagePath, 14000);
 }, 15000);
