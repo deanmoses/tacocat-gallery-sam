@@ -1,38 +1,16 @@
-name: CI
+name: Build and Unit Test
 
 on:
-    push:
-        branches: [main]
-        paths-ignore:
-            - '*.md'
-            - 'LICENSE'
-            - '.gitignore'
-            - 'docs/**'
-    pull_request:
-        branches: [main]
-        paths-ignore:
-            - '*.md'
-            - 'LICENSE'
-            - '.gitignore'
-            - 'docs/**'
-
-concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
+    workflow_call:
+        # Makes this workflow callable from other workflows
 
 env:
     HUSKY: 0 # Skip git hooks in CI
 
 jobs:
     build-and-unit-test:
-        uses: ./.github/workflows/build-and-unit-test.yml
-        secrets: inherit
-
-    deploy:
-        needs: build-and-unit-test
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         runs-on: ubuntu-latest
-        timeout-minutes: 20
+        timeout-minutes: 15
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -51,6 +29,18 @@ jobs:
               working-directory: app
               run: npm ci
 
+            - name: Lint
+              working-directory: app
+              run: npm run lint
+
+            - name: Type check
+              working-directory: app
+              run: npm run compile
+
+            - name: Unit tests
+              working-directory: app
+              run: npm test
+
             - name: Setup AWS SAM CLI
               uses: aws-actions/setup-sam@v2
               with:
@@ -66,12 +56,11 @@ jobs:
                   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
                   aws-region: us-east-1
 
-            - name: Deploy to staging
-              run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset
-
-    integration-test:
-        needs: build-and-unit-test
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: ./.github/workflows/integration-tests.yml
-        secrets: inherit
-
+            - name: Validate changeset (dry-run)
+              run: |
+                  sam deploy --no-execute-changeset --no-fail-on-empty-changeset 2>&1 | tee /tmp/changeset.log
+                  # Check for changeset creation failure (circular deps, invalid resources, etc.)
+                  if grep -q "Failed to create changeset" /tmp/changeset.log; then
+                    echo "::error::Changeset validation failed"
+                    exit 1
+                  fi
