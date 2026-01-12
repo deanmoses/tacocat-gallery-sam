@@ -58,6 +58,7 @@ jobs:
 
             - name: Validate changeset (dry-run)
               run: |
+                  set -o pipefail
                   sam deploy --no-execute-changeset --no-fail-on-empty-changeset 2>&1 | tee /tmp/changeset.log
                   # Check for changeset creation failure (circular deps, invalid resources, etc.)
                   if grep -q "Failed to create changeset" /tmp/changeset.log; then
