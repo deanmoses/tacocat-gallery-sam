@@ -66,7 +66,7 @@ When a PR is merged into `main`, the CI/CD system (GitHub Actions) automatically
 
 To deploy to prod:
 
-1. Ask Dean Moses for access to the [repo](https://github.com/deanmoses/tacocat-gallery-sam/)
+1. You need access to the [repo](https://github.com/deanmoses/tacocat-gallery-sam/)
 2. On GitHub, go to [*Actions* > *Deploy to Production*](https://github.com/deanmoses/tacocat-gallery-sam/actions/workflows/deploy-prod.yml)
 3. Click "Run workflow" and select the `main` branch
 4. The workflow:
