@@ -9,6 +9,14 @@ export function isValidPath(path: string): boolean {
 }
 
 /**
+ * Return true if specified string is a valid album or image path for upload.
+ * Like {@link isValidPath} but also accepts HEIC/HEIF image paths.
+ */
+export function isValidPathForUpload(path: string): boolean {
+    return isValidAlbumPath(path) || isValidImagePathForUpload(path);
+}
+
+/**
  * Return true if specified string is a valid album path
  * like / or /2001/ or /2001/12-31/
  */
@@ -42,9 +50,30 @@ export function isValidDayAlbumName(dayAlbumName: string): boolean {
  * Cannot be on root album like /image.jpg
  * Cannot be on year album like /2001/image.jpg
  * Must be on a day album like /2001/12-31/image.jpg
+ *
+ * Only accepts formats that are stored in the gallery (jpg/jpeg/gif/png).
+ * For uploads that may include HEIC, use isValidImagePathForUpload().
  */
 export function isValidImagePath(imagePath: string): boolean {
     return /^\/\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/[a-zA-Z0-9_-]+\.(jpg|jpeg|gif|png)$/i.test(imagePath);
+}
+
+/**
+ * Return true if specified string is a valid image path for upload.
+ * Accepts all formats from isValidImagePath() plus HEIC/HEIF.
+ * HEIC files are converted to JPEG after upload.
+ */
+export function isValidImagePathForUpload(imagePath: string): boolean {
+    return /^\/\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/[a-zA-Z0-9_-]+\.(jpg|jpeg|gif|png|heic|heif)$/i.test(
+        imagePath,
+    );
+}
+
+/**
+ * Return true if the path is a HEIC/HEIF file (case-insensitive).
+ */
+export function isHeicPath(path: string): boolean {
+    return /.\.(heic|heif)$/i.test(path);
 }
 
 /**
@@ -71,25 +100,6 @@ export function isValidImageNameStrict(imageName: string): boolean {
 }
 
 /**
- * Return a sanitized version of the specified image name.
- *  - IMAGE.JPG -> image.jpg
- *  - image-1.jpg -> image_1.jpg
- *  - image 1.jpg -> image_1.jpg
- * Does not check whether it's a valid image name for the gallery.
- *
- * @param imageName filename like some-image.jpg
- */
-export function sanitizeImageName(imageName: string): string {
-    return (imageName || '')
-        .toLowerCase()
-        .replace(/\.jpeg$/, '.jpg') // jpeg -> jpg
-        .replace(/[^a-z0-9_\.]+/g, '_') // special chars to _
-        .replace(/_+/g, '_') // multple underscores to _
-        .replace(/^_/g, '') // remove leading underscore
-        .replace(/(_)\./g, '.'); // remove trailing underscore
-}
-
-/**
  * Return the specified path's parent path and leaf item
  *  - /2001/12-31/image.jpg returns  '/2001/12-31/' and 'image.jpg'
  *  - /2001/12-31 returns '/2001/' and '12-31'
@@ -108,7 +118,7 @@ export function getParentAndNameFromPath(path: string) {
     if (!pathParts[pathParts.length - 1]) pathParts.pop(); // if the path ended in a "/", remove the blank path part at the end
     const name = pathParts.pop(); // remove leaf of path
     path = pathParts.join('/');
-    if (path.substr(-1) !== '/') path = path + '/'; // make sure path ends with a "/"
+    if (!path.endsWith('/')) path = path + '/'; // make sure path ends with a "/"
     if (path.lastIndexOf('/', 0) !== 0) path = '/' + path; // make sure path starts with a "/"
     return {
         parent: path,
@@ -130,6 +140,24 @@ export function getParentAndNameFromPath(path: string) {
  */
 export function getParentFromPath(path: string): string {
     return getParentAndNameFromPath(path).parent;
+}
+
+/**
+ * Like {@link getParentFromPath} but also accepts HEIC/HEIF image paths.
+ */
+export function getParentFromPathForUpload(path: string): string {
+    if (!path) throw new Error('Invalid path: cannot be empty');
+    path = path.toString().trim();
+    if (!path) throw new Error('Invalid path: cannot be empty');
+    if (!isValidPathForUpload(path)) throw new Error(`Invalid path: [${path}]`);
+    if (path === '/') return '';
+    const pathParts = path.split('/');
+    if (!pathParts[pathParts.length - 1]) pathParts.pop();
+    pathParts.pop();
+    path = pathParts.join('/');
+    if (!path.endsWith('/')) path = path + '/';
+    if (path.lastIndexOf('/', 0) !== 0) path = '/' + path;
+    return path;
 }
 
 /**

@@ -23,6 +23,11 @@ export function getJpegQuality(): number {
     return getEnvAsInt('JPEG_QUALITY');
 }
 
+/** JPEG quality for HEIC conversion (higher quality for storage as an original) */
+export function getJpegOriginalQuality(): number {
+    return getEnvAsInt('JPEG_ORIGINAL_QUALITY');
+}
+
 /** Domain of Lambda URL to generate derived images */
 export function getDerivedImageGeneratorDomain(): string {
     return getEnv('DERIVED_IMAGE_GENERATOR_DOMAIN');

@@ -1,15 +1,27 @@
 import { S3Handler } from 'aws-lambda';
 import { processImageUpload } from './processImageUpload';
-import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
+import { isValidAlbumPath, isValidImagePathForUpload } from '../../lib/gallery_path_utils/galleryPathUtils';
 
 /**
  * A Lambda that processes an image uploaded to S3.
  * Extracts metadata from image and saves entry to DynamoDB.
+ * For HEIC uploads, converts to JPEG first.
  */
 export const handler: S3Handler = async (event) => {
     const record = event.Records[0];
+    const key = record?.s3?.object?.key;
 
     console.info(`Image Processor: got event [${record?.eventName}]`);
+
+    if (!key) {
+        throw new Error(`Image Processor: missing object key in S3 event`);
+    }
+
+    // Skip quarantined files to prevent infinite loops
+    if (key.startsWith('quarantine/')) {
+        console.info(`Image Processor: skipping quarantined file [${key}]`);
+        return;
+    }
 
     // Handle all ObjectCreated events EXCEPT for Copy
     if (
@@ -24,8 +36,9 @@ export const handler: S3Handler = async (event) => {
     }
 
     // Don't handle files that aren't images in the right folder structure
-    const imagePath = '/' + record?.s3?.object?.key;
-    if (!isValidImagePath(imagePath)) {
+    // Use isValidImagePathForUpload to accept HEIC/HEIF uploads
+    const imagePath = '/' + key;
+    if (!isValidImagePathForUpload(imagePath)) {
         if (isValidAlbumPath(imagePath)) {
             console.info(
                 `Image Processor: album folder created [${imagePath}].  Probably Dean created via AWS S3 Console`,
@@ -39,5 +52,5 @@ export const handler: S3Handler = async (event) => {
         return;
     }
 
-    await processImageUpload(record?.s3?.bucket?.name, record?.s3?.object?.key, record?.s3?.object?.versionId);
+    await processImageUpload(record?.s3?.bucket?.name, key, record?.s3?.object?.versionId);
 };
