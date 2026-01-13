@@ -6,7 +6,7 @@ import {
     getBodyAsJson,
     getImagePath,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
-import { ensureAuthorized } from '../../lib/lambda_utils/AuthorizationHelpers';
+import { ensureAuthorizedForWrites } from '../../lib/lambda_utils/AuthorizationHelpers';
 import { recutThumbnail } from '../../lib/gallery/recutThumbnail/recutThumbnail';
 import { Rectangle } from '../generateDerivedImage/focusCrop';
 
@@ -16,7 +16,7 @@ import { Rectangle } from '../generateDerivedImage/focusCrop';
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
         ensureHttpMethod(event, HttpMethod.PATCH);
-        await ensureAuthorized(event);
+        await ensureAuthorizedForWrites(event);
         const imagePath = getImagePath(event);
         const crop: Rectangle = getBodyAsJson(event);
         await recutThumbnail(imagePath, crop);

@@ -1,49 +1,103 @@
 import { APIGatewayProxyEvent } from 'aws-lambda';
+import { CognitoJwtVerifier } from 'aws-jwt-verify';
+import type { CognitoIdTokenPayload } from 'aws-jwt-verify/jwt-model';
 import { UnauthorizedException } from './UnauthorizedException';
 
+// --- Pure function (easily testable) ---
+
 /**
- * Throw unauthorized exception if user is not authenticated
+ * Extract id_token from cookie header string
  */
-export async function ensureAuthorized(event: APIGatewayProxyEvent): Promise<void> {
-    if (!(await isAuthenticated(event))) {
-        throw new UnauthorizedException('Unauthorized');
+export function getIdTokenFromCookies(cookieHeader: string | undefined): string | undefined {
+    if (!cookieHeader) return;
+    const name = 'id_token';
+    const nameLenPlus = name.length + 1;
+    const match = cookieHeader
+        .split(';')
+        .map((c) => c.trim())
+        .find((cookie) => cookie.substring(0, nameLenPlus) === `${name}=`);
+    return match ? decodeURIComponent(match.substring(nameLenPlus)) : undefined;
+}
+
+// --- Verifier (module-level singleton, reused across invocations) ---
+
+interface TokenVerifier {
+    verify(token: string): Promise<CognitoIdTokenPayload>;
+}
+
+let verifier: TokenVerifier | undefined;
+
+function getVerifier(): TokenVerifier {
+    if (!verifier) {
+        const userPoolId = process.env.COGNITO_USER_POOL_ID;
+        const clientId = process.env.COGNITO_CLIENT_ID;
+
+        if (!userPoolId || !clientId) {
+            throw new Error(
+                'Missing required environment variables: ' +
+                    `COGNITO_USER_POOL_ID=${userPoolId ? 'set' : 'MISSING'}, ` +
+                    `COGNITO_CLIENT_ID=${clientId ? 'set' : 'MISSING'}`,
+            );
+        }
+
+        verifier = CognitoJwtVerifier.create({
+            userPoolId,
+            tokenUse: 'id',
+            clientId,
+        });
+    }
+    return verifier;
+}
+
+/**
+ * For testing: allow injecting a mock verifier
+ */
+export function setVerifierForTesting(mockVerifier: TokenVerifier | undefined): void {
+    verifier = mockVerifier;
+}
+
+// --- Internal helper (not exported) ---
+
+/**
+ * Validate token, return payload on success, undefined on failure.
+ * Logs specific error to CloudWatch before returning undefined.
+ */
+async function validateIdToken(token: string): Promise<CognitoIdTokenPayload | undefined> {
+    try {
+        return await getVerifier().verify(token);
+    } catch (e) {
+        console.warn('JWT validation failed:', e instanceof Error ? e.message : e);
+        return undefined;
     }
 }
 
+// --- Main entry points ---
+
 /**
- * Return true if user is authenticated
+ * Returns true if request has a token (existence check only, no validation).
+ * Used for read operations to decide whether to include unpublished content.
+ * Fast path: ~0ms since it just checks cookie existence.
  */
-export async function isAuthenticated(event: APIGatewayProxyEvent): Promise<boolean> {
+export function isAuthenticatedForReads(event: APIGatewayProxyEvent): boolean {
     const cookies = event.headers?.cookie;
-
-    // Get the short-lived Cognito user ID token from cookie
-    const rawIdToken = getCookie(cookies, 'id_token');
-
-    // Get the longer-lived Cognito refresh token from cookie
-    const refreshToken = getCookie(cookies, 'refresh_token');
-
-    // TODO: actually validate the tokens
-
-    return !!rawIdToken || !!refreshToken;
+    const idToken = getIdTokenFromCookies(cookies);
+    return !!idToken;
 }
 
 /**
- * Get cookie value
- *
- * @param cookieHeader Cookie header from API Gateway event
- * @param name Name of the cookie
- * @returns cookie value or undefined if not found
+ * Throws UnauthorizedException if not authenticated.
+ * Performs full JWT validation for write operations.
  */
-function getCookie(cookieHeader: string | undefined, name: string): string | undefined {
-    if (!cookieHeader) return;
-    const nameLenPlus = name.length + 1;
-    return cookieHeader
-        .split(';')
-        .map((c) => c.trim())
-        .filter((cookie) => {
-            return cookie.substring(0, nameLenPlus) === `${name}=`;
-        })
-        .map((cookie) => {
-            return decodeURIComponent(cookie.substring(nameLenPlus));
-        })[0];
+export async function ensureAuthorizedForWrites(event: APIGatewayProxyEvent): Promise<void> {
+    const cookies = event.headers?.cookie;
+    const idToken = getIdTokenFromCookies(cookies);
+
+    if (!idToken) {
+        throw new UnauthorizedException('Unauthorized');
+    }
+
+    const payload = await validateIdToken(idToken);
+    if (!payload) {
+        throw new UnauthorizedException('Unauthorized');
+    }
 }

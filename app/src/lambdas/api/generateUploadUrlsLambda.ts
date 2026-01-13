@@ -6,7 +6,7 @@ import {
     getAlbumPath,
     getBodyAsJson,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
-import { ensureAuthorized } from '../../lib/lambda_utils/AuthorizationHelpers';
+import { ensureAuthorizedForWrites } from '../../lib/lambda_utils/AuthorizationHelpers';
 import { generateUploadUrls } from '../../lib/gallery/generateUploadUrls/generateUploadUrls';
 
 /**
@@ -15,7 +15,7 @@ import { generateUploadUrls } from '../../lib/gallery/generateUploadUrls/generat
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
         ensureHttpMethod(event, HttpMethod.POST);
-        await ensureAuthorized(event);
+        await ensureAuthorizedForWrites(event);
         const albumPath = getAlbumPath(event);
         const imagePaths: string[] = getBodyAsJson(event);
         const uploadUrls = await generateUploadUrls(albumPath, imagePaths);

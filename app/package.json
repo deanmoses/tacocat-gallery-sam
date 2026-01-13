@@ -23,6 +23,7 @@
         "@aws-sdk/util-dynamodb": "^3.967.0",
         "@aws-sdk/util-format-url": "^3.965.0",
         "@nozbe/microfuzz": "^1.0.0",
+        "aws-jwt-verify": "^5.1.1",
         "exifreader": "^4.36.0",
         "mime": "^4.1.0",
         "redis": "^5.10.0",

@@ -83,6 +83,12 @@ Parameters:
       - Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordTest
       - Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordDev
       - Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordProd
+  CognitoUserPoolID:
+    Description: Cognito User Pool ID for authentication
+    Type: String
+  CognitoClientID:
+    Description: Cognito App Client ID for authentication
+    Type: String
 
 # -----------------------------------------------------------------------------
 # Conditions are boolean conditions that can be used to control resources
@@ -103,6 +109,8 @@ Globals:
     Environment:
         Variables:
           GALLERY_APP_DOMAIN: !Ref GalleryAppDomain
+          COGNITO_USER_POOL_ID: !Ref CognitoUserPoolID
+          COGNITO_CLIENT_ID: !Ref CognitoClientID
   Api:
     Name: !Sub Tacocat Gallery API - ${Env}
     Domain:
