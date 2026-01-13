@@ -2,8 +2,8 @@ import { DeleteObjectCommand, HeadObjectCommand, NotFound, S3Client } from '@aws
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { isValidAlbumPath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { getOriginalImagesBucketName } from '../../lib/lambda_utils/Env';
-import { assertDynamoDBItemDoesNotExist, cleanUpAlbum } from './helpers/albumHelpers';
-import { assertOriginalImageDoesNotExist, originalImageExists, uploadBuffer } from './helpers/s3ImageHelper';
+import { cleanUpAlbum } from './helpers/albumHelpers';
+import { originalImageExists, uploadBuffer } from './helpers/s3ImageHelper';
 
 const yearPath = '/1714/'; // unique to this suite to prevent pollution
 const albumPath = `${yearPath}01-01/`;
@@ -49,11 +49,14 @@ beforeAll(async () => {
     expect(isValidAlbumPath(yearPath)).toBe(true);
     expect(isValidAlbumPath(albumPath)).toBe(true);
 
-    await Promise.all([
-        assertDynamoDBItemDoesNotExist(yearPath),
-        assertDynamoDBItemDoesNotExist(albumPath),
-        assertOriginalImageDoesNotExist(corruptHeicPath),
-    ]);
+    // Clean up leftover data from previous failed runs
+    try {
+        await deleteQuarantinedFile(corruptHeicPath);
+    } catch {
+        // Ignore if doesn't exist
+    }
+    await cleanUpAlbum(albumPath);
+    await cleanUpAlbum(yearPath);
 
     // Upload a corrupt HEIC file (just garbage bytes)
     await uploadBuffer(Buffer.from('not a valid heic file'), corruptHeicPath);

@@ -4,14 +4,9 @@ import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
 import { findImage } from '../../lib/gallery_client/AlbumObject';
 import { getParentFromPath, isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
-import { assertDynamoDBItemDoesNotExist, cleanUpAlbum } from './helpers/albumHelpers';
+import { cleanUpAlbum } from './helpers/albumHelpers';
 import { reallyGetNameFromPath } from './helpers/pathHelpers';
-import {
-    assertOriginalImageDoesNotExist,
-    downloadOriginalImage,
-    originalImageExists,
-    uploadImage,
-} from './helpers/s3ImageHelper';
+import { downloadOriginalImage, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
 
 const yearPath = '/1712/'; // unique to this suite to prevent pollution
 const albumPath = `${yearPath}09-03/`;
@@ -22,12 +17,9 @@ beforeAll(async () => {
     expect(isValidAlbumPath(yearPath)).toBe(true);
     expect(isValidAlbumPath(albumPath)).toBe(true);
 
-    await Promise.all([
-        assertDynamoDBItemDoesNotExist(yearPath),
-        assertDynamoDBItemDoesNotExist(albumPath),
-        assertOriginalImageDoesNotExist(heicImagePath),
-        assertOriginalImageDoesNotExist(jpegImagePath),
-    ]);
+    // Clean up leftover data from previous failed runs
+    await cleanUpAlbum(albumPath);
+    await cleanUpAlbum(yearPath);
 
     // Upload HEIC file - Lambda will convert to JPEG
     await uploadImage('FullMetadataHeic.heic', heicImagePath);
