@@ -3,18 +3,8 @@ name: CI
 on:
     push:
         branches: [main]
-        paths-ignore:
-            - '*.md'
-            - 'LICENSE'
-            - '.gitignore'
-            - 'docs/**'
     pull_request:
         branches: [main]
-        paths-ignore:
-            - '*.md'
-            - 'LICENSE'
-            - '.gitignore'
-            - 'docs/**'
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
@@ -24,7 +14,33 @@ env:
     HUSKY: 0 # Skip git hooks in CI
 
 jobs:
+    # Always runs - detects what files changed
+    detect-changes:
+        runs-on: ubuntu-latest
+        permissions:
+            pull-requests: read
+        outputs:
+            code: ${{ steps.filter.outputs.code }}
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0 # Required for paths-filter to compare commits on push
+            - uses: dorny/paths-filter@v3
+              id: filter
+              with:
+                  predicate-quantifier: 'every'
+                  filters: |
+                      code:
+                        - '**'
+                        - '!**/*.md'
+                        - '!LICENSE'
+                        - '!.gitignore'
+                        - '!docs/**'
+
+    # Only runs if code files changed
     build-and-unit-test:
+        needs: detect-changes
+        if: ${{ needs.detect-changes.outputs.code == 'true' }}
         uses: ./.github/workflows/build-and-unit-test.yml
         secrets: inherit
 
@@ -74,4 +90,3 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: ./.github/workflows/integration-tests.yml
         secrets: inherit
-
