@@ -78,6 +78,30 @@ The project can create three environments. Each environment is a separate AWS in
 
 The web app is not in this project; it's built and hosted in other projects.
 
+### Deploying to specific environments
+
+Use `--config-env` to deploy to a specific environment:
+
+```bash
+sam build
+sam deploy                       # Deploy to dev (default)
+sam deploy --config-env test     # Deploy to test environment
+```
+
+Do NOT deploy to the prod environment.  NEVER deploy to the prod environment.  That goes through a Github Actions CI/CD process.
+
+### Running integration tests locally
+
+Integration tests run against the test environment. Deploy to test first, then run:
+
+```bash
+sam build
+sam deploy --config-env test     # Deploy to test environment
+cd app && npm run test:integration
+```
+
+Note: Integration tests require AWS credentials and hit actual AWS resources in the test stack.
+
 ## Architecture
 
 ### Gallery Path Structure
