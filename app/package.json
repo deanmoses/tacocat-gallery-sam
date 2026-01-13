@@ -14,16 +14,16 @@
         "agent-docs": "node ../scripts/build-agent-docs.mjs"
     },
     "dependencies": {
-        "@aws-sdk/client-dynamodb": "^3.966.0",
-        "@aws-sdk/client-lambda": "^3.966.0",
-        "@aws-sdk/client-s3": "^3.966.0",
-        "@aws-sdk/lib-dynamodb": "^3.966.0",
-        "@aws-sdk/lib-storage": "^3.966.0",
-        "@aws-sdk/s3-request-presigner": "^3.966.0",
-        "@aws-sdk/util-dynamodb": "^3.966.0",
+        "@aws-sdk/client-dynamodb": "^3.967.0",
+        "@aws-sdk/client-lambda": "^3.967.0",
+        "@aws-sdk/client-s3": "^3.967.0",
+        "@aws-sdk/lib-dynamodb": "^3.967.0",
+        "@aws-sdk/lib-storage": "^3.967.0",
+        "@aws-sdk/s3-request-presigner": "^3.967.0",
+        "@aws-sdk/util-dynamodb": "^3.967.0",
         "@aws-sdk/util-format-url": "^3.965.0",
         "@nozbe/microfuzz": "^1.0.0",
-        "exifreader": "^4.35.0",
+        "exifreader": "^4.36.0",
         "mime": "^4.1.0",
         "redis": "^5.10.0",
         "sharp": "^0.34.5"
@@ -33,7 +33,7 @@
         "@eslint/js": "^9.39.2",
         "@types/aws-lambda": "^8.10.159",
         "@types/jest": "^30.0.0",
-        "@types/node": "^25.0.5",
+        "@types/node": "^25.0.7",
         "aws-sdk-client-mock": "^4.1.0",
         "dotenv": "^17.2.3",
         "eslint": "^9.39.2",
@@ -46,7 +46,7 @@
         "ts-jest": "^29.4.6",
         "ts-node": "^10.9.2",
         "typescript": "^5.9.3",
-        "typescript-eslint": "^8.52.0"
+        "typescript-eslint": "^8.53.0"
     },
     "lint-staged": {
         "*.{js,ts,svelte,json,css,html,md}": "prettier --write",
