@@ -5,11 +5,12 @@ import {
     isValidImageName,
     isValidImageNameStrict,
     isValidImagePath,
+    isValidImagePathForUpload,
     isValidYearAlbumPath,
-    sanitizeImageName,
     isValidDayAlbumPath,
     albumPathToDate,
     toPathFromItem,
+    isHeicPath,
 } from './galleryPathUtils';
 
 describe('isValidAlbumPath', () => {
@@ -288,6 +289,102 @@ describe('isValidImagePath', () => {
             expect(isValidImagePath(path)).toStrictEqual(true);
         });
     });
+
+    // HEIC should NOT be valid for isValidImagePath (stored images)
+    const heicPaths = ['/2001/12-31/image.heic', '/2001/12-31/image.HEIC', '/2001/12-31/image.heif'];
+    heicPaths.forEach((path) => {
+        it(`Should be invalid (HEIC not allowed for storage): [${path}]`, () => {
+            expect(isValidImagePath(path)).toStrictEqual(false);
+        });
+    });
+});
+
+describe('isValidImagePathForUpload', () => {
+    // All the same invalid paths as isValidImagePath
+    const invalidImagePaths = [
+        '',
+        'notapath',
+        '/not/a/real/path',
+        '/',
+        '//',
+        '/2001/',
+        '/2001/12-31/',
+        'image.jpg',
+        '/image.jpg',
+        '2001/12-31/image.jpg',
+        '/2001/12-31/.jpg',
+        '/2001/12-31/image',
+        '/2001/image.jpg',
+        '/2001/12-31/image.dng', // unsupported format
+        '/2001/12-31/image.pdf', // unsupported format
+        '/2001/12-31/image.txt', // unsupported format
+    ];
+    invalidImagePaths.forEach((path) => {
+        it(`Should be invalid: [${path}]`, () => {
+            expect(isValidImagePathForUpload(path)).toStrictEqual(false);
+        });
+    });
+
+    // All standard formats should be valid
+    const validStandardPaths = [
+        '/2001/12-31/image.jpg',
+        '/2001/12-31/image.jpeg',
+        '/2001/12-31/image.png',
+        '/2001/12-31/image.gif',
+        '/2001/12-31/IMAGE.JPG',
+    ];
+    validStandardPaths.forEach((path) => {
+        it(`Should be valid (standard format): [${path}]`, () => {
+            expect(isValidImagePathForUpload(path)).toStrictEqual(true);
+        });
+    });
+
+    // HEIC/HEIF should be valid for upload
+    const validHeicPaths = [
+        '/2001/12-31/image.heic',
+        '/2001/12-31/image.HEIC',
+        '/2001/12-31/image.Heic',
+        '/2001/12-31/image.heif',
+        '/2001/12-31/image.HEIF',
+    ];
+    validHeicPaths.forEach((path) => {
+        it(`Should be valid (HEIC/HEIF for upload): [${path}]`, () => {
+            expect(isValidImagePathForUpload(path)).toStrictEqual(true);
+        });
+    });
+});
+
+describe('isHeicPath', () => {
+    const heicPaths = [
+        '/2001/12-31/image.heic',
+        '/2001/12-31/image.HEIC',
+        '/2001/12-31/image.Heic',
+        '/2001/12-31/image.heif',
+        '/2001/12-31/image.HEIF',
+        'image.heic',
+        'anything.heif',
+    ];
+    heicPaths.forEach((path) => {
+        it(`Should be HEIC: [${path}]`, () => {
+            expect(isHeicPath(path)).toStrictEqual(true);
+        });
+    });
+
+    const nonHeicPaths = [
+        '/2001/12-31/image.jpg',
+        '/2001/12-31/image.jpeg',
+        '/2001/12-31/image.png',
+        '/2001/12-31/image.gif',
+        'image.jpg',
+        '',
+        'heic',
+        '.heic', // just extension, no filename
+    ];
+    nonHeicPaths.forEach((path) => {
+        it(`Should NOT be HEIC: [${path}]`, () => {
+            expect(isHeicPath(path)).toStrictEqual(false);
+        });
+    });
 });
 
 describe('isValidImageName', () => {
@@ -388,42 +485,6 @@ describe('isValidImageNameStrict', () => {
     validImageNamesStrict.forEach((imageName) => {
         test(`Should be valid: [${imageName}]`, async () => {
             expect(isValidImageNameStrict(imageName)).toBe(true);
-        });
-    });
-});
-
-describe('sanitizeImageName', () => {
-    const namePairs = [
-        { in: '', out: '' },
-        { in: 'image', out: 'image' },
-        { in: 'image.', out: 'image.' },
-        { in: 'image.png', out: 'image.png' },
-        { in: 'image.jpg', out: 'image.jpg' },
-        { in: 'IMAGE.jpg', out: 'image.jpg' },
-        { in: 'image.JPG', out: 'image.jpg' },
-        { in: 'image.jpeg', out: 'image.jpg' },
-        { in: 'image.JPEG', out: 'image.jpg' },
-        { in: '_image.jpg', out: 'image.jpg' },
-        { in: 'image_.jpg', out: 'image.jpg' },
-        { in: '-image.jpg', out: 'image.jpg' },
-        { in: 'image-.jpg', out: 'image.jpg' },
-        { in: '-image.jpg', out: 'image.jpg' },
-        { in: 'image-.jpg', out: 'image.jpg' },
-        { in: 'image .jpg', out: 'image.jpg' },
-        { in: ' image.jpg', out: 'image.jpg' },
-        { in: 'image!.jpg', out: 'image.jpg' },
-        { in: 'a-1.jpg', out: 'a_1.jpg' },
-        { in: 'a 1.jpg', out: 'a_1.jpg' },
-        { in: 'a*1.jpg', out: 'a_1.jpg' },
-        { in: 'a&1.jpg', out: 'a_1.jpg' },
-        { in: 'a*1.jpg', out: 'a_1.jpg' },
-        { in: 'a--1.jpg', out: 'a_1.jpg' },
-        { in: 'a__1.jpg', out: 'a_1.jpg' },
-        { in: 'image.invalidExtension', out: 'image.invalidextension' },
-    ];
-    namePairs.forEach((namePair) => {
-        test(`In: [${namePair.in}] Out: [${namePair.out}]`, () => {
-            expect(sanitizeImageName(namePair.in)).toBe(namePair.out);
         });
     });
 });

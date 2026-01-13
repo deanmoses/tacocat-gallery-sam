@@ -60,7 +60,7 @@ describe('selectMetadata', () => {
         test(`File [${image.fileName}]`, async () => {
             const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/', image.fileName);
             if (!existsSync(filePath)) throw new Error(`File [${filePath}] does not exist`);
-            const tags = await ExifReader.load(filePath, { expanded: true });
+            const tags = await ExifReader.load(filePath, { expanded: true, async: true });
             const md = selectMetadata(tags);
             expect(md.title).toBe(image.title);
             expect(md.description).toBe(image.description);
@@ -74,7 +74,7 @@ describe('process png', () => {
     test('png', async () => {
         const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/pngFormat.png');
         if (!existsSync(filePath)) throw new Error(`File [${filePath}] does not exist`);
-        const tags = await ExifReader.load(filePath, { expanded: true });
+        const tags = await ExifReader.load(filePath, { expanded: true, async: true });
         console.dir(tags, { depth: null });
         const md = selectMetadata(tags);
         expect(md.dimensions).toEqual({ height: 212, width: 220 });
@@ -82,7 +82,7 @@ describe('process png', () => {
     test('windows png', async () => {
         const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/pngWindows.png');
         if (!existsSync(filePath)) throw new Error(`File [${filePath}] does not exist`);
-        const tags = await ExifReader.load(filePath, { expanded: true });
+        const tags = await ExifReader.load(filePath, { expanded: true, async: true });
         console.dir(tags, { depth: null });
         const md = selectMetadata(tags);
         expect(md.dimensions).toEqual({ height: 843, width: 1500 });
@@ -93,9 +93,40 @@ describe('process gif', () => {
     test('gif', async () => {
         const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/gifFormat.gif');
         if (!existsSync(filePath)) throw new Error(`File [${filePath}] does not exist`);
-        const tags = await ExifReader.load(filePath, { expanded: true });
+        const tags = await ExifReader.load(filePath, { expanded: true, async: true });
         console.dir(tags, { depth: null });
         const md = selectMetadata(tags);
         expect(md.dimensions).toEqual({ height: 240, width: 360 });
+    });
+});
+
+describe('process heic (XMP metadata)', () => {
+    test('FullMetadataHeic.heic', async () => {
+        const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/FullMetadataHeic.heic');
+        if (!existsSync(filePath)) throw new Error(`File [${filePath}] does not exist`);
+        // HEIC requires async: true for full metadata parsing
+        const tags = await ExifReader.load(filePath, { expanded: true, async: true });
+        const md = selectMetadata(tags);
+        expect(md.title).toBe('Test Image Title');
+        expect(md.description).toBe('Test description');
+        expect(md.tags).toEqual(['test1', 'test2', 'test3']);
+        expect(md.dimensions).toEqual({ height: 3024, width: 4032 });
+    });
+
+    test('NoDescriptionOrKeywordsOrCopyrightHeic.heic', async () => {
+        const filePath = path.resolve(
+            __dirname,
+            '..',
+            '..',
+            'test/data/images/NoDescriptionOrKeywordsOrCopyrightHeic.heic',
+        );
+        if (!existsSync(filePath)) throw new Error(`File [${filePath}] does not exist`);
+        // HEIC requires async: true for full metadata parsing
+        const tags = await ExifReader.load(filePath, { expanded: true, async: true });
+        const md = selectMetadata(tags);
+        expect(md.title).toBe('Test Image Title');
+        expect(md.description).toBeUndefined();
+        expect(md.tags).toBeUndefined();
+        expect(md.dimensions).toEqual({ height: 3024, width: 4032 });
     });
 });

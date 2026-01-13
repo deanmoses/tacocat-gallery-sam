@@ -44,7 +44,6 @@ describe('Invalid images', () => {
         '2000/12-31/image.jpg', // no starting /
         '/2000/12-31/image', // no extension
         '/2000/12-31/image.dng', // unsupported file type
-        '/2000/12-31/image.heic', // unsupported file type
         '/2000/12-31/image.pdf', // unsupported file type
         '/2000/12-31/image.txt', // unsupported file type
     ].forEach((invalidImagePath) => {
@@ -78,7 +77,7 @@ it('Should fail on nonexistent album', async () => {
     expect(mockS3Client.calls().length).toBe(0);
 });
 
-it('Should succeed', async () => {
+it('Should succeed for JPEG', async () => {
     mockDDBClient.on(GetCommand).resolves({ Item: { itemName: '12-31' } }); // Mock DDB to get album
     const urls = await generateUploadUrls('/2001/12-31/', ['/2001/12-31/image.jpg']);
     const url = urls['/2001/12-31/image.jpg'];
@@ -86,4 +85,12 @@ it('Should succeed', async () => {
     new URL(url); // Throws if invalid URL
     expect(mockDDBClient.calls().length).toBe(1);
     expect(mockS3Client.calls().length).toBe(0); // Shows that generating presigned URLs don't involve a call to S3
+});
+
+it('Should succeed for HEIC', async () => {
+    mockDDBClient.on(GetCommand).resolves({ Item: { itemName: '12-31' } }); // Mock DDB to get album
+    const urls = await generateUploadUrls('/2001/12-31/', ['/2001/12-31/image.heic']);
+    const url = urls['/2001/12-31/image.heic'];
+    if (!url) throw new Error(`No URL for /2001/12-31/image.heic`);
+    new URL(url); // Throws if invalid URL
 });

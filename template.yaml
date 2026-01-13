@@ -379,9 +379,10 @@ Resources:
         - S3WritePolicy:
             BucketName: !Ref DerivedImagesBucket
       Layers:
-        # ARN of the Lambda Layer containing the Sharp image processing library
+        # Sharp layer with HEIC support via libheif/libde265
+        # I build this in an AWS Code Builder project: sharp-heic-lambda-layer
         # I tried setting this as a parameter, but it didn't update when I changed it
-        - arn:aws:lambda:us-east-1:010410881828:layer:Sharp-0_34_5:1 
+        - arn:aws:lambda:us-east-1:010410881828:layer:sharp-heic:1
       FunctionUrlConfig:
         AuthType: NONE #TODO: authentication
     Metadata:
@@ -994,11 +995,17 @@ Resources:
       CodeUri: app/src/lambdas/processImageUpload/
       Handler: processImageUploadLambda.handler
       Description: Lambda that processes images uploaded to S3, extracts metadata and saves to DyanmoDB
+      MemorySize: 1024 # HEIC conversion needs ~400-600MB for 48MP photos
       Policies:
-        - S3ReadPolicy:
+        - S3CrudPolicy: # CRUD needed to write converted JPEG and delete original HEIC
             BucketName: !Sub "${AWS::StackName}-original-images"
         - DynamoDBCrudPolicy:
             TableName: !Ref GalleryItemDDBTable
+      Layers:
+        # Sharp layer with HEIC support via libheif/libde265
+        # I build this in an AWS Code Builder project: sharp-heic-lambda-layer
+        # I tried setting this as a parameter, but it didn't update when I changed it
+        - arn:aws:lambda:us-east-1:010410881828:layer:sharp-heic:1
       Events:
         FileUploadEvent:
           Type: S3
@@ -1010,6 +1017,7 @@ Resources:
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+          JPEG_ORIGINAL_QUALITY: 92
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -1018,6 +1026,8 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - processImageUploadLambda.ts
+        External:
+          - sharp
 
 # -----------------------------------------------------------------------------
 # Outputs
