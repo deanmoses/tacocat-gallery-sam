@@ -4,7 +4,7 @@ import {
     respond404NotFound,
     respondHttp,
 } from '../../lib/lambda_utils/ApiGatewayResponseHelpers';
-import { isAuthenticated } from '../../lib/lambda_utils/AuthorizationHelpers';
+import { isAuthenticatedForReads } from '../../lib/lambda_utils/AuthorizationHelpers';
 import { HttpMethod, ensureHttpMethod, getAlbumPath } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 
@@ -15,7 +15,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
     try {
         ensureHttpMethod(event, HttpMethod.GET);
         const albumPath = getAlbumPath(event);
-        const includeUnpublishedAlbums = await isAuthenticated(event);
+        const includeUnpublishedAlbums = isAuthenticatedForReads(event);
         const album = await getAlbumAndChildren(albumPath, includeUnpublishedAlbums);
         if (!album) {
             return respond404NotFound(event, 'Album Not Found');
