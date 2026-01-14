@@ -14,13 +14,13 @@ env:
     HUSKY: 0 # Skip git hooks in CI
 
 jobs:
-    # Always runs - detects what files changed
-    detect-changes:
+    # Detect if production code changed (vs non-code stuff like docs)
+    detect-code-changes:
         runs-on: ubuntu-latest
         permissions:
             pull-requests: read
         outputs:
-            code: ${{ steps.filter.outputs.code }}
+            code_changed: ${{ steps.filter.outputs.code }}
         steps:
             - uses: actions/checkout@v4
               with:
@@ -39,12 +39,37 @@ jobs:
 
     # Only runs if code files changed
     build-and-unit-test:
-        needs: detect-changes
-        if: ${{ needs.detect-changes.outputs.code == 'true' }}
+        needs: detect-code-changes
+        if: ${{ needs.detect-code-changes.outputs.code_changed == 'true' }}
         uses: ./.github/workflows/build-and-unit-test.yml
         secrets: inherit
 
-    deploy:
+    # Branch protection rules will require this job to pass before merging
+    # Passes if: (1) no code changes (skip is OK), or (2) build-and-unit-test succeeded
+    # Fails if: code changes and build-and-unit-test failed/cancelled
+    merge-ok:
+        needs: [detect-code-changes, build-and-unit-test]
+        if: always()
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check required jobs
+              run: |
+                  if [[ "${{ needs.detect-code-changes.result }}" != "success" ]]; then
+                      echo "✗ detect-code-changes failed (result: ${{ needs.detect-code-changes.result }})"
+                      exit 1
+                  fi
+                  if [[ "${{ needs.detect-code-changes.outputs.code_changed }}" != "true" ]]; then
+                      echo "✓ No code changes - build was skipped appropriately"
+                      exit 0
+                  fi
+                  if [[ "${{ needs.build-and-unit-test.result }}" != "success" ]]; then
+                      echo "✗ Code changes detected but build did not succeed (result: ${{ needs.build-and-unit-test.result }})"
+                      exit 1
+                  fi
+                  echo "✓ Code changes detected and build passed"
+
+    # Deploy to staging
+    deploy-staging:
         needs: build-and-unit-test
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         runs-on: ubuntu-latest
@@ -85,6 +110,9 @@ jobs:
             - name: Deploy to staging
               run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset
 
+    # Run integration tests
+    # Happens after the branch protection (merge-ok) because gating merge on integration tests would be too slow
+    # Happens in parallel with deploy-staging because gating deploy on integration tests would be too slow
     integration-test:
         needs: build-and-unit-test
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
