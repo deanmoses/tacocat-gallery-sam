@@ -74,9 +74,19 @@ export function selectMetadata(tags: ExifReader.ExpandedTags): Partial<ImageCrea
         tags.pngFile?.['Image Width']?.description ||
         tags.gif?.['Image Width']?.description;
     if (height && width) {
+        let parsedHeight = Number.parseInt(height, 10);
+        let parsedWidth = Number.parseInt(width, 10);
+
+        // EXIF orientation values 5-8 indicate 90° rotation, so swap width/height
+        // to get the effective display dimensions
+        const orientation = tags.exif?.Orientation?.value;
+        if (typeof orientation === 'number' && orientation >= 5 && orientation <= 8) {
+            [parsedWidth, parsedHeight] = [parsedHeight, parsedWidth];
+        }
+
         image.dimensions = {
-            height: Number.parseInt(height, 10),
-            width: Number.parseInt(width, 10),
+            height: parsedHeight,
+            width: parsedWidth,
         };
     } else {
         console.error(`Image [${image.title}] has no dimensions`);
