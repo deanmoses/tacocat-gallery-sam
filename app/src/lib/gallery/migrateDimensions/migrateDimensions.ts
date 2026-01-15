@@ -84,11 +84,11 @@ export interface MigrateResult {
     issuesFixable: number;
     issuesUnfixable: number;
     issuesFixed: number;
-    issues: Issue[];
+    durationMs: number;
     stoppedEarly: boolean;
     startFrom?: string;
-    durationMs: number;
     error?: string;
+    issues: Issue[];
 }
 
 /** Result from processing a single image */
@@ -106,8 +106,10 @@ export interface MigrateOptions {
 
 /** Number of images to process concurrently */
 const CHUNK_SIZE = 30;
-/** Stop early after this many non-orientation issues (indicates unexpected data problems) */
-const MAX_NON_ORIENTATION_ISSUES = 20;
+/** Stop early after this many unfixable issues (indicates unexpected data problems) */
+const MAX_UNFIXABLE_ISSUES = 20;
+/** Stop early after this many total issues (prevent OOM on large migrations) */
+const MAX_ISSUES = 300;
 /** Stop logging individual issues after this many (issues still collected in result) */
 const MAX_ISSUES_TO_LOG = 100;
 
@@ -138,12 +140,12 @@ export async function migrateDimensions(input: MigrateInput, options: MigrateOpt
         issuesFixable: 0,
         issuesUnfixable: 0,
         issuesFixed: 0,
-        issues: [],
-        stoppedEarly: false,
         durationMs: 0,
+        stoppedEarly: false,
+        issues: [],
     };
 
-    let nonOrientationIssueCount = 0;
+    let unfixableIssueCount = 0;
     let currentImagePath: string | undefined;
 
     try {
@@ -221,23 +223,36 @@ export async function migrateDimensions(input: MigrateInput, options: MigrateOpt
                             result.issues.push(...imgResult.issues);
                             result.issuesFixed += imgResult.issuesFixed;
 
-                            // Count non-orientation issues
+                            // Count unfixable issues
                             for (const issue of imgResult.issues) {
-                                if (issue.type !== 'dimensionsOrientation') {
-                                    nonOrientationIssueCount++;
+                                if (!isFixableIssueType(issue.type)) {
+                                    unfixableIssueCount++;
                                 }
                             }
                         }
 
-                        // Check fail-fast (use first image in chunk for accurate resume)
-                        if (nonOrientationIssueCount >= MAX_NON_ORIENTATION_ISSUES) {
+                        // Check fail-fast conditions (use first image in chunk for accurate resume)
+                        if (unfixableIssueCount >= MAX_UNFIXABLE_ISSUES) {
                             result.stoppedEarly = true;
                             result.startFrom = firstImageInChunk;
                             console.log(
                                 JSON.stringify({
                                     event: 'migrate_stopped_early',
-                                    reason: 'max_non_orientation_issues',
-                                    count: nonOrientationIssueCount,
+                                    reason: 'max_unfixable_issues',
+                                    count: unfixableIssueCount,
+                                    startFrom: firstImageInChunk,
+                                }),
+                            );
+                            break;
+                        }
+                        if (result.issues.length >= MAX_ISSUES) {
+                            result.stoppedEarly = true;
+                            result.startFrom = firstImageInChunk;
+                            console.log(
+                                JSON.stringify({
+                                    event: 'migrate_stopped_early',
+                                    reason: 'max_issues',
+                                    count: result.issues.length,
                                     startFrom: firstImageInChunk,
                                 }),
                             );
