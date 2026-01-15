@@ -475,7 +475,7 @@ Resources:
       Handler: migrateDimensionsLambda.handler
       Description: Fix image dimensions in DynamoDB (one-time migration)
       Timeout: 900 # 15 minutes
-      MemorySize: 1024 # More memory/CPU for parallel S3 fetches and ExifReader
+      MemorySize: 2048 # More memory/CPU for parallel S3 fetches and ExifReader
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
