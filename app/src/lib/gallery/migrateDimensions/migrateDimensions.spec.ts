@@ -230,10 +230,10 @@ describe('migrateDimensions fix mode', () => {
 });
 
 describe('migrateDimensions idempotency', () => {
-    test('skips images with correct dimensions', async () => {
+    test('skips images with correct dimensions and tags', async () => {
         const imageBuffer = loadTestImage('FullMetadata.jpg');
 
-        // FullMetadata.jpg is 300x225 with orientation 1
+        // FullMetadata.jpg is 300x225 with orientation 1 and tags ['halloween', 'dog', 'parade']
         const mockYearAlbum: AlbumItem = { parentPath: '/', itemName: '2024', itemType: 'album' };
         const mockDayAlbum: AlbumItem = { parentPath: '/2024/', itemName: '01-15', itemType: 'album' };
         const correctImage: ImageItem = {
@@ -242,6 +242,7 @@ describe('migrateDimensions idempotency', () => {
             itemType: 'image',
             versionId: 'v1',
             dimensions: { width: 300, height: 225 }, // Correct dimensions
+            tags: ['halloween', 'dog', 'parade'], // Correct tags
         };
 
         mockDocClient
@@ -577,5 +578,219 @@ describe('migrateDimensions versionId handling', () => {
         // Should not report versionId mismatch when DynamoDB has no versionId
         const versionIssues = result.issues.filter((i) => i.type === 'versionIdInvalid');
         expect(versionIssues).toHaveLength(0);
+    });
+});
+
+describe('migrateDimensions tags fixing', () => {
+    test('detects tag mismatch in diagnose mode', async () => {
+        // FullMetadata.jpg has tags ['halloween', 'dog', 'parade']
+        const imageBuffer = loadTestImage('FullMetadata.jpg');
+
+        const mockYearAlbum: AlbumItem = { parentPath: '/', itemName: '2024', itemType: 'album' };
+        const mockDayAlbum: AlbumItem = { parentPath: '/2024/', itemName: '01-15', itemType: 'album' };
+
+        // Image in DDB has different tags than S3
+        const imageWithWrongTags: ImageItem = {
+            parentPath: '/2024/01-15/',
+            itemName: 'photo.jpg',
+            itemType: 'image',
+            versionId: 'v1',
+            dimensions: { width: 300, height: 225 },
+            tags: ['old-tag'],
+        };
+
+        mockDocClient
+            .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/' } })
+            .resolves({ Items: [mockYearAlbum] })
+            .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2024/' } })
+            .resolves({ Items: [mockDayAlbum] })
+            .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2024/01-15/' } })
+            .resolves({ Items: [imageWithWrongTags] });
+
+        mockS3Client.on(GetObjectCommand).resolves(createMockS3Response(imageBuffer, 'v1'));
+
+        const result = await migrateDimensions({ mode: 'diagnose' });
+
+        expect(result.imagesChecked).toBe(1);
+        const tagIssues = result.issues.filter((i) => i.type === 'tagsMismatch');
+        expect(tagIssues).toHaveLength(1);
+        expect(tagIssues[0].details).toContain('old-tag');
+        expect(tagIssues[0].details).toContain('halloween');
+
+        // Should NOT have called UpdateCommand in diagnose mode
+        const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+        expect(updateCalls).toHaveLength(0);
+    });
+
+    test('merges S3 tags into DDB tags in fix mode', async () => {
+        // FullMetadata.jpg has tags ['halloween', 'dog', 'parade']
+        const imageBuffer = loadTestImage('FullMetadata.jpg');
+
+        const mockYearAlbum: AlbumItem = { parentPath: '/', itemName: '2024', itemType: 'album' };
+        const mockDayAlbum: AlbumItem = { parentPath: '/2024/', itemName: '01-15', itemType: 'album' };
+
+        // Image in DDB has some tags, S3 has different tags - should merge
+        const imageWithSomeTags: ImageItem = {
+            parentPath: '/2024/01-15/',
+            itemName: 'photo.jpg',
+            itemType: 'image',
+            versionId: 'v1',
+            dimensions: { width: 300, height: 225 },
+            tags: ['existing-tag'],
+        };
+
+        mockDocClient
+            .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/' } })
+            .resolves({ Items: [mockYearAlbum] })
+            .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2024/' } })
+            .resolves({ Items: [mockDayAlbum] })
+            .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2024/01-15/' } })
+            .resolves({ Items: [imageWithSomeTags] })
+            .on(UpdateCommand)
+            .resolves({});
+
+        mockS3Client.on(GetObjectCommand).resolves(createMockS3Response(imageBuffer, 'v1'));
+
+        const result = await migrateDimensions({ mode: 'fix' });
+
+        expect(result.imagesChecked).toBe(1);
+        expect(result.issuesFixed).toBeGreaterThanOrEqual(1);
+
+        const tagIssues = result.issues.filter((i) => i.type === 'tagsMismatch');
+        expect(tagIssues).toHaveLength(1);
+        expect(tagIssues[0].fixed).toBe(true);
+
+        // Verify UpdateCommand was called with merged tags (existing + S3)
+        const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+        expect(updateCalls.length).toBeGreaterThan(0);
+
+        // Find the tags update call
+        const tagsUpdateCall = updateCalls.find((call) => call.args[0].input.UpdateExpression?.includes('tags'));
+        expect(tagsUpdateCall).toBeDefined();
+        // Should contain both existing DDB tag and S3 tags
+        const savedTags = tagsUpdateCall?.args[0].input.ExpressionAttributeValues?.[':tags'] as string[];
+        expect(savedTags).toContain('existing-tag');
+        expect(savedTags).toContain('halloween');
+        expect(savedTags).toContain('dog');
+        expect(savedTags).toContain('parade');
+    });
+
+    test('skips images with matching tags', async () => {
+        // FullMetadata.jpg has tags ['halloween', 'dog', 'parade']
+        const imageBuffer = loadTestImage('FullMetadata.jpg');
+
+        const mockYearAlbum: AlbumItem = { parentPath: '/', itemName: '2024', itemType: 'album' };
+        const mockDayAlbum: AlbumItem = { parentPath: '/2024/', itemName: '01-15', itemType: 'album' };
+
+        // Image in DDB has same tags as S3 (order doesn't matter due to sorted comparison)
+        const imageWithCorrectTags: ImageItem = {
+            parentPath: '/2024/01-15/',
+            itemName: 'photo.jpg',
+            itemType: 'image',
+            versionId: 'v1',
+            dimensions: { width: 300, height: 225 },
+            tags: ['dog', 'halloween', 'parade'], // Same tags, different order
+        };
+
+        mockDocClient
+            .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/' } })
+            .resolves({ Items: [mockYearAlbum] })
+            .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2024/' } })
+            .resolves({ Items: [mockDayAlbum] })
+            .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2024/01-15/' } })
+            .resolves({ Items: [imageWithCorrectTags] });
+
+        mockS3Client.on(GetObjectCommand).resolves(createMockS3Response(imageBuffer, 'v1'));
+
+        const result = await migrateDimensions({ mode: 'fix' });
+
+        expect(result.imagesChecked).toBe(1);
+        const tagIssues = result.issues.filter((i) => i.type === 'tagsMismatch');
+        expect(tagIssues).toHaveLength(0);
+
+        // No updates should have been made
+        const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+        expect(updateCalls).toHaveLength(0);
+    });
+
+    test('fixes empty DDB tags when S3 has tags', async () => {
+        // FullMetadata.jpg has tags ['halloween', 'dog', 'parade']
+        const imageBuffer = loadTestImage('FullMetadata.jpg');
+
+        const mockYearAlbum: AlbumItem = { parentPath: '/', itemName: '2024', itemType: 'album' };
+        const mockDayAlbum: AlbumItem = { parentPath: '/2024/', itemName: '01-15', itemType: 'album' };
+
+        // Image in DDB has no tags
+        const imageWithNoTags: ImageItem = {
+            parentPath: '/2024/01-15/',
+            itemName: 'photo.jpg',
+            itemType: 'image',
+            versionId: 'v1',
+            dimensions: { width: 300, height: 225 },
+            // tags undefined
+        };
+
+        mockDocClient
+            .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/' } })
+            .resolves({ Items: [mockYearAlbum] })
+            .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2024/' } })
+            .resolves({ Items: [mockDayAlbum] })
+            .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2024/01-15/' } })
+            .resolves({ Items: [imageWithNoTags] })
+            .on(UpdateCommand)
+            .resolves({});
+
+        mockS3Client.on(GetObjectCommand).resolves(createMockS3Response(imageBuffer, 'v1'));
+
+        const result = await migrateDimensions({ mode: 'fix' });
+
+        expect(result.imagesChecked).toBe(1);
+        const tagIssues = result.issues.filter((i) => i.type === 'tagsMismatch');
+        expect(tagIssues).toHaveLength(1);
+        expect(tagIssues[0].fixed).toBe(true);
+
+        // Verify UpdateCommand was called
+        const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+        const tagsUpdateCall = updateCalls.find((call) => call.args[0].input.UpdateExpression?.includes('tags'));
+        expect(tagsUpdateCall).toBeDefined();
+    });
+
+    test('skips when DDB has all S3 tags plus extras', async () => {
+        // FullMetadata.jpg has tags ['halloween', 'dog', 'parade']
+        const imageBuffer = loadTestImage('FullMetadata.jpg');
+
+        const mockYearAlbum: AlbumItem = { parentPath: '/', itemName: '2024', itemType: 'album' };
+        const mockDayAlbum: AlbumItem = { parentPath: '/2024/', itemName: '01-15', itemType: 'album' };
+
+        // Image in DDB has all S3 tags plus extra tags (from prior uploads/merges)
+        const imageWithExtraTags: ImageItem = {
+            parentPath: '/2024/01-15/',
+            itemName: 'photo.jpg',
+            itemType: 'image',
+            versionId: 'v1',
+            dimensions: { width: 300, height: 225 },
+            tags: ['halloween', 'dog', 'parade', 'extra-tag-from-prior-upload'],
+        };
+
+        mockDocClient
+            .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/' } })
+            .resolves({ Items: [mockYearAlbum] })
+            .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2024/' } })
+            .resolves({ Items: [mockDayAlbum] })
+            .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2024/01-15/' } })
+            .resolves({ Items: [imageWithExtraTags] });
+
+        mockS3Client.on(GetObjectCommand).resolves(createMockS3Response(imageBuffer, 'v1'));
+
+        const result = await migrateDimensions({ mode: 'fix' });
+
+        expect(result.imagesChecked).toBe(1);
+        // Should NOT report a tag mismatch - DDB already has all S3 tags
+        const tagIssues = result.issues.filter((i) => i.type === 'tagsMismatch');
+        expect(tagIssues).toHaveLength(0);
+
+        // No updates should have been made
+        const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+        expect(updateCalls).toHaveLength(0);
     });
 });

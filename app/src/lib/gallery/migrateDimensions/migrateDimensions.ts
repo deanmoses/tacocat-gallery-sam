@@ -1,21 +1,24 @@
 /**
- * One-time migration to fix image dimensions in DynamoDB.
+ * One-time migration to fix image dimensions and tags in DynamoDB.
  *
- * Addresses GitHub issue #106: Images with EXIF orientations
- * were stored with raw pixel dimensions instead of display dimensions.
+ * Addresses two GitHub issues:
+ * - #106: Images with EXIF orientations 5-8 were stored with raw pixel dimensions
+ *   instead of display dimensions (width/height swapped).
+ * - #109: Images missing tags in DynamoDB that exist in S3 IPTC/XMP metadata.
+ *
  * This migration scans all images, compares DynamoDB records against S3 originals,
- * and corrects dimension values where orientation was not applied.
+ * and corrects dimension and tag values where they differ.
  *
  * Also validates data quality by detecting:
  * - Corrupt images (ExifReader fails)
  * - Missing S3 images (orphaned DynamoDB records)
- * - Tags mismatch (IPTC/XMP tags differ from DynamoDB)
  * - Invalid versionId (DynamoDB references non-existent S3 version)
  *
  * This script is thoroughly unit tested, and could form the basis of
  * future migration scripts or a general-purpose data validation tool.
  *
  * @see https://github.com/deanmoses/tacocat-gallery-sam/issues/106
+ * @see https://github.com/deanmoses/tacocat-gallery-sam/issues/109
  */
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
@@ -34,6 +37,7 @@ import {
 } from '../../gallery_path_utils/galleryPathUtils';
 import { AlbumItem, ImageItem, Size } from '../galleryTypes';
 import { selectMetadata } from '../../../lambdas/processImageUpload/extractImageMetadata';
+import { mergeTags } from '../upsertImage/upsertImage';
 
 /** Migration mode: diagnose (read-only) or fix (write corrections) */
 export type MigrateMode = 'diagnose' | 'fix';
@@ -64,11 +68,21 @@ export interface Issue {
     fixed?: boolean;
 }
 
+/** Issue types that can be automatically fixed */
+const FIXABLE_ISSUE_TYPES: IssueType[] = ['dimensionsOrientation', 'tagsMismatch'];
+
+/** Check if an issue type can be automatically fixed */
+function isFixableIssueType(type: IssueType): boolean {
+    return FIXABLE_ISSUE_TYPES.includes(type);
+}
+
 /** Result of migration */
 export interface MigrateResult {
-    imagesChecked: number;
     albumsChecked: number;
+    imagesChecked: number;
     issuesFound: number;
+    issuesFixable: number;
+    issuesUnfixable: number;
     issuesFixed: number;
     issues: Issue[];
     stoppedEarly: boolean;
@@ -118,9 +132,11 @@ export async function migrateDimensions(input: MigrateInput, options: MigrateOpt
     const s3Client = options.s3Client ?? new S3Client({});
 
     const result: MigrateResult = {
-        imagesChecked: 0,
         albumsChecked: 0,
+        imagesChecked: 0,
         issuesFound: 0,
+        issuesFixable: 0,
+        issuesUnfixable: 0,
         issuesFixed: 0,
         issues: [],
         stoppedEarly: false,
@@ -252,14 +268,18 @@ export async function migrateDimensions(input: MigrateInput, options: MigrateOpt
 
     result.durationMs = Date.now() - startTime;
     result.issuesFound = result.issues.length;
+    result.issuesFixable = result.issues.filter((i) => isFixableIssueType(i.type)).length;
+    result.issuesUnfixable = result.issuesFound - result.issuesFixable;
 
     console.log(
         JSON.stringify({
             event: result.error ? 'migrate_error_complete' : 'migrate_complete',
             mode,
-            imagesChecked: result.imagesChecked,
             albumsChecked: result.albumsChecked,
+            imagesChecked: result.imagesChecked,
             issuesFound: result.issuesFound,
+            issuesFixable: result.issuesFixable,
+            issuesUnfixable: result.issuesUnfixable,
             issuesFixed: result.issuesFixed,
             stoppedEarly: result.stoppedEarly,
             durationMs: result.durationMs,
@@ -425,16 +445,28 @@ async function processImage(
             }
         }
 
-        // Check tags
-        const s3Tags = s3Metadata.tags ?? [];
-        const ddbTags = imageItem.tags ?? [];
-        if (!arraysEqual(s3Tags, ddbTags)) {
-            addIssue(
+        // Check tags - merge S3 tags into DynamoDB (same logic as upsertImage)
+        const s3Tags = s3Metadata.tags;
+        const ddbTags = imageItem.tags;
+        const mergedTags = mergeTags(ddbTags, s3Tags);
+
+        // Only report/fix if S3 has tags that DynamoDB is missing
+        const ddbTagSet = new Set(ddbTags ?? []);
+        const s3HasNewTags = (s3Tags ?? []).some((tag) => !ddbTagSet.has(tag));
+
+        if (s3HasNewTags) {
+            const issue = addIssue(
                 imgResult,
                 imagePath,
                 'tagsMismatch',
-                `DynamoDB: [${ddbTags.join(', ')}], S3: [${s3Tags.join(', ')}]`,
+                `DynamoDB: [${(ddbTags ?? []).join(', ')}], S3: [${(s3Tags ?? []).join(', ')}], merged: [${(mergedTags ?? []).join(', ')}]`,
             );
+
+            if (mode === 'fix' && mergedTags) {
+                await updateTags(docClient, imagePath, mergedTags);
+                issue.fixed = true;
+                imgResult.issuesFixed++;
+            }
         }
     } catch (e) {
         console.error(
@@ -471,14 +503,6 @@ async function fetchImageFromS3(
     return { buffer, versionId: response.VersionId };
 }
 
-/** Check if two string arrays are equal */
-function arraysEqual(a: string[], b: string[]): boolean {
-    if (a.length !== b.length) return false;
-    const sortedA = [...a].sort();
-    const sortedB = [...b].sort();
-    return sortedA.every((val, idx) => val === sortedB[idx]);
-}
-
 /** Global counter for logging cap */
 let issuesLogged = 0;
 
@@ -512,4 +536,23 @@ async function updateDimensions(docClient: DynamoDBDocumentClient, imagePath: st
     });
     await docClient.send(command);
     console.log(JSON.stringify({ event: 'dimensions_updated', path: imagePath, dimensions }));
+}
+
+/** Update tags in DynamoDB */
+async function updateTags(docClient: DynamoDBDocumentClient, imagePath: string, tags: string[]): Promise<void> {
+    const parts = getParentAndNameFromPath(imagePath);
+    const command = new UpdateCommand({
+        TableName: getDynamoDbTableName(),
+        Key: {
+            parentPath: parts.parent,
+            itemName: parts.name,
+        },
+        UpdateExpression: 'SET tags = :tags, updatedOn = :updatedOn',
+        ExpressionAttributeValues: {
+            ':tags': tags,
+            ':updatedOn': new Date().toISOString(),
+        },
+    });
+    await docClient.send(command);
+    console.log(JSON.stringify({ event: 'tags_updated', path: imagePath, tags }));
 }
