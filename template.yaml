@@ -465,6 +465,40 @@ Resources:
           - syncRedisLambda.ts
 
   # ---------------------------------------------------------------------------
+  # Lambda to fix image dimensions in DynamoDB (one-time migration)
+  # ---------------------------------------------------------------------------
+  MigrateDimensionsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-MigrateDimensions
+      CodeUri: app/src/lambdas/api/
+      Handler: migrateDimensionsLambda.handler
+      Description: Fix image dimensions in DynamoDB (one-time migration)
+      Timeout: 900 # 15 minutes
+      MemorySize: 1024 # More memory/CPU for parallel S3 fetches and ExifReader
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+          ORIGINAL_IMAGES_BUCKET: !Ref OriginalImagesBucket
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref OriginalImagesBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+                - dynamodb:UpdateItem
+              Resource: !GetAtt GalleryItemDDBTable.Arn
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - migrateDimensionsLambda.ts
+
+  # ---------------------------------------------------------------------------
   # API Gateway lambda to search for albums and images
   # ---------------------------------------------------------------------------
   SearchFunction:
