@@ -76,11 +76,12 @@ test('Replace image with full metadata', async () => {
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
 }, 15000 /* increases Jest's timeout */);
 
-test('Image with full metadata should not have changed much', async () => {
+test('Image with full metadata should have merged tags', async () => {
     const image_noreplace = await getImageOrThrow(imagePath_noreplace, true /* includeUnpublishedAlbums */);
     expect(image_noreplace.title).toBe('Version 1');
     expect(image_noreplace.description).toBe('Version one.');
-    expect(image_noreplace.tags?.sort()).toEqual(['animal', 'boar', 'frog', 'v1'].sort());
+    // Tags merge on re-upload (PR #110): v1 tags + v2 tags
+    expect(image_noreplace.tags?.sort()).toEqual(['animal', 'boar', 'frog', 'v1', 'v2'].sort());
     if (!image_noreplace.versionId) throw new Error(`Image [${imageName_noreplace}] has no versionId`);
     expect(image_noreplace.versionId).not.toBe(image_noreplace_versionId1);
     expect(image_noreplace.updatedOn).not.toBe(image_noreplace_updatedOn1);
