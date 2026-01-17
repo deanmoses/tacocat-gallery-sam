@@ -1,6 +1,6 @@
-# HEIC Support
+# Plan: HEIC Support
 
-This is issue <https://github.com/deanmoses/tacocat-gallery-sam/issues/19>.
+This is the plan to support HEIC images. 
 
 ## Background
 
