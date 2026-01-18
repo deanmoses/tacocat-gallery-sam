@@ -365,6 +365,21 @@ We will transcode those anyway because:
 4. **Consistency** - Every video gets same poster/thumbnail generation, same file naming, same quality
 5. **Transcoding is cheap** - AWS MediaConvert costs ~$0.015/min; simplicity outweighs savings from passthrough detection
 
+### Transcoding Settings
+
+**Codec:** H.264 with QVBR (Quality-Defined Variable Bitrate) at quality level 7 (out of 10).
+ - This lets MediaConvert vary the bitrate based on scene complexity while staying under MaxBitrate
+
+**Max bitrate:** 5 Mbps. This is based on:
+- Netflix streams 1080p at 4-7 Mbps ([Netflix Help Center](https://help.netflix.com/en/node/306))
+- Netflix 1080p: 5-8 Mbps
+- YouTube 1080p: 8 Mbps recommended upload, but they re-encode lower
+- iPhone 1080p HEVC: ~15-25 Mbps native, but that's overkill for web playback
+- This is a family photo gallery viewed on phones/tablets/laptops over home WiFi, not a cinema
+- 5 Mbps balances quality vs storage costs and buffering on slower connections
+
+**Audio:** AAC at 128 kbps stereo, 48 kHz sample rate. Standard for web video.
+
 ### Playback: Progressive MP4
 
 The alternative was use use HLS, which would have added a lot of complexity.
