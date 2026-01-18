@@ -237,6 +237,38 @@ While the media is being processed, the front end will poll with two API calls:
 
 For the initial release of video support, it's only necessary to write video processing failures to this table.  Only update image processing errors if you're already in the code.
 
+### Search
+
+Videos are searchable via Redis, just like images.
+
+**Search results include video-specific fields:**
+```typescript
+// Video in search results
+{
+  itemName: "video.avi",
+  itemType: "image",           // legacy naming, "image" means "media item"
+  mediaType: "video",          // distinguishes from images
+  path: "/2024/06-15/video.avi",
+  id: "550e8400-e29b-41d4-a716-446655440000",
+  versionId: "def456",
+  dimensions: { width: 1920, height: 1080 },
+  duration: 45,
+}
+```
+
+**Auto-tags for filtering by media type:**
+
+To allow users to filter search results by media type, items are auto-tagged in Redis:
+
+- **Videos** get auto-tags: `movie`, `video`, `clip`
+- **Images** get auto-tags: `photo`, `image`, `picture`
+
+This allows searches like:
+- "teddy bear movie" → finds videos about teddy bears, excludes photos
+- "teddy bear photo" → finds images about teddy bears, excludes videos
+
+These auto-tags are added during the DynamoDB-to-Redis sync and are stored in the `tags` array alongside any user-defined tags.
+
 ### Album Thumbnails from Videos
 
 Each album has a thumbnail, just like media items.  The album's thumbnail is a pointer to a media item.  Videos must be able to be set as album thumbnails, same as images. 
