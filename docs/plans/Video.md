@@ -4,7 +4,7 @@ This is a plan for the Tacocat gallery AWS back end to support videos.  Currentl
 
 ## Requirements
 
-See [Github Issue #25 - Support videos](https://github.com/deanmoses/tacocat-gallery-sam/issues/25) for the full, detailed requirements. 
+See [GitHub Issue #25 - Support videos](https://github.com/deanmoses/tacocat-gallery-sam/issues/25) for the full, detailed requirements. 
 
 ## Big Rocks
 - Upload videos the same way as images (drag onto album)
@@ -21,7 +21,7 @@ There are no new buckets.
 ### Original video
 
 The original video is uploaded to the same place still images are uploaded:
-```
+```text
 Originals Bucket:
   /2001/12-31/my_video.avi    ← Original upload
 ```

@@ -66,7 +66,7 @@ sam deploy                       # Deploy to dev (default)
 sam deploy --config-env test     # Deploy to test environment
 ```
 
-Do NOT deploy to the prod environment.  NEVER deploy to the prod environment.  That goes through a Github Actions CI/CD process.
+Do NOT deploy to the prod environment.  NEVER deploy to the prod environment.  That goes through a GitHub Actions CI/CD process.
 
 ### Running integration tests locally
 
