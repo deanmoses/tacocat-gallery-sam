@@ -24,7 +24,8 @@ All commands run from the `app/` directory unless noted:
 
 ```bash
 # Testing and linting
-npm test              # unit tests (compile + Jest, excludes integration)
+npm test              # unit tests with silent console output
+npm run test:verbose  # unit tests with console output. Use for debugging only, this gets pretty noisy
 npm run test:integration  # integration tests (requires AWS credentials)
 npm run test:all      # all tests (unit + integration)
 npm run lint          # ESLint with auto-fix
