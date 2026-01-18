@@ -172,9 +172,8 @@ enum ErrorType {
 
 #### The `errorType` field
 
-- Allows filtering errors by type (e.g., `media_processing`)
+- Allows distinguishing errors by type (e.g., `media_processing`)
 - Currently only `media_processing` is used, but the table can support other error types in the future
-- The `getMediaProcessingErrors()` API filters by `errorType === 'media_processing'`
 
 #### The `ttl` field
 
@@ -225,11 +224,12 @@ An admin will drag and drop a set of photos and videos into the Sveltekit front 
 It will be a POST, not a GET, to avoid potential URL length issues:
 
 ```
-POST /media-processing-errors
-Body: { mediaPaths: ["/2024/06-15/video.mov", ...] }
+POST /errors
+Body: { paths: ["/2024/06-15/video.mov", ...] }
 Response: { errors: { "/2024/06-15/video.mov": "Unsupported codec" } }
 ```
-Only paths with errors are included in the response. Paths that succeeded or are still processing are omitted.
+
+Only paths with errors are returned in the response. Paths that succeeded or are still processing are omitted.
 
 While the media is being processed, the front end will poll with two API calls:
 - This error table (for failure).
