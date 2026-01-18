@@ -1,6 +1,8 @@
-# Plan: HEIC Support
+# Plan: HEIC Support (DONE)
 
-This is the plan to support HEIC images. 
+This is the plan to support HEIC images.  
+
+Status: IMPLEMENTED.
 
 ## Background
 
