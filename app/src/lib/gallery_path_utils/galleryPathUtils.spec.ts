@@ -11,6 +11,10 @@ import {
     albumPathToDate,
     toPathFromItem,
     isHeicPath,
+    isValidVideoPath,
+    isValidVideoName,
+    isValidMediaPath,
+    isValidMediaPathForUpload,
 } from './galleryPathUtils';
 
 describe('isValidAlbumPath', () => {
@@ -592,5 +596,278 @@ describe('toPathFromItem', () => {
                 itemType: 'image',
             }),
         ).toBe('/2001/12-31/image.jpg');
+    });
+});
+
+describe('isValidVideoPath', () => {
+    const invalidVideoPaths = [
+        '',
+        'notapath',
+        '/not/a/real/path',
+        '/',
+        '//',
+        '/1/',
+        '/10/',
+        '/200/',
+        '/2001',
+        '/2001/',
+        '2001',
+        '12-31',
+        '/12-31',
+        '2001/12-31',
+        '/2001/12-31',
+        '/2001/12 31/',
+        '/2001/12_31/',
+        '/2001/1231/',
+        '/2001/12-31/',
+        '/2001/12-32/',
+        '/2018/01-24/',
+        '/2001/13-01/',
+        '/2001/20-01/',
+        '/2001/12-200/',
+        '/2001/12-31/something',
+        '/2001/12-31/something/',
+        'video.mp4',
+        '/video.mp4',
+        '12-31/video.mp4',
+        '2001/12-31/video.mp4',
+        '/2001/12-31/.mp4',
+        '/2001/12-31/video.',
+        '/2001/12-31/video',
+        '/2001/12-31/video/mp4',
+        '/2001/12-31/video/',
+        '/2001/13-31/video.mp4',
+        '/2001/12-32/video.mp4',
+        '/2001/1231/video.mp4',
+        '//2001/12-31/video.mp4',
+        '/2001/video.mp4',
+        '/video.mp4',
+        '/2001/12-31/..mp4',
+        '/2001/12-31/@.mp4',
+        '/2001/12-31/$.mp4',
+        '/2001/12-31/#.mp4',
+        '/2001/12-31/*.mp4',
+        '/2001/12-31/&.mp4',
+        '/2001/12-31/ .mp4',
+        '/2001/12-31/a a.mp4',
+        '/2001/12-31/a .mp4',
+        '/2001/12-31/?.mp4',
+        '/2001/12-31/%.mp4',
+        '/2001/12-31/video.mp4 ',
+        ' /2001/12-31/video.mp4',
+        '/2001/12-31/ video.mp4',
+        '/2001/12-31/video .mp4',
+        '/2001/12-31/video. mp4',
+        '/2001/12-31/vid eo.mp4',
+        '/2001/12-31/video.mp41',
+        // Image formats should NOT be valid video paths
+        '/2001/12-31/image.jpg',
+        '/2001/12-31/image.jpeg',
+        '/2001/12-31/image.png',
+        '/2001/12-31/image.gif',
+        '/2001/12-31/image.heic',
+    ];
+    invalidVideoPaths.forEach((path) => {
+        it(`Should be invalid: [${path}]`, () => {
+            expect(isValidVideoPath(path)).toStrictEqual(false);
+        });
+    });
+
+    const validVideoPaths = [
+        '/2001/12-31/video.mp4',
+        '/2001/12-31/v.mp4',
+        '/2001/12-31/v-1.mp4',
+        '/2001/12-31/v_1.mp4',
+        '/2001/12-31/1.mp4',
+        '/3000/01-01/VIDEO.MP4',
+        '/2001/12-31/video.mov',
+        '/2001/12-31/video.MOV',
+        '/2001/12-31/video.avi',
+        '/2001/12-31/video.AVI',
+        '/2001/12-31/video.mkv',
+        '/2001/12-31/video.MKV',
+        '/2001/12-31/video.webm',
+        '/2001/12-31/video.WEBM',
+        '/2001/12-31/video.m4v',
+        '/2001/12-31/video.M4V',
+        '/2001/12-31/video.3gp',
+        '/2001/12-31/video.3GP',
+    ];
+    validVideoPaths.forEach((path) => {
+        it(`Should be valid: [${path}]`, () => {
+            expect(isValidVideoPath(path)).toStrictEqual(true);
+        });
+    });
+});
+
+describe('isValidVideoName', () => {
+    const invalidVideoNames = [
+        '',
+        '/',
+        'adf',
+        '2000',
+        '/2000',
+        '2000/',
+        '/2000/',
+        '2000/12-31',
+        '/2000/12-31/',
+        '2000/12-31/video.mp4',
+        '/2000/12-31/video.mp4',
+        '/2000/12-31/video',
+        'newName.pdf',
+        'newName.jpg', // image, not video
+        'newName.png', // image, not video
+        'newName.mp4 ', // space at end
+        ' newName.mp4', // space at beginning
+        '/newName.mp4',
+        'newName.',
+        'newName',
+        '.mp4',
+        'a^b.mp4',
+        'a b.mp4',
+    ];
+    invalidVideoNames.forEach((videoName) => {
+        test(`Should be invalid: [${videoName}]`, async () => {
+            expect(isValidVideoName(videoName)).toBe(false);
+        });
+    });
+
+    const validVideoNames = [
+        'a.mp4',
+        'a.mov',
+        'a.avi',
+        'a.mkv',
+        'a.webm',
+        'a.m4v',
+        'a.3gp',
+        'a.MP4',
+        'newName.mp4',
+        'new-name.mp4',
+        'new_name.mp4',
+        'VIDEO.MOV',
+    ];
+    validVideoNames.forEach((videoName) => {
+        test(`Should be valid: [${videoName}]`, async () => {
+            expect(isValidVideoName(videoName)).toBe(true);
+        });
+    });
+});
+
+describe('isValidMediaPath', () => {
+    // Invalid paths (neither image nor video)
+    const invalidMediaPaths = [
+        '',
+        'notapath',
+        '/not/a/real/path',
+        '/',
+        '//',
+        '/2001/',
+        '/2001/12-31/',
+        'media.jpg',
+        '/media.jpg',
+        '2001/12-31/media.jpg',
+        '/2001/12-31/.jpg',
+        '/2001/12-31/media',
+        '/2001/media.jpg',
+        '/2001/12-31/media.pdf', // unsupported format
+        '/2001/12-31/media.txt', // unsupported format
+        '/2001/12-31/media.doc', // unsupported format
+    ];
+    invalidMediaPaths.forEach((path) => {
+        it(`Should be invalid: [${path}]`, () => {
+            expect(isValidMediaPath(path)).toStrictEqual(false);
+        });
+    });
+
+    // Valid image paths should be valid media paths
+    const validImagePaths = [
+        '/2001/12-31/image.jpg',
+        '/2001/12-31/image.jpeg',
+        '/2001/12-31/image.png',
+        '/2001/12-31/image.gif',
+        '/2001/12-31/IMAGE.JPG',
+    ];
+    validImagePaths.forEach((path) => {
+        it(`Should be valid (image): [${path}]`, () => {
+            expect(isValidMediaPath(path)).toStrictEqual(true);
+        });
+    });
+
+    // Valid video paths should be valid media paths
+    const validVideoPaths = [
+        '/2001/12-31/video.mp4',
+        '/2001/12-31/video.mov',
+        '/2001/12-31/video.avi',
+        '/2001/12-31/video.mkv',
+        '/2001/12-31/video.webm',
+        '/2001/12-31/video.m4v',
+        '/2001/12-31/video.3gp',
+        '/2001/12-31/VIDEO.MP4',
+    ];
+    validVideoPaths.forEach((path) => {
+        it(`Should be valid (video): [${path}]`, () => {
+            expect(isValidMediaPath(path)).toStrictEqual(true);
+        });
+    });
+
+    // HEIC should NOT be valid for isValidMediaPath (stored media)
+    const heicPaths = ['/2001/12-31/image.heic', '/2001/12-31/image.HEIC', '/2001/12-31/image.heif'];
+    heicPaths.forEach((path) => {
+        it(`Should be invalid (HEIC not allowed for storage): [${path}]`, () => {
+            expect(isValidMediaPath(path)).toStrictEqual(false);
+        });
+    });
+});
+
+describe('isValidMediaPathForUpload', () => {
+    // Invalid paths
+    const invalidMediaPaths = [
+        '',
+        'notapath',
+        '/not/a/real/path',
+        '/',
+        '/2001/',
+        '/2001/12-31/',
+        'media.jpg',
+        '/media.jpg',
+        '/2001/12-31/media.pdf',
+        '/2001/12-31/media.txt',
+    ];
+    invalidMediaPaths.forEach((path) => {
+        it(`Should be invalid: [${path}]`, () => {
+            expect(isValidMediaPathForUpload(path)).toStrictEqual(false);
+        });
+    });
+
+    // Valid image paths (including HEIC for upload)
+    const validImagePaths = [
+        '/2001/12-31/image.jpg',
+        '/2001/12-31/image.jpeg',
+        '/2001/12-31/image.png',
+        '/2001/12-31/image.gif',
+        '/2001/12-31/image.heic',
+        '/2001/12-31/image.HEIC',
+        '/2001/12-31/image.heif',
+    ];
+    validImagePaths.forEach((path) => {
+        it(`Should be valid (image for upload): [${path}]`, () => {
+            expect(isValidMediaPathForUpload(path)).toStrictEqual(true);
+        });
+    });
+
+    // Valid video paths
+    const validVideoPaths = [
+        '/2001/12-31/video.mp4',
+        '/2001/12-31/video.mov',
+        '/2001/12-31/video.avi',
+        '/2001/12-31/video.mkv',
+        '/2001/12-31/video.webm',
+        '/2001/12-31/video.m4v',
+        '/2001/12-31/video.3gp',
+    ];
+    validVideoPaths.forEach((path) => {
+        it(`Should be valid (video for upload): [${path}]`, () => {
+            expect(isValidMediaPathForUpload(path)).toStrictEqual(true);
+        });
     });
 });

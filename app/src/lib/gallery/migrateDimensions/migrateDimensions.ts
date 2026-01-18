@@ -36,7 +36,7 @@ import {
     toAlbumPath,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { AlbumItem, ImageItem, Size } from '../galleryTypes';
-import { selectMetadata } from '../../../lambdas/processImageUpload/extractImageMetadata';
+import { selectMetadata } from '../../../lambdas/processMediaUpload/extractImageMetadata';
 import { mergeTags } from '../upsertImage/upsertImage';
 
 /** Migration mode: diagnose (read-only) or fix (write corrections) */
@@ -467,7 +467,7 @@ async function processImage(
 
         // Only report/fix if S3 has tags that DynamoDB is missing
         const ddbTagSet = new Set(ddbTags ?? []);
-        const s3HasNewTags = (s3Tags ?? []).some((tag) => !ddbTagSet.has(tag));
+        const s3HasNewTags = (s3Tags ?? []).some((tag: string) => !ddbTagSet.has(tag));
 
         if (s3HasNewTags) {
             const issue = addIssue(

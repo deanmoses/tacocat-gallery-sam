@@ -1,6 +1,5 @@
 import sharp, { Metadata, Region } from 'sharp';
 import { focusCrop, Point, Rectangle, Size } from './focusCrop';
-import { getJpegQuality } from '../../lib/lambda_utils/Env';
 
 export const imageFormats = ['webp', 'jpeg', 'avif', 'gif'] as const;
 export type ImageFormat = (typeof imageFormats)[number];
@@ -89,7 +88,7 @@ const transformImage = async (image: Uint8Array, params: TransformParams) => {
 export const getQuality = (format: ImageFormat, size: Size): number => {
     const pixels = size.width * size.height;
     if (format === 'jpeg' || format === 'webp') {
-        return getJpegQuality();
+        return 85;
     } else if (format === 'avif') {
         if (pixels < 400 * 400) return 55;
         if (pixels < 800 * 800) return 45;

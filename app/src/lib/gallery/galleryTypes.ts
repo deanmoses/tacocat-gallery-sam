@@ -14,7 +14,14 @@ export type NavInfo = {
     title?: string;
 };
 
-export type GalleryItem = AlbumItem | ImageItem;
+/** A media item is either an image or a video */
+export type MediaItem = ImageItem | VideoItem;
+
+/** A gallery item is either an album or a media item (image or video) */
+export type GalleryItem = AlbumItem | MediaItem;
+
+/** All possible attribute names across all gallery item types (for DynamoDB projections) */
+export type GalleryItemKey = keyof (AlbumItem & ImageItem & VideoItem);
 
 /** Album without children */
 export type AlbumItem = BaseGalleryRecord & {
@@ -31,6 +38,20 @@ export type ImageItem = BaseGalleryRecord & {
     tags?: string[];
 };
 
+export type VideoItem = BaseGalleryRecord & {
+    /** Distinguishes video from image (images don't have this field) */
+    mediaType: 'video';
+    /** UUID for locating transcoded video and poster in Derived bucket */
+    id: string;
+    versionId: string;
+    dimensions: Size;
+    /** Duration in seconds */
+    duration: number;
+    thumbnail?: ImageThumbnailCrop;
+    title?: string;
+    tags?: string[];
+};
+
 /** Base that albums and images extend */
 export type BaseGalleryRecord = {
     path?: string;
@@ -41,7 +62,18 @@ export type BaseGalleryRecord = {
     description?: string;
 };
 
+/**
+ * DynamoDB itemType: 'album' or 'image', where 'image' means any media item, including videos
+ */
 export type GalleryItemType = 'album' | 'image';
+
+/**
+ * Distinguishes between differen types of media.
+ * Currently there's two types of media: video and image.
+ * Only videos have this field; images don't have mediaType yet,
+ * beacuse that would require a migration.
+ */
+export type MediaType = 'video';
 
 export type AlbumThumbnailEntry = {
     path: string;

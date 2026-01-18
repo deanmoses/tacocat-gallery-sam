@@ -1,31 +1,25 @@
 import { extractImageMetadata, MetadataExtractionError } from './extractImageMetadata';
-import { convertHeicToJpeg, SharpProcessingError } from './convertHeicToJpeg';
 import { setImageAsParentAlbumThumbnailIfNoneExists } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
-import {
-    getParentFromPath,
-    isValidImagePath,
-    isValidImagePathForUpload,
-    isHeicPath,
-} from '../../lib/gallery_path_utils/galleryPathUtils';
+import { getParentFromPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { createAlbumNoThrow } from '../../lib/gallery/createAlbum/createAlbum';
 import { upsertImage } from '../../lib/gallery/upsertImage/upsertImage';
 import { ImageCreateRequest, Size } from '../../lib/gallery/galleryTypes';
 import { getGalleryAppDomain } from '../../lib/lambda_utils/Env';
-import { quarantineFile } from '../../lib/s3_utils/quarantineFile';
+import { revertS3Version } from '../../lib/s3_utils/s3revertVersion';
+import { recordMediaProcessingError } from '../../lib/dynamo_utils/recordError';
 
 /**
- * Process a file uploaded to S3.
- * - For HEIC/HEIF: converts to JPEG and returns (S3 re-triggers for the JPEG)
- * - For other images: extracts metadata and saves entry to DynamoDB
+ * Process an image uploaded to S3.
+ * Extracts metadata and saves entry to DynamoDB.
  *
  * @param bucket name of S3 bucket that file is in
  * @param key key of S3 object to process
  * @param versionId versionId of S3 object
  */
 export async function processImageUpload(bucket: string, key: string, versionId: string | undefined): Promise<void> {
-    console.info(`Image Processor: processing object key [${key}]`);
     const imagePath = '/' + key;
-    if (!isValidImagePathForUpload(imagePath)) {
+    console.info(JSON.stringify({ event: 'image_processing_started', imagePath }));
+    if (!isValidImagePath(imagePath)) {
         throw new Error(`Image Processor: invalid image path [${imagePath}]`);
     }
     if (!bucket) {
@@ -35,34 +29,11 @@ export async function processImageUpload(bucket: string, key: string, versionId:
         throw new Error(`Image Processor: missing versionId`);
     }
 
-    // HEIC conversion: convert to JPEG and return early
-    // S3 will re-trigger this Lambda for the new JPEG
-    if (isHeicPath(key)) {
-        try {
-            await convertHeicToJpeg(bucket, key);
-        } catch (error) {
-            // Only quarantine on Sharp processing errors (corrupt/invalid file)
-            // Let S3/infrastructure errors propagate for Lambda retry
-            if (error instanceof SharpProcessingError) {
-                console.error(`HEIC conversion failed, quarantining`, { key, error: error.message });
-                await quarantineFile(bucket, key);
-            } else {
-                throw error;
-            }
-        }
-        return; // Let S3 re-trigger for the JPEG
-    }
-
-    // From here on, we're processing a non-HEIC image (jpg/jpeg/gif/png)
-    if (!isValidImagePath(imagePath)) {
-        throw new Error(`Image Processor: invalid image path for storage [${imagePath}]`);
-    }
     if ('jpg' !== imagePath.split('.').pop()?.toLowerCase()) {
-        console.warn(`Image Processor: not a jpg [${imagePath}]`);
+        console.warn(JSON.stringify({ event: 'image_not_jpg', imagePath }));
     }
 
     // The only time parent albums won't exist is when I manually upload via AWS Console
-    console.info(`Image Processor: ensuring parent albums exist for image [${key}]`);
     const albumPath = getParentFromPath(imagePath);
     const albumWasCreated = await createAlbumNoThrow(albumPath);
     if (albumWasCreated) {
@@ -70,19 +41,17 @@ export async function processImageUpload(bucket: string, key: string, versionId:
         await createAlbumNoThrow(grandparentAlbumPath);
     }
 
-    // Extract metadata - quarantine only on file processing errors
-    console.info(`Image Processor: extracting metadata from [${key}]`);
     let extractedMetadata;
     try {
         extractedMetadata = await extractImageMetadata(bucket, key);
     } catch (error) {
-        // Only quarantine on metadata extraction errors (corrupt/invalid file)
-        // Let S3/infrastructure errors propagate for Lambda retry
+        // If corrupt/invalid file
         if (error instanceof MetadataExtractionError) {
-            console.error(`Metadata extraction failed, quarantining`, { key, error: error.message });
-            await quarantineFile(bucket, key);
+            // Reverts version and logs error so client can see it
+            await handleMetadataExtractionError(bucket, key, versionId, imagePath, error.message);
             return;
         }
+        // Propagate S3/infrastructure errors so that Lambda will be retried
         throw error;
     }
 
@@ -92,19 +61,25 @@ export async function processImageUpload(bucket: string, key: string, versionId:
     };
 
     // DynamoDB, album thumbnail, detail image - let errors propagate for retry
-    console.info(`Image Processor: creating image [${imagePath}] in DynamoDB\n`, imageCreateRequest);
     await upsertImage(imagePath, imageCreateRequest);
-    console.info(`Image Processor: setting image [${imagePath}] as thumbnail of parent album if none exists`);
+    console.info(
+        JSON.stringify({
+            event: 'image_dynamo_written',
+            imagePath,
+            versionId,
+            dimensions: imageCreateRequest.dimensions,
+        }),
+    );
+
     await setImageAsParentAlbumThumbnailIfNoneExists(imagePath);
-    console.info(`Image Processor: generating detail image for [${imagePath}]`);
+
     if (imageCreateRequest.dimensions) {
         await generateDetailImage(imagePath, versionId, imageCreateRequest.dimensions);
     } else {
-        console.error(
-            `Image Processor: not generating detail image for [${imagePath}] because no dimensions were extracted`,
-        );
+        console.error(JSON.stringify({ event: 'image_no_dimensions', imagePath }));
     }
-    console.info(`Image Processor: done processing image [${imagePath}]`);
+
+    console.info(JSON.stringify({ event: 'image_processing_complete', imagePath }));
 }
 
 async function generateDetailImage(imagePath: string, versionId: string, dimensions: Size): Promise<void> {
@@ -112,12 +87,15 @@ async function generateDetailImage(imagePath: string, versionId: string, dimensi
     const height = detailHeight(dimensions.width, dimensions.height);
     const sizing = width > height ? width.toString() : 'x' + height.toString();
     const detailImageUrl = imageDetailUrl(imagePath, versionId, sizing);
-    console.info(`Image Processor: detail image URL for [${imagePath}] is [${detailImageUrl}]`);
-    const result = await fetch(imageDetailUrl(imagePath, versionId, sizing));
+    const result = await fetch(detailImageUrl);
     if (!result.ok) {
         console.error(
-            `Image Processor: error generating detail image for [${imagePath}] ${result.status}`,
-            result.statusText,
+            JSON.stringify({
+                event: 'image_detail_generation_failed',
+                imagePath,
+                status: result.status,
+                statusText: result.statusText,
+            }),
         );
     }
 }
@@ -149,4 +127,28 @@ function detailHeight(width: number, height: number): number {
     } else {
         return Math.round(1024 * (height / width));
     }
+}
+
+/**
+ * Handle metadata extraction error by recording error and reverting S3 version.
+ */
+async function handleMetadataExtractionError(
+    bucket: string,
+    key: string,
+    versionId: string,
+    imagePath: string,
+    errorMessage: string,
+): Promise<void> {
+    const fullErrorMsg = `Metadata extraction failed: ${errorMessage}`;
+    console.error(JSON.stringify({ event: 'metadata_extraction_failed', key, error: errorMessage }));
+    const errorRecordedSuccess = await recordMediaProcessingError(imagePath, fullErrorMsg);
+    const versionRevertedSuccess = await revertS3Version(bucket, key, versionId);
+    console.info(
+        JSON.stringify({
+            event: 'metadata_error_cleanup',
+            key,
+            errorRecorded: errorRecordedSuccess,
+            versionReverted: versionRevertedSuccess,
+        }),
+    );
 }

@@ -2,7 +2,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { getParentAndNameFromPath, isValidAlbumPath, isValidPath } from '../gallery_path_utils/galleryPathUtils';
 import { getDynamoDbTableName } from '../lambda_utils/Env';
-import { AlbumItem, ImageItem } from '../gallery/galleryTypes';
+import { GalleryItem, GalleryItemKey } from '../gallery/galleryTypes';
 
 /**
  * Get the full contents of an album or image from DynamoDB
@@ -10,7 +10,7 @@ import { AlbumItem, ImageItem } from '../gallery/galleryTypes';
  *
  * @param path path to album or image, like /2001/12-31/ or /2001/12-31/image.jpg
  */
-export async function getFullItemFromDynamoDB<T extends AlbumItem | ImageItem>(path: string): Promise<T | undefined> {
+export async function getFullItemFromDynamoDB<T extends GalleryItem>(path: string): Promise<T | undefined> {
     if (!isValidPath(path)) throw new Error(`Invalid path [${path}]`);
     return getItem<T>(path);
 }
@@ -22,7 +22,7 @@ export async function getFullItemFromDynamoDB<T extends AlbumItem | ImageItem>(p
  * @param path Path of album or image to retrieve, like /2001/12-31/ or /2001/12-31/image.jpg
  * @param attributes Name of the attributes to include.  If blank, returns ALL attributes.
  */
-export async function getItem<T extends AlbumItem | ImageItem>(
+export async function getItem<T extends GalleryItem>(
     path: string,
     attributes: (keyof T)[] = [],
 ): Promise<T | undefined> {
@@ -50,7 +50,7 @@ export async function getItem<T extends AlbumItem | ImageItem>(
  *
  * @param albumPath path to album, like /2001/12-31/
  */
-export async function getFullChildrenFromDynamoDB(albumPath: string): Promise<(AlbumItem | ImageItem)[] | undefined> {
+export async function getFullChildrenFromDynamoDB(albumPath: string): Promise<GalleryItem[] | undefined> {
     return getChildItems(albumPath);
 }
 
@@ -62,8 +62,8 @@ export async function getFullChildrenFromDynamoDB(albumPath: string): Promise<(A
  */
 export async function getChildItems(
     albumPath: string,
-    attributes: (keyof (AlbumItem & ImageItem))[] = [],
-): Promise<(AlbumItem | ImageItem)[] | undefined> {
+    attributes: GalleryItemKey[] = [],
+): Promise<GalleryItem[] | undefined> {
     if (!isValidAlbumPath(albumPath)) throw new Error(`Invalid album path [${albumPath}]`);
     const ddbCommand = new QueryCommand({
         TableName: getDynamoDbTableName(),

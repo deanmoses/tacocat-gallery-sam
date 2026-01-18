@@ -1,6 +1,6 @@
-import { AlbumItem, GalleryItem, GalleryItemType, ImageItem } from '../gallery/galleryTypes';
+import { AlbumItem, GalleryItem, GalleryItemType, ImageItem, VideoItem } from '../gallery/galleryTypes';
 import { pathToDate } from '../gallery_path_utils/galleryPathUtils';
-import { RedisAlbumItem, RedisGalleryItem, RedisImageItem } from './redisTypes';
+import { RedisAlbumItem, RedisGalleryItem, RedisImageItem, RedisVideoItem } from './redisTypes';
 
 /**
  * Convert from an AWS gallery item to a Redis gallery item
@@ -11,6 +11,10 @@ export function toRedisItem(awsItem: GalleryItem): RedisGalleryItem {
     if (!awsItem.itemType) throw new Error(`Missing itemType for ${awsItem}`);
     switch (awsItem.itemType) {
         case 'image':
+            // Videos have itemType 'image' but also have mediaType 'video'
+            if ('mediaType' in awsItem && awsItem.mediaType === 'video') {
+                return toRedisVideo(awsItem as VideoItem);
+            }
             return toRedisImage(awsItem as ImageItem);
         case 'album':
             return toRedisAlbum(awsItem as AlbumItem);
@@ -31,11 +35,37 @@ function toRedisImage(awsImageItem: ImageItem): RedisImageItem {
         albumDate: toTimestampFromPath(path),
         versionId: awsImageItem.versionId,
         dimensions: awsImageItem.dimensions,
+        // Auto-tag images with "photo", "image", "picture" for search filtering
+        tags: ['photo', 'image', 'picture', ...(awsImageItem.tags || [])],
     };
     if (awsImageItem.title) redisImageItem.title = awsImageItem.title;
     if (awsImageItem.description) redisImageItem.description = awsImageItem.description;
-    if (awsImageItem.tags) redisImageItem.tags = awsImageItem.tags;
     return redisImageItem;
+}
+
+function toRedisVideo(awsVideoItem: VideoItem): RedisVideoItem {
+    const path = toPath(awsVideoItem);
+    if (!awsVideoItem.id) throw new Error(`Missing id for ${path}`);
+    if (!awsVideoItem.versionId) throw new Error(`Missing versionId for ${path}`);
+    if (!awsVideoItem.dimensions) throw new Error(`Missing dimensions for ${path}`);
+    if (awsVideoItem.duration == null) throw new Error(`Missing duration for ${path}`);
+    const redisVideoItem: RedisVideoItem = {
+        parentPath: getParentPath(awsVideoItem.parentPath),
+        itemName: getItemName(awsVideoItem.itemName),
+        itemNameSearchable: toSearchableItemName(getItemName(awsVideoItem.itemName)),
+        itemType: getItemType(awsVideoItem.itemType),
+        mediaType: 'video',
+        albumDate: toTimestampFromPath(path),
+        id: awsVideoItem.id,
+        versionId: awsVideoItem.versionId,
+        dimensions: awsVideoItem.dimensions,
+        duration: awsVideoItem.duration,
+        // Auto-tag videos with "movie", "video", "clip" for search filtering
+        tags: ['movie', 'video', 'clip', ...(awsVideoItem.tags || [])],
+    };
+    if (awsVideoItem.title) redisVideoItem.title = awsVideoItem.title;
+    if (awsVideoItem.description) redisVideoItem.description = awsVideoItem.description;
+    return redisVideoItem;
 }
 
 function toRedisAlbum(awsAlbumItem: AlbumItem): RedisAlbumItem {

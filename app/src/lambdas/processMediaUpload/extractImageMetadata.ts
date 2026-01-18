@@ -5,7 +5,7 @@ import { ImageCreateRequest } from '../../lib/gallery/galleryTypes';
 
 /**
  * Error thrown when ExifReader fails to extract metadata from an image.
- * Used to distinguish file processing errors (which should quarantine)
+ * Used to distinguish file processing errors (which should delete the file)
  * from infrastructure errors like S3 (which should propagate for retry).
  */
 export class MetadataExtractionError extends Error {
@@ -89,7 +89,7 @@ export function selectMetadata(tags: ExifReader.ExpandedTags): Partial<ImageCrea
             width: parsedWidth,
         };
     } else {
-        console.error(`Image [${image.title}] has no dimensions`);
+        console.error(JSON.stringify({ event: 'image_no_dimensions_in_metadata', title: image.title }));
     }
 
     // Check IPTC keywords first, then XMP subject

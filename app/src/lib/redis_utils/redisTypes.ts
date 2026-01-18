@@ -1,6 +1,7 @@
 import { AlbumThumbnailEntry, GalleryItemType, ImageThumbnailCrop, Size } from '../gallery/galleryTypes';
 
-export type RedisGalleryItem = RedisAlbumItem | RedisImageItem;
+export type RedisGalleryItem = RedisAlbumItem | RedisMediaItem;
+export type RedisMediaItem = RedisImageItem | RedisVideoItem;
 
 /** Album without children */
 export type RedisAlbumItem = RedisBaseGalleryRecord & {
@@ -18,6 +19,21 @@ export type RedisImageItem = RedisBaseGalleryRecord & {
     itemNameSearchable?: string;
     versionId: string;
     dimensions: Size;
+    thumbnail?: ImageThumbnailCrop;
+    title?: string;
+    tags?: string[];
+};
+
+export type RedisVideoItem = RedisBaseGalleryRecord & {
+    /** Searchable version of filename */
+    itemNameSearchable?: string;
+    /** Distinguishes videos from images (both have itemType 'image') */
+    mediaType: 'video';
+    /** UUID for locating transcoded video and poster in Derived bucket */
+    id: string;
+    versionId: string;
+    dimensions: Size;
+    duration: number;
     thumbnail?: ImageThumbnailCrop;
     title?: string;
     tags?: string[];

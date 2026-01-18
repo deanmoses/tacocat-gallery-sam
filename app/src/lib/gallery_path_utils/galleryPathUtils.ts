@@ -1,19 +1,19 @@
 import { BaseGalleryRecord } from '../gallery/galleryTypes';
 
 /**
- * Return true if specified string is a valid album or image path
- * like / or /2001/ or /2001/12-31/ or /2001/12-31/image.jpg
+ * Return true if specified string is a valid album or media path
+ * like / or /2001/ or /2001/12-31/ or /2001/12-31/image.jpg or /2001/12-31/video.mp4
  */
 export function isValidPath(path: string): boolean {
-    return isValidAlbumPath(path) || isValidImagePath(path);
+    return isValidAlbumPath(path) || isValidMediaPath(path);
 }
 
 /**
- * Return true if specified string is a valid album or image path for upload.
- * Like {@link isValidPath} but also accepts HEIC/HEIF image paths.
+ * Return true if specified string is a valid album or media path for upload.
+ * Like {@link isValidPath} but also accepts HEIC/HEIF image paths and video paths.
  */
 export function isValidPathForUpload(path: string): boolean {
-    return isValidAlbumPath(path) || isValidImagePathForUpload(path);
+    return isValidAlbumPath(path) || isValidMediaPathForUpload(path);
 }
 
 /**
@@ -74,6 +74,52 @@ export function isValidImagePathForUpload(imagePath: string): boolean {
  */
 export function isHeicPath(path: string): boolean {
     return /.\.(heic|heif)$/i.test(path);
+}
+
+/**
+ * Return true if specified string is a valid video path like /2001/12-31/video.mp4
+ * Cannot be on root album like /video.mp4
+ * Cannot be on year album like /2001/video.mp4
+ * Must be on a day album like /2001/12-31/video.mp4
+ *
+ * Supported video extensions: mp4, mov, avi, mkv, webm, m4v, 3gp
+ */
+export function isValidVideoPath(videoPath: string): boolean {
+    return /^\/\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/[a-zA-Z0-9_-]+\.(mp4|mov|avi|mkv|webm|m4v|3gp)$/i.test(
+        videoPath,
+    );
+}
+
+/**
+ * Return true if specified string is a valid video name like 'video.mp4'
+ * Must not have a path.
+ *
+ * Supported video extensions: mp4, mov, avi, mkv, webm, m4v, 3gp
+ *
+ * @param videoName name of video
+ */
+export function isValidVideoName(videoName: string): boolean {
+    return /^[a-zA-Z0-9_-]+\.(mp4|mov|avi|mkv|webm|m4v|3gp)$/i.test(videoName);
+}
+
+/**
+ * Return true if specified string is a valid media path (image or video).
+ * Like /2001/12-31/image.jpg or /2001/12-31/video.mp4
+ *
+ * Only accepts formats that are stored in the gallery.
+ * For uploads that may include HEIC, use isValidMediaPathForUpload().
+ */
+export function isValidMediaPath(mediaPath: string): boolean {
+    return isValidImagePath(mediaPath) || isValidVideoPath(mediaPath);
+}
+
+/**
+ * Return true if specified string is a valid media path for upload.
+ * Accepts all formats from isValidMediaPath() plus HEIC/HEIF.
+ * HEIC files are converted to JPEG after upload.
+ */
+export function isValidMediaPathForUpload(mediaPath: string): boolean {
+    return isValidImagePathForUpload(mediaPath) || isValidVideoPath(mediaPath);
 }
 
 /**
@@ -199,11 +245,11 @@ export function albumPathToDate(albumPath: string): Date {
 
 /**
  * Convert from any path to a date.
- * @param path album or image path
+ * @param path album, image, or video path
  */
 export function pathToDate(path: string): Date {
     if (isValidAlbumPath(path)) return albumPathToDate(path);
-    if (isValidImagePath(path)) return albumPathToDate(getParentFromPath(path));
+    if (isValidMediaPath(path)) return albumPathToDate(getParentFromPath(path));
     throw new Error(`Invalid path: [${path}]`);
 }
 

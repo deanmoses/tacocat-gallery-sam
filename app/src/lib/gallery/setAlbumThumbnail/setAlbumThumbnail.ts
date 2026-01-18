@@ -2,7 +2,7 @@ import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import {
     getParentAndNameFromPath,
     isValidAlbumPath,
-    isValidImagePath,
+    isValidMediaPath,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
@@ -44,8 +44,8 @@ export async function setAlbumThumbnail(
         throw new BadRequestException('Error setting album thumbnail. Cannot update root album');
     }
 
-    if (!isValidImagePath(imagePath)) {
-        throw new BadRequestException(`Error setting album thumbnail. Invalid image path: [${imagePath}]`);
+    if (!isValidMediaPath(imagePath)) {
+        throw new BadRequestException(`Error setting album thumbnail. Invalid media path: [${imagePath}]`);
     }
 
     // TODO: have an itemsExist() method that takes an array of paths

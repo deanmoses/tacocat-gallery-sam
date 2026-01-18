@@ -5,6 +5,7 @@ import {
     getParentFromPath,
     isValidAlbumPath,
     isValidImagePath,
+    isValidMediaPath,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
@@ -54,7 +55,7 @@ export async function imageExists(imagePath: string, includeUnpublishedAlbums: b
  * @param path path of the album or image, like /2001/12-31/ or /2001/12-31/image.jpg
  */
 export async function itemExists(path: string): Promise<boolean> {
-    if (!isValidAlbumPath(path) && !isValidImagePath(path)) {
+    if (!isValidAlbumPath(path) && !isValidMediaPath(path)) {
         throw new BadRequestException(`Malformed path: [${path}]`);
     }
 

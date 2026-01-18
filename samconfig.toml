@@ -47,7 +47,7 @@ confirm_changeset = true
 resolve_s3 = true
 region = "us-east-1"
 image_repositories = []
-capabilities = "CAPABILITY_IAM"
+capabilities = "CAPABILITY_NAMED_IAM"
 
 [test.deploy.parameters]
 s3_prefix = "tacocat-gallery-sam/test" # Prefix (folder name) added to the names of artifacts uploaded to S3
@@ -67,7 +67,7 @@ confirm_changeset = false
 resolve_s3 = true
 region = "us-east-1"
 image_repositories = []
-capabilities = "CAPABILITY_IAM"
+capabilities = "CAPABILITY_NAMED_IAM"
 
 [prod.deploy.parameters]
 s3_prefix = "tacocat-gallery-sam/prod" # Prefix (folder name) added to the names of artifacts uploaded to S3
@@ -87,7 +87,7 @@ confirm_changeset = true
 resolve_s3 = true
 region = "us-east-1"
 image_repositories = []
-capabilities = "CAPABILITY_IAM"
+capabilities = "CAPABILITY_NAMED_IAM"
 
 #
 # validate: parameters that apply to the sam validate command
