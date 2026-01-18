@@ -55,7 +55,7 @@ Derived Bucket:
 
 2. Browser uploads `my_video.avi` to Originals bucket using a presigned URL (same as images).
 
-3. A S3 trigger triggers the `ProcessImageUpload` Lambda (to be renamed to `ProcessUpload`)
+3. A S3 trigger triggers the `ProcessImageUpload` Lambda (to be renamed to `ProcessMediaUpload`)
    - Detects video extension
    - Validates upload rules (see below)
    - Generates a UUID for the video
@@ -73,7 +73,7 @@ Derived Bucket:
 
 5. MediaConvert sends an EventBridge event containing the `userMetadata` containing the original video's path and versionId.
 
-6. This triggers the `VideoProcessingComplete` lambda, which:
+6. This triggers the `VideoTranscodingComplete` lambda, which:
    - If the EventBridge event status (`ERROR`, `CANCELED`), see 'On Failure' below.
    - Else write DynamoDB record with `id` (UUID), `mediaType: 'video'`, `duration`, `path`, `versionId` etc.
 
@@ -84,8 +84,8 @@ Derived Bucket:
 
 On failure of any step in the processing:
 
-- Write to the new error table
-  - Write error to the `MediaProcessingError` DynamoDB table (see below)
+- Write to the error table
+  - Write error to the `Error` DynamoDB table (see below) with `errorType: 'media_processing'`
   - The Sveltekit front end polling checks error table, shows failure message
 - Clean up
   - Delete the original video from Originals bucket
@@ -154,23 +154,34 @@ interface VideoRecord {
 
 ### Error Table
 
-A new DynamoDB table for video and photo processing failures. 
+A new DynamoDB table for any sort of failure that happens async on the back end that the client should know about.  The first use case is video and photo processing, but the table is generic and can support other error types in the future.
 
 ```typescript
-interface MediaProcessingErrorRecord {
-  mediaPath: string;            // partition key
+interface ErrorRecord {
+  path: string;                 // partition key
+  errorType: ErrorType;         // e.g., 'media_processing'
   errorMessage: string;
-  timestamp: number;            // time the error was logged
+  timestamp: string;            // ISO 8601 timestamp
   ttl: number;                  // DynamoDB TTL
 }
+
+enum ErrorType {
+  MediaProcessing = 'media_processing',
+}
 ```
+
+#### The `errorType` field
+
+- Allows filtering errors by type (e.g., `media_processing`)
+- Currently only `media_processing` is used, but the table can support other error types in the future
+- The `getMediaProcessingErrors()` API filters by `errorType === 'media_processing'`
 
 #### The `ttl` field
 
 - `ttl` is a special field in DynamoDB; DynamoDB will auto-delete the record after this moment.
 - It represents the exact time at which the item is considered expired.
 - The format is a timestamp in the Unix epoch time format, specified in seconds (not milliseconds).
-- We will set `ttl` to delete after 24 hours.
+- We set `ttl` to delete after 24 hours.
 - 24 hours is long enough for the UI to see it.
 - Any longer, you're probably doing forensics, and looking at CloudWatch logs is more appropriate.
 
@@ -224,7 +235,7 @@ While the media is being processed, the front end will poll with two API calls:
 - This error table (for failure).
 - Retrieve the album that the media was dropped on.  Existence of the media item in the album indicates success.
 
-For the initial release of video support, only video processing failures will write to this table. Adding image processing errors is a future enhancement after video support is complete.
+For the initial release of video support, it's only necessary to write video processing failures to this table.  Only update image processing errors if you're already in the code.
 
 ### Album Thumbnails from Videos
 
@@ -238,15 +249,14 @@ The existing flow works:
 
 **Change needed in `GenerateDerivedImage` Lambda:**
 
-When generating a thumbnail for a video path, the Lambda must fetch the **poster** from the Derived bucket instead of the original. This requires looking up the video's UUID.
+When generating a thumbnail for a video path, the Lambda must fetch the **poster** from the Derived bucket instead of the original. The frontend passes the UUID in the request path, avoiding a DynamoDB lookup.
 
 ```
-Request:  /i/2024/06-15/video.avi/<versionId>/200
-Lookup:   DynamoDB to get video's UUID
+Request:  /i/2024/06-15/video.avi/<versionId>/<UUID>/200
 Source:   /video/<UUID>.jpg in Derived bucket
 ```
 
-The Lambda checks if the path has a video extension. If so, it looks up the video record in DynamoDB to get the UUID, then reads the poster from `/video/<UUID>.jpg` in the Derived bucket.
+The Lambda checks if the path has a video extension. If so, it extracts the UUID from the path and reads the poster from `/video/<UUID>.jpg` in the Derived bucket. No DynamoDB lookup is needed because the frontend already has the UUID from the album API response.
 
 ### Video Thumbnail Cropping 
 
@@ -275,11 +285,11 @@ In the Sveltekit front end, a user can drag a new video over an existing one of 
 
 The flow:
 1. Browser uses a presigned URL to overwrite the original in S3 with new upload
-2. The S3 trigger triggers `ProcessImageUpload` Lambda
-3. `ProcessImageUpload` detects existing video record, reuses the same UUID
-4. `ProcessImageUpload` triggers new MediaConvert job with existing UUID
+2. The S3 trigger triggers `ProcessMediaUpload` Lambda
+3. `ProcessMediaUpload` detects existing video record, reuses the same UUID
+4. `ProcessMediaUpload` triggers new MediaConvert job with existing UUID
 5. MediaConvert overwrites `/video/<UUID>.mp4` and `/video/<UUID>.jpg`
-6. DynamoDB record updated by VideoProcessingComplete (same UUID, new versionId)
+6. DynamoDB record updated by VideoTranscodingComplete (same UUID, new versionId)
 7. Front end polls to detects that processing is done by re-retrieving the album.  If the video has a new versionId, processing is complete.
 8. Front end requests thumbnail and detail page using new versionId
 9. `GenerateDerivedImage` Lambda generates the new thumbnail using new versionId
@@ -328,7 +338,7 @@ The path validation in `gallery_path_utils` must be updated to accept video exte
 
 Calling sites can choose the appropriate function. For example:
 - Presigned URL endpoint uses `isValidMediaPath()` to allow both
-- ProcessUpload Lambda uses extension to determine image vs video processing path
+- `ProcessMediaUpload` Lambda will use extension to determine image vs video processing path
 - Existing image-only code continues using `isValidImagePath()`
 
 ## Technical Decision Log
