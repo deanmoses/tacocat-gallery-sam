@@ -68,10 +68,10 @@ export type BaseGalleryRecord = {
 export type GalleryItemType = 'album' | 'image';
 
 /**
- * Distinguishes between differen types of media.
+ * Distinguishes between different types of media.
  * Currently there's two types of media: video and image.
  * Only videos have this field; images don't have mediaType yet,
- * beacuse that would require a migration.
+ * because that would require a migration.
  */
 export type MediaType = 'video';
 

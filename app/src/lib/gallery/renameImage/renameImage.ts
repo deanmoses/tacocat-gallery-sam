@@ -5,8 +5,8 @@ import {
     getParentAndNameFromPath,
     getParentFromPath,
     isValidAlbumPath,
-    isValidImageNameStrict,
-    isValidImagePath,
+    isValidMediaNameStrict,
+    isValidMediaPath,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
@@ -14,119 +14,124 @@ import { itemExists } from '../itemExists/itemExists';
 import { copyOriginal } from '../../s3_utils/s3copy';
 import { deleteOriginalAndDerivatives } from '../../s3_utils/s3delete';
 import { getFullItemFromDynamoDB } from '../../dynamo_utils/ddbGet';
-import { ImageItem } from '../galleryTypes';
+import { MediaItem } from '../galleryTypes';
 
 /**
- * Rename an image in both DynamoDB and S3.
+ * Rename a media item (image or video) in both DynamoDB and S3.
  *
  * Only supports renaming within the same album.
  * I COULD implement this as a move and allow moving to other albums,
  * but v1 of the UI won't support that.  I can build that support when
  * I need it in the UI.
  *
- * @param oldImagePath Path of existing image like /2001/12-31/image.jpg
- * @param newName New name of image like newName.jpg
- * @returns Path of new image like /2001/12-31/newName.jpg
- */
-export async function renameImage(oldImagePath: string, newName: string): Promise<string> {
-    console.info(`Rename Image: renaming [${oldImagePath}] to [${newName}]...`);
-    assertIsValidImagePath(oldImagePath);
-    validateNewImageName(oldImagePath, newName);
-    const newImagePath = getParentFromPath(oldImagePath) + newName;
-    await Promise.all([assertImageExists(oldImagePath), assertImageDoesNotExist(newImagePath)]);
-    const newVersionId = await copyOriginal(oldImagePath, newImagePath);
-    await renameImageInDynamoDB(oldImagePath, newName, newVersionId);
-    await deleteOriginalAndDerivatives(oldImagePath);
-    console.info(`Rename Image: renamed image from [${oldImagePath}] to [${newImagePath}]`);
-    return newImagePath;
-}
-
-function assertIsValidImagePath(imagePath: string): void {
-    if (!isValidImagePath(imagePath)) {
-        throw new BadRequestException(`Invalid image path: [${imagePath}]`);
-    }
-}
-
-async function assertImageExists(imagePath: string): Promise<void> {
-    if (!(await itemExists(imagePath))) {
-        throw new BadRequestException(`Image not found: [${imagePath}]`);
-    }
-}
-
-async function assertImageDoesNotExist(imagePath: string): Promise<void> {
-    if (await itemExists(imagePath)) {
-        throw new BadRequestException(`An image already exists at [${imagePath}]`);
-    }
-}
-
-/**
- * Verify that the new image name is valid.
- * Including that it's the same extension as the old image.
+ * For videos: The UUID is preserved in the DynamoDB record, so the transcoded
+ * video and poster at /video/<UUID> remain valid. Only the original file in the
+ * Originals bucket and derived thumbnails are deleted/recreated.
  *
- * @param existingImagePath Path of existing image like /2001/12-31/image.jpg
- * @param newName New name of image like newName.jpg
+ * @param oldMediaPath Path of existing media like /2001/12-31/image.jpg or /2001/12-31/video.mp4
+ * @param newName New name of media like newName.jpg or newName.mp4
+ * @returns Path of new media like /2001/12-31/newName.jpg
  */
-function validateNewImageName(existingImagePath: string, newName: string) {
-    if (!isValidImageNameStrict(newName)) {
-        throw new BadRequestException(`New image name is invalid: [${newName}]`);
+export async function renameImage(oldMediaPath: string, newName: string): Promise<string> {
+    console.info(`Rename Media: renaming [${oldMediaPath}] to [${newName}]...`);
+    assertIsValidMediaPath(oldMediaPath);
+    validateNewMediaName(oldMediaPath, newName);
+    const newMediaPath = getParentFromPath(oldMediaPath) + newName;
+    await Promise.all([assertMediaExists(oldMediaPath), assertMediaDoesNotExist(newMediaPath)]);
+    const newVersionId = await copyOriginal(oldMediaPath, newMediaPath);
+    await renameMediaInDynamoDB(oldMediaPath, newName, newVersionId);
+    // Don't pass videoUuid - for videos, we keep /video/<UUID> files since UUID is preserved
+    await deleteOriginalAndDerivatives(oldMediaPath);
+    console.info(`Rename Media: renamed media from [${oldMediaPath}] to [${newMediaPath}]`);
+    return newMediaPath;
+}
+
+function assertIsValidMediaPath(mediaPath: string): void {
+    if (!isValidMediaPath(mediaPath)) {
+        throw new BadRequestException(`Invalid media path: [${mediaPath}]`);
     }
-    if (newName === getNameFromPath(existingImagePath)) {
-        throw new BadRequestException(`New image name [${newName}] cannot be same as old one [${existingImagePath}]`);
+}
+
+async function assertMediaExists(mediaPath: string): Promise<void> {
+    if (!(await itemExists(mediaPath))) {
+        throw new BadRequestException(`Media not found: [${mediaPath}]`);
     }
-    const oldExtension = existingImagePath.split('.').pop();
-    const newExtension = newName.split('.').pop();
-    if (newExtension !== oldExtension) {
-        throw new BadRequestException(`File extension of [${newName}] does not match [${existingImagePath}]`);
+}
+
+async function assertMediaDoesNotExist(mediaPath: string): Promise<void> {
+    if (await itemExists(mediaPath)) {
+        throw new BadRequestException(`A media item already exists at [${mediaPath}]`);
     }
 }
 
 /**
- * Rename the image in DynamoDB.
- * Renames any usages of the image as an album thumbnail as well.
+ * Verify that the new media name is valid.
+ * Including that it's the same extension as the old media.
+ *
+ * @param existingMediaPath Path of existing media like /2001/12-31/image.jpg
+ * @param newName New name of media like newName.jpg
+ */
+function validateNewMediaName(existingMediaPath: string, newName: string) {
+    if (!isValidMediaNameStrict(newName)) {
+        throw new BadRequestException(`New media name is invalid: [${newName}]`);
+    }
+    if (newName === getNameFromPath(existingMediaPath)) {
+        throw new BadRequestException(`New media name [${newName}] cannot be same as old one [${existingMediaPath}]`);
+    }
+    const oldExtension = existingMediaPath.split('.').pop()?.toLowerCase();
+    const newExtension = newName.split('.').pop()?.toLowerCase();
+    if (newExtension !== oldExtension) {
+        throw new BadRequestException(`File extension of [${newName}] does not match [${existingMediaPath}]`);
+    }
+}
+
+/**
+ * Rename the media in DynamoDB.
+ * Renames any usages of the media as an album thumbnail as well.
  * Does not touch S3.
  *
- * @param oldImagePath Old image path like /2001/12-31/image.jpg
- * @param newImageName New image name like new_image_name.jpg
- * @param newVersionId Version ID of new image
+ * @param oldMediaPath Old media path like /2001/12-31/image.jpg
+ * @param newMediaName New media name like new_image_name.jpg
+ * @param newVersionId Version ID of new media
  */
-async function renameImageInDynamoDB(oldImagePath: string, newImageName: string, newVersionId: string) {
-    const albumPath = getParentFromPath(oldImagePath);
-    const newImagePath = albumPath + newImageName;
+async function renameMediaInDynamoDB(oldMediaPath: string, newMediaName: string, newVersionId: string) {
+    const albumPath = getParentFromPath(oldMediaPath);
+    const newMediaPath = albumPath + newMediaName;
     const grandparentAlbumPath = getParentFromPath(albumPath);
     // TODO: these should all be done in a single transaction.
     // However, since updating the album thumbnail entries rely on a
     // a condition failing, the transaction would fail.  BZZZT.
     await Promise.all([
-        moveImageInDynamoDB(oldImagePath, newImageName, newVersionId),
-        renameAlbumThumb(albumPath, oldImagePath, newImagePath),
-        renameAlbumThumb(grandparentAlbumPath, oldImagePath, newImagePath),
+        moveMediaInDynamoDB(oldMediaPath, newMediaName, newVersionId),
+        renameAlbumThumb(albumPath, oldMediaPath, newMediaPath),
+        renameAlbumThumb(grandparentAlbumPath, oldMediaPath, newMediaPath),
     ]);
 }
 
 /**
  * Rename specified entry in DynamoDB.
- * Does not update any usages of the image as an album thumbnail (unfortunately)
+ * Does not update any usages of the media as an album thumbnail (unfortunately)
  * Does not touch S3.
  *
- * @param oldImagePath Path of existing image like /2001/12-31/image.jpg
- * @param newImageName New name of image like newName.jpg
- * @param newVersionId Version ID of new image
+ * @param oldMediaPath Path of existing media like /2001/12-31/image.jpg
+ * @param newMediaName New name of media like newName.jpg
+ * @param newVersionId Version ID of new media
  */
-async function moveImageInDynamoDB(oldImagePath: string, newImageName: string, newVersionId: string) {
-    console.info(`Rename Image: renaming image entry in DynamoDB from [${oldImagePath}] to [${newImageName}]...`);
-    const oldPathParts = getParentAndNameFromPath(oldImagePath);
-    const image = await getFullItemFromDynamoDB<ImageItem>(oldImagePath);
-    if (!image) throw new Error(`Old image [${oldImagePath}] not found in DynamoDB`);
-    image.itemName = newImageName;
-    image.updatedOn = new Date().toISOString();
-    image.versionId = newVersionId;
+async function moveMediaInDynamoDB(oldMediaPath: string, newMediaName: string, newVersionId: string) {
+    console.info(`Rename Media: renaming media entry in DynamoDB from [${oldMediaPath}] to [${newMediaName}]...`);
+    const oldPathParts = getParentAndNameFromPath(oldMediaPath);
+    const media = await getFullItemFromDynamoDB<MediaItem>(oldMediaPath);
+    if (!media) throw new Error(`Old media [${oldMediaPath}] not found in DynamoDB`);
+    media.itemName = newMediaName;
+    media.updatedOn = new Date().toISOString();
+    media.versionId = newVersionId;
     const ddbCommand = new TransactWriteCommand({
         TransactItems: [
             // Create new entry
             {
                 Put: {
                     TableName: getDynamoDbTableName(),
-                    Item: image,
+                    Item: media,
                 },
             },
             // Delete old entry
@@ -147,35 +152,35 @@ async function moveImageInDynamoDB(oldImagePath: string, newImageName: string, n
 }
 
 /**
- * If specified album is using the specified image as its thumbnail,
- * update it to the image's new path.
+ * If specified album is using the specified media as its thumbnail,
+ * update it to the media's new path.
  *
  * @param albumPath Path of album like /2001/12-31/ or /2001/
- * @param oldImagePath Old path of image like /2001/12-31/image.jpg
- * @param newImagePath New path of image like /2001/12-31/new_name.jpg
+ * @param oldMediaPath Old path of media like /2001/12-31/image.jpg
+ * @param newMediaPath New path of media like /2001/12-31/new_name.jpg
  */
-export async function renameAlbumThumb(albumPath: string, oldImagePath: string, newImagePath: string): Promise<void> {
-    console.info(`Attempting to rename thumb of [${albumPath}] from [${oldImagePath}] to [${newImagePath}]...`);
+export async function renameAlbumThumb(albumPath: string, oldMediaPath: string, newMediaPath: string): Promise<void> {
+    console.info(`Attempting to rename thumb of [${albumPath}] from [${oldMediaPath}] to [${newMediaPath}]...`);
     if (!isValidAlbumPath(albumPath)) throw new Error(`Invalid album path: [${albumPath}]`);
-    if (!isValidImagePath(oldImagePath)) throw new Error(`Invalid album path: [${oldImagePath}]`);
-    if (!isValidImagePath(newImagePath)) throw new Error(`Invalid album path: [${newImagePath}]`);
+    if (!isValidMediaPath(oldMediaPath)) throw new Error(`Invalid media path: [${oldMediaPath}]`);
+    if (!isValidMediaPath(newMediaPath)) throw new Error(`Invalid media path: [${newMediaPath}]`);
     const albumPathParts = getParentAndNameFromPath(albumPath);
     const ddbCommand = new ExecuteStatementCommand({
         Statement:
             `UPDATE "${getDynamoDbTableName()}"` +
-            ` SET thumbnail.path='${newImagePath}'` +
+            ` SET thumbnail.path='${newMediaPath}'` +
             ` SET updatedOn='${new Date().toISOString()}'` +
-            ` WHERE parentPath='${albumPathParts.parent}' AND itemName='${albumPathParts.name}' AND thumbnail.path='${oldImagePath}'`,
+            ` WHERE parentPath='${albumPathParts.parent}' AND itemName='${albumPathParts.name}' AND thumbnail.path='${oldMediaPath}'`,
     });
 
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);
     try {
         await docClient.send(ddbCommand);
-        console.info(`Album [${albumPath}]: renamed thumbnail from [${oldImagePath}] to [${newImagePath}]`);
+        console.info(`Album [${albumPath}]: renamed thumbnail from [${oldMediaPath}] to [${newMediaPath}]`);
     } catch (e) {
         if (e instanceof ConditionalCheckFailedException) {
-            console.info(`Album [${albumPath}] did not have image [${oldImagePath}] as its thumbnail`);
+            console.info(`Album [${albumPath}] did not have media [${oldMediaPath}] as its thumbnail`);
         } else {
             throw e;
         }

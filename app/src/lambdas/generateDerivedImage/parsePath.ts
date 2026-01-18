@@ -1,10 +1,14 @@
 import { isImageFormat, OptimizingParams } from './optimizeImage';
 
-const pathImageIdPattern =
-    /^\/i\/(?<ID>\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/[a-zA-Z0-9_-]+\.(jpg|jpeg|gif|png))\/(?<VERSION>[^\/]+)/;
+// Matches media paths: /i/2001/12-31/media.ext/VERSIONID/...
+// Supports images (jpg, jpeg, gif, png) and videos (mp4, mov, avi, mkv, webm, m4v, 3gp)
+const pathMediaIdPattern =
+    /^\/i\/(?<ID>\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/[a-zA-Z0-9_-]+\.(jpg|jpeg|gif|png|mp4|mov|avi|mkv|webm|m4v|3gp))\/(?<VERSION>[^/]+)/i;
 
 export type PathParams = OptimizingParams & {
+    /** S3 key - like mediaPath, but without the leading slash, e.g. "2001/12-31/image.jpg" */
     id?: string;
+    /** S3 version ID */
     versionId?: string;
     error?: string;
 };
@@ -12,13 +16,13 @@ export type PathParams = OptimizingParams & {
 /**
  * Parse parameters from the URL path
  *
- * @param path like /i/2001/12-31/image.jpg/VERSIONID/webp/300x400/fp=200,100/crop=10,20,400,540
+ * Example: /i/2001/12-31/image.jpg/VERSIONID/webp/300x400/fp=200,100/crop=10,20,400,540
  */
-export function parsePath(path: string): PathParams {
-    const match = path.match(pathImageIdPattern);
-    if (!match) return { error: 'missing image id or version id' };
+export function parseUrlPath(path: string): PathParams {
+    const match = path.match(pathMediaIdPattern);
+    if (!match) return { error: 'missing media id or version id' };
 
-    const id = match.groups?.ID; // named capture group ID must be the image id
+    const id = match.groups?.ID; // named capture group ID must be the media id
     const versionId = match.groups?.VERSION; // named capture group VERSION must be the version id
     const segments = path.substring(match[0].length).split('/');
 

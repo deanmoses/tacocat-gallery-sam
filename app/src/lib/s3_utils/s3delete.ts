@@ -1,91 +1,115 @@
 import { DeleteObjectCommand, DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { getDerivedImagesBucketName, getOriginalImagesBucketName } from '../lambda_utils/Env';
 import { fromPathToS3DerivedImagesBucketKey, fromPathToS3OriginalBucketKey } from './s3path';
-import { isValidAlbumPath, isValidImagePath } from '../gallery_path_utils/galleryPathUtils';
+import { isValidAlbumPath, isValidMediaPath } from '../gallery_path_utils/galleryPathUtils';
+import { isValidUuid } from '../uuid_utils/uuidUtils';
 
 /**
- * Delete album's images from S3, both original and any derived images.
+ * Delete album's media from S3, both originals and any derived files.
  * Does not touch DynamoDB.
  *
  * @param albumPath Path of album, like /2001/12-31/
  */
 export async function deleteOriginalsAndDerivatives(albumPath: string): Promise<void> {
-    await Promise.allSettled([deleteOriginals(albumPath), deleteDerivedImagesForAlbum(albumPath)]);
+    await Promise.allSettled([deleteOriginals(albumPath), deleteDerivedFilesForAlbum(albumPath)]);
 }
 
 /**
- * Delete single image from S3, both original and any derived images.
+ * Delete single media from S3, both original and any derived files.
  * Does not touch DynamoDB.
  *
- * @param imagePath Path of image, like /2001/12-31/image.jpg
+ * For videos, also pass the UUID to delete the transcoded video and poster from /video/<UUID>.
+ *
+ * @param mediaPath Path of media, like /2001/12-31/image.jpg or /2001/12-31/video.mp4
+ * @param videoUuid Optional UUID for video assets (transcoded video and poster)
  */
-export async function deleteOriginalAndDerivatives(imagePath: string): Promise<void> {
-    await Promise.allSettled([deleteOriginalImage(imagePath), deleteDerivedImages(imagePath)]);
+export async function deleteOriginalAndDerivatives(mediaPath: string, videoUuid?: string): Promise<void> {
+    const deletePromises = [deleteOriginalMedia(mediaPath), deleteDerivedFiles(mediaPath)];
+    if (videoUuid) {
+        deletePromises.push(deleteVideoAssets(videoUuid));
+    }
+    await Promise.allSettled(deletePromises);
 }
 
 /**
- * Delete album's original images from S3.
+ * Delete album's original media from S3.
  * Does not touch DynamoDB.
  *
  * @param albumPath Path of album, like /2001/12-31/
  */
 async function deleteOriginals(albumPath: string): Promise<void> {
-    console.info(`Deleting original images for album [${albumPath}]...`);
+    console.info(`Deleting original media for album [${albumPath}]...`);
     if (!isValidAlbumPath(albumPath)) {
-        throw new Error(`Cannot delete original images; invalid album path [${albumPath}]`);
+        throw new Error(`Cannot delete original media; invalid album path [${albumPath}]`);
     }
     const albumKeyPrefix = fromPathToS3OriginalBucketKey(albumPath);
     await deleteS3Folder(getOriginalImagesBucketName(), albumKeyPrefix);
 }
 
 /**
- * Delete album's derived images from S3.
+ * Delete album's derived files from S3 (thumbnails, resized images).
  * Does not touch DynamoDB.
  *
  * @param albumPath Path of album, like /2001/12-31/
  */
-async function deleteDerivedImagesForAlbum(albumPath: string): Promise<void> {
-    console.info(`Deleting derived images for album [${albumPath}]...`);
+async function deleteDerivedFilesForAlbum(albumPath: string): Promise<void> {
+    console.info(`Deleting derived files for album [${albumPath}]...`);
     if (!isValidAlbumPath(albumPath)) {
-        throw new Error(`Cannot delete derived images; invalid album path [${albumPath}]`);
+        throw new Error(`Cannot delete derived files; invalid album path [${albumPath}]`);
     }
-    const derivedImagesPrefix = fromPathToS3DerivedImagesBucketKey(albumPath);
-    await deleteS3Folder(getDerivedImagesBucketName(), derivedImagesPrefix);
+    const derivedFilesPrefix = fromPathToS3DerivedImagesBucketKey(albumPath);
+    await deleteS3Folder(getDerivedImagesBucketName(), derivedFilesPrefix);
 }
 
 /**
- * Delete original image from S3.
+ * Delete original media from S3.
  * Does not touch DynamoDB.
  *
- * @param imagePath Path of image, like /2001/12-31/image.jpg
+ * @param mediaPath Path of media, like /2001/12-31/image.jpg or /2001/12-31/video.mp4
  */
-async function deleteOriginalImage(imagePath: string): Promise<void> {
-    console.info(`Deleting original image from S3 [${imagePath}]...`);
-    if (!isValidImagePath(imagePath)) {
-        throw new Error(`Cannot delete original image; invalid image path [${imagePath}]`);
+async function deleteOriginalMedia(mediaPath: string): Promise<void> {
+    console.info(`Deleting original media from S3 [${mediaPath}]...`);
+    if (!isValidMediaPath(mediaPath)) {
+        throw new Error(`Cannot delete original media; invalid media path [${mediaPath}]`);
     }
-    const originalImageObjectKey = fromPathToS3OriginalBucketKey(imagePath);
+    const originalMediaObjectKey = fromPathToS3OriginalBucketKey(mediaPath);
     const s3Command = new DeleteObjectCommand({
         Bucket: getOriginalImagesBucketName(),
-        Key: originalImageObjectKey,
+        Key: originalMediaObjectKey,
     });
     const client = new S3Client({});
     await client.send(s3Command);
 }
 
 /**
- * Delete derived images from S3.
+ * Delete derived files from S3 (thumbnails and resized images).
  * Does not touch DynamoDB.
  *
- * @param imagePath Path of image, like /2001/12-31/image.jpg
+ * @param mediaPath Path of media, like /2001/12-31/image.jpg or /2001/12-31/video.mp4
  */
-async function deleteDerivedImages(imagePath: string): Promise<void> {
-    console.info(`Deleting derived images from S3 [${imagePath}]...`);
-    if (!isValidImagePath(imagePath)) {
-        throw new Error(`Cannot delete derived images; invalid image path [${imagePath}]`);
+async function deleteDerivedFiles(mediaPath: string): Promise<void> {
+    console.info(`Deleting derived files from S3 [${mediaPath}]...`);
+    if (!isValidMediaPath(mediaPath)) {
+        throw new Error(`Cannot delete derived files; invalid media path [${mediaPath}]`);
     }
-    const derivedImagesPath = fromPathToS3DerivedImagesBucketKey(imagePath);
-    await deleteS3Folder(getDerivedImagesBucketName(), derivedImagesPath);
+    const derivedFilesPath = fromPathToS3DerivedImagesBucketKey(mediaPath);
+    await deleteS3Folder(getDerivedImagesBucketName(), derivedFilesPath);
+}
+
+/**
+ * Delete video assets (transcoded video and poster) from S3.
+ * Video assets are stored at /video/<UUID>.mp4 and /video/<UUID>.jpg in the Derived bucket.
+ * Does not touch DynamoDB.
+ *
+ * @param uuid UUID of the video
+ */
+async function deleteVideoAssets(uuid: string): Promise<void> {
+    if (!isValidUuid(uuid)) {
+        throw new Error(`Cannot delete video assets; invalid UUID [${uuid}]`);
+    }
+    console.info(`Deleting video assets for UUID [${uuid}]...`);
+    // Delete all files with prefix video/<UUID> (includes .mp4 and .jpg)
+    await deleteS3Folder(getDerivedImagesBucketName(), `video/${uuid}`);
 }
 
 /**
@@ -109,7 +133,7 @@ async function deleteS3Folder(bucketName: string, keyPrefix: string): Promise<nu
 
     // Do a bulk delete of the objects
     if (objectsToDelete?.KeyCount) {
-        console.info(`Deleting [${objectsToDelete?.Contents?.length}] derived images...`);
+        console.info(`Deleting [${objectsToDelete?.Contents?.length}] derived files...`);
         const deleteCommand = new DeleteObjectsCommand({
             Bucket: bucketName,
             Delete: {
@@ -119,7 +143,7 @@ async function deleteS3Folder(bucketName: string, keyPrefix: string): Promise<nu
         });
 
         const deletedObjects = await client.send(deleteCommand);
-        console.info(`Deleted [${deletedObjects?.Deleted?.length}] derived images.`);
+        console.info(`Deleted [${deletedObjects?.Deleted?.length}] derived files.`);
         if (deletedObjects?.Errors) {
             deletedObjects.Errors.map((error) => console.error(`${error.Key} could not be deleted - ${error.Code}`));
         }

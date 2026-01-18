@@ -1,6 +1,13 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { S3Client, DeleteObjectCommand, ListObjectsV2Command, CopyObjectCommand } from '@aws-sdk/client-s3';
+import {
+    S3Client,
+    DeleteObjectCommand,
+    ListObjectsV2Command,
+    CopyObjectCommand,
+    HeadObjectCommand,
+    NotFound,
+} from '@aws-sdk/client-s3';
 import {
     MediaConvertClient,
     GetJobCommand,
@@ -9,6 +16,7 @@ import {
     VideoDetail,
 } from '@aws-sdk/client-mediaconvert';
 import { getParentFromPath, getNameFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
+import { isValidUuid } from '../../lib/uuid_utils/uuidUtils';
 import {
     getDynamoDbTableName,
     getOriginalImagesBucketName,
@@ -83,6 +91,11 @@ export async function handleVideoTranscodingComplete(event: MediaConvertJobState
     if (!videoPath || !versionId || !videoId) {
         console.error(JSON.stringify({ event: 'transcoding_missing_metadata', jobId, videoPath, versionId, videoId }));
         return;
+    }
+
+    if (!isValidUuid(videoId)) {
+        console.error(JSON.stringify({ event: 'transcoding_invalid_uuid', jobId, videoId }));
+        throw new Error(`Invalid UUID format: ${videoId}`);
     }
 
     if (status === 'COMPLETE') {
@@ -221,9 +234,26 @@ async function getJobMetadata(
 }
 
 /**
+ * Check if an S3 object exists.
+ * Used for idempotent rename operations on Lambda retries.
+ */
+async function objectExists(bucket: string, key: string): Promise<boolean> {
+    try {
+        await s3Client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+        return true;
+    } catch (err) {
+        if (err instanceof NotFound) return false;
+        throw err;
+    }
+}
+
+/**
  * Rename MediaConvert outputs from original filename to UUID-based names.
  * MediaConvert outputs: video/<filename>_transcoded.mp4 and video/<filename>_poster.0000000.jpg
  * We rename to: video/<UUID>.mp4 and video/<UUID>.jpg
+ *
+ * This function is idempotent: if the destination already exists (from a previous Lambda
+ * invocation), it skips the copy and just cleans up any remaining source files.
  */
 async function renameMediaConvertOutputs(videoPath: string, videoId: string): Promise<void> {
     const derivedBucket = getDerivedImagesBucketName();
@@ -245,40 +275,58 @@ async function renameMediaConvertOutputs(videoPath: string, videoId: string): Pr
     const posterDestKey = `video/${videoId}.jpg`;
 
     try {
-        // Rename video file
-        await s3Client.send(
-            new CopyObjectCommand({
-                Bucket: derivedBucket,
-                CopySource: `${derivedBucket}/${videoSourceKey}`,
-                Key: videoDestKey,
-            }),
-        );
+        // Rename video file (idempotent: skip copy if destination exists)
+        if (await objectExists(derivedBucket, videoDestKey)) {
+            console.info(JSON.stringify({ event: 'transcoding_video_already_renamed', destKey: videoDestKey }));
+        } else {
+            await s3Client.send(
+                new CopyObjectCommand({
+                    Bucket: derivedBucket,
+                    CopySource: `${derivedBucket}/${videoSourceKey}`,
+                    Key: videoDestKey,
+                }),
+            );
+            console.info(
+                JSON.stringify({
+                    event: 'transcoding_video_renamed',
+                    sourceKey: videoSourceKey,
+                    destKey: videoDestKey,
+                }),
+            );
+        }
+        // Always try to delete source (idempotent: DeleteObject succeeds even if key doesn't exist)
         await s3Client.send(
             new DeleteObjectCommand({
                 Bucket: derivedBucket,
                 Key: videoSourceKey,
             }),
         );
-        console.info(
-            JSON.stringify({ event: 'transcoding_video_renamed', sourceKey: videoSourceKey, destKey: videoDestKey }),
-        );
 
-        // Rename poster file
-        await s3Client.send(
-            new CopyObjectCommand({
-                Bucket: derivedBucket,
-                CopySource: `${derivedBucket}/${posterSourceKey}`,
-                Key: posterDestKey,
-            }),
-        );
+        // Rename poster file (idempotent: skip copy if destination exists)
+        if (await objectExists(derivedBucket, posterDestKey)) {
+            console.info(JSON.stringify({ event: 'transcoding_poster_already_renamed', destKey: posterDestKey }));
+        } else {
+            await s3Client.send(
+                new CopyObjectCommand({
+                    Bucket: derivedBucket,
+                    CopySource: `${derivedBucket}/${posterSourceKey}`,
+                    Key: posterDestKey,
+                }),
+            );
+            console.info(
+                JSON.stringify({
+                    event: 'transcoding_poster_renamed',
+                    sourceKey: posterSourceKey,
+                    destKey: posterDestKey,
+                }),
+            );
+        }
+        // Always try to delete source (idempotent: DeleteObject succeeds even if key doesn't exist)
         await s3Client.send(
             new DeleteObjectCommand({
                 Bucket: derivedBucket,
                 Key: posterSourceKey,
             }),
-        );
-        console.info(
-            JSON.stringify({ event: 'transcoding_poster_renamed', sourceKey: posterSourceKey, destKey: posterDestKey }),
         );
     } catch (error) {
         console.error(JSON.stringify({ event: 'transcoding_rename_failed', videoPath, videoId, error: String(error) }));

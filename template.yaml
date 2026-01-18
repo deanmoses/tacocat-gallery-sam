@@ -431,11 +431,14 @@ Resources:
         Variables:
           ORIGINAL_IMAGES_BUCKET: !Ref OriginalImagesBucket
           DERIVED_IMAGES_BUCKET: !Ref DerivedImagesBucket
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref OriginalImagesBucket
         - S3WritePolicy:
             BucketName: !Ref DerivedImagesBucket
+        - DynamoDBReadPolicy:
+            TableName: !Ref GalleryItemDDBTable
       Layers:
         # Sharp layer with HEIC support via libheif/libde265
         # I build this in an AWS Code Builder project: sharp-heic-lambda-layer

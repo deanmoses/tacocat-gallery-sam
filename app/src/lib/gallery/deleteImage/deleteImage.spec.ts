@@ -146,3 +146,34 @@ const deleteObjectsResponseWithItems: DeleteObjectsCommandOutput = {
         { Key: 'i/2001/01-01/tswift.jpg/jpeg/75x75' },
     ],
 };
+
+// Video delete tests
+describe('Video Delete', () => {
+    describe('Invalid Video Paths', () => {
+        const invalidPaths = [
+            '/2000/12-31/video', // no extension
+            '2000/12-31/video.mp4', // no starting /
+            '/2000/12-31/', // album, not video
+        ];
+        invalidPaths.forEach((path) => {
+            test(`Path should be invalid: [${path}]`, async () => {
+                await expect(deleteImage(path)).rejects.toThrow(/malformed/i);
+                expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(0);
+            });
+        });
+    });
+
+    describe('Valid Video Extensions Accepted', () => {
+        const validExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', '3gp'];
+        validExtensions.forEach((ext) => {
+            test(`Delete Video with .${ext} extension`, async () => {
+                // Mock the AWS calls
+                mockDocClient.on(DeleteCommand).resolves({});
+                mockS3Client.on(ListObjectsV2Command).resolves({ KeyCount: 0 });
+                const result = await deleteImage(`/2001/12-31/video.${ext}`);
+                expect(result).toBeUndefined();
+                expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(1);
+            });
+        });
+    });
+});

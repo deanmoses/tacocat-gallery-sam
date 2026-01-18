@@ -16,6 +16,7 @@ describe('searchable filenames', () => {
 });
 
 test('convert image', () => {
+    // Note: input has no tags - toRedisItem auto-adds ['photo', 'image', 'picture'] for search filtering
     const awsImageItem: ImageItem = {
         itemType: 'image',
         parentPath: '/2001/12-31/',
@@ -48,6 +49,7 @@ test('convert image', () => {
 });
 
 test('convert video', () => {
+    // Note: input has no tags - toRedisItem auto-adds ['movie', 'video', 'clip'] for search filtering
     const awsVideoItem: VideoItem = {
         itemType: 'image',
         mediaType: 'video',

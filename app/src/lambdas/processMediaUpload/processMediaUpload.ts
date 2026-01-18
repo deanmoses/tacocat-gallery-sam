@@ -1,4 +1,10 @@
-import { isValidVideoPath, isHeicPath } from '../../lib/gallery_path_utils/galleryPathUtils';
+import {
+    isValidMediaPathForUpload,
+    isValidAlbumPath,
+    hasVideoExtension,
+    hasHeicExtension,
+    hasImageExtension,
+} from '../../lib/gallery_path_utils/galleryPathUtils';
 import { processImageUpload } from './processImageUpload';
 import { processVideoUpload } from './processVideoUpload';
 import { processHeicUpload } from './processHeicUpload';
@@ -13,11 +19,19 @@ import { processHeicUpload } from './processHeicUpload';
 export async function processMediaUpload(bucket: string, key: string, versionId: string | undefined): Promise<void> {
     const mediaPath = '/' + key;
 
-    if (isValidVideoPath(mediaPath)) {
+    if (!isValidMediaPathForUpload(mediaPath)) {
+        if (isValidAlbumPath(mediaPath)) {
+            console.info(JSON.stringify({ event: 's3_album_folder_created', mediaPath }));
+        } else {
+            console.error(JSON.stringify({ event: 's3_invalid_media_path', mediaPath }));
+        }
+    } else if (hasVideoExtension(mediaPath)) {
         await processVideoUpload(bucket, key, versionId);
-    } else if (isHeicPath(key)) {
+    } else if (hasHeicExtension(mediaPath)) {
         await processHeicUpload(bucket, key);
-    } else {
+    } else if (hasImageExtension(mediaPath)) {
         await processImageUpload(bucket, key, versionId);
+    } else {
+        throw new Error(`Unrecognized file extension for path: [${mediaPath}]`);
     }
 }

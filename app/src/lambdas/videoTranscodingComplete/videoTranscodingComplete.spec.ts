@@ -1,6 +1,13 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, PutCommand, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { S3Client, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import {
+    S3Client,
+    DeleteObjectCommand,
+    ListObjectsV2Command,
+    CopyObjectCommand,
+    HeadObjectCommand,
+    NotFound,
+} from '@aws-sdk/client-s3';
 import { MediaConvertClient, GetJobCommand, DescribeEndpointsCommand } from '@aws-sdk/client-mediaconvert';
 import { handleVideoTranscodingComplete, MediaConvertJobStateChangeEvent } from './videoTranscodingComplete';
 
@@ -24,10 +31,14 @@ beforeEach(() => {
     mockDocClient.on(UpdateCommand).resolves({});
     mockS3Client.on(DeleteObjectCommand).resolves({});
     mockS3Client.on(ListObjectsV2Command).resolves({ Contents: [] });
+    mockS3Client.on(CopyObjectCommand).resolves({});
+    mockS3Client.on(HeadObjectCommand).rejects(new NotFound({ $metadata: {}, message: 'Not Found' })); // Default: destination doesn't exist
     mockMediaConvert.on(DescribeEndpointsCommand).resolves({
         Endpoints: [{ Url: 'https://abc123.mediaconvert.us-east-1.amazonaws.com' }],
     });
 });
+
+const VALID_UUID = '550e8400-e29b-41d4-a716-446655440000';
 
 function createCompleteEvent(
     overrides: Partial<MediaConvertJobStateChangeEvent['detail']> = {},
@@ -46,7 +57,7 @@ function createCompleteEvent(
             userMetadata: {
                 path: '/2024/06-15/video.mp4',
                 versionId: 'version123',
-                id: 'uuid-12345',
+                id: VALID_UUID,
             },
             ...overrides,
         },
@@ -90,7 +101,7 @@ describe('handleVideoTranscodingComplete()', () => {
             expect(input?.Key?.itemName).toBe('video.mp4');
             expect(input?.ExpressionAttributeValues?.[':itemType']).toBe('image'); // itemType is 'image' for all media
             expect(input?.ExpressionAttributeValues?.[':mediaType']).toBe('video'); // mediaType distinguishes videos from images
-            expect(input?.ExpressionAttributeValues?.[':id']).toBe('uuid-12345');
+            expect(input?.ExpressionAttributeValues?.[':id']).toBe(VALID_UUID);
             expect(input?.ExpressionAttributeValues?.[':versionId']).toBe('version123');
             expect(input?.ExpressionAttributeValues?.[':dimensions']).toEqual({ width: 1920, height: 1080 });
             expect(input?.ExpressionAttributeValues?.[':duration']).toBe(120);
@@ -124,6 +135,42 @@ describe('handleVideoTranscodingComplete()', () => {
             const values = videoUpdate?.args[0].input.ExpressionAttributeValues;
             expect(values?.[':dimensions']).toEqual({ width: 3840, height: 2160 });
             expect(values?.[':duration']).toBe(300);
+        });
+
+        test('Handles Lambda retry when rename already completed (idempotent)', async () => {
+            // Simulate retry: destination files already exist from previous invocation
+            mockS3Client.on(HeadObjectCommand).resolves({}); // Destination exists
+
+            mockMediaConvert.on(GetJobCommand).resolves({
+                Job: {
+                    OutputGroupDetails: [
+                        {
+                            OutputDetails: [
+                                {
+                                    VideoDetails: { WidthInPx: 1920, HeightInPx: 1080 },
+                                    DurationInMs: 60000,
+                                },
+                            ],
+                        },
+                    ],
+                } as never,
+            });
+
+            // Should not throw, even though source files are gone
+            await handleVideoTranscodingComplete(createCompleteEvent());
+
+            // Should NOT have called CopyObjectCommand (destinations already exist)
+            const copyCalls = mockS3Client.commandCalls(CopyObjectCommand);
+            expect(copyCalls.length).toBe(0);
+
+            // Should still call DeleteObjectCommand to clean up any remaining source files
+            const deleteCalls = mockS3Client.commandCalls(DeleteObjectCommand);
+            const derivedDeletes = deleteCalls.filter((call) => call.args[0].input.Bucket === 'test-derived-bucket');
+            expect(derivedDeletes.length).toBe(2); // video and poster source files
+
+            // DynamoDB record should still be written
+            const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+            expect(updateCalls.length).toBeGreaterThanOrEqual(1);
         });
     });
 
@@ -218,6 +265,18 @@ describe('handleVideoTranscodingComplete()', () => {
             // Should not write any records
             const putCalls = mockDocClient.commandCalls(PutCommand);
             expect(putCalls.length).toBe(0);
+        });
+
+        test('Throws on invalid UUID format', async () => {
+            const event = createCompleteEvent({
+                userMetadata: {
+                    path: '/2024/06-15/video.mp4',
+                    versionId: 'version123',
+                    id: 'not-a-valid-uuid',
+                },
+            });
+
+            await expect(handleVideoTranscodingComplete(event)).rejects.toThrow(/invalid uuid/i);
         });
     });
 });

@@ -64,4 +64,20 @@ describe('processMediaUpload()', () => {
         expect(mockProcessImageUpload).not.toHaveBeenCalled();
         expect(mockProcessHeicUpload).not.toHaveBeenCalled();
     });
+
+    test('Skips album folder paths without error', async () => {
+        await processMediaUpload('bucket', '2024/06-15/', 'version123');
+
+        expect(mockProcessImageUpload).not.toHaveBeenCalled();
+        expect(mockProcessVideoUpload).not.toHaveBeenCalled();
+        expect(mockProcessHeicUpload).not.toHaveBeenCalled();
+    });
+
+    test('Skips invalid paths without error', async () => {
+        await processMediaUpload('bucket', 'invalid/path.txt', 'version123');
+
+        expect(mockProcessImageUpload).not.toHaveBeenCalled();
+        expect(mockProcessVideoUpload).not.toHaveBeenCalled();
+        expect(mockProcessHeicUpload).not.toHaveBeenCalled();
+    });
 });

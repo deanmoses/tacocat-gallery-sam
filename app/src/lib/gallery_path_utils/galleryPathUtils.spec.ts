@@ -10,11 +10,15 @@ import {
     isValidDayAlbumPath,
     albumPathToDate,
     toPathFromItem,
-    isHeicPath,
+    hasHeicExtension,
+    hasVideoExtension,
+    hasImageExtension,
     isValidVideoPath,
     isValidVideoName,
+    isValidVideoNameStrict,
     isValidMediaPath,
     isValidMediaPathForUpload,
+    isValidMediaNameStrict,
 } from './galleryPathUtils';
 
 describe('isValidAlbumPath', () => {
@@ -358,7 +362,7 @@ describe('isValidImagePathForUpload', () => {
     });
 });
 
-describe('isHeicPath', () => {
+describe('hasHeicExtension', () => {
     const heicPaths = [
         '/2001/12-31/image.heic',
         '/2001/12-31/image.HEIC',
@@ -369,8 +373,8 @@ describe('isHeicPath', () => {
         'anything.heif',
     ];
     heicPaths.forEach((path) => {
-        it(`Should be HEIC: [${path}]`, () => {
-            expect(isHeicPath(path)).toStrictEqual(true);
+        it(`Should have HEIC extension: [${path}]`, () => {
+            expect(hasHeicExtension(path)).toStrictEqual(true);
         });
     });
 
@@ -385,8 +389,56 @@ describe('isHeicPath', () => {
         '.heic', // just extension, no filename
     ];
     nonHeicPaths.forEach((path) => {
-        it(`Should NOT be HEIC: [${path}]`, () => {
-            expect(isHeicPath(path)).toStrictEqual(false);
+        it(`Should NOT have HEIC extension: [${path}]`, () => {
+            expect(hasHeicExtension(path)).toStrictEqual(false);
+        });
+    });
+});
+
+describe('hasVideoExtension', () => {
+    const videoPaths = [
+        '/2001/12-31/video.mp4',
+        '/2001/12-31/video.MP4',
+        'video.mov',
+        'video.avi',
+        'video.mkv',
+        'video.webm',
+        'video.m4v',
+        'video.3gp',
+    ];
+    videoPaths.forEach((path) => {
+        it(`Should have video extension: [${path}]`, () => {
+            expect(hasVideoExtension(path)).toStrictEqual(true);
+        });
+    });
+
+    const nonVideoPaths = ['/2001/12-31/image.jpg', 'image.png', '', 'mp4', '.mp4'];
+    nonVideoPaths.forEach((path) => {
+        it(`Should NOT have video extension: [${path}]`, () => {
+            expect(hasVideoExtension(path)).toStrictEqual(false);
+        });
+    });
+});
+
+describe('hasImageExtension', () => {
+    const imagePaths = ['/2001/12-31/image.jpg', '/2001/12-31/image.JPG', 'image.jpeg', 'image.png', 'image.gif'];
+    imagePaths.forEach((path) => {
+        it(`Should have image extension: [${path}]`, () => {
+            expect(hasImageExtension(path)).toStrictEqual(true);
+        });
+    });
+
+    const nonImagePaths = [
+        '/2001/12-31/video.mp4',
+        '/2001/12-31/image.heic', // HEIC is not a stored image format
+        'video.mov',
+        '',
+        'jpg',
+        '.jpg',
+    ];
+    nonImagePaths.forEach((path) => {
+        it(`Should NOT have image extension: [${path}]`, () => {
+            expect(hasImageExtension(path)).toStrictEqual(false);
         });
     });
 });
@@ -489,6 +541,107 @@ describe('isValidImageNameStrict', () => {
     validImageNamesStrict.forEach((imageName) => {
         test(`Should be valid: [${imageName}]`, async () => {
             expect(isValidImageNameStrict(imageName)).toBe(true);
+        });
+    });
+});
+
+describe('isValidVideoNameStrict', () => {
+    const invalidVideoNamesStrict = [
+        '',
+        ' ',
+        '/',
+        '2000',
+        '/2000',
+        '2000/',
+        '/2000/',
+        '2000/12-31',
+        '/2000/12-31/',
+        '2000/12-31/video.mp4',
+        '/2000/12-31/video.mp4',
+        '/2000/12-31/video',
+        '/video.mp4',
+        'video.xxx', // unknown extension
+        'video.pdf', // pdf
+        'video.jpg', // image extension
+        'video.mp4 ', // space at end
+        ' video.mp4', // space at beginning
+        'video .mp4', // space before dot
+        'NAME.mp4',
+        'name.MP4',
+        'NAME.MP4',
+        'video.',
+        'video',
+        '.mp4',
+        ' .mp4',
+        'a b.mp4',
+        'a-b.mp4', // hyphen not allowed in strict
+        'a.b.mp4',
+        'a%b.mp4',
+        'a^b.mp4',
+        '_.mp4',
+        '__.mp4',
+        '_video.mp4', // _ at beginning
+        'video_.mp4', // _ at end
+    ];
+    invalidVideoNamesStrict.forEach((videoName) => {
+        test(`Should be invalid: [${videoName}]`, async () => {
+            expect(isValidVideoNameStrict(videoName)).toBe(false);
+        });
+    });
+
+    const validVideoNamesStrict = [
+        'video.mp4',
+        'a.mp4',
+        'a_b.mp4',
+        'video1_renamed.mp4',
+        'video.mov',
+        'video.avi',
+        'video.mkv',
+        'video.webm',
+        'video.m4v',
+        'video.3gp',
+    ];
+    validVideoNamesStrict.forEach((videoName) => {
+        test(`Should be valid: [${videoName}]`, async () => {
+            expect(isValidVideoNameStrict(videoName)).toBe(true);
+        });
+    });
+});
+
+describe('isValidMediaNameStrict', () => {
+    // Invalid: neither valid image nor valid video strict name
+    const invalidMediaNamesStrict = [
+        '',
+        ' ',
+        'media.pdf',
+        'media.heic',
+        'NAME.jpg', // uppercase
+        'NAME.mp4', // uppercase
+        'a-b.jpg', // hyphen
+        'a-b.mp4', // hyphen
+        '_image.jpg', // _ at beginning
+        '_video.mp4', // _ at beginning
+    ];
+    invalidMediaNamesStrict.forEach((mediaName) => {
+        test(`Should be invalid: [${mediaName}]`, async () => {
+            expect(isValidMediaNameStrict(mediaName)).toBe(false);
+        });
+    });
+
+    // Valid: either valid strict image or valid strict video
+    const validMediaNamesStrict = [
+        // Images
+        'image.jpg',
+        'photo.gif',
+        'picture.png',
+        // Videos
+        'video.mp4',
+        'clip.mov',
+        'movie.avi',
+    ];
+    validMediaNamesStrict.forEach((mediaName) => {
+        test(`Should be valid: [${mediaName}]`, async () => {
+            expect(isValidMediaNameStrict(mediaName)).toBe(true);
         });
     });
 });

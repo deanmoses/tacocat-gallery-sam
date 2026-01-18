@@ -29,7 +29,7 @@ Originals Bucket:
 
 However, videos require a few things that still images don't:
  - **Transcoded video**.  Videos will be transcoded to a universally playable format supported by all browsers.
- - **Poster image**.  A "poster" image will be be extracted from the video.  It'll be used as the source to generate thumbnails and detail page image.
+ - **Poster image**.  A "poster" image will be extracted from the video.  It'll be used as the source to generate thumbnails and detail page image.
 
 Each video will get a UUID. The transcoded video and poster live in the Derived bucket by UUID:
 ```
@@ -281,14 +281,18 @@ The existing flow works:
 
 **Change needed in `GenerateDerivedImage` Lambda:**
 
-When generating a thumbnail for a video path, the Lambda must fetch the **poster** from the Derived bucket instead of the original. The frontend passes the UUID in the request path, avoiding a DynamoDB lookup.
-
-```
-Request:  /i/2024/06-15/video.avi/<versionId>/<UUID>/200
-Source:   /video/<UUID>.jpg in Derived bucket
+Videos use the same thumbnail URL format as images:
+```text
+/i/2024/06-15/my_video.avi/<versionId>/200
 ```
 
-The Lambda checks if the path has a video extension. If so, it extracts the UUID from the path and reads the poster from `/video/<UUID>.jpg` in the Derived bucket. No DynamoDB lookup is needed because the frontend already has the UUID from the album API response.
+However, when generating a thumbnail for a video path, the Lambda must fetch the **poster** from the Derived bucket.  Whereas for images, the source is the Originals bucket. 
+
+```text
+/video/<UUID>.jpg in Derived bucket
+```
+
+This does mean, unfortunately, that `GenerateDerivedImage` must look up the UUID from DynamoDB using the video's path.  This is not much of a perf hit, because the lookup only happens on the first request for a given thumbnail size. After that, CloudFront caches the result and subsequent requests are served from the CDN without hitting the Lambda at all.
 
 ### Video Thumbnail Cropping 
 
@@ -298,7 +302,7 @@ Works the same as images. The video record can have a `thumbnail` crop rectangle
 
 The frontend constructs the playback URL from the video's UUID:
 
-```
+```text
 Video id:      550e8400-e29b-41d4-a716-446655440000
 Playback URL:  https://{derivedDomain}/video/550e8400-e29b-41d4-a716-446655440000.mp4
 ```
@@ -379,7 +383,7 @@ Decisions that have been made, alternatives considered, tradeoffs.
 
 ### Use MediaConvert for transcoding
 
-The alternative would have been use use Lambda + ffmpeg.
+An alternative would have been to use Lambda + ffmpeg.
 
 - Lambda has 15-minute timeout and 10GB temp storage, which would be fine for short clips, but 20-minute 4K videos would push limits.  AWS MediaConvert handles any size without concern.
 - MediaConvert only costs ~$0.015/minute of video
@@ -414,7 +418,7 @@ We will transcode those anyway because:
 
 ### Playback: Progressive MP4
 
-The alternative was use use HLS, which would have added a lot of complexity.
+An alternative would have been to use HLS, which would have added a lot of complexity.
 
 - H.264 MP4 with `faststart` moves metadata to front
 - CloudFront supports byte-range requests for seeking
@@ -424,7 +428,7 @@ The alternative was use use HLS, which would have added a lot of complexity.
 
 ### Upload: Presigned URLs
 
-The alternative was to use multi-part upload.
+An alternative would have been to use multi-part upload.
 
 Reasons to use Presigned URLs:
 - **Works as-is**.  No changes to how uploads work
@@ -448,7 +452,7 @@ Reasons to use Presigned URLs:
 
 ### UUIDs for Video Transcode & Poster
 
-The alternative considered was storing the transcoded video and poster image by path:
+An alternative considered was storing the transcoded video and poster image by path:
 - `/video/2024/06-15/my_video.avi/transcoded.mp4`
 - `/video/2024/06-15/my_video.avi/poster.jpg`
 

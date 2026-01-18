@@ -70,10 +70,28 @@ export function isValidImagePathForUpload(imagePath: string): boolean {
 }
 
 /**
- * Return true if the path is a HEIC/HEIF file (case-insensitive).
+ * Return true if the string has a HEIC/HEIF extension (case-insensitive).
+ * There must be at least one character before the "." before the extension.
  */
-export function isHeicPath(path: string): boolean {
+export function hasHeicExtension(path: string): boolean {
     return /.\.(heic|heif)$/i.test(path);
+}
+
+/**
+ * Return true if the string has a video extension (case-insensitive).
+ * There must be at least one character before the "." before the extension.
+ */
+export function hasVideoExtension(path: string): boolean {
+    return /.\.(mp4|mov|avi|mkv|webm|m4v|3gp)$/i.test(path);
+}
+
+/**
+ * Return true if the string has an image extension (case-insensitive).
+ * Only accepts stored formats (jpg/jpeg/gif/png), not HEIC.
+ * There must be at least one character before the "." before the extension.
+ */
+export function hasImageExtension(path: string): boolean {
+    return /.\.(jpg|jpeg|gif|png)$/i.test(path);
 }
 
 /**
@@ -100,6 +118,18 @@ export function isValidVideoPath(videoPath: string): boolean {
  */
 export function isValidVideoName(videoName: string): boolean {
     return /^[a-zA-Z0-9_-]+\.(mp4|mov|avi|mkv|webm|m4v|3gp)$/i.test(videoName);
+}
+
+/**
+ * Return true if specified string is a valid strict video name.
+ * Must be lower case
+ * No hyphens (-) just underscores (_)
+ * Must not have a path.
+ *
+ * @param videoName name of video
+ */
+export function isValidVideoNameStrict(videoName: string): boolean {
+    return /^[a-z0-9]+([a-z0-9_]*[a-z0-9]+)*\.(mp4|mov|avi|mkv|webm|m4v|3gp)$/.test(videoName);
 }
 
 /**
@@ -143,6 +173,19 @@ export function isValidImageName(imageName: string): boolean {
  */
 export function isValidImageNameStrict(imageName: string): boolean {
     return /^[a-z0-9]+([a-z0-9_]*[a-z0-9]+)*\.(jpg|gif|png)$/.test(imageName);
+}
+
+/**
+ * Return true if specified string is a valid strict media name (image or video).
+ * Must be lower case
+ * No hyphens (-) just underscores (_)
+ * Must be 'jpg' not 'jpeg' for images
+ * Must not have a path.
+ *
+ * @param mediaName name of media
+ */
+export function isValidMediaNameStrict(mediaName: string): boolean {
+    return isValidImageNameStrict(mediaName) || isValidVideoNameStrict(mediaName);
 }
 
 /**
