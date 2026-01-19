@@ -132,6 +132,19 @@ Prettier config (4-space indent, single quotes, 120 char width, trailing commas)
 { semi: true, trailingComma: 'all', singleQuote: true, printWidth: 120, tabWidth: 4 }
 ```
 
+## Logging
+
+Use structured JSON logging for CloudWatch queryability:
+
+```typescript
+console.info(JSON.stringify({ event: 'transcoding_complete', videoPath, videoId }));
+console.error(JSON.stringify({ event: 'transcoding_failed', videoPath, error: errorMessage }));
+```
+
+- Always include an `event` field describing what happened
+- Include relevant context (IDs, paths, etc.) as additional fields
+- Use `console.info` for success/progress, `console.error` for failures, `console.warn` for warnings
+
 ## Key Configuration Files
 
 - `template.yaml`: SAM CloudFormation template defining all AWS resources
@@ -153,9 +166,23 @@ Prettier config (4-space indent, single quotes, 120 char width, trailing commas)
 - **CI workflow**: On PR and push to main, runs lint, type check, unit tests, and SAM build. On push to main, also deploys to staging.
 - **Production deploy**: Manual workflow dispatch from GitHub Actions. Runs tests, deploys to prod, creates a release tag (YYYYvN format), and generates release notes.
 
-## Branch, Commit and PR types
+## Git Amend
+
+`git commit --amend` only amends HEAD (the most recent commit). To amend an older commit, you must use interactive rebase:
+
+```bash
+git rebase -i <commit>^   # Interactive rebase starting from parent of target commit
+# Change "pick" to "edit" for the commit you want to amend
+# Make your changes, then:
+git add <files>
+git commit --amend
+git rebase --continue
+```
+
+## Branch, Commit and PR Conventions
 
 Use these types for branch names, commit messages, and PR titles:
+
 - `feat`: User-facing features or behavior changes (must change production code)
 - `fix`: Bug fixes (must change production code)
 - `docs`: Documentation only
@@ -164,48 +191,54 @@ Use these types for branch names, commit messages, and PR titles:
 - `test`: Adding or updating tests
 - `chore`: CI/CD, tooling, dependency bumps, configs (no production code)
 
-## Branch Naming
+### Branch Naming
 
 Use `type/short-description`:
-```
+
+```text
 feat/search-pagination
 fix/year-search-bug
 chore/pre-commit-hooks
 ```
 
-## Commit Messages
+### Commit Messages
 
 Use [Conventional Commits](https://www.conventionalcommits.org/):
 
-```
+```text
 <type>(<scope>): <description>
 
 [optional body]
 ```
+
 - **Scopes:** Optional. Use when it adds clarity (e.g., `api`, `gallery`, `search`).
 - **Breaking changes:** Use `!` suffix: `feat!: remove deprecated endpoint`
 
 **Examples:**
-```
+
+```text
 feat(search): add pagination support
 fix(gallery): include newest year in search results
 chore: add husky pre-commit hooks
 docs: update API documentation
 ```
 
-## Pull Requests
+### Pull Requests
 
 **PR titles:** Use conventional commit format, same as commit messages.
 
 **PR descriptions:**
-```
+
+```markdown
 ## Summary
+
 One sentence describing the overall change.
 
 - Optional supporting details
 - If needed
 
 ## Test plan
+
 - [ ] How to verify it works
 ```
 
