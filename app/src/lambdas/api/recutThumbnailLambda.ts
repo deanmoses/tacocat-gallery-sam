@@ -4,7 +4,7 @@ import {
     HttpMethod,
     ensureHttpMethod,
     getBodyAsJson,
-    getImagePath,
+    getMediaPath,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { ensureAuthorizedForWrites } from '../../lib/lambda_utils/AuthorizationHelpers';
 import { recutThumbnail } from '../../lib/gallery/recutThumbnail/recutThumbnail';
@@ -17,10 +17,10 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
     try {
         ensureHttpMethod(event, HttpMethod.PATCH);
         await ensureAuthorizedForWrites(event);
-        const imagePath = getImagePath(event);
+        const mediaPath = getMediaPath(event);
         const crop: Rectangle = getBodyAsJson(event);
-        await recutThumbnail(imagePath, crop);
-        return respondSuccessMessage(event, `Image [${imagePath}] thumbnail re-cut]`);
+        await recutThumbnail(mediaPath, crop);
+        return respondSuccessMessage(event, `Image [${mediaPath}] thumbnail re-cut]`);
     } catch (e) {
         return handleHttpExceptions(event, e);
     }

@@ -4,7 +4,6 @@ import {
     getParentAndNameFromPath,
     getParentFromPath,
     isValidAlbumPath,
-    isValidImagePath,
     isValidMediaPath,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
@@ -31,21 +30,21 @@ export async function albumExists(albumPath: string, includeUnpublishedAlbums: b
 }
 
 /**
- * Return true if the specified image exists in DynamoDB.
+ * Return true if the specified media (image or video) exists in DynamoDB.
  */
-export async function imageExists(imagePath: string, includeUnpublishedAlbums: boolean = false): Promise<boolean> {
-    if (!isValidImagePath(imagePath)) {
-        throw new BadRequestException(`Invalid image path [${imagePath}]`);
+export async function mediaExists(mediaPath: string, includeUnpublishedAlbums: boolean = false): Promise<boolean> {
+    if (!isValidMediaPath(mediaPath)) {
+        throw new BadRequestException(`Invalid media path [${mediaPath}]`);
     }
-    // TODO: this could be optimized by retrieving both the album and the image in one query
+    // TODO: this could be optimized by retrieving both the album and the media in one query
     // but that'd entail owning a lot more code.  Another way to speed it up would be to
     // parallelize the two queries via Promise.allSettled()
     if (!includeUnpublishedAlbums) {
-        const albumPath = getParentFromPath(imagePath);
+        const albumPath = getParentFromPath(mediaPath);
         const parentAlbumExists = await albumExists(albumPath, includeUnpublishedAlbums);
         if (!parentAlbumExists) return false;
     }
-    return await itemExists(imagePath);
+    return await itemExists(mediaPath);
 }
 
 /**

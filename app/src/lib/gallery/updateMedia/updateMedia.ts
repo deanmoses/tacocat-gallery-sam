@@ -1,21 +1,21 @@
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { NotFoundException } from '../../lambda_utils/NotFoundException';
-import { getParentAndNameFromPath, isValidImagePath } from '../../gallery_path_utils/galleryPathUtils';
+import { getParentAndNameFromPath, isValidMediaPath } from '../../gallery_path_utils/galleryPathUtils';
 import { buildUpdatePartiQL } from '../../dynamo_utils/DynamoUpdateBuilder';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ExecuteStatementCommand } from '@aws-sdk/lib-dynamodb';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 
 /**
- * Update an image's attributes (like title and description) in DynamoDB
+ * Update a media item's attributes (like title and description) in DynamoDB
  *
- * @param imagePath Path of the image to update, like /2001/12-31/image.jpg
+ * @param mediaPath Path of the media to update, like /2001/12-31/image.jpg or /2001/12-31/video.mp4
  * @param attributesToUpdate bag of attributes to update
  */
-export async function updateImage(imagePath: string, attributesToUpdate: Record<string, string | boolean>) {
-    console.info(`Update Image: updating [${imagePath}]...`);
-    if (!isValidImagePath(imagePath)) {
-        throw new BadRequestException(`Malformed image path: [${imagePath}]`);
+export async function updateMedia(mediaPath: string, attributesToUpdate: Record<string, string | boolean>) {
+    console.info(`Update Media: updating [${mediaPath}]...`);
+    if (!isValidMediaPath(mediaPath)) {
+        throw new BadRequestException(`Malformed media path: [${mediaPath}]`);
     }
 
     if (!attributesToUpdate) {
@@ -42,7 +42,7 @@ export async function updateImage(imagePath: string, attributesToUpdate: Record<
     //
 
     attributesToUpdate['updatedOn'] = new Date().toISOString();
-    const pathParts = getParentAndNameFromPath(imagePath);
+    const pathParts = getParentAndNameFromPath(mediaPath);
     if (!pathParts.name) throw 'Expecting path to have a leaf, got none';
     const partiQL = buildUpdatePartiQL(getDynamoDbTableName(), pathParts.parent, pathParts.name, attributesToUpdate);
     const ddbCommand = new ExecuteStatementCommand({
@@ -59,10 +59,10 @@ export async function updateImage(imagePath: string, attributesToUpdate: Record<
         await docClient.send(ddbCommand);
     } catch (e) {
         if (e?.toString().includes('conditional')) {
-            throw new NotFoundException('Image not found: ' + imagePath);
+            throw new NotFoundException('Media not found: ' + mediaPath);
         } else {
             throw e;
         }
     }
-    console.info(`Update Image: updated [${imagePath}]`);
+    console.info(`Update Media: updated [${mediaPath}]`);
 }

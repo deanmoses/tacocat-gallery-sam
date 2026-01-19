@@ -1,6 +1,6 @@
 import { createAlbumNoThrow } from '../../lib/gallery/createAlbum/createAlbum';
 import { deleteAlbum } from '../../lib/gallery/deleteAlbum/deleteAlbum';
-import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
+import { deleteMedia } from '../../lib/gallery/deleteMedia/deleteMedia';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import {
@@ -70,7 +70,7 @@ describe('create', () => {
 
 describe('update', () => {
     test.todo('updateAlbum()');
-    test.todo('updateImage()');
+    test.todo('updateMedia()');
 });
 
 describe('delete', () => {
@@ -78,14 +78,14 @@ describe('delete', () => {
         await expect(deleteAlbum(albumPath)).rejects.toThrow(/child/i);
     });
 
-    describe('deleteImage()', () => {
+    describe('deleteMedia()', () => {
         test('delete all images in album', async () => {
             const children = (await getAlbumAndChildren(albumPath, true /* include unpublished */))?.children;
             if (!children) throw new Error('no children');
             for (const child of children) {
                 if (!child.parentPath) throw 'child has no parent path';
                 const childPath = child.parentPath + child.itemName;
-                await expect(deleteImage(childPath)).resolves.not.toThrow();
+                await expect(deleteMedia(childPath)).resolves.not.toThrow();
             }
         }, 15000 /* increase Jest's timeout */);
 

@@ -275,7 +275,7 @@ Each album has a thumbnail, just like media items.  The album's thumbnail is a p
 
 The existing flow works:
 
-1. **Set thumbnail API:** `PATCH /album-thumb/{albumPath}` with `{ "imagePath": "/2024/06-15/video.avi" }`
+1. **Set thumbnail API:** `PATCH /album-thumb/{albumPath}` with `{ "mediaPath": "/2024/06-15/video.avi" }`
 2. **Album record stores:** `thumbnail: { path: "/2024/06-15/video.avi" }`
 3. **Frontend requests thumbnail:** Uses same URL pattern with the video path
 

@@ -301,7 +301,7 @@ export function toPathFromItem(item: BaseGalleryRecord): string {
         case 'album':
             return toAlbumPath(item.parentPath, item.itemName);
         case 'image':
-            return toImagePath(item.parentPath, item.itemName);
+            return toMediaPath(item.parentPath, item.itemName);
         default:
             throw new Error(`Unrecognized item type: [${item?.itemType}]`);
     }
@@ -314,7 +314,7 @@ export function toAlbumPath(parentPath: string | undefined, itemName: string | u
     return parentPath + itemName + '/';
 }
 
-export function toImagePath(parentPath: string | undefined, itemName: string | undefined): string {
+export function toMediaPath(parentPath: string | undefined, itemName: string | undefined): string {
     if (!parentPath) throw new Error(`Undefined parentPath`);
     if (!itemName) throw new Error(`Undefined itemName`);
     return parentPath + itemName;

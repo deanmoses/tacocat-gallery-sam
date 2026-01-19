@@ -18,7 +18,7 @@ import { VideoItem } from '../galleryTypes';
  *
  * @param mediaPath Path of media to delete, like /2001/12-31/image.jpg or /2001/12-31/video.mp4
  */
-export async function deleteImage(mediaPath: string) {
+export async function deleteMedia(mediaPath: string) {
     console.info(`Delete Media: deleting media [${mediaPath}]...`);
 
     if (!isValidMediaPath(mediaPath)) {

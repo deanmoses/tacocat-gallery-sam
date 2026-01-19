@@ -1,8 +1,8 @@
-import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
+import { deleteMedia } from '../../lib/gallery/deleteMedia/deleteMedia';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
-import { findImage, findSubAlbum } from '../../lib/gallery_client/AlbumObject';
+import { findMedia, findSubAlbum } from '../../lib/gallery_client/AlbumObject';
 import {
     getNameFromPath,
     getParentFromPath,
@@ -53,7 +53,7 @@ test('Album contains image', async () => {
     const album = await getAlbumAndChildren(albumPath);
     if (!album) throw 'no album';
     const imageName = reallyGetNameFromPath(imagePath);
-    const image = findImage(album, imageName);
+    const image = findMedia(album, imageName);
     if (!image) throw new Error(`Did not find child image`);
     if (!image.versionId) throw new Error(`Image [${imageName}] has no versionId`);
     expect(image.parentPath).toBe(albumPath);
@@ -76,14 +76,14 @@ test('Image exists in Redis', async () => {
 }, 15000);
 
 test('Delete image', async () => {
-    await expect(deleteImage(imagePath)).resolves.not.toThrow();
+    await expect(deleteMedia(imagePath)).resolves.not.toThrow();
 });
 
 test('Album should not contain deleted image', async () => {
     const album = await getAlbumAndChildren(albumPath);
     if (!album) throw 'no album';
     const imageName = reallyGetNameFromPath(imagePath);
-    const image = findImage(album, imageName);
+    const image = findMedia(album, imageName);
     if (image) throw new Error(`Image [${imageName}] should not exist in album [${albumPath}]`);
 });
 

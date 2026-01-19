@@ -4,22 +4,22 @@ import {
     HttpMethod,
     ensureHttpMethod,
     getBodyAsJson,
-    getImagePath,
+    getMediaPath,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { ensureAuthorizedForWrites } from '../../lib/lambda_utils/AuthorizationHelpers';
-import { renameImage } from '../../lib/gallery/renameImage/renameImage';
+import { renameMedia } from '../../lib/gallery/renameMedia/renameMedia';
 
 /**
- * A Lambda that renames an image in DynamoDB and S3
+ * A Lambda that renames a media item (image or video) in DynamoDB and S3
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
         ensureHttpMethod(event, HttpMethod.POST);
         await ensureAuthorizedForWrites(event);
-        const imagePath = getImagePath(event);
+        const mediaPath = getMediaPath(event);
         const newName = getBodyAsJson(event)?.newName;
-        const newImagePath = await renameImage(imagePath, newName);
-        return respondSuccessMessage(event, `Renamed image [${imagePath}] to [${newImagePath}]`);
+        const newMediaPath = await renameMedia(mediaPath, newName);
+        return respondSuccessMessage(event, `Renamed media [${mediaPath}] to [${newMediaPath}]`);
     } catch (e) {
         return handleHttpExceptions(event, e);
     }

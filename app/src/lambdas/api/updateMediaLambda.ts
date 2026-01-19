@@ -4,22 +4,22 @@ import {
     HttpMethod,
     ensureHttpMethod,
     getBodyAsJson,
-    getImagePath,
+    getMediaPath,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { ensureAuthorizedForWrites } from '../../lib/lambda_utils/AuthorizationHelpers';
-import { updateImage } from '../../lib/gallery/updateImage/updateImage';
+import { updateMedia } from '../../lib/gallery/updateMedia/updateMedia';
 
 /**
- * A Lambda that updates an image's attributes (like title and description) in DynamoDB
+ * A Lambda that updates a media item's attributes (like title and description) in DynamoDB
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
         ensureHttpMethod(event, HttpMethod.PATCH);
         await ensureAuthorizedForWrites(event);
-        const imagePath = getImagePath(event);
+        const mediaPath = getMediaPath(event);
         const attributesToUpdate = getBodyAsJson(event);
-        await updateImage(imagePath, attributesToUpdate);
-        return respondSuccessMessage(event, `Updated image [${imagePath}]`);
+        await updateMedia(mediaPath, attributesToUpdate);
+        return respondSuccessMessage(event, `Updated media [${mediaPath}]`);
     } catch (e) {
         return handleHttpExceptions(event, e);
     }

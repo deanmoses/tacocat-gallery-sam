@@ -121,11 +121,11 @@ async function moveAlbumInDynamoDB(
     const children = await getFullChildrenFromDynamoDB(oldAlbumPath);
     if (!!children) {
         children.forEach((child) => {
-            const imagePath = newAlbumPath + child.itemName;
-            const newVersionId = newVersionIds.get(imagePath);
+            const mediaPath = newAlbumPath + child.itemName;
+            const newVersionId = newVersionIds.get(mediaPath);
             if (!newVersionId) {
-                console.error(`No new version ID found for image [${imagePath}].  VersionIDs: `, newVersionIds);
-                throw new Error(`No new version ID found for image [${imagePath}]`);
+                console.error(`No new version ID found for media [${mediaPath}].  VersionIDs: `, newVersionIds);
+                throw new Error(`No new version ID found for media [${mediaPath}]`);
             }
             const image = child as ImageItem;
             image.parentPath = newAlbumPath;

@@ -31,8 +31,8 @@ import { getDynamoDbTableName, getOriginalImagesBucketName } from '../../lambda_
 import {
     getParentAndNameFromPath,
     getParentFromPath,
-    isValidImagePath,
-    toImagePath,
+    isValidMediaPath,
+    toMediaPath,
     toAlbumPath,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { AlbumItem, ImageItem, Size } from '../galleryTypes';
@@ -206,13 +206,13 @@ export async function migrateDimensions(input: MigrateInput, options: MigrateOpt
                         const chunk = imagesToProcess.slice(i, i + CHUNK_SIZE);
 
                         // Track the first image in chunk for accurate resume on error
-                        const firstImageInChunk = toImagePath(chunk[0].parentPath, chunk[0].itemName);
+                        const firstImageInChunk = toMediaPath(chunk[0].parentPath, chunk[0].itemName);
                         currentImagePath = firstImageInChunk;
 
                         // Process chunk concurrently, collect results
                         const chunkResults = await Promise.all(
                             chunk.map(async (img) => {
-                                const imgPath = toImagePath(img.parentPath, img.itemName);
+                                const imgPath = toMediaPath(img.parentPath, img.itemName);
                                 return await processImage(img, imgPath, mode, docClient, s3Client);
                             }),
                         );
@@ -318,11 +318,11 @@ function validateInput(input: MigrateInput): void {
         throw new Error(`Invalid mode: ${input.mode}. Must be 'diagnose' or 'fix'.`);
     }
 
-    if (input.image !== undefined && !isValidImagePath(input.image)) {
+    if (input.image !== undefined && !isValidMediaPath(input.image)) {
         throw new Error(`Invalid image path: ${input.image}`);
     }
 
-    if (input.startFrom !== undefined && !isValidImagePath(input.startFrom)) {
+    if (input.startFrom !== undefined && !isValidMediaPath(input.startFrom)) {
         throw new Error(`Invalid startFrom path: ${input.startFrom}`);
     }
 

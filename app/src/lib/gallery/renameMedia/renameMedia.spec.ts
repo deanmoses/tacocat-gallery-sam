@@ -1,7 +1,7 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { S3Client } from '@aws-sdk/client-s3';
-import { renameImage } from './renameImage';
+import { renameMedia } from './renameMedia';
 
 const mockS3Client = mockClient(S3Client);
 const mockDDBClient = mockClient(DynamoDBDocumentClient);
@@ -27,7 +27,7 @@ describe('Invalid Existing Image Paths', () => {
     ];
     paths.forEach((path) => {
         test(`Invalid: [${path}]`, async () => {
-            await expect(renameImage(path, 'image.jpg')).rejects.toThrow(/invalid|malformed/i);
+            await expect(renameMedia(path, 'image.jpg')).rejects.toThrow(/invalid|malformed/i);
             expect(mockDDBClient.calls().length).toBe(0);
             expect(mockS3Client.calls().length).toBe(0);
         });
@@ -69,7 +69,7 @@ describe('Invalid New Image Names', () => {
     ];
     imageNames.forEach((imageName) => {
         test(`Invalid: [${imageName}]`, async () => {
-            await expect(renameImage('/2001/12-31/image.jpg', imageName)).rejects.toThrow(/invalid|malformed/i);
+            await expect(renameMedia('/2001/12-31/image.jpg', imageName)).rejects.toThrow(/invalid|malformed/i);
             expect(mockDDBClient.calls().length).toBe(0);
             expect(mockS3Client.calls().length).toBe(0);
         });
@@ -86,7 +86,7 @@ describe("Extensions don't match", () => {
         const oldName = pair.oldName;
         const newName = pair.newName;
         test(`Mismatch: [${oldName}] [${newName}]`, async () => {
-            await expect(renameImage(`/2001/12-31/${oldName}`, newName)).rejects.toThrow(/match/i);
+            await expect(renameMedia(`/2001/12-31/${oldName}`, newName)).rejects.toThrow(/match/i);
             expect(mockDDBClient.calls().length).toBe(0);
             expect(mockS3Client.calls().length).toBe(0);
         });
@@ -99,18 +99,18 @@ describe('Extension comparison is case-insensitive', () => {
     // Extension comparison should still allow renaming .JPG to .jpg
     test('Allows renaming .JPG to .jpg', async () => {
         // Passes validation, fails on "not found" - proving extension check passed
-        await expect(renameImage('/2001/12-31/photo.JPG', 'newphoto.jpg')).rejects.toThrow(/not found/i);
+        await expect(renameMedia('/2001/12-31/photo.JPG', 'newphoto.jpg')).rejects.toThrow(/not found/i);
         expect(mockDDBClient.calls().length).toBeGreaterThan(0);
     });
 
     test('Allows renaming .MP4 to .mp4', async () => {
-        await expect(renameImage('/2001/12-31/video.MP4', 'newvideo.mp4')).rejects.toThrow(/not found/i);
+        await expect(renameMedia('/2001/12-31/video.MP4', 'newvideo.mp4')).rejects.toThrow(/not found/i);
         expect(mockDDBClient.calls().length).toBeGreaterThan(0);
     });
 });
 
 test('Fail if old and new are same name', async () => {
-    await expect(renameImage('/2001/12-31/image.jpg', 'image.jpg')).rejects.toThrow(/same/i);
+    await expect(renameMedia('/2001/12-31/image.jpg', 'image.jpg')).rejects.toThrow(/same/i);
 });
 
 test.todo("Fail if old image doesn't exist");
@@ -126,7 +126,7 @@ describe('Video rename validation', () => {
         ];
         invalidPaths.forEach((path) => {
             test(`Invalid: [${path}]`, async () => {
-                await expect(renameImage(path, 'newvideo.mp4')).rejects.toThrow(/invalid|malformed/i);
+                await expect(renameMedia(path, 'newvideo.mp4')).rejects.toThrow(/invalid|malformed/i);
                 expect(mockDDBClient.calls().length).toBe(0);
                 expect(mockS3Client.calls().length).toBe(0);
             });
@@ -146,7 +146,7 @@ describe('Video rename validation', () => {
         ];
         invalidNames.forEach((name) => {
             test(`Invalid: [${name}]`, async () => {
-                await expect(renameImage('/2001/12-31/video.mp4', name)).rejects.toThrow(/invalid|malformed/i);
+                await expect(renameMedia('/2001/12-31/video.mp4', name)).rejects.toThrow(/invalid|malformed/i);
                 expect(mockDDBClient.calls().length).toBe(0);
                 expect(mockS3Client.calls().length).toBe(0);
             });
@@ -161,7 +161,7 @@ describe('Video rename validation', () => {
         ];
         mismatchedPairs.forEach((pair) => {
             test(`Mismatch: [${pair.oldName}] -> [${pair.newName}]`, async () => {
-                await expect(renameImage(`/2001/12-31/${pair.oldName}`, pair.newName)).rejects.toThrow(/match/i);
+                await expect(renameMedia(`/2001/12-31/${pair.oldName}`, pair.newName)).rejects.toThrow(/match/i);
                 expect(mockDDBClient.calls().length).toBe(0);
                 expect(mockS3Client.calls().length).toBe(0);
             });
@@ -169,7 +169,7 @@ describe('Video rename validation', () => {
     });
 
     test('Fail if video old and new are same name', async () => {
-        await expect(renameImage('/2001/12-31/video.mp4', 'video.mp4')).rejects.toThrow(/same/i);
+        await expect(renameMedia('/2001/12-31/video.mp4', 'video.mp4')).rejects.toThrow(/same/i);
     });
 
     describe('Valid video paths accepted', () => {
@@ -178,7 +178,7 @@ describe('Video rename validation', () => {
             test(`Valid video extension: .${ext}`, async () => {
                 // Path/name validation passes, but fails on "media not found" because
                 // the mock DDB returns empty. This proves validation didn't reject it.
-                await expect(renameImage(`/2001/12-31/video.${ext}`, `newvideo.${ext}`)).rejects.toThrow(/not found/i);
+                await expect(renameMedia(`/2001/12-31/video.${ext}`, `newvideo.${ext}`)).rejects.toThrow(/not found/i);
                 // DDB was queried, meaning we got past path validation
                 expect(mockDDBClient.calls().length).toBeGreaterThan(0);
             });

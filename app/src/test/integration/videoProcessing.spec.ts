@@ -1,8 +1,8 @@
-import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
+import { deleteMedia } from '../../lib/gallery/deleteMedia/deleteMedia';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
-import { findImage } from '../../lib/gallery_client/AlbumObject';
+import { findMedia } from '../../lib/gallery_client/AlbumObject';
 import { getParentFromPath, isValidAlbumPath, isValidVideoPath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { assertDynamoDBItemDoesNotExist, cleanUpAlbum } from './helpers/albumHelpers';
 import { reallyGetNameFromPath } from './helpers/pathHelpers';
@@ -125,7 +125,7 @@ test('Album contains video', async () => {
     const album = await getAlbumAndChildren(albumPath);
     if (!album) throw new Error('no album');
     const videoName = reallyGetNameFromPath(videoPath);
-    const video = findImage(album, videoName); // findImage works for both images and videos
+    const video = findMedia(album, videoName);
     if (!video) throw new Error(`Did not find video in album`);
     expect(video.parentPath).toBe(albumPath);
     expect(video.itemName).toBe(videoName);
@@ -150,14 +150,14 @@ test('Video poster exists in derived bucket', async () => {
 });
 
 test('Delete video', async () => {
-    await expect(deleteImage(videoPath)).resolves.not.toThrow();
+    await expect(deleteMedia(videoPath)).resolves.not.toThrow();
 });
 
 test('Album should not contain deleted video', async () => {
     const album = await getAlbumAndChildren(albumPath);
     if (!album) throw new Error('no album');
     const videoName = reallyGetNameFromPath(videoPath);
-    const video = findImage(album, videoName);
+    const video = findMedia(album, videoName);
     if (video) throw new Error(`Video [${videoName}] should not exist in album [${albumPath}]`);
 });
 

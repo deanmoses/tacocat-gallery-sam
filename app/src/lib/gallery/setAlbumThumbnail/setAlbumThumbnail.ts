@@ -13,29 +13,29 @@ import { itemExists } from '../itemExists/itemExists';
  * Set image as its parent album's thumbnail, if the album does not already
  * have a thumbnail.
  *
- * @param imagePath Path of image like /2001/12-31/image.jpg
+ * @param mediaPath Path of image like /2001/12-31/image.jpg
  * @returns True if album thumbnail was set; false if album already had thumb
  */
-export async function setImageAsParentAlbumThumbnailIfNoneExists(imagePath: string): Promise<boolean> {
-    const imagePathParts = getParentAndNameFromPath(imagePath);
-    const albumPath = imagePathParts.parent;
-    return setAlbumThumbnail(albumPath, imagePath, false /* don't replace any existing thumb*/);
+export async function setImageAsParentAlbumThumbnailIfNoneExists(mediaPath: string): Promise<boolean> {
+    const mediaPathParts = getParentAndNameFromPath(mediaPath);
+    const albumPath = mediaPathParts.parent;
+    return setAlbumThumbnail(albumPath, mediaPath, false /* don't replace any existing thumb*/);
 }
 
 /**
  * Set specified album's thumbnail to the specified image.
  *
  * @param albumPath Path of album like /2001/12-31/
- * @param imagePath Path of image like /2001/12-31/image.jpg
+ * @param mediaPath Path of image like /2001/12-31/image.jpg
  * @param replaceExistingThumb true: replace existing thumbnail, if one exists (the default behavior)
  * @returns True if album thumbnail was set; false if album already had thumb
  */
 export async function setAlbumThumbnail(
     albumPath: string,
-    imagePath: string,
+    mediaPath: string,
     replaceExistingThumb = true,
 ): Promise<boolean> {
-    console.info(`Set Album Thumb: setting album [${albumPath}] thumbnail to [${imagePath}]...`);
+    console.info(`Set Album Thumb: setting album [${albumPath}] thumbnail to [${mediaPath}]...`);
     if (!isValidAlbumPath(albumPath)) {
         throw new BadRequestException(`Error setting album thumbnail. Invalid album path: [${albumPath}]`);
     }
@@ -44,8 +44,8 @@ export async function setAlbumThumbnail(
         throw new BadRequestException('Error setting album thumbnail. Cannot update root album');
     }
 
-    if (!isValidMediaPath(imagePath)) {
-        throw new BadRequestException(`Error setting album thumbnail. Invalid media path: [${imagePath}]`);
+    if (!isValidMediaPath(mediaPath)) {
+        throw new BadRequestException(`Error setting album thumbnail. Invalid media path: [${mediaPath}]`);
     }
 
     // TODO: have an itemsExist() method that takes an array of paths
@@ -54,12 +54,12 @@ export async function setAlbumThumbnail(
         throw new BadRequestException(`Error setting album thumbnail. Album not found: [${albumPath}]`);
     }
 
-    if (!(await itemExists(imagePath))) {
-        throw new BadRequestException(`Error setting album thumbnail. Image not found: [${imagePath}]`);
+    if (!(await itemExists(mediaPath))) {
+        throw new BadRequestException(`Error setting album thumbnail. Media not found: [${mediaPath}]`);
     }
 
-    const thumbWasReplaced = await setThumb(albumPath, imagePath, replaceExistingThumb);
-    console.info(`Set Album Thumb: set album [${albumPath}] thumbnail to [${imagePath}]`);
+    const thumbWasReplaced = await setThumb(albumPath, mediaPath, replaceExistingThumb);
+    console.info(`Set Album Thumb: set album [${albumPath}] thumbnail to [${mediaPath}]`);
     return thumbWasReplaced;
 }
 
@@ -67,12 +67,12 @@ export async function setAlbumThumbnail(
  * Set the album's thumbnail image.
  *
  * @param albumPath Path of the album like /2001/12-31/
- * @param imagePath Path of the image like /2001/12-31/image.jpg
+ * @param mediaPath Path of the media like /2001/12-31/image.jpg
  * @param replaceExistingThumb true: replace existing thumbnail, if one exists
  * @param imageUpdatedOn ISO 8601 timestamp of when image was last updated
  * @returns True if album thumbnail was set; false if album already had thumb
  */
-async function setThumb(albumPath: string, imagePath: string, replaceExistingThumb: boolean): Promise<boolean> {
+async function setThumb(albumPath: string, mediaPath: string, replaceExistingThumb: boolean): Promise<boolean> {
     const albumPathParts = getParentAndNameFromPath(albumPath);
 
     // Build the command
@@ -85,7 +85,7 @@ async function setThumb(albumPath: string, imagePath: string, replaceExistingThu
         UpdateExpression: 'SET updatedOn = :updatedOn, thumbnail = :thumbnail',
         ExpressionAttributeValues: {
             ':updatedOn': new Date().toISOString(),
-            ':thumbnail': { path: imagePath },
+            ':thumbnail': { path: mediaPath },
         },
         ConditionExpression: replaceExistingThumb
             ? 'attribute_exists (itemName)'
@@ -106,7 +106,7 @@ async function setThumb(albumPath: string, imagePath: string, replaceExistingThu
         // file did do.
         if (e instanceof ConditionalCheckFailedException) {
             console.info(
-                `Set Album Thumb: not setting album [${albumPath}]'s thumb to [${imagePath}] because album already has a thumb`,
+                `Set Album Thumb: not setting album [${albumPath}]'s thumb to [${mediaPath}] because album already has a thumb`,
             );
         } else {
             throw e;

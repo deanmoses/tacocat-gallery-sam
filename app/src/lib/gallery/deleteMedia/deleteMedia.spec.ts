@@ -1,6 +1,6 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, DeleteCommand } from '@aws-sdk/lib-dynamodb';
-import { deleteImage } from './deleteImage';
+import { deleteMedia } from './deleteMedia';
 import {
     DeleteObjectsCommand,
     DeleteObjectsCommandOutput,
@@ -33,7 +33,7 @@ describe('Invalid Paths', () => {
     ];
     paths.forEach((path) => {
         test(`Path should be invalid: [${path}]`, async () => {
-            await expect(deleteImage(path)).rejects.toThrow(/malformed/i);
+            await expect(deleteMedia(path)).rejects.toThrow(/malformed/i);
             expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(0);
         });
     });
@@ -46,7 +46,7 @@ test('Delete Image That Exists', async () => {
     mockDocClient.on(DeleteCommand).resolves({});
     mockS3Client.on(ListObjectsV2Command).resolves(listResponseWithItems);
     mockS3Client.on(DeleteObjectsCommand).resolves(deleteObjectsResponseWithItems);
-    const result = await deleteImage('/2001/12-31/image.jpg');
+    const result = await deleteMedia('/2001/12-31/image.jpg');
     expect(result).toBeUndefined();
     expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(1);
 });
@@ -59,7 +59,7 @@ test('Delete Nonexistent Image', async () => {
     mockS3Client.on(ListObjectsV2Command).resolves({
         KeyCount: 0,
     });
-    const result = await deleteImage('/1899/01-01/image.jpg');
+    const result = await deleteMedia('/1899/01-01/image.jpg');
     expect(result).toBeUndefined();
     expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(1);
 });
@@ -157,7 +157,7 @@ describe('Video Delete', () => {
         ];
         invalidPaths.forEach((path) => {
             test(`Path should be invalid: [${path}]`, async () => {
-                await expect(deleteImage(path)).rejects.toThrow(/malformed/i);
+                await expect(deleteMedia(path)).rejects.toThrow(/malformed/i);
                 expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(0);
             });
         });
@@ -170,7 +170,7 @@ describe('Video Delete', () => {
                 // Mock the AWS calls
                 mockDocClient.on(DeleteCommand).resolves({});
                 mockS3Client.on(ListObjectsV2Command).resolves({ KeyCount: 0 });
-                const result = await deleteImage(`/2001/12-31/video.${ext}`);
+                const result = await deleteMedia(`/2001/12-31/video.${ext}`);
                 expect(result).toBeUndefined();
                 expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(1);
             });

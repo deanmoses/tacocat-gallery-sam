@@ -4,8 +4,9 @@ import { AttributeValue } from '@aws-sdk/client-dynamodb';
 import { toRedisItem } from '../../lib/redis_utils/toRedisFromDynamo';
 import { RedisGalleryItem } from '../../lib/redis_utils/redisTypes';
 import { saveToRedis } from '../../lib/redis_utils/redisMset';
-import { isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
+import { isValidMediaPath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { createRedisWriteClient } from '../../lib/redis_utils/redisClientUtils';
+import { GalleryItem } from '../../lib/gallery/galleryTypes';
 
 /**
  * A Lambda that receives DynamoDB stream events and replicates the data to Redis
@@ -24,7 +25,7 @@ function toRedisItems(event: DynamoDBStreamEvent): { itemsToSave: RedisGalleryIt
     const pathsToDelete: string[] = [];
     for (const record of event.Records) {
         if (record?.dynamodb?.NewImage) {
-            const newImage = unmarshall(record.dynamodb.NewImage as { [key: string]: AttributeValue });
+            const newImage = unmarshall(record.dynamodb.NewImage as { [key: string]: AttributeValue }) as GalleryItem;
             const redisItem = toRedisItem(newImage);
             itemsToSave.push(redisItem);
             console.log(`${record.eventName}: %j`, redisItem);
@@ -59,5 +60,5 @@ function toPath(parentPath: string | undefined, itemName: string | undefined): s
     if (!parentPath) throw new Error(`Missing parentPath`);
     if (!itemName) throw new Error(`Missing itemName`);
     const path = `${parentPath}${itemName}`;
-    return isValidImagePath(path) ? path : path + '/';
+    return isValidMediaPath(path) ? path : path + '/';
 }

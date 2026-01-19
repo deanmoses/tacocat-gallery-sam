@@ -34,16 +34,16 @@ export function getAlbumPath(event: APIGatewayProxyEvent): string {
 }
 
 /**
- * Extract the image's path from the URL path
+ * Extract the media's path from the URL path
  *
  * @throws BadRequestException if there's no path in the event
  */
-export function getImagePath(event: APIGatewayProxyEvent): string {
-    const imagePathParam = event?.pathParameters?.imagePath;
-    if (!imagePathParam) {
-        throw new BadRequestException('Event does not contain an imagePath parameter');
+export function getMediaPath(event: APIGatewayProxyEvent): string {
+    const mediaPathParam = event?.pathParameters?.mediaPath;
+    if (!mediaPathParam) {
+        throw new BadRequestException('Event does not contain a mediaPath parameter');
     }
-    return '/' + imagePathParam;
+    return '/' + mediaPathParam;
 }
 
 export function getBodyAsJson(event: APIGatewayProxyEvent) {

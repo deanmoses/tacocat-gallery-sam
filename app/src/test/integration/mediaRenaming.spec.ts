@@ -1,7 +1,7 @@
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
-import { renameImage } from '../../lib/gallery/renameImage/renameImage';
+import { renameMedia as renameImage } from '../../lib/gallery/renameMedia/renameMedia';
 import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
-import { findImage } from '../../lib/gallery_client/AlbumObject';
+import { findMedia } from '../../lib/gallery_client/AlbumObject';
 import {
     getNameFromPath,
     getParentFromPath,
@@ -12,7 +12,7 @@ import {
     assertDynamoDBItemDoesNotExist,
     assertDynamoDBItemExists,
     cleanUpAlbumAndParents,
-    getImageOrThrow,
+    getMediaOrThrow,
 } from './helpers/albumHelpers';
 import { assertOriginalImageExists, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
 
@@ -48,7 +48,7 @@ afterAll(async () => {
 }, 20000 /* increase Jest's timeout */);
 
 test('Get old image version ID', async () => {
-    oldImageVersionId = (await getImageOrThrow(imagePath1, true /* include unpublished albums */)).versionId;
+    oldImageVersionId = (await getMediaOrThrow(imagePath1, true /* include unpublished albums */)).versionId;
     if (!oldImageVersionId) throw new Error(`No version ID found for image [${imagePath1}]`);
 });
 
@@ -80,12 +80,12 @@ test('GetAlbum() should reflect rename', async () => {
     // Ensure album doesn't contain old image
     const oldImageName = getNameFromPath(imagePath1);
     if (!oldImageName) throw 'no old image name';
-    if (findImage(album, oldImageName)) throw new Error(`Album still contains old image [${oldImageName}]`);
+    if (findMedia(album, oldImageName)) throw new Error(`Album still contains old image [${oldImageName}]`);
 
     // Ensure album contains new image
     const newImageName = getNameFromPath(renameImagePath1);
     if (!newImageName) throw 'no new image name';
-    const renamedImage = findImage(album, newImageName);
+    const renamedImage = findMedia(album, newImageName);
     if (!renamedImage) throw new Error(`Album does not contain new image [${newImageName}]`);
     expect(renamedImage.itemName).toBe(newImageName);
     expect(renamedImage.parentPath).toBe(getParentFromPath(renameImagePath1));

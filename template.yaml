@@ -653,20 +653,20 @@ Resources:
           - albumExistsLambda.ts
 
   # ---------------------------------------------------------------------------
-  # API Gateway lambda to determine whether image exists
+  # API Gateway lambda to determine whether media exists
   # ---------------------------------------------------------------------------
-  ImageExistsFunction:
+  MediaExistsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-ImageExists
+      FunctionName: !Sub ${AWS::StackName}-MediaExists
       CodeUri: app/src/lambdas/api/
-      Handler: imageExistsLambda.handler
-      Description: Determine whether image exists
+      Handler: mediaExistsLambda.handler
+      Description: Determine whether media (image or video) exists
       Events:
         Api:
           Type: Api
           Properties:
-            Path: /image/{imagePath+}
+            Path: /media/{mediaPath+}
             Method: HEAD
       Environment:
         Variables:
@@ -681,7 +681,7 @@ Resources:
         Target: es2020
         Sourcemap: true
         EntryPoints:
-          - imageExistsLambda.ts
+          - mediaExistsLambda.ts
 
   # ---------------------------------------------------------------------------
   # API Gateway lambda to retrieve album
@@ -787,20 +787,20 @@ Resources:
           - updateAlbumLambda.ts
 
   # ---------------------------------------------------------------------------
-  # API Gateway lambda to update existing image
+  # API Gateway lambda to update existing media
   # ---------------------------------------------------------------------------
-  UpdateImageFunction:
+  UpdateMediaFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-UpdateImage
+      FunctionName: !Sub ${AWS::StackName}-UpdateMedia
       CodeUri: app/src/lambdas/api/
-      Handler: updateImageLambda.handler
-      Description: Update existing image in DynamoDB
+      Handler: updateMediaLambda.handler
+      Description: Update existing media (image or video) in DynamoDB
       Events:
         Api:
           Type: Api
           Properties:
-            Path: /image/{imagePath+}
+            Path: /media/{mediaPath+}
             Method: PATCH
       Environment:
         Variables:
@@ -820,7 +820,7 @@ Resources:
         Target: es2020
         Sourcemap: true
         EntryPoints:
-          - updateImageLambda.ts
+          - updateMediaLambda.ts
 
   # ---------------------------------------------------------------------------
   # API Gateway lambda to set album's thumbnail
@@ -867,7 +867,7 @@ Resources:
         Api:
           Type: Api
           Properties:
-            Path: /thumb/{imagePath+}
+            Path: /thumb/{mediaPath+}
             Method: PATCH
       Environment:
         Variables:
@@ -885,20 +885,20 @@ Resources:
           - recutThumbnailLambda.ts
 
   # ---------------------------------------------------------------------------
-  # API Gateway lambda to rename an image
+  # API Gateway lambda to rename a media item
   # ---------------------------------------------------------------------------
-  RenameImageFunction:
+  RenameMediaFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-RenameImage
+      FunctionName: !Sub ${AWS::StackName}-RenameMedia
       CodeUri: app/src/lambdas/api/
-      Handler: renameImageLambda.handler
-      Description: Rename image in DynamoDB and S3
+      Handler: renameMediaLambda.handler
+      Description: Rename media (image or video) in DynamoDB and S3
       Events:
         Api:
           Type: Api
           Properties:
-            Path: /image-rename/{imagePath+}
+            Path: /media-rename/{mediaPath+}
             Method: POST
       Environment:
         Variables:
@@ -924,7 +924,7 @@ Resources:
         Target: es2020
         Sourcemap: true
         EntryPoints:
-          - renameImageLambda.ts
+          - renameMediaLambda.ts
 
   # ---------------------------------------------------------------------------
   # API Gateway lambda to rename an album
@@ -1039,20 +1039,20 @@ Resources:
           - generateUploadUrlsLambda.ts
 
   # ---------------------------------------------------------------------------
-  # API Gateway lambda to delete image
+  # API Gateway lambda to delete media
   # ---------------------------------------------------------------------------
-  DeleteImageFunction:
+  DeleteMediaFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-DeleteImage
+      FunctionName: !Sub ${AWS::StackName}-DeleteMedia
       CodeUri: app/src/lambdas/api/
-      Handler: deleteImageLambda.handler
-      Description: Delete image from DynamoDB and S3
+      Handler: deleteMediaLambda.handler
+      Description: Delete media (image or video) from DynamoDB and S3
       Events:
         Api:
           Type: Api
           Properties:
-            Path: /image/{imagePath+}
+            Path: /media/{mediaPath+}
             Method: DELETE
       Environment:
         Variables:
@@ -1078,7 +1078,7 @@ Resources:
         Target: es2020
         Sourcemap: true
         EntryPoints:
-          - deleteImageLambda.ts
+          - deleteMediaLambda.ts
 
   # ---------------------------------------------------------------------------
   # Lambda that retrieves errors for a batch of paths

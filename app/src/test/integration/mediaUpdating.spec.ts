@@ -1,8 +1,8 @@
 import { ImageItem } from '../../lib/gallery/galleryTypes';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
-import { updateImage } from '../../lib/gallery/updateImage/updateImage';
-import { findImage } from '../../lib/gallery_client/AlbumObject';
+import { updateMedia } from '../../lib/gallery/updateMedia/updateMedia';
+import { findMedia } from '../../lib/gallery_client/AlbumObject';
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { assertDynamoDBItemDoesNotExist, cleanUpAlbumAndParents } from './helpers/albumHelpers';
 import { reallyGetNameFromPath } from './helpers/pathHelpers';
@@ -66,11 +66,11 @@ it('set title & description', async () => {
 });
 
 async function doUpdate(attributesToUpdate: Record<string, string | boolean>): Promise<ImageItem> {
-    await updateImage(imagePath, attributesToUpdate);
+    await updateMedia(imagePath, attributesToUpdate);
     const album = await getAlbumAndChildren(albumPath);
     if (!album) throw new Error(`No album for [${albumPath}]`);
     const imageName = reallyGetNameFromPath(imagePath);
-    const image = findImage(album, imageName);
+    const image = findMedia(album, imageName);
     if (!image) throw new Error(`No image [${imageName}] in [${albumPath}]`);
     return image;
 }

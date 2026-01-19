@@ -1,6 +1,6 @@
 import { BatchGetCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { AlbumItem, GalleryItem, Rectangle } from '../gallery/galleryTypes';
-import { getParentAndNameFromPath, toImagePath } from '../gallery_path_utils/galleryPathUtils';
+import { getParentAndNameFromPath, toMediaPath } from '../gallery_path_utils/galleryPathUtils';
 import { getDynamoDbTableName } from '../lambda_utils/Env';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 
@@ -14,18 +14,18 @@ export async function augmentAlbumThumbnailsWithImageInfo(galleryItems: GalleryI
     // Collect all the images paths in a Set to de-dupe them.
     // Dupes will happen if the search returns both an album and its parent album,
     // both of which have the same image as their thumbnail.
-    const imagePaths = new Set<string>();
+    const mediaPaths = new Set<string>();
     for (const galleryItem of galleryItems) {
         if ('image' === galleryItem.itemType) continue;
         const album = galleryItem as AlbumItem;
         // some albums don't have thumbnails
         if (album.thumbnail?.path) {
-            imagePaths.add(album.thumbnail.path);
+            mediaPaths.add(album.thumbnail.path);
         }
     }
-    if (imagePaths.size === 0) return;
+    if (mediaPaths.size === 0) return;
     const Keys: { parentPath: string; itemName: string }[] = [];
-    imagePaths.forEach((path) => {
+    mediaPaths.forEach((path) => {
         const pathParts = getParentAndNameFromPath(path);
         if (pathParts.name) {
             Keys.push({
@@ -51,8 +51,8 @@ export async function augmentAlbumThumbnailsWithImageInfo(galleryItems: GalleryI
         { parentPath?: string; itemName?: string; thumbnail?: Rectangle; versionId?: string }
     >();
     result.Responses?.[getDynamoDbTableName()]?.forEach((item) => {
-        const imagePath = toImagePath(item.parentPath, item.itemName);
-        imgInfos.set(imagePath, item);
+        const mediaPath = toMediaPath(item.parentPath, item.itemName);
+        imgInfos.set(mediaPath, item);
     });
     for (const galleryItem of galleryItems) {
         if ('image' === galleryItem.itemType) continue;

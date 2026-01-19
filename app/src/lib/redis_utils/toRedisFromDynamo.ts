@@ -18,8 +18,10 @@ export function toRedisItem(awsItem: GalleryItem): RedisGalleryItem {
             return toRedisImage(awsItem as ImageItem);
         case 'album':
             return toRedisAlbum(awsItem as AlbumItem);
-        default:
-            throw new Error(`Unrecognized itemType: [${awsItem.itemType}]`);
+        default: {
+            const exhaustiveCheck: never = awsItem;
+            throw new Error(`Unrecognized itemType: [${(exhaustiveCheck as GalleryItem).itemType}]`);
+        }
     }
 }
 

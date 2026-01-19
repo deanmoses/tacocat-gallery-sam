@@ -32,7 +32,7 @@ import { MediaItem } from '../galleryTypes';
  * @param newName New name of media like newName.jpg or newName.mp4
  * @returns Path of new media like /2001/12-31/newName.jpg
  */
-export async function renameImage(oldMediaPath: string, newName: string): Promise<string> {
+export async function renameMedia(oldMediaPath: string, newName: string): Promise<string> {
     console.info(`Rename Media: renaming [${oldMediaPath}] to [${newName}]...`);
     assertIsValidMediaPath(oldMediaPath);
     validateNewMediaName(oldMediaPath, newName);

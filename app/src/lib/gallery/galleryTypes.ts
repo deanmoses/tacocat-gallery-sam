@@ -25,34 +25,44 @@ export type GalleryItemKey = keyof (AlbumItem & ImageItem & VideoItem);
 
 /** Album without children */
 export type AlbumItem = BaseGalleryRecord & {
+    itemType: 'album';
     thumbnail?: AlbumThumbnailEntry;
     summary?: string;
     published?: boolean;
 };
 
-export type ImageItem = BaseGalleryRecord & {
-    versionId: string;
-    dimensions: Size;
-    thumbnail?: ImageThumbnailCrop;
-    title?: string;
-    tags?: string[];
-};
+export type ImageItem = BaseMediaItem;
 
-export type VideoItem = BaseGalleryRecord & {
-    /** Distinguishes video from image (images don't have this field) */
+export type VideoItem = BaseMediaItem & {
+    /**
+     * Distinguishes video from image
+     * Images don't have this field until we run a migration
+     */
     mediaType: 'video';
-    /** UUID for locating transcoded video and poster in Derived bucket */
+    /**
+     * URL-safe ID that's globally unique across all gallery items.
+     * For locating transcoded video and poster in Derived bucket
+     */
     id: string;
-    versionId: string;
-    dimensions: Size;
     /** Duration in seconds */
     duration: number;
+};
+
+/** Base type with fields common to all media items (images and videos) */
+export type BaseMediaItem = BaseGalleryRecord & {
+    /**
+     * 'image' means 'media item' (image or video).
+     * Will be renamed to 'media' in a future migration.
+     */
+    itemType: 'image';
+    versionId: string;
+    dimensions: Size;
     thumbnail?: ImageThumbnailCrop;
     title?: string;
     tags?: string[];
 };
 
-/** Base that albums and images extend */
+/** Base type with fields common to all gallery items (albums, media) */
 export type BaseGalleryRecord = {
     path?: string;
     parentPath?: string;
@@ -63,7 +73,8 @@ export type BaseGalleryRecord = {
 };
 
 /**
- * DynamoDB itemType: 'album' or 'image', where 'image' means any media item, including videos
+ * DynamoDB itemType: 'album' or 'image', where 'image' means any media item, including videos.
+ * We will run a migration in the future to rename 'image' to 'media'.
  */
 export type GalleryItemType = 'album' | 'image';
 
