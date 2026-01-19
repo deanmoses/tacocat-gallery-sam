@@ -194,7 +194,7 @@ describe('handleVideoTranscodingComplete()', () => {
             expect(item?.ttl).toBeDefined();
         });
 
-        test('Deletes original file', async () => {
+        test('Reverts original file to previous version', async () => {
             const event = createCompleteEvent({
                 status: 'ERROR',
                 errorMessage: 'Transcoding failed',
@@ -206,6 +206,7 @@ describe('handleVideoTranscodingComplete()', () => {
             const originalDelete = deleteCalls.find((call) => call.args[0].input.Bucket === 'test-original-bucket');
             expect(originalDelete).toBeDefined();
             expect(originalDelete?.args[0].input.Key).toBe('2024/06-15/video.mp4');
+            expect(originalDelete?.args[0].input.VersionId).toBe('version123'); // Uses specific version
         });
 
         test('Deletes partial outputs from derived bucket', async () => {

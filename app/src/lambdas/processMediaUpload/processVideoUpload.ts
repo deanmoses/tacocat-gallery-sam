@@ -4,7 +4,6 @@ import {
     DescribeEndpointsCommand,
     CreateJobRequest,
 } from '@aws-sdk/client-mediaconvert';
-import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { randomUUID } from 'crypto';
@@ -18,6 +17,7 @@ import {
 import { VideoItem } from '../../lib/gallery/galleryTypes';
 import { JPEG_ORIGINAL_QUALITY } from './mediaProcessingConstants';
 import { recordMediaProcessingError } from '../../lib/dynamo_utils/recordError';
+import { revertS3Version } from '../../lib/s3_utils/s3revertVersion';
 
 // Video transcoding settings
 const VIDEO_MAX_BITRATE = 5_000_000; // 5 Mbps - good quality for web delivery
@@ -74,22 +74,11 @@ export async function processVideoUpload(bucket: string, key: string, versionId:
         // Record error for frontend to display
         await recordMediaProcessingError(videoPath, `Video processing failed: ${errorMessage}`);
 
-        // Delete the original video from S3
-        await deleteOriginalVideo(bucket, key);
+        // Revert to previous version (or delete if first version)
+        await revertS3Version(bucket, key, versionId);
 
         // Don't rethrow - we've handled the error by recording it and cleaning up
     }
-}
-
-async function deleteOriginalVideo(bucket: string, key: string): Promise<void> {
-    const s3Client = new S3Client({});
-    await s3Client.send(
-        new DeleteObjectCommand({
-            Bucket: bucket,
-            Key: key,
-        }),
-    );
-    console.info(JSON.stringify({ event: 'original_video_deleted', bucket, key }));
 }
 
 async function getExistingVideoRecord(videoPath: string): Promise<VideoItem | undefined> {
