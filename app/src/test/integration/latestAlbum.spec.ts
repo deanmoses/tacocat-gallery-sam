@@ -78,6 +78,6 @@ test('Latest album should no longer have a thumbnail', async () => {
     const album = await getAlbumAndChildren(albumPath);
     if (!album) throw 'no album';
     const imageName = reallyGetNameFromPath(imagePath);
-    const image = findMedia(album, imagePath);
+    const image = findMedia(album, imageName);
     if (!!image) throw new Error(`Image [${imageName}] should not exist in album [${albumPath}]`);
 });

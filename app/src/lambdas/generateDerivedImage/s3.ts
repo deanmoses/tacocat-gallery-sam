@@ -36,10 +36,10 @@ export const loadOriginalImage = async (id: string, versionId: string): Promise<
 
 /**
  * Load video poster from the Derived bucket.
- * Video posters are stored at video/<UUID>.jpg
+ * Video posters are stored at u/<UUID>/<versionId>/poster
  */
-export const loadVideoPoster = async (uuid: string): Promise<Uint8Array | undefined> => {
-    const key = `video/${uuid}.jpg`;
+export const loadVideoPoster = async (uuid: string, versionId: string): Promise<Uint8Array | undefined> => {
+    const key = `u/${uuid}/${versionId}/poster`;
     try {
         const response = await s3.send(
             new GetObjectCommand({

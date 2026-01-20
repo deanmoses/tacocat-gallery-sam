@@ -138,9 +138,9 @@ async function createMediaConvertJob(
     const inputS3Path = `s3://${originalBucket}/${key}`;
     // MediaConvert output naming: <Destination><input_filename_without_ext><NameModifier>.<extension>
     // We let MediaConvert use the original filename, then rename in VideoTranscodingComplete.
-    // MediaConvert outputs: video/<filename>_transcoded.mp4 and video/<filename>_poster.0000000.jpg
-    // VideoTranscodingComplete renames to: video/<UUID>.mp4 and video/<UUID>.jpg
-    const outputS3Path = `s3://${derivedBucket}/video/`;
+    // MediaConvert outputs: u/<UUID>/<versionId>/<filename>_transcoded.mp4 and u/<UUID>/<versionId>/<filename>_poster.0000000.jpg
+    // VideoTranscodingComplete renames to: u/<UUID>/<versionId>/transcoded and u/<UUID>/<versionId>/poster
+    const outputS3Path = `s3://${derivedBucket}/u/${videoId}/${versionId}/`;
 
     const jobParams: CreateJobRequest = {
         Role: roleArn,

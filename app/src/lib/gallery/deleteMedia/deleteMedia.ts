@@ -14,7 +14,7 @@ import { VideoItem } from '../galleryTypes';
 /**
  * Delete specified media (image or video) from both DynamoDB and S3.
  *
- * For videos, this also deletes the transcoded video and poster from /video/<UUID>.
+ * For videos, this also deletes the transcoded video and poster from the Derived bucket.
  *
  * @param mediaPath Path of media to delete, like /2001/12-31/image.jpg or /2001/12-31/video.mp4
  */
@@ -106,8 +106,14 @@ async function removeMediaAsAlbumThumbnail(mediaPath: string, albumPath: string)
         Statement:
             `UPDATE "${getDynamoDbTableName()}"` +
             ' REMOVE thumbnail' +
-            ` SET updatedOn='${new Date().toISOString()}'` +
-            ` WHERE parentPath='${albumPathParts.parent}' AND itemName='${albumPathParts.name}' AND thumbnail.path='${mediaPath}'`,
+            ' SET updatedOn=?' +
+            ' WHERE parentPath=? AND itemName=? AND thumbnail.path=?',
+        Parameters: [
+            { S: new Date().toISOString() },
+            { S: albumPathParts.parent },
+            { S: albumPathParts.name ?? '' },
+            { S: mediaPath },
+        ],
     });
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);

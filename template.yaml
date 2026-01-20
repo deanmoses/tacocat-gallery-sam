@@ -240,7 +240,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - s3:PutObject
-                Resource: !Sub arn:aws:s3:::${AWS::StackName}-derived-images/video/*
+                Resource: !Sub arn:aws:s3:::${AWS::StackName}-derived-images/u/*
 
   # -----------------------------------------------------------------------------
   # CloudFront CDN distribution that serves the images
@@ -299,6 +299,19 @@ Resources:
             FunctionAssociations:
               - EventType: viewer-request
                 FunctionARN: !GetAtt DerivedImagesUrlRewriteFunction.FunctionMetadata.FunctionARN
+          - PathPattern: /v/*
+            TargetOriginId: derived-images-bucket
+            Compress: true
+            ViewerProtocolPolicy: redirect-to-https
+            CachePolicyId: !Ref ImmutableCachePolicy
+            ResponseHeadersPolicyId: !Ref ImmutableResponseHeadersPolicy
+            ForwardedValues:
+              QueryString: false
+              Cookies:
+                Forward: none
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt VideoPlaybackUrlRewriteFunction.FunctionMetadata.FunctionARN
         DefaultCacheBehavior:
           TargetOriginId: original-images-bucket
           Compress: true
@@ -395,6 +408,29 @@ Resources:
       CloudFrontOriginAccessIdentityConfig:
         Comment: !Ref DerivedImagesBucket
 
+  # CloudFront Function to rewrite video playback URL
+  # Input: /v/2024/06-15/video.avi?id=<UUID>&version=<versionId>
+  # Output: /u/<UUID>/<versionId>/transcoded
+  VideoPlaybackUrlRewriteFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub RewriteVideoPlaybackUrl-${AWS::StackName}
+      AutoPublish: true
+      FunctionConfig:
+        Comment: !Sub Rewrite video playback URL for ${AWS::StackName}
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |+2
+        function handler(event) {
+            const r = event.request;
+            const id = r.querystring['id'];
+            const version = r.querystring['version'];
+            if (!id) return { statusCode: 400, statusDescription: 'Missing id' };
+            if (!version) return { statusCode: 400, statusDescription: 'Missing version' };
+            r.uri = '/u/' + id.value + '/' + version.value + '/transcoded';
+            r.querystring = {};
+            return r;
+        }
+
   # CloudFront Function to rewrite URL to derived images bucket
   DerivedImagesUrlRewriteFunction:
     Type: AWS::CloudFront::Function
@@ -435,7 +471,9 @@ Resources:
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref OriginalImagesBucket
-        - S3WritePolicy:
+        - S3ReadPolicy: # Read video posters
+            BucketName: !Ref DerivedImagesBucket
+        - S3WritePolicy: # Write resized images
             BucketName: !Ref DerivedImagesBucket
         - DynamoDBReadPolicy:
             TableName: !Ref GalleryItemDDBTable

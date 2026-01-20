@@ -4,6 +4,33 @@ import { getParentAndNameFromPath, isValidAlbumPath, isValidPath } from '../gall
 import { getDynamoDbTableName } from '../lambda_utils/Env';
 import { GalleryItem, GalleryItemKey } from '../gallery/galleryTypes';
 
+/** DynamoDB reserved words that need aliasing in expressions */
+const RESERVED_WORDS = ['duration', 'id'] as const;
+
+/**
+ * Build ProjectionExpression and ExpressionAttributeNames with reserved word handling.
+ * DynamoDB reserved words like 'duration' and 'id' must be aliased in expressions.
+ */
+function buildProjection(attributes: string[]): {
+    ProjectionExpression: string;
+    ExpressionAttributeNames?: Record<string, string>;
+} {
+    const expressionAttributeNames: Record<string, string> = {};
+
+    const projection = attributes.map((attr) => {
+        if (RESERVED_WORDS.includes(attr as (typeof RESERVED_WORDS)[number])) {
+            expressionAttributeNames[`#${attr}`] = attr;
+            return `#${attr}`;
+        }
+        return attr;
+    });
+
+    return {
+        ProjectionExpression: projection.join(','),
+        ...(Object.keys(expressionAttributeNames).length > 0 && { ExpressionAttributeNames: expressionAttributeNames }),
+    };
+}
+
 /**
  * Get the full contents of an album or image from DynamoDB
  * Does not retrieve any children.
@@ -37,7 +64,11 @@ export async function getItem<T extends GalleryItem>(
         },
     });
     if (attributes?.length && attributes?.length > 0) {
-        ddbCommand.input.ProjectionExpression = attributes.toString();
+        const { ProjectionExpression, ExpressionAttributeNames } = buildProjection(attributes as string[]);
+        ddbCommand.input.ProjectionExpression = ProjectionExpression;
+        if (ExpressionAttributeNames) {
+            ddbCommand.input.ExpressionAttributeNames = ExpressionAttributeNames;
+        }
     }
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);
@@ -73,7 +104,11 @@ export async function getChildItems(
         },
     });
     if (attributes?.length && attributes?.length > 0) {
-        ddbCommand.input.ProjectionExpression = attributes.toString();
+        const { ProjectionExpression, ExpressionAttributeNames } = buildProjection(attributes as string[]);
+        ddbCommand.input.ProjectionExpression = ProjectionExpression;
+        if (ExpressionAttributeNames) {
+            ddbCommand.input.ExpressionAttributeNames = ExpressionAttributeNames;
+        }
     }
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);

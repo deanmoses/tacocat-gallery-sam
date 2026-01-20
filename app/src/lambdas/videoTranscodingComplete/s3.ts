@@ -1,40 +1,119 @@
-import { S3Client, DeleteObjectCommand, ListObjectsV2Command, CopyObjectCommand } from '@aws-sdk/client-s3';
+import {
+    S3Client,
+    DeleteObjectCommand,
+    ListObjectsV2Command,
+    CopyObjectCommand,
+    HeadObjectCommand,
+    NotFound,
+} from '@aws-sdk/client-s3';
 import { getNameFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { getDerivedImagesBucketName } from '../../lib/lambda_utils/Env';
 import { objectExists } from '../../lib/s3_utils/s3exists';
 
 const s3Client = new S3Client({});
 
+// Content type prefixes to verify MediaConvert set a valid content type.
+// We check prefixes (not exact types) to allow for codec variations like video/webm, image/png, etc.
+const VIDEO_CONTENT_TYPE_PREFIX = 'video/';
+const POSTER_CONTENT_TYPE_PREFIX = 'image/';
+
 /**
- * Rename MediaConvert outputs from original filename to UUID-based names.
- * MediaConvert outputs: video/<filename>_transcoded.mp4 and video/<filename>_poster.0000000.jpg
- * We rename to: video/<UUID>.mp4 and video/<UUID>.jpg
+ * Get the content type of an S3 object.
+ * Returns undefined if the object doesn't exist.
+ * Re-throws other errors to allow Lambda retry on transient failures.
+ */
+async function getContentType(bucket: string, key: string): Promise<string | undefined> {
+    try {
+        const response = await s3Client.send(
+            new HeadObjectCommand({
+                Bucket: bucket,
+                Key: key,
+            }),
+        );
+        return response.ContentType;
+    } catch (error) {
+        if (error instanceof NotFound) {
+            return undefined;
+        }
+        throw error;
+    }
+}
+
+export type RenameResult = { success: true } | { success: false; error: string };
+
+/**
+ * Rename MediaConvert outputs from original filename to clean names.
+ * MediaConvert outputs: u/<UUID>/<versionId>/<filename>_transcoded.mp4 and u/<UUID>/<versionId>/<filename>_poster.0000000.jpg
+ * We rename to: u/<UUID>/<versionId>/transcoded and u/<UUID>/<versionId>/poster
+ *
+ * Before renaming, verifies that the source files have correct content types.
+ * If content types are wrong, returns an error instead of renaming.
  *
  * This function is idempotent: if the destination already exists (from a previous Lambda
  * invocation), it skips the copy and just cleans up any remaining source files.
+ *
+ * @returns RenameResult indicating success or failure with error message
  */
-export async function renameMediaConvertOutputs(videoPath: string, videoId: string): Promise<void> {
+export async function renameMediaConvertOutputs(
+    videoPath: string,
+    videoId: string,
+    versionId: string,
+): Promise<RenameResult> {
     const derivedBucket = getDerivedImagesBucketName();
 
     // Extract original filename without extension from path
     // e.g., /2026/01-14/monkey_village_67.mov -> monkey_village_67
     const filename = getNameFromPath(videoPath);
     if (!filename) {
-        throw new Error(`Could not extract filename from path: ${videoPath}`);
+        return { success: false, error: `Could not extract filename from path: ${videoPath}` };
     }
     const filenameWithoutExt = filename.replace(/\.[^.]+$/, '');
 
-    // Rename transcoded video: video/<filename>_transcoded.mp4 -> video/<UUID>.mp4
-    const videoSourceKey = `video/${filenameWithoutExt}_transcoded.mp4`;
-    const videoDestKey = `video/${videoId}.mp4`;
+    // Base path for this video version
+    const basePath = `u/${videoId}/${versionId}`;
 
-    // Rename poster: video/<filename>_poster.0000000.jpg -> video/<UUID>.jpg
-    const posterSourceKey = `video/${filenameWithoutExt}_poster.0000000.jpg`;
-    const posterDestKey = `video/${videoId}.jpg`;
+    // Rename transcoded video: u/<UUID>/<versionId>/<filename>_transcoded.mp4 -> u/<UUID>/<versionId>/transcoded
+    const videoSourceKey = `${basePath}/${filenameWithoutExt}_transcoded.mp4`;
+    const videoDestKey = `${basePath}/transcoded`;
+
+    // Rename poster: u/<UUID>/<versionId>/<filename>_poster.0000000.jpg -> u/<UUID>/<versionId>/poster
+    const posterSourceKey = `${basePath}/${filenameWithoutExt}_poster.0000000.jpg`;
+    const posterDestKey = `${basePath}/poster`;
+
+    // Check if already renamed (idempotent for Lambda retries)
+    const videoAlreadyRenamed = await objectExists(derivedBucket, videoDestKey);
+    const posterAlreadyRenamed = await objectExists(derivedBucket, posterDestKey);
+
+    // Verify content types before renaming (skip if already renamed)
+    if (!videoAlreadyRenamed) {
+        const videoContentType = await getContentType(derivedBucket, videoSourceKey);
+        if (!videoContentType) {
+            return { success: false, error: `Transcoded video not found at ${videoSourceKey}` };
+        }
+        if (!videoContentType.startsWith(VIDEO_CONTENT_TYPE_PREFIX)) {
+            return {
+                success: false,
+                error: `Transcoded video has wrong content type: expected ${VIDEO_CONTENT_TYPE_PREFIX}*, got ${videoContentType}`,
+            };
+        }
+    }
+
+    if (!posterAlreadyRenamed) {
+        const posterContentType = await getContentType(derivedBucket, posterSourceKey);
+        if (!posterContentType) {
+            return { success: false, error: `Poster image not found at ${posterSourceKey}` };
+        }
+        if (!posterContentType.startsWith(POSTER_CONTENT_TYPE_PREFIX)) {
+            return {
+                success: false,
+                error: `Poster image has wrong content type: expected ${POSTER_CONTENT_TYPE_PREFIX}*, got ${posterContentType}`,
+            };
+        }
+    }
 
     try {
         // Rename video file (idempotent: skip copy if destination exists)
-        if (await objectExists(derivedBucket, videoDestKey)) {
+        if (videoAlreadyRenamed) {
             console.info(JSON.stringify({ event: 'transcoding_video_already_renamed', destKey: videoDestKey }));
         } else {
             await s3Client.send(
@@ -61,7 +140,7 @@ export async function renameMediaConvertOutputs(videoPath: string, videoId: stri
         );
 
         // Rename poster file (idempotent: skip copy if destination exists)
-        if (await objectExists(derivedBucket, posterDestKey)) {
+        if (posterAlreadyRenamed) {
             console.info(JSON.stringify({ event: 'transcoding_poster_already_renamed', destKey: posterDestKey }));
         } else {
             await s3Client.send(
@@ -86,6 +165,8 @@ export async function renameMediaConvertOutputs(videoPath: string, videoId: stri
                 Key: posterSourceKey,
             }),
         );
+
+        return { success: true };
     } catch (error) {
         console.error(JSON.stringify({ event: 'transcoding_rename_failed', videoPath, videoId, error: String(error) }));
         throw error; // Re-throw to fail the Lambda and trigger retry
@@ -94,22 +175,15 @@ export async function renameMediaConvertOutputs(videoPath: string, videoId: stri
 
 /**
  * Delete partial MediaConvert outputs from derived bucket.
- * Uses original filename pattern to find and delete partial outputs on transcoding failure.
+ * Deletes all files under u/<UUID>/<versionId>/ on transcoding failure.
  */
-export async function deletePartialOutputs(videoPath: string): Promise<void> {
+export async function deletePartialOutputs(videoId: string, versionId: string): Promise<void> {
     const derivedBucket = getDerivedImagesBucketName();
 
-    // Extract original filename without extension from path
-    const filename = getNameFromPath(videoPath);
-    if (!filename) {
-        console.warn(JSON.stringify({ event: 'transcoding_delete_partial_no_filename', videoPath }));
-        return;
-    }
-    const filenameWithoutExt = filename.replace(/\.[^.]+$/, '');
-
-    // MediaConvert outputs: video/<filename>_transcoded.mp4, video/<filename>_poster.0000000.jpg
-    // Prefix matches all files starting with video/<filename>_
-    const prefix = `video/${filenameWithoutExt}_`;
+    // MediaConvert outputs: u/<UUID>/<versionId>/<filename>_transcoded.mp4, u/<UUID>/<versionId>/<filename>_poster.0000000.jpg
+    // Also includes renamed outputs: u/<UUID>/<versionId>/transcoded, u/<UUID>/<versionId>/poster
+    // Prefix matches all files in this version's directory
+    const prefix = `u/${videoId}/${versionId}/`;
 
     try {
         // List all objects with the filename prefix

@@ -18,7 +18,7 @@ export async function deleteOriginalsAndDerivatives(albumPath: string): Promise<
  * Delete single media from S3, both original and any derived files.
  * Does not touch DynamoDB.
  *
- * For videos, also pass the UUID to delete the transcoded video and poster from /video/<UUID>.
+ * For videos, also pass the UUID to delete the transcoded video and poster from u/<UUID>/.
  *
  * @param mediaPath Path of media, like /2001/12-31/image.jpg or /2001/12-31/video.mp4
  * @param videoUuid Optional UUID for video assets (transcoded video and poster)
@@ -98,7 +98,8 @@ async function deleteDerivedFiles(mediaPath: string): Promise<void> {
 
 /**
  * Delete video assets (transcoded video and poster) from S3.
- * Video assets are stored at /video/<UUID>.mp4 and /video/<UUID>.jpg in the Derived bucket.
+ * Video assets are stored at u/<UUID>/<versionId>/transcoded and u/<UUID>/<versionId>/poster in the Derived bucket.
+ * This deletes ALL versions of the video assets by using the u/<UUID>/ prefix.
  * Does not touch DynamoDB.
  *
  * @param uuid UUID of the video
@@ -108,8 +109,8 @@ async function deleteVideoAssets(uuid: string): Promise<void> {
         throw new Error(`Cannot delete video assets; invalid UUID [${uuid}]`);
     }
     console.info(`Deleting video assets for UUID [${uuid}]...`);
-    // Delete all files with prefix video/<UUID> (includes .mp4 and .jpg)
-    await deleteS3Folder(getDerivedImagesBucketName(), `video/${uuid}`);
+    // Delete all files with prefix u/<UUID>/ (includes all versions: transcoded and poster files)
+    await deleteS3Folder(getDerivedImagesBucketName(), `u/${uuid}/`);
 }
 
 /**

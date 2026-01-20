@@ -25,7 +25,7 @@ import { MediaItem } from '../galleryTypes';
  * I need it in the UI.
  *
  * For videos: The UUID is preserved in the DynamoDB record, so the transcoded
- * video and poster at /video/<UUID> remain valid. Only the original file in the
+ * video and poster stored by <UUID> remain valid. Only the original file in the
  * Originals bucket and derived thumbnails are deleted/recreated.
  *
  * @param oldMediaPath Path of existing media like /2001/12-31/image.jpg or /2001/12-31/video.mp4
@@ -40,8 +40,7 @@ export async function renameMedia(oldMediaPath: string, newName: string): Promis
     await Promise.all([assertMediaExists(oldMediaPath), assertMediaDoesNotExist(newMediaPath)]);
     const newVersionId = await copyOriginal(oldMediaPath, newMediaPath);
     await renameMediaInDynamoDB(oldMediaPath, newName, newVersionId);
-    // Don't pass videoUuid - for videos, we keep /video/<UUID> files since UUID is preserved
-    await deleteOriginalAndDerivatives(oldMediaPath);
+    await deleteOriginalAndDerivatives(oldMediaPath); // Doesn't take videoUuid: for videos, we keep <UUID> files since UUID is preserved
     console.info(`Rename Media: renamed media from [${oldMediaPath}] to [${newMediaPath}]`);
     return newMediaPath;
 }
@@ -168,9 +167,16 @@ export async function renameAlbumThumb(albumPath: string, oldMediaPath: string, 
     const ddbCommand = new ExecuteStatementCommand({
         Statement:
             `UPDATE "${getDynamoDbTableName()}"` +
-            ` SET thumbnail.path='${newMediaPath}'` +
-            ` SET updatedOn='${new Date().toISOString()}'` +
-            ` WHERE parentPath='${albumPathParts.parent}' AND itemName='${albumPathParts.name}' AND thumbnail.path='${oldMediaPath}'`,
+            ' SET thumbnail.path=?' +
+            ' SET updatedOn=?' +
+            ' WHERE parentPath=? AND itemName=? AND thumbnail.path=?',
+        Parameters: [
+            { S: newMediaPath },
+            { S: new Date().toISOString() },
+            { S: albumPathParts.parent },
+            { S: albumPathParts.name ?? '' },
+            { S: oldMediaPath },
+        ],
     });
 
     const ddbClient = new DynamoDBClient({});

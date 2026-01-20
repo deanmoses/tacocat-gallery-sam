@@ -42,9 +42,14 @@ async function waitForVideoProcessing(videoPath: string, timeoutMs: number = 180
     return null;
 }
 
-// Helper to check if video assets exist in derived bucket
-async function videoAssetExists(uuid: string, extension: 'mp4' | 'jpg'): Promise<boolean> {
-    const key = `video/${uuid}.${extension}`;
+// Helper to check if video assets exist in derived bucket and get metadata
+// Video assets are stored at u/<UUID>/<versionId>/transcoded and u/<UUID>/<versionId>/poster
+async function getVideoAssetMetadata(
+    uuid: string,
+    versionId: string,
+    type: 'transcoded' | 'poster',
+): Promise<{ exists: boolean; contentType?: string }> {
+    const key = `u/${uuid}/${versionId}/${type}`;
     const s3Command = new HeadObjectCommand({
         Bucket: getDerivedImagesBucketName(),
         Key: key,
@@ -52,13 +57,21 @@ async function videoAssetExists(uuid: string, extension: 'mp4' | 'jpg'): Promise
     const client = new S3Client({});
     try {
         const response = await client.send(s3Command);
-        return response.$metadata.httpStatusCode === 200;
+        return {
+            exists: response.$metadata.httpStatusCode === 200,
+            contentType: response.ContentType,
+        };
     } catch (e) {
         if (e instanceof NotFound) {
-            return false;
+            return { exists: false };
         }
         throw e;
     }
+}
+
+async function videoAssetExists(uuid: string, versionId: string, type: 'transcoded' | 'poster'): Promise<boolean> {
+    const metadata = await getVideoAssetMetadata(uuid, versionId, type);
+    return metadata.exists;
 }
 
 let videoItem: VideoItem | null = null;
@@ -131,22 +144,24 @@ test('Album contains video', async () => {
     expect(video.itemName).toBe(videoName);
 });
 
-test('Transcoded video exists in derived bucket', async () => {
-    if (!videoItem?.id) {
-        console.warn('Skipping - no video UUID');
+test('Transcoded video exists in derived bucket with correct content type', async () => {
+    if (!videoItem?.id || !videoItem?.versionId) {
+        console.warn('Skipping - no video UUID or versionId');
         return;
     }
-    const exists = await videoAssetExists(videoItem.id, 'mp4');
-    expect(exists).toBe(true);
+    const metadata = await getVideoAssetMetadata(videoItem.id, videoItem.versionId, 'transcoded');
+    expect(metadata.exists).toBe(true);
+    expect(metadata.contentType).toBe('video/mp4');
 });
 
-test('Video poster exists in derived bucket', async () => {
-    if (!videoItem?.id) {
-        console.warn('Skipping - no video UUID');
+test('Video poster exists in derived bucket with correct content type', async () => {
+    if (!videoItem?.id || !videoItem?.versionId) {
+        console.warn('Skipping - no video UUID or versionId');
         return;
     }
-    const exists = await videoAssetExists(videoItem.id, 'jpg');
-    expect(exists).toBe(true);
+    const metadata = await getVideoAssetMetadata(videoItem.id, videoItem.versionId, 'poster');
+    expect(metadata.exists).toBe(true);
+    expect(metadata.contentType).toBe('image/jpeg');
 });
 
 test('Delete video', async () => {
@@ -166,19 +181,19 @@ test('Original video bucket should no longer contain video', async () => {
 });
 
 test('Transcoded video should be deleted from derived bucket', async () => {
-    if (!videoItem?.id) {
-        console.warn('Skipping - no video UUID');
+    if (!videoItem?.id || !videoItem?.versionId) {
+        console.warn('Skipping - no video UUID or versionId');
         return;
     }
-    const exists = await videoAssetExists(videoItem.id, 'mp4');
+    const exists = await videoAssetExists(videoItem.id, videoItem.versionId, 'transcoded');
     expect(exists).toBe(false);
 });
 
 test('Video poster should be deleted from derived bucket', async () => {
-    if (!videoItem?.id) {
-        console.warn('Skipping - no video UUID');
+    if (!videoItem?.id || !videoItem?.versionId) {
+        console.warn('Skipping - no video UUID or versionId');
         return;
     }
-    const exists = await videoAssetExists(videoItem.id, 'jpg');
+    const exists = await videoAssetExists(videoItem.id, videoItem.versionId, 'poster');
     expect(exists).toBe(false);
 });

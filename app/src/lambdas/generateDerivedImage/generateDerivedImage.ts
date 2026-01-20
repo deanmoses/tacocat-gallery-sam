@@ -40,7 +40,7 @@ export async function generateDerivedImage(method: string, urlPath: string): Pro
             console.error(JSON.stringify({ event: 'video_uuid_not_found', id }));
             return notFound;
         }
-        original = await loadVideoPoster(uuid);
+        original = await loadVideoPoster(uuid, versionId);
     } else {
         original = await loadOriginalImage(id, versionId);
     }
@@ -50,11 +50,11 @@ export async function generateDerivedImage(method: string, urlPath: string): Pro
 
     const contentType = `image/${format}`;
     const headers = { 'content-type': contentType, 'cache-control': cacheControl };
-    const save = saveOptimizedImage(urlPath, buffer, contentType, cacheControl);
-    const body = buffer.toString('base64'); // do base64 encoding in parallel to saving
-    await save;
+    await saveOptimizedImage(urlPath, buffer, contentType, cacheControl);
 
     if (method === 'HEAD') return { statusCode: 200, headers };
+
+    const body = buffer.toString('base64');
     if (body.length > 5 * 1024 * 1024) return retryLater; // can't return large response via lambda, subsequent requests will be served from S3
     return { statusCode: 200, headers, body, isBase64Encoded: true };
 }

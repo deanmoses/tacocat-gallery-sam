@@ -60,21 +60,30 @@ export async function handleVideoTranscodingComplete(event: MediaConvertJobState
     } else {
         // ERROR or CANCELED
         const error = errorMessage || `MediaConvert job ${status.toLowerCase()}`;
-        await handleFailure(videoPath, versionId, error);
+        await handleFailure(videoPath, versionId, videoId, error);
     }
 }
 
 /**
  * Handle successful MediaConvert job completion event.
- * Write DynamoDB record with video metadata.
+ * Verifies content types, renames outputs, and writes DynamoDB record with video metadata.
+ * If content type verification fails, treats as a failure: records error, deletes outputs, reverts original.
  */
 async function handleSuccess(jobId: string, videoPath: string, versionId: string, videoId: string): Promise<void> {
     console.info(JSON.stringify({ event: 'transcoding_success_processing', jobId, videoPath, videoId }));
 
-    // Rename MediaConvert outputs from original filename to UUID
-    // MediaConvert outputs: video/<filename>_transcoded.mp4 and video/<filename>_poster.0000000.jpg
-    // We rename to: video/<UUID>.mp4 and video/<UUID>.jpg
-    await renameMediaConvertOutputs(videoPath, videoId);
+    // Verify content types and rename MediaConvert outputs
+    // MediaConvert outputs: u/<UUID>/<versionId>/<filename>_transcoded.mp4 and u/<UUID>/<versionId>/<filename>_poster.0000000.jpg
+    // We rename to: u/<UUID>/<versionId>/transcoded and u/<UUID>/<versionId>/poster
+    const renameResult = await renameMediaConvertOutputs(videoPath, videoId, versionId);
+    if (!renameResult.success) {
+        // Content type verification or rename failed - treat as a failure
+        console.error(
+            JSON.stringify({ event: 'transcoding_rename_validation_failed', videoPath, error: renameResult.error }),
+        );
+        await handleFailure(videoPath, versionId, videoId, renameResult.error);
+        return;
+    }
 
     // Get job details to extract duration and dimensions
     const { duration, dimensions } = await getMediaConvertJobMetadata(jobId);
@@ -102,7 +111,12 @@ async function handleSuccess(jobId: string, videoPath: string, versionId: string
  * Handle failed MediaConvert job completion event.
  * Write to error table, revert original file, clean up partial outputs.
  */
-async function handleFailure(videoPath: string, versionId: string, errorMessage: string): Promise<void> {
+async function handleFailure(
+    videoPath: string,
+    versionId: string,
+    videoId: string,
+    errorMessage: string,
+): Promise<void> {
     console.error(JSON.stringify({ event: 'transcoding_failed', videoPath, error: errorMessage }));
 
     await recordMediaProcessingError(videoPath, errorMessage);
@@ -117,6 +131,6 @@ async function handleFailure(videoPath: string, versionId: string, errorMessage:
         console.error(JSON.stringify({ event: 'transcoding_original_revert_failed', key, error: String(error) }));
     }
 
-    // Delete partial outputs from derived bucket (uses original filename pattern)
-    await deletePartialOutputs(videoPath);
+    // Delete partial outputs from derived bucket
+    await deletePartialOutputs(videoId, versionId);
 }

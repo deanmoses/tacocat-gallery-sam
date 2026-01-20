@@ -1,6 +1,9 @@
 /**
  * One-time migration to fix image dimensions and tags in DynamoDB.
  *
+ * THIS IS NOW OBSOLETE - the codebase has evolved and this will no longer run
+ * without getting fixed up.  Keeping it for reference only.
+ *
  * Addresses two GitHub issues:
  * - #106: Images with EXIF orientations 5-8 were stored with raw pixel dimensions
  *   instead of display dimensions (width/height swapped).

@@ -24,23 +24,23 @@ export async function getMediaConvertJobMetadata(jobId: string): Promise<MediaCo
     let width = 0;
     let height = 0;
 
-    // Look for video details in output group details
+    // Look for video details in the FIRST output group
+    // Our MediaConvert job defines outputs in order: 1) video, 2) poster
+    // The first output group contains the video with the actual duration
     const outputGroupDetails = job?.OutputGroupDetails;
-    if (outputGroupDetails) {
-        for (const group of outputGroupDetails) {
-            const outputDetails = group.OutputDetails;
-            if (outputDetails) {
-                for (const output of outputDetails) {
-                    const videoDetails = output.VideoDetails as VideoDetail | undefined;
-                    if (videoDetails) {
-                        if (videoDetails.WidthInPx) width = videoDetails.WidthInPx;
-                        if (videoDetails.HeightInPx) height = videoDetails.HeightInPx;
-                    }
-                    // Duration is in milliseconds in the output details
-                    if (output.DurationInMs) {
-                        duration = Math.round(output.DurationInMs / 1000);
-                    }
-                }
+    if (outputGroupDetails && outputGroupDetails.length > 0) {
+        const firstGroup = outputGroupDetails[0];
+        const outputDetails = firstGroup.OutputDetails;
+        if (outputDetails && outputDetails.length > 0) {
+            const output = outputDetails[0];
+            const videoDetails = output.VideoDetails as VideoDetail | undefined;
+            if (videoDetails) {
+                if (videoDetails.WidthInPx) width = videoDetails.WidthInPx;
+                if (videoDetails.HeightInPx) height = videoDetails.HeightInPx;
+            }
+            // Duration is in milliseconds in the output details
+            if (output.DurationInMs) {
+                duration = Math.round(output.DurationInMs / 1000);
             }
         }
     }

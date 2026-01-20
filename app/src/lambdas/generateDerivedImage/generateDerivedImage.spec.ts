@@ -115,7 +115,7 @@ describe('generateDerivedImage', () => {
             const result = await generateDerivedImage('GET', '/i/2001/12-31/video.mp4/VERSIONID/200');
 
             expect(mockGetVideoUuid).toHaveBeenCalledWith('2001/12-31/video.mp4');
-            expect(mockLoadVideoPoster).toHaveBeenCalledWith(uuid);
+            expect(mockLoadVideoPoster).toHaveBeenCalledWith(uuid, 'VERSIONID');
             expect(result.statusCode).toBe(404); // poster not found
         });
 

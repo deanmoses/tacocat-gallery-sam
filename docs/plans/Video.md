@@ -1,6 +1,6 @@
-# Plan: Video Support
+# Architecture: Video Support
 
-This is a plan for the Tacocat gallery AWS back end to support videos.  Currently, the gallery only supports still images. Users want to upload and view videos alongside their photos.
+This is an architecture for the Tacocat gallery AWS back end to support videos.  Currently, the gallery only supports still images. Users want to upload and view videos alongside their photos.
 
 ## Requirements
 
@@ -31,12 +31,17 @@ However, videos require a few things that still images don't:
  - **Transcoded video**.  Videos will be transcoded to a universally playable format supported by all browsers.
  - **Poster image**.  A "poster" image will be extracted from the video.  It'll be used as the source to generate thumbnails and detail page image.
 
-Each video will get a UUID. The transcoded video and poster live in the Derived bucket by UUID:
+Each video will get a UUID. The transcoded video and poster live in the Derived bucket by UUID and versionId:
 ```
 Derived Bucket:
-  /video/<UUID>.mp4          ← Transcoded playable version
-  /video/<UUID>.jpg          ← Poster image (source for thumbnails)
+  /u/<UUID>/<versionId>/transcoded    ← Transcoded playable version
+  /u/<UUID>/<versionId>/poster        ← Poster image (source for thumbnails)
 ```
+
+This structure:
+- Enables version-aware CDN caching (new uploads get new versionId, cached immediately)
+- Supports atomic cleanup by prefix (`/u/<UUID>/` deletes everything for a video)
+- Avoids touching derived files during rename (paths are UUID-based, not path-based)
 
 **Poster JPG Quality**.  The poster JPG will never be served to a browser; it's the source for thumbs and detail image.  As such it will be generated with a high quality number.  Use the same quality number used by the HEIC -> JPG original conversion.
 
@@ -68,8 +73,8 @@ Derived Bucket:
    - Transcodes to H.264 MP4 with faststart flag
    - Extracts poster frame as JPG
    - Writes outputs to Derived bucket:
-     -  `/video/<UUID>.mp4`
-     -  `/video/<UUID>.jpg`
+     -  `/u/<UUID>/<versionId>/transcoded`
+     -  `/u/<UUID>/<versionId>/poster`
 
 5. MediaConvert sends an EventBridge event containing the `userMetadata` containing the original video's path and versionId.
 
@@ -89,7 +94,7 @@ On failure of any step in the processing:
   - The Sveltekit front end polling checks error table, shows failure message
 - Clean up
   - Delete the original video from Originals bucket
-  - Delete any partial outputs by prefix `/video/<UUID>` from Derived bucket
+  - Delete any partial outputs by prefix `/u/<UUID>/` from Derived bucket
 
 
 ## Upload Rules
@@ -286,10 +291,10 @@ Videos use the same thumbnail URL format as images:
 /i/2024/06-15/my_video.avi/<versionId>/200
 ```
 
-However, when generating a thumbnail for a video path, the Lambda must fetch the **poster** from the Derived bucket.  Whereas for images, the source is the Originals bucket. 
+However, when generating a thumbnail for a video path, the Lambda must fetch the **poster** from the Derived bucket.  Whereas for images, the source is the Originals bucket.
 
 ```text
-/video/<UUID>.jpg in Derived bucket
+/u/<UUID>/<versionId>/poster in Derived bucket
 ```
 
 This does mean, unfortunately, that `GenerateDerivedImage` must look up the UUID from DynamoDB using the video's path.  This is not much of a perf hit, because the lookup only happens on the first request for a given thumbnail size. After that, CloudFront caches the result and subsequent requests are served from the CDN without hitting the Lambda at all.
@@ -300,14 +305,20 @@ Works the same as images. The video record can have a `thumbnail` crop rectangle
 
 ## Video Playback URL
 
-The frontend constructs the playback URL from the video's UUID:
+The frontend constructs the playback URL from the video's path, UUID, and versionId:
 
 ```text
+Video path:    /2024/06-15/video.avi
 Video id:      550e8400-e29b-41d4-a716-446655440000
-Playback URL:  https://{derivedDomain}/video/550e8400-e29b-41d4-a716-446655440000.mp4
+Video version: abc123
+Playback URL:  https://{derivedDomain}/v/2024/06-15/video.avi?id=550e8400-e29b-41d4-a716-446655440000&version=abc123
 ```
 
-The frontend gets the `id` field from the album API response and constructs the URL to the Derived bucket (served via CloudFront).
+The frontend gets the `id` and `versionId` fields from the album API response and constructs the URL. The CloudFront function rewrites this to the S3 path `/u/<UUID>/<versionId>/transcoded`.
+
+The path (`2024/06-15/video.avi`) is included in the URL for debuggability (visible in browser Network tab) but is not used for routing - only the `id` and `version` params matter.
+
+If the transcoded video doesn't exist at the S3 path, it's a 404.  There is no Lambda failover for the `/v/` route - the DynamoDB entry won't be written until the transcoded file exists.
 
 ## Video Metadata Extraction
 
@@ -320,15 +331,19 @@ The `VideoProcessingComplete` Lambda needs duration and dimensions for the Dynam
 In the Sveltekit front end, a user can drag a new video over an existing one of the same format, and replace it.
 
 The flow:
-1. Browser uses a presigned URL to overwrite the original in S3 with new upload
+1. Browser uses a presigned URL to overwrite the original in S3 with new upload (gets new versionId)
 2. The S3 trigger triggers `ProcessMediaUpload` Lambda
 3. `ProcessMediaUpload` detects existing video record, reuses the same UUID
-4. `ProcessMediaUpload` triggers new MediaConvert job with existing UUID
-5. MediaConvert overwrites `/video/<UUID>.mp4` and `/video/<UUID>.jpg`
+4. `ProcessMediaUpload` triggers new MediaConvert job with existing UUID and new versionId
+5. MediaConvert writes to new version paths:
+   - `/u/<UUID>/<newVersionId>/transcoded`
+   - `/u/<UUID>/<newVersionId>/poster`
 6. DynamoDB record updated by VideoTranscodingComplete (same UUID, new versionId)
 7. Front end polls to detects that processing is done by re-retrieving the album.  If the video has a new versionId, processing is complete.
 8. Front end requests thumbnail and detail page using new versionId
 9. `GenerateDerivedImage` Lambda generates the new thumbnail using new versionId
+
+Old version assets at `/u/<UUID>/<oldVersionId>/` are kept. This supports stale clients with old versionIds and avoids complexity of cleanup during re-upload. Old versions can be cleaned up later if needed.
    
 ## Video Rename
 
@@ -342,7 +357,7 @@ In the Sveltekit front end, a user will be able to rename a video.
 5. Delete old original from Originals bucket
 6. Delete derived thumbnails with prefix `/i/<old-path>/` (e.g., `/i/2024/06-15/old_video.avi/`). They will be regenerated on demand
 
-The transcoded video and poster at `/video/<UUID>.mp4` and `/video/<UUID>.jpg` are untouched because they're keyed by UUID, not path.
+The transcoded video and poster at `/u/<UUID>/<versionId>/` are untouched because they're keyed by UUID, not path.
 
 **Comparison with image rename:** Image rename deletes all derived images and lets them regenerate. For videos, we keep the transcoded/poster (expensive to regenerate) but, like images, delete the `/i/` thumbnails (cheap to regenerate).
 
@@ -354,7 +369,7 @@ In the Sveltekit front end, a user will be able to delete a video.
 1. Look up DynamoDB record to get UUID
 2. Delete from Originals bucket: `/2024/06-15/video.avi`
 3. Delete from Derived bucket (list by prefix, then batch delete):
-   - Prefix `/video/<UUID>` → deletes `.mp4` and `.jpg`
+   - Prefix `/u/<UUID>/` → deletes all transcoded videos and posters (all versions)
    - Prefix `/i/2024/06-15/video.avi/` → deletes all thumbnails and detail image
 4. Delete DynamoDB record
 
@@ -450,11 +465,13 @@ Reasons to use Presigned URLs:
 
 **Presigned URL expiration:** Needs to be generous (1 hour?) for large uploads on slow connections.
 
-### UUIDs for Video Transcode & Poster
+### UUIDs and Version-Aware Storage for Video Transcode & Poster
 
 An alternative considered was storing the transcoded video and poster image by path:
 - `/video/2024/06-15/my_video.avi/transcoded.mp4`
 - `/video/2024/06-15/my_video.avi/poster.jpg`
+
+The chosen structure is `/u/<UUID>/<versionId>/transcoded` and `/u/<UUID>/<versionId>/poster`.
 
 **Reasons to use UUID:**
 - **Simplifies rename** - Renaming a video only requires updating DynamoDB and copying the original. The transcoded video and poster stay put.
@@ -464,12 +481,17 @@ An alternative considered was storing the transcoded video and poster image by p
  		- Atomic consistency - If rename fails partway, you could have derived images at both old and new paths. With delete, worst case is missing derived images that regenerate on demand.
  	- I don't want to rename the video files, for the abovementioned reliability reasons.
  	- Also, Video files are large, and S3 doesn't support renames: we'd have to physically copy it to the new key.
+- **Atomic delete** - All derived files for a video live under `/u/<UUID>/`, making cleanup a single prefix delete.
+
+**Reasons to include versionId in path:**
+- **Version-aware CDN caching** - When a video is re-uploaded, the new version gets a new versionId. The URL changes, so CloudFront immediately serves the new version. Old versions continue to work for stale clients.
+- **Immutable caching** - Each version can be cached forever (immutable). No cache invalidation needed on re-upload.
 
 **Tradeoffs:**
- - **Inconsistent with images**.  Using UUIDs for videos is inconsistent with how images are handled. Images use path-based derived storage (`/i/2024/06-15/photo.jpg/<versionId>/200`). 
- - **Harder to debug**.  For debugging, it's harder to browse S3 and understand what's what. Derived /video/2024/06-15/birthday.avi/transcoded.mp4 would be self-documenting; /video/a1b2c3d4/transcoded.mp4 is not.
+ - **Inconsistent with images**.  Using UUIDs for videos is inconsistent with how images are handled. Images use path-based derived storage (`/i/2024/06-15/photo.jpg/<versionId>/200`).
+ - **Harder to debug**.  For debugging, it's harder to browse S3 and understand what's what. Derived `/u/<UUID>/<versionId>/transcoded` is not self-documenting.
 
-**Future consideration:** In the future, I could see giving still images a UUID too, and updating the derived image generator to *always* use UUID, thus avoiding having to delete the derived files on rename.  But not for this PR.
+**Future consideration:** In the future, I could see giving still images a UUID too, and updating the derived image generator to *always* use UUID, thus avoiding having to delete the derived files on rename. See [DerivedMedia.md](./DerivedMedia.md) for the full plan.
 
 ### Concurrency
 
