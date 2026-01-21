@@ -1,5 +1,6 @@
 import { GetObjectCommand, PutObjectCommand, S3Client, NoSuchKey } from '@aws-sdk/client-s3';
 import { env } from './env';
+import { getVideoPosterS3Key } from '../../lib/s3_utils/s3path';
 
 const originalImagesBucket = env('ORIGINAL_IMAGES_BUCKET');
 const optimizedImagesBucket = env('DERIVED_IMAGES_BUCKET');
@@ -36,10 +37,9 @@ export const loadOriginalImage = async (id: string, versionId: string): Promise<
 
 /**
  * Load video poster from the Derived bucket.
- * Video posters are stored at u/<UUID>/<versionId>/poster
  */
-export const loadVideoPoster = async (uuid: string, versionId: string): Promise<Uint8Array | undefined> => {
-    const key = `u/${uuid}/${versionId}/poster`;
+export const loadVideoPoster = async (id: string, versionId: string): Promise<Uint8Array | undefined> => {
+    const key = getVideoPosterS3Key(id, versionId);
     try {
         const response = await s3.send(
             new GetObjectCommand({

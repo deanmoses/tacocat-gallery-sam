@@ -164,7 +164,7 @@ describe('Video Delete', () => {
     });
 
     describe('Valid Video Extensions Accepted', () => {
-        const validExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', '3gp'];
+        const validExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', '3gp', 'mpg', 'mpeg'];
         validExtensions.forEach((ext) => {
             test(`Delete Video with .${ext} extension`, async () => {
                 // Mock the AWS calls

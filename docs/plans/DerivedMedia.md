@@ -6,12 +6,13 @@ This architecture accounts for ALL derived images.  This includes:
 - **thumbnails** (for both original images and videos)
 - **the detail page image** (for both original images and videos)
 - **the transcoded video** that people actually view
-- **the poster JPG** for a video
+- **the poster JPG** for a video that serves as the source image for the resized images: thumbnail and detail page
 
 ## Constraints and goals
-- CDN caching is immutable
-  - All derived assets continue to be cached in the CDN immutably, forever.  
-- CDN caching is per-version
+- Immutable caching
+  - All derived assets continue to be cached in browsers and the CDN immutably, forever.  
+- Caching is per-version
+  - Each version of the derived asset is cached immutably in browsers and the CDN
   - New versions are delivered immediately 
     - When a new version of the original media is uploaded, clients requesting derived assets for it must get them immediately, i.e., the caching must be per-version and we are not fooling around with cache timeouts
   - Old versions are supported forever
@@ -41,56 +42,62 @@ We continue using the existing derived image URLs and S3 structure for any media
 
 ### Media with IDs Get a New Derived Image Logic
 
-For any media item (video or still image) that has an ID, this is the logic we use.
+For any media item (video or still image) that has an ID in DynamoDB, this is the logic we use.
 
 #### S3
 
-Store all derived assets in the Derived bucket by UUID and version ID:
+Store all derived assets in the Derived bucket by DynamoDB ID and version ID:
+```
+d/<ID>/<VER>/
+├── video/
+│   ├── transcoded  ⬅️ The transcoded video file users actually watch
+│   └── poster      ⬅️ Source image for generating resized images
+├── size/           ⬅️ resized images for thumbnails & detail page
+│   ├── 200x200
+│   └── 1024
+└── heic/           ⬅️ future: HEIC conversion
+    └── fullsize    ⬅️ High quality full-sized downloadable JPG
+```    
 
-| S3 Path | Asset Type | Notes |
-|---------|------------|-------|
-| `/u/UUID/VERSIONID/SIZE` | Resized JPG | SIZE uses current system (e.g., `1024` or `200x200`) |
-| `/u/UUID/VERSIONID/poster` | Poster JPG | Source image for generating resized thumbnails; never served directly |
-| `/u/UUID/VERSIONID/transcoded` | Transcoded Video | The video file users actually watch |
-
-This simplifies operations over the derived assets:
+This simplifies operations over derived assets:
 
 | Operation | Notes | Path |
 |-----------|-------|------|
-| **Rename** | Does not touch derived assets | — |
-| **Delete** | Clean up all derived assets when deleting a media item | `/u/UUID/` |
-| **Partial Cleanup** | Clean up derived assets when re-uploaded video delivers transcode or poster | `/u/UUID/VERSIONID/` |
-
+| **Media Item Rename** | Does not touch derived assets | — |
+| **Media Item Delete** | Delete all derived assets when deleting a media item | `d/<ID>/` |
+| **Partial Transcode Cleanup** | Delete derived assets when re-uploaded video delivers transcode or poster | `d/<ID>/<VERSIONID>/` |
+| **Day Album Rename** | Does not touch derived assets | — |
+| **Day Album Delete** | Atomic delete by passing delete the `d/<ID>/` of all videos in album | `d/<ID>/` for each video |
 
 #### URLs
 
 URL to transcoded video:
 ```
-/v/2025/12-31/my_video.mov?id=UUID&version=VERSIONID
+/v/2025/12-31/my_video.mov?id=ID&version=VERSIONID
 ```
 URL to a thumbnail:
 ```
-/i/2025/12-31/my_video.mov?id=UUID&version=VERSIONID&size=200x200 ⬅️ a JPG
-/i/2025/12-31/my_photo.jpg?id=UUID&version=VERSIONID&size=200x200 ⬅️ a JPG
-/i/2025/12-31/my_image.png?id=UUID&version=VERSIONID&size=200x200 ⬅️ a WebP (not a PNG)
+/i/2025/12-31/my_video.mov?id=ID&version=VERSIONID&size=200x200 ⬅️ a JPG
+/i/2025/12-31/my_photo.jpg?id=ID&version=VERSIONID&size=200x200 ⬅️ a JPG
+/i/2025/12-31/my_image.png?id=ID&version=VERSIONID&size=200x200 ⬅️ a WebP (not a PNG)
 ```
 
 URL to a detail page image:
 ```
-/i/2025/12-31/my_video.mov?id=UUID&version=VERSIONID&size=1024 ⬅️ a JPG
-/i/2025/12-31/my_photo.jpg?id=UUID&version=VERSIONID&size=1024 ⬅️ a JPG
-/i/2025/12-31/my_image.png?id=UUID&version=VERSIONID&size=1024 ⬅️ a WebP (not a PNG)
+/i/2025/12-31/my_video.mov?id=ID&version=VERSIONID&size=1024 ⬅️ a JPG
+/i/2025/12-31/my_photo.jpg?id=ID&version=VERSIONID&size=1024 ⬅️ a JPG
+/i/2025/12-31/my_image.png?id=ID&version=VERSIONID&size=1024 ⬅️ a WebP (not a PNG)
 ```
 
 #### Routing from URLs to S3
 
 The system has to distinguish between these URLs:
 
-| URL | S3 Path | Use Case |
-|-----|---------|----------|
-| `/v/path/video.mov?id=UUID&version=VER` | `/u/UUID/VER/transcoded` | Video playback |
-| `/i/path/video.mov?id=UUID&version=VER&size=200x200` | `/u/UUID/VER/200x200` | Thumbnail |
-| `/i/path/video.mov?id=UUID&version=VER&size=1024` | `/u/UUID/VER/1024` | Detail page image |
+| URL | S3 Key | Use Case |
+|-----|--------|----------|
+| `/v/path/video.mov?id=ID&version=VER` | `d/ID/VER/video/transcoded` | Video playback |
+| `/i/path/video.mov?id=ID&version=VER&size=200x200` | `d/ID/VER/size/200x200` | Thumbnail |
+| `/i/path/video.mov?id=ID&version=VER&size=1024` | `d/ID/VER/size/1024` | Detail page image |
 
 - `/v/` - routes to the transcoded video
 - `/i/` - routes to an image that can be generated on the fly via the derived image generator
@@ -137,10 +144,10 @@ Existing images won't have ID; there won't be a bulk migration
 
 The existing `/i/` route has a CloudFront function that will be updated to rewrite both old and new style URLs:
 
-| URL | S3 Path | Style |
-|-----|---------|-------|
-| `/i/path?version=VER&size=200x200&id=UUID` | `/u/UUID/VER/200x200` | New (with id) |
-| `/i/path?version=VER&size=200x200` | `/i/path/VER/200x200` | Old (no id) |
+| URL | S3 Key | Style |
+|-----|--------|-------|
+| `/i/path?version=VER&size=200x200&id=ID` | `d/ID/VER/size/200x200` | New (with id) |
+| `/i/path?version=VER&size=200x200` | `i/path/VER/200x200` | Old (no id) |
 
 `/i/` will continue to support the crop parameter. 
 

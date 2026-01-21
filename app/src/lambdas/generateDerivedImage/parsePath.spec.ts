@@ -191,15 +191,18 @@ it('should extract background parameter', () => {
 
 // Video path tests - videos use same URL format as images
 describe('video paths', () => {
-    it.each(['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', '3gp'])('should parse video path with .%s extension', (ext) => {
-        const path = `/i/2001/12-31/video.${ext}/VERSIONID/400x300`;
-        const result = parseUrlPath(path);
-        expect(result.id).toEqual(`2001/12-31/video.${ext}`);
-        expect(result.versionId).toEqual('VERSIONID');
-        expect(result.width).toEqual(400);
-        expect(result.height).toEqual(300);
-        expect(result.error).toBeUndefined();
-    });
+    it.each(['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', '3gp', 'mpg', 'mpeg'])(
+        'should parse video path with .%s extension',
+        (ext) => {
+            const path = `/i/2001/12-31/video.${ext}/VERSIONID/400x300`;
+            const result = parseUrlPath(path);
+            expect(result.id).toEqual(`2001/12-31/video.${ext}`);
+            expect(result.versionId).toEqual('VERSIONID');
+            expect(result.width).toEqual(400);
+            expect(result.height).toEqual(300);
+            expect(result.error).toBeUndefined();
+        },
+    );
 
     it('should parse video path with all parameters', () => {
         const path = '/i/2001/12-31/video.mp4/VERSIONID/webp/400x300/q=80';

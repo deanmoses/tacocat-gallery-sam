@@ -96,7 +96,7 @@ it('Should succeed for HEIC', async () => {
 });
 
 describe('Video uploads', () => {
-    const videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', '3gp'];
+    const videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', '3gp', 'mpg', 'mpeg'];
 
     videoExtensions.forEach((ext) => {
         it(`Should succeed for .${ext} video`, async () => {

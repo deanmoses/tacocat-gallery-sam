@@ -9,6 +9,11 @@ import {
 import { getNameFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { getDerivedImagesBucketName } from '../../lib/lambda_utils/Env';
 import { objectExists } from '../../lib/s3_utils/s3exists';
+import {
+    getDerivedAssetIdVersionPrefix,
+    getTranscodedVideoS3Key,
+    getVideoPosterS3Key,
+} from '../../lib/s3_utils/s3path';
 
 const s3Client = new S3Client({});
 
@@ -43,8 +48,12 @@ export type RenameResult = { success: true } | { success: false; error: string }
 
 /**
  * Rename MediaConvert outputs from original filename to clean names.
- * MediaConvert outputs: u/<UUID>/<versionId>/<filename>_transcoded.mp4 and u/<UUID>/<versionId>/<filename>_poster.0000000.jpg
- * We rename to: u/<UUID>/<versionId>/transcoded and u/<UUID>/<versionId>/poster
+ * MediaConvert outputs: <filename>_transcoded.mp4 and <filename>_poster.0000000.jpg
+ * We rename to: 'transcoded' and 'poster'
+ *
+ * We rename without extensions because it makes them easier for the rest of the
+ * system to find without needing to know their file formats.  This enables us to
+ * change formats in the future.
  *
  * Before renaming, verifies that the source files have correct content types.
  * If content types are wrong, returns an error instead of renaming.
@@ -70,15 +79,15 @@ export async function renameMediaConvertOutputs(
     const filenameWithoutExt = filename.replace(/\.[^.]+$/, '');
 
     // Base path for this video version
-    const basePath = `u/${videoId}/${versionId}`;
+    const basePath = getDerivedAssetIdVersionPrefix(videoId, versionId);
 
-    // Rename transcoded video: u/<UUID>/<versionId>/<filename>_transcoded.mp4 -> u/<UUID>/<versionId>/transcoded
-    const videoSourceKey = `${basePath}/${filenameWithoutExt}_transcoded.mp4`;
-    const videoDestKey = `${basePath}/transcoded`;
+    // Rename transcoded video: <filename>_transcoded.mp4 -> transcoded
+    const videoSourceKey = `${basePath}${filenameWithoutExt}_transcoded.mp4`;
+    const videoDestKey = getTranscodedVideoS3Key(videoId, versionId);
 
-    // Rename poster: u/<UUID>/<versionId>/<filename>_poster.0000000.jpg -> u/<UUID>/<versionId>/poster
-    const posterSourceKey = `${basePath}/${filenameWithoutExt}_poster.0000000.jpg`;
-    const posterDestKey = `${basePath}/poster`;
+    // Rename poster: <filename>_poster.0000000.jpg -> poster
+    const posterSourceKey = `${basePath}${filenameWithoutExt}_poster.0000000.jpg`;
+    const posterDestKey = getVideoPosterS3Key(videoId, versionId);
 
     // Check if already renamed (idempotent for Lambda retries)
     const videoAlreadyRenamed = await objectExists(derivedBucket, videoDestKey);
@@ -175,15 +184,14 @@ export async function renameMediaConvertOutputs(
 
 /**
  * Delete partial MediaConvert outputs from derived bucket.
- * Deletes all files under u/<UUID>/<versionId>/ on transcoding failure.
+ * Deletes all files under d/<id>/<versionId>/ on transcoding failure.
  */
 export async function deletePartialOutputs(videoId: string, versionId: string): Promise<void> {
     const derivedBucket = getDerivedImagesBucketName();
 
-    // MediaConvert outputs: u/<UUID>/<versionId>/<filename>_transcoded.mp4, u/<UUID>/<versionId>/<filename>_poster.0000000.jpg
-    // Also includes renamed outputs: u/<UUID>/<versionId>/transcoded, u/<UUID>/<versionId>/poster
-    // Prefix matches all files in this version's directory
-    const prefix = `u/${videoId}/${versionId}/`;
+    // Prefix matches all files in this version's directory, including both
+    // MediaConvert outputs and renamed outputs
+    const prefix = getDerivedAssetIdVersionPrefix(videoId, versionId);
 
     try {
         // List all objects with the filename prefix

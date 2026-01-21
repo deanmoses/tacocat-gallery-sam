@@ -36,19 +36,19 @@ beforeEach(() => {
     mockS3Client.on(CopyObjectCommand).resolves({});
 
     // Default HeadObjectCommand behavior:
-    // - Destination files (u/<UUID>/<versionId>/transcoded, u/<UUID>/<versionId>/poster) don't exist
+    // - Destination files (d/<UUID>/<versionId>/video/transcoded, d/<UUID>/<versionId>/video/poster) don't exist
     // - Source files have correct content types for content type verification
     mockS3Client
-        .on(HeadObjectCommand, { Key: `u/${VALID_UUID}/version123/transcoded` })
+        .on(HeadObjectCommand, { Key: `d/${VALID_UUID}/version123/video/transcoded` })
         .rejects(new NotFound({ $metadata: {}, message: 'Not Found' }));
     mockS3Client
-        .on(HeadObjectCommand, { Key: `u/${VALID_UUID}/version123/poster` })
+        .on(HeadObjectCommand, { Key: `d/${VALID_UUID}/version123/video/poster` })
         .rejects(new NotFound({ $metadata: {}, message: 'Not Found' }));
     mockS3Client
-        .on(HeadObjectCommand, { Key: `u/${VALID_UUID}/version123/video_transcoded.mp4` })
+        .on(HeadObjectCommand, { Key: `d/${VALID_UUID}/version123/video_transcoded.mp4` })
         .resolves({ ContentType: 'video/mp4' });
     mockS3Client
-        .on(HeadObjectCommand, { Key: `u/${VALID_UUID}/version123/video_poster.0000000.jpg` })
+        .on(HeadObjectCommand, { Key: `d/${VALID_UUID}/version123/video_poster.0000000.jpg` })
         .resolves({ ContentType: 'image/jpeg' });
 
     mockMediaConvert.on(DescribeEndpointsCommand).resolves({
@@ -229,8 +229,8 @@ describe('handleVideoTranscodingComplete()', () => {
         test('Deletes partial outputs from derived bucket', async () => {
             mockS3Client.on(ListObjectsV2Command).resolves({
                 Contents: [
-                    { Key: `u/${VALID_UUID}/version123/video_transcoded.mp4` },
-                    { Key: `u/${VALID_UUID}/version123/video_poster.0000000.jpg` },
+                    { Key: `d/${VALID_UUID}/version123/video_transcoded.mp4` },
+                    { Key: `d/${VALID_UUID}/version123/video_poster.0000000.jpg` },
                 ],
             });
 
@@ -243,7 +243,7 @@ describe('handleVideoTranscodingComplete()', () => {
 
             const listCalls = mockS3Client.commandCalls(ListObjectsV2Command);
             const derivedListCall = listCalls.find((call) => call.args[0].input.Bucket === 'test-derived-bucket');
-            expect(derivedListCall?.args[0].input.Prefix).toBe(`u/${VALID_UUID}/version123/`);
+            expect(derivedListCall?.args[0].input.Prefix).toBe(`d/${VALID_UUID}/version123/`);
 
             const deleteCalls = mockS3Client.commandCalls(DeleteObjectCommand);
             const derivedDeletes = deleteCalls.filter((call) => call.args[0].input.Bucket === 'test-derived-bucket');
@@ -309,7 +309,7 @@ describe('handleVideoTranscodingComplete()', () => {
         test('Treats wrong video content type as failure', async () => {
             // Override to return wrong content type for video
             mockS3Client
-                .on(HeadObjectCommand, { Key: `u/${VALID_UUID}/version123/video_transcoded.mp4` })
+                .on(HeadObjectCommand, { Key: `d/${VALID_UUID}/version123/video_transcoded.mp4` })
                 .resolves({ ContentType: 'application/octet-stream' });
 
             await handleVideoTranscodingComplete(createCompleteEvent());
@@ -332,7 +332,7 @@ describe('handleVideoTranscodingComplete()', () => {
         test('Treats wrong poster content type as failure', async () => {
             // Override to return wrong content type for poster
             mockS3Client
-                .on(HeadObjectCommand, { Key: `u/${VALID_UUID}/version123/video_poster.0000000.jpg` })
+                .on(HeadObjectCommand, { Key: `d/${VALID_UUID}/version123/video_poster.0000000.jpg` })
                 .resolves({ ContentType: 'application/octet-stream' });
 
             await handleVideoTranscodingComplete(createCompleteEvent());
@@ -348,7 +348,7 @@ describe('handleVideoTranscodingComplete()', () => {
         test('Treats missing source video as failure', async () => {
             // Override to return NotFound for video source
             mockS3Client
-                .on(HeadObjectCommand, { Key: `u/${VALID_UUID}/version123/video_transcoded.mp4` })
+                .on(HeadObjectCommand, { Key: `d/${VALID_UUID}/version123/video_transcoded.mp4` })
                 .rejects(new NotFound({ $metadata: {}, message: 'Not Found' }));
 
             await handleVideoTranscodingComplete(createCompleteEvent());
@@ -363,14 +363,14 @@ describe('handleVideoTranscodingComplete()', () => {
         test('Deletes partial outputs on content type failure', async () => {
             mockS3Client.on(ListObjectsV2Command).resolves({
                 Contents: [
-                    { Key: `u/${VALID_UUID}/version123/video_transcoded.mp4` },
-                    { Key: `u/${VALID_UUID}/version123/video_poster.0000000.jpg` },
+                    { Key: `d/${VALID_UUID}/version123/video_transcoded.mp4` },
+                    { Key: `d/${VALID_UUID}/version123/video_poster.0000000.jpg` },
                 ],
             });
 
             // Wrong content type triggers failure
             mockS3Client
-                .on(HeadObjectCommand, { Key: `u/${VALID_UUID}/version123/video_transcoded.mp4` })
+                .on(HeadObjectCommand, { Key: `d/${VALID_UUID}/version123/video_transcoded.mp4` })
                 .resolves({ ContentType: 'text/plain' });
 
             await handleVideoTranscodingComplete(createCompleteEvent());
@@ -384,7 +384,7 @@ describe('handleVideoTranscodingComplete()', () => {
         test('Reverts original file on content type failure', async () => {
             // Wrong content type triggers failure
             mockS3Client
-                .on(HeadObjectCommand, { Key: `u/${VALID_UUID}/version123/video_transcoded.mp4` })
+                .on(HeadObjectCommand, { Key: `d/${VALID_UUID}/version123/video_transcoded.mp4` })
                 .resolves({ ContentType: 'text/plain' });
 
             await handleVideoTranscodingComplete(createCompleteEvent());

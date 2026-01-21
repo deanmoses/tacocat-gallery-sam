@@ -240,7 +240,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - s3:PutObject
-                Resource: !Sub arn:aws:s3:::${AWS::StackName}-derived-images/u/*
+                Resource: !Sub arn:aws:s3:::${AWS::StackName}-derived-images/d/*
 
   # -----------------------------------------------------------------------------
   # CloudFront CDN distribution that serves the images
@@ -410,7 +410,7 @@ Resources:
 
   # CloudFront Function to rewrite video playback URL
   # Input: /v/2024/06-15/video.avi?id=<UUID>&version=<versionId>
-  # Output: /u/<UUID>/<versionId>/transcoded
+  # Output: /d/<UUID>/<versionId>/video/transcoded
   VideoPlaybackUrlRewriteFunction:
     Type: AWS::CloudFront::Function
     Properties:
@@ -426,7 +426,7 @@ Resources:
             const version = r.querystring['version'];
             if (!id) return { statusCode: 400, statusDescription: 'Missing id' };
             if (!version) return { statusCode: 400, statusDescription: 'Missing version' };
-            r.uri = '/u/' + id.value + '/' + version.value + '/transcoded';
+            r.uri = '/d/' + id.value + '/' + version.value + '/video/transcoded';
             r.querystring = {};
             return r;
         }

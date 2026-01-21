@@ -82,7 +82,7 @@ export function hasHeicExtension(path: string): boolean {
  * There must be at least one character before the "." before the extension.
  */
 export function hasVideoExtension(path: string): boolean {
-    return /.\.(mp4|mov|avi|mkv|webm|m4v|3gp)$/i.test(path);
+    return /.\.(mp4|mov|avi|mkv|webm|m4v|3gp|mpg|mpeg)$/i.test(path);
 }
 
 /**
@@ -100,10 +100,10 @@ export function hasImageExtension(path: string): boolean {
  * Cannot be on year album like /2001/video.mp4
  * Must be on a day album like /2001/12-31/video.mp4
  *
- * Supported video extensions: mp4, mov, avi, mkv, webm, m4v, 3gp
+ * Supported video extensions: mp4, mov, avi, mkv, webm, m4v, 3gp, mpg, mpeg
  */
 export function isValidVideoPath(videoPath: string): boolean {
-    return /^\/\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/[a-zA-Z0-9_-]+\.(mp4|mov|avi|mkv|webm|m4v|3gp)$/i.test(
+    return /^\/\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/[a-zA-Z0-9_-]+\.(mp4|mov|avi|mkv|webm|m4v|3gp|mpg|mpeg)$/i.test(
         videoPath,
     );
 }
@@ -112,12 +112,12 @@ export function isValidVideoPath(videoPath: string): boolean {
  * Return true if specified string is a valid video name like 'video.mp4'
  * Must not have a path.
  *
- * Supported video extensions: mp4, mov, avi, mkv, webm, m4v, 3gp
+ * Supported video extensions: mp4, mov, avi, mkv, webm, m4v, 3gp, mpg, mpeg
  *
  * @param videoName name of video
  */
 export function isValidVideoName(videoName: string): boolean {
-    return /^[a-zA-Z0-9_-]+\.(mp4|mov|avi|mkv|webm|m4v|3gp)$/i.test(videoName);
+    return /^[a-zA-Z0-9_-]+\.(mp4|mov|avi|mkv|webm|m4v|3gp|mpg|mpeg)$/i.test(videoName);
 }
 
 /**
@@ -129,7 +129,7 @@ export function isValidVideoName(videoName: string): boolean {
  * @param videoName name of video
  */
 export function isValidVideoNameStrict(videoName: string): boolean {
-    return /^[a-z0-9]+([a-z0-9_]*[a-z0-9]+)*\.(mp4|mov|avi|mkv|webm|m4v|3gp)$/.test(videoName);
+    return /^[a-z0-9]+([a-z0-9_]*[a-z0-9]+)*\.(mp4|mov|avi|mkv|webm|m4v|3gp|mpg|mpeg)$/.test(videoName);
 }
 
 /**

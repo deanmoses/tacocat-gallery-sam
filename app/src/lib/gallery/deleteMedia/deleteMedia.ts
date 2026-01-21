@@ -7,7 +7,7 @@ import {
 } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
-import { deleteOriginalAndDerivatives } from '../../s3_utils/s3delete';
+import { deleteOriginalAndDerivativesForMediaItem } from '../../s3_utils/s3delete';
 import { getFullItemFromDynamoDB } from '../../dynamo_utils/ddbGet';
 import { VideoItem } from '../galleryTypes';
 
@@ -26,26 +26,25 @@ export async function deleteMedia(mediaPath: string) {
     }
 
     // For videos, we need to get the UUID before deleting from DynamoDB
-    const videoUuid = await getVideoUuidIfExists(mediaPath);
+    const mediaId = await getMediaIdIfExists(mediaPath);
 
     await deleteMediaFromDynamoDB(mediaPath);
     await removeMediaAsThumbnailFromParentAlbums(mediaPath);
-    await deleteOriginalAndDerivatives(mediaPath, videoUuid);
+    await deleteOriginalAndDerivativesForMediaItem(mediaPath, mediaId);
     console.info(`Delete Media: deleted media [${mediaPath}]`);
 }
 
 /**
- * Get the UUID from a video's DynamoDB record if it exists.
+ * Get the UUID from the media item's DynamoDB record if it exists.
+ * Will only be present for videos.
  * Returns undefined for images or if the record doesn't exist.
  *
  * @param mediaPath Path of media, like /2001/12-31/video.mp4
  */
-async function getVideoUuidIfExists(mediaPath: string): Promise<string | undefined> {
+async function getMediaIdIfExists(mediaPath: string): Promise<string | undefined> {
     try {
         const item = await getFullItemFromDynamoDB<VideoItem>(mediaPath);
-        // Videos have an 'id' field with the UUID
         if (item && 'id' in item && item.id) {
-            console.info(`Delete Media: found video UUID [${item.id}] for [${mediaPath}]`);
             return item.id;
         }
     } catch (error) {

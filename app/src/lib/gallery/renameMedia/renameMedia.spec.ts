@@ -173,7 +173,7 @@ describe('Video rename validation', () => {
     });
 
     describe('Valid video paths accepted', () => {
-        const validExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', '3gp'];
+        const validExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', '3gp', 'mpg', 'mpeg'];
         validExtensions.forEach((ext) => {
             test(`Valid video extension: .${ext}`, async () => {
                 // Path/name validation passes, but fails on "media not found" because

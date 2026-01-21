@@ -73,8 +73,8 @@ async function handleSuccess(jobId: string, videoPath: string, versionId: string
     console.info(JSON.stringify({ event: 'transcoding_success_processing', jobId, videoPath, videoId }));
 
     // Verify content types and rename MediaConvert outputs
-    // MediaConvert outputs: u/<UUID>/<versionId>/<filename>_transcoded.mp4 and u/<UUID>/<versionId>/<filename>_poster.0000000.jpg
-    // We rename to: u/<UUID>/<versionId>/transcoded and u/<UUID>/<versionId>/poster
+    // MediaConvert outputs: S3_PATH/<filename>_transcoded.mp4 and S3_PATH/<filename>_poster.0000000.jpg
+    // We rename to: S3_PATH/transcoded and S3_PATH/poster
     const renameResult = await renameMediaConvertOutputs(videoPath, videoId, versionId);
     if (!renameResult.success) {
         // Content type verification or rename failed - treat as a failure

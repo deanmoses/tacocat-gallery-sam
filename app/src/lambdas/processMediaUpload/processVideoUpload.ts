@@ -1,19 +1,14 @@
-import {
-    MediaConvertClient,
-    CreateJobCommand,
-    DescribeEndpointsCommand,
-    CreateJobRequest,
-} from '@aws-sdk/client-mediaconvert';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
+import { MediaConvertClient, CreateJobCommand, CreateJobRequest } from '@aws-sdk/client-mediaconvert';
 import { randomUUID } from 'crypto';
-import { isValidVideoPath, getParentFromPath, getNameFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
+import { isValidVideoPath } from '../../lib/gallery_path_utils/galleryPathUtils';
+import { getFullItemFromDynamoDB } from '../../lib/dynamo_utils/ddbGet';
 import {
-    getDynamoDbTableName,
     getMediaConvertRoleArn,
     getDerivedImagesBucketName,
     getOriginalImagesBucketName,
 } from '../../lib/lambda_utils/Env';
+import { getMediaConvertEndpoint } from '../../lib/mediaconvert_utils/getMediaConvertEndpoint';
+import { getDerivedAssetIdVersionPrefix } from '../../lib/s3_utils/s3path';
 import { VideoItem } from '../../lib/gallery/galleryTypes';
 import { JPEG_ORIGINAL_QUALITY } from './mediaProcessingConstants';
 import { recordMediaProcessingError } from '../../lib/dynamo_utils/recordError';
@@ -23,13 +18,6 @@ import { revertS3Version } from '../../lib/s3_utils/s3revertVersion';
 const VIDEO_MAX_BITRATE = 5_000_000; // 5 Mbps - good quality for web delivery
 const VIDEO_QUALITY_LEVEL = 7; // QVBR quality level (1-10, higher = better)
 const AUDIO_BITRATE = 128_000; // 128 kbps AAC - standard for web video
-
-/**
- * Cached MediaConvert endpoint URL.
- * Module-level variables persist across Lambda warm invocations (same container reused),
- * so we only call DescribeEndpoints once per cold start instead of every invocation.
- */
-let mediaConvertEndpoint: string | undefined;
 
 /**
  * Process a video file uploaded to S3 by creating a MediaConvert job.
@@ -56,10 +44,10 @@ export async function processVideoUpload(bucket: string, key: string, versionId:
 
     // Check for existing video record to reuse UUID on re-uploads
     const existingVideo = await getExistingVideoRecord(videoPath);
+    if (existingVideo && !existingVideo.id) {
+        throw new Error(`Video Processor: existing video record missing id [${videoPath}]`);
+    }
     const videoId = existingVideo?.id || randomUUID();
-    const isReupload = !!existingVideo;
-
-    console.info(JSON.stringify({ event: 'video_uuid_assigned', videoPath, videoId, isReupload }));
 
     try {
         await createMediaConvertJob(bucket, key, versionId, videoPath, videoId);
@@ -82,45 +70,19 @@ export async function processVideoUpload(bucket: string, key: string, versionId:
 }
 
 async function getExistingVideoRecord(videoPath: string): Promise<VideoItem | undefined> {
-    const tableName = getDynamoDbTableName();
-    const parentPath = getParentFromPath(videoPath);
-    const itemName = getNameFromPath(videoPath);
-
-    const ddbClient = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
-
-    const result = await docClient.send(
-        new GetCommand({
-            TableName: tableName,
-            Key: {
-                parentPath,
-                itemName,
-            },
-        }),
-    );
-
-    if (result.Item && result.Item.mediaType === 'video') {
-        return result.Item as VideoItem;
-    }
-    return undefined;
+    const item = await getFullItemFromDynamoDB<VideoItem>(videoPath);
+    return item?.mediaType === 'video' ? item : undefined;
 }
 
-async function getMediaConvertEndpoint(): Promise<string> {
-    if (mediaConvertEndpoint) {
-        return mediaConvertEndpoint;
-    }
-
-    const client = new MediaConvertClient({});
-    const response = await client.send(new DescribeEndpointsCommand({}));
-    mediaConvertEndpoint = response.Endpoints?.[0]?.Url;
-
-    if (!mediaConvertEndpoint) {
-        throw new Error('Video Processor: could not retrieve MediaConvert endpoint');
-    }
-
-    return mediaConvertEndpoint;
-}
-
+/**
+ * Create an AWS MediaConvert job to transcode a video and generate a poster image.
+ *
+ * @param bucket S3 bucket containing the original video
+ * @param key S3 object key of the original video
+ * @param versionId S3 version ID of the original video
+ * @param videoPath Gallery path of the video (e.g., /2024/06-15/video.mp4)
+ * @param videoId DynamoDB ID for the video
+ */
 async function createMediaConvertJob(
     bucket: string,
     key: string,
@@ -136,11 +98,11 @@ async function createMediaConvertJob(
     const originalBucket = getOriginalImagesBucketName();
 
     const inputS3Path = `s3://${originalBucket}/${key}`;
-    // MediaConvert output naming: <Destination><input_filename_without_ext><NameModifier>.<extension>
     // We let MediaConvert use the original filename, then rename in VideoTranscodingComplete.
-    // MediaConvert outputs: u/<UUID>/<versionId>/<filename>_transcoded.mp4 and u/<UUID>/<versionId>/<filename>_poster.0000000.jpg
-    // VideoTranscodingComplete renames to: u/<UUID>/<versionId>/transcoded and u/<UUID>/<versionId>/poster
-    const outputS3Path = `s3://${derivedBucket}/u/${videoId}/${versionId}/`;
+    // MediaConvert output naming: <Destination><input_filename_without_ext><NameModifier>.<extension>
+    // MediaConvert outputs: <filename>_transcoded.mp4 and <filename>_poster.0000000.jpg
+    // VideoTranscodingComplete renames to: transcoded and poster
+    const outputS3Path = `s3://${derivedBucket}/${getDerivedAssetIdVersionPrefix(videoId, versionId)}`;
 
     const jobParams: CreateJobRequest = {
         Role: roleArn,

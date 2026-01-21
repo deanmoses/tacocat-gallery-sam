@@ -10,7 +10,7 @@ import {
     isValidAlbumPath,
     isValidDayAlbumName,
 } from '../../../lib/gallery_path_utils/galleryPathUtils';
-import { deleteOriginalsAndDerivatives } from '../../../lib/s3_utils/s3delete';
+import { deleteOriginalsAndDerivativesForAlbum } from '../../../lib/s3_utils/s3delete';
 
 /**
  * Delete album, its media AND its parent album from S3 and DynamoDB.
@@ -64,7 +64,7 @@ export async function cleanUpAlbum(albumPath: string): Promise<void> {
         // This will happen when I have really broken services that copy the media in S3
         // but don't yet delete them nor create the DynamoDB entries for those media.
         // (like what happened with my first draft of Album Rename as of Nov 7 2023)
-        await deleteOriginalsAndDerivatives(albumPath);
+        await deleteOriginalsAndDerivativesForAlbum(albumPath);
     } catch (e) {
         console.error(
             `Album Cleanup: error last-chance deleting all S3 images for album [${albumPath}].  Continuing.`,

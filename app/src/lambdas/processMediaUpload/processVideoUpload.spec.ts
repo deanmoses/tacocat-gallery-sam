@@ -83,6 +83,21 @@ describe('processVideoUpload()', () => {
         expect(jobInput.UserMetadata?.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
     });
 
+    test('Throws error when existing video record has no id', async () => {
+        mockDynamoDB.on(GetCommand).resolves({
+            Item: {
+                parentPath: '/2024/06-15/',
+                itemName: 'video.mp4',
+                mediaType: 'video',
+                // No id field - this is a data integrity error
+            },
+        });
+
+        await expect(processVideoUpload('test-bucket', '2024/06-15/video.mp4', 'version123')).rejects.toThrow(
+            'existing video record missing id',
+        );
+    });
+
     test('Throws error for invalid video path', async () => {
         await expect(processVideoUpload('test-bucket', 'invalid-path.mp4', 'version123')).rejects.toThrow(
             'invalid video path',

@@ -6,8 +6,9 @@ const s3Client = new S3Client({});
  * Revert an S3 object to its previous version by deleting the specified version.
  *
  * In a versioned S3 bucket, deleting a specific version removes that version
- * and makes the previous version current. If no previous version exists,
- * the object is effectively deleted.
+ * and makes the previous version current.
+ *
+ * If no previous version exists, the object is effectively deleted.
  *
  * Does not throw on failure - logs error and returns false.
  *

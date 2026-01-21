@@ -12,7 +12,7 @@ import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { itemExists } from '../itemExists/itemExists';
 import { copyOriginals } from '../../s3_utils/s3copy';
-import { deleteOriginalsAndDerivatives } from '../../s3_utils/s3delete';
+import { deleteOriginalsAndDerivativesForAlbum } from '../../s3_utils/s3delete';
 import { getFullChildrenFromDynamoDB, getFullItemFromDynamoDB, getItem } from '../../dynamo_utils/ddbGet';
 import { AlbumItem, ImageItem } from '../galleryTypes';
 
@@ -50,7 +50,7 @@ export async function renameAlbum(oldAlbumPath: string, newName: string): Promis
     const newVersionIds = await copyOriginals(oldAlbumPath, newAlbumPath);
     await moveAlbumInDynamoDB(oldAlbumPath, newAlbumPath, newVersionIds); // handles renaming thumbnail on parent album
     await renameAlbumThumb(getParentFromPath(oldAlbumPath), oldAlbumPath, newAlbumPath); // rename thumb on grandparent album
-    await deleteOriginalsAndDerivatives(oldAlbumPath);
+    await deleteOriginalsAndDerivativesForAlbum(oldAlbumPath);
     console.info(`Rename Album: renamed [${oldAlbumPath}] to [${newAlbumPath}]`);
     return newAlbumPath;
 }

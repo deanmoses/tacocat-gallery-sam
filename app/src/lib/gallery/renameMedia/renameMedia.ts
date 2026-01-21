@@ -12,7 +12,7 @@ import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { itemExists } from '../itemExists/itemExists';
 import { copyOriginal } from '../../s3_utils/s3copy';
-import { deleteOriginalAndDerivatives } from '../../s3_utils/s3delete';
+import { deleteOriginalAndDerivativesForMediaItem } from '../../s3_utils/s3delete';
 import { getFullItemFromDynamoDB } from '../../dynamo_utils/ddbGet';
 import { MediaItem } from '../galleryTypes';
 
@@ -40,7 +40,7 @@ export async function renameMedia(oldMediaPath: string, newName: string): Promis
     await Promise.all([assertMediaExists(oldMediaPath), assertMediaDoesNotExist(newMediaPath)]);
     const newVersionId = await copyOriginal(oldMediaPath, newMediaPath);
     await renameMediaInDynamoDB(oldMediaPath, newName, newVersionId);
-    await deleteOriginalAndDerivatives(oldMediaPath); // Doesn't take videoUuid: for videos, we keep <UUID> files since UUID is preserved
+    await deleteOriginalAndDerivativesForMediaItem(oldMediaPath); // Don't pass ID; renames preserve derived assets saved by ID
     console.info(`Rename Media: renamed media from [${oldMediaPath}] to [${newMediaPath}]`);
     return newMediaPath;
 }

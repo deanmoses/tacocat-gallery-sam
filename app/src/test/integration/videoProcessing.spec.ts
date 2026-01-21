@@ -43,13 +43,13 @@ async function waitForVideoProcessing(videoPath: string, timeoutMs: number = 180
 }
 
 // Helper to check if video assets exist in derived bucket and get metadata
-// Video assets are stored at u/<UUID>/<versionId>/transcoded and u/<UUID>/<versionId>/poster
+// Video assets are stored at d/<UUID>/<versionId>/video/transcoded and d/<UUID>/<versionId>/video/poster
 async function getVideoAssetMetadata(
     uuid: string,
     versionId: string,
     type: 'transcoded' | 'poster',
 ): Promise<{ exists: boolean; contentType?: string }> {
-    const key = `u/${uuid}/${versionId}/${type}`;
+    const key = `d/${uuid}/${versionId}/video/${type}`;
     const s3Command = new HeadObjectCommand({
         Bucket: getDerivedImagesBucketName(),
         Key: key,
