@@ -135,6 +135,8 @@ export const handler: APIGatewayProxyHandler = async (event) => {
 
 Custom exceptions: `NotFoundException`, `BadRequestException`, `UnauthorizedException`, `ServerException`
 
+For detailed architecture documentation (S3 storage patterns, CDN routing, design decisions), see `docs/Architecture.md`.
+
 ## Code Style
 
 Prettier config (4-space indent, single quotes, 120 char width, trailing commas):
@@ -184,6 +186,14 @@ console.error(
 - **Pre-commit hooks**: Husky runs gitleaks (secret scanning), lint-staged, type checking, and unit tests on commit.
 - **CI workflow**: On PR and push to main, runs lint, type check, unit tests, and SAM build. On push to main, also deploys to staging.
 - **Production deploy**: Manual workflow dispatch from GitHub Actions. Runs tests, deploys to prod, creates a release tag (YYYYvN format), and generates release notes.
+
+## Custom Skills
+
+This project has custom skills for git workflows. Always invoke these using the Skill tool instead of running commands manually:
+
+- `/branch` - Create branches with proper `type/short-description` naming
+- `/commit` - Create commits with Conventional Commit format
+- `/pr` - Create pull requests with proper title, description, and labels
 
 ## Git Amend
 
