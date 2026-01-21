@@ -60,14 +60,14 @@ export async function cleanUpAlbum(albumPath: string): Promise<void> {
         }
     }
     try {
-        // This will clean up media from DynamoDB that don't have an album entry.
+        // This will clean up media from S3 that don't have a DynamoDB entry.
         // This will happen when I have really broken services that copy the media in S3
-        // but don't yet delete them nor create the DynamoDB entries for those media.
+        // but don't yet delete them nor create the DynamoDB entries for that media.
         // (like what happened with my first draft of Album Rename as of Nov 7 2023)
         await deleteOriginalsAndDerivativesForAlbum(albumPath);
     } catch (e) {
         console.error(
-            `Album Cleanup: error last-chance deleting all S3 images for album [${albumPath}].  Continuing.`,
+            `Album Cleanup: error last-chance deleting all S3 media for album [${albumPath}].  Continuing.`,
             e,
         );
     }
