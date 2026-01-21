@@ -4,7 +4,17 @@ Back end for Tacocat's photo and video gallery. Implemented using the Amazon AWS
 
 ## Key services
 
-Database (DynamoDB), media storage (S3), APIs (API Gateway), CDN (CloudFront), image EXIF/IPTC metadata extraction, image resizing.
+| Service              | Purpose                                                                                |
+| -------------------- | -------------------------------------------------------------------------------------- |
+| **AWS DynamoDB**     | The database. Contains info about albums, images, and videos                           |
+| **AWS S3**           | Stores media files, both originals and derived: resizes, thumbnails, transcoded videos |
+| **AWS Lambda**       | API fulfillment, EXIF extraction, image resizing                                       |
+| **AWS MediaConvert** | Video transcoding                                                                      |
+| **AWS API Gateway**  | REST API for the front end website                                                     |
+| **AWS CloudFront**   | CDN delivery of media (image and video files)                                          |
+| **Redis Labs**       | Search - _not_ an AWS service!                                                         |
+
+For more info, see [docs/Architecture.md](docs/Architecture.md).
 
 # Getting Started
 
@@ -27,7 +37,7 @@ _Note the `app` subdirectory!_ Due to the way SAM handles Typescript, `package.j
 Build the SAM app with the `sam build` command:
 
 ```bash
-tacocat-gallery-sam$ sam build
+sam build
 ```
 
 This installs dependencies defined in `app/package.json`, compiles TypeScript with esbuild, creates a deployment package, and saves it in the `.aws-sam/build` folder.
@@ -36,16 +46,41 @@ It does NOT deploy to AWS; that comes later.
 
 ## Tests
 
-To run the Jest tests, note you have to `cd app`, that's where the Node project is.
+### Unit tests
+
+You have to `cd app`, that's where the Node project is.
 
 ```bash
-tacocat-gallery-sam$ cd app
-app$ npm run test
+cd app && npm test
 ```
 
-## Don't bother trying to run the code locally
+### Integration tests
 
-SAM provides some tools to simulate the AWS cloud stack locally, but they're MUCH more hassle than they're worth. Instead, test your changes by deploying to AWS as described below.
+Integration tests run against the test environment. Deploy first, then run tests:
+
+```bash
+sam build
+sam deploy --config-env test     # Deploy to test environment
+cd app && npm run test:integration
+```
+
+## Don't run the code locally
+
+SAM provides tools to simulate the AWS cloud locally, but they're more hassle than they're worth. Instead, test your changes by deploying to the dev/staging environment on AWS as described below.
+
+## Environments
+
+The project can create three environments. Each environment is a separate AWS infrastructure stack.
+
+| Environment | Stack Name               | Web App                                                    | Purpose                    |
+| ----------- | ------------------------ | ---------------------------------------------------------- | -------------------------- |
+| dev         | tacocat-gallery-sam-dev  | [staging-pix.tacocat.com](https://staging-pix.tacocat.com) | Staging for manual testing |
+| test        | tacocat-gallery-sam-test | [test-pix.tacocat.com](https://test-pix.tacocat.com)       | Integration tests (CI)     |
+| prod        | tacocat-gallery-sam-prod | [pix.tacocat.com](https://pix.tacocat.com)                 | Production                 |
+
+All developers use the dev/staging stack right now. Yes, this setup is geared towards a single developer.
+
+The web app is not in this project; it's built and hosted in <https://github.com/deanmoses/tacocat-gallery-sveltekit>.
 
 ## Deploy while developing
 
@@ -61,9 +96,7 @@ This deploys to the `tacocat-gallery-sam-dev` AWS stack. The web app at <https:/
 
 When a PR is merged into `main`, the CI/CD system (GitHub Actions) automatically runs tests and deploys to staging. This overwrites anything you deployed to it with `sam sync`.
 
-## Deploy to production
-
-To deploy to prod:
+## Deploy to prod
 
 1. You need access to the [repo](https://github.com/deanmoses/tacocat-gallery-sam/)
 2. On GitHub, go to [_Actions_ > _Deploy to Production_](https://github.com/deanmoses/tacocat-gallery-sam/actions/workflows/deploy-prod.yml)
@@ -88,4 +121,30 @@ Tail a specific function:
 
 ```bash
 sam logs --include-traces --tail -n HelloWorldFunction
+```
+
+## Common Commands
+
+`npm` commands run from the `app/` directory, `sam` commands run from project root:
+
+```bash
+# Testing and linting
+npm test              # unit tests with silent console output
+npm run test:verbose  # unit tests with console output. Use for debugging only, this gets pretty noisy
+npm run test:integration  # integration tests (requires AWS credentials)
+npm run test:all      # all tests (unit + integration)
+npm run lint          # ESLint with auto-fix
+
+# Building and deploying
+sam build             # Build SAM application
+sam deploy --no-execute-changeset  # Validate template without deploying
+sam deploy            # Deploy to dev/staging
+sam sync --watch      # Deploy to dev/staging and watch mode for rapid dev iteration
+
+# Logs
+sam logs --include-traces --tail         # All function logs
+sam logs -n FunctionName --tail          # Specific function logs
+
+# Documentation
+npm run agent-docs    # Regenerate CLAUDE.md and AGENTS.md from docs/AGENTS.src.md
 ```

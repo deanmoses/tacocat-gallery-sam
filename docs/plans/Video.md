@@ -1,6 +1,8 @@
-# Architecture: Video Support
+# Plan: Video Support (DONE)
 
-This is an architecture for the Tacocat gallery AWS back end to support videos. Currently, the gallery only supports still images. Users want to upload and view videos alongside their photos.
+This is the plan for the Tacocat gallery AWS back end to support videos. Currently, the gallery only supports still images. Users want to upload and view videos alongside their photos.
+
+Status: IMPLEMENTED.
 
 ## Requirements
 
@@ -318,10 +320,7 @@ Works the same as images. The video record can have a `thumbnail` crop rectangle
 The frontend constructs the playback URL from the video's path, UUID, and versionId:
 
 ```text
-Video path:    /2024/06-15/video.avi
-Video id:      550e8400-e29b-41d4-a716-446655440000
-Video version: abc123
-Playback URL:  https://{derivedDomain}/v/2024/06-15/video.avi?id=550e8400-e29b-41d4-a716-446655440000&version=abc123
+https://{derivedDomain}/v/2024/06-15/video.avi?id=<UUID>&version=<VER>
 ```
 
 The frontend gets the `id` and `versionId` fields from the album API response and constructs the URL. The CloudFront function rewrites this to the S3 key `d/<UUID>/<versionId>/video/transcoded`.

@@ -135,6 +135,8 @@ export const handler: APIGatewayProxyHandler = async (event) => {
 
 Custom exceptions: `NotFoundException`, `BadRequestException`, `UnauthorizedException`, `ServerException`
 
+For detailed architecture documentation (S3 storage patterns, CDN routing, design decisions), see `docs/Architecture.md`.
+
 ## Code Style
 
 Prettier config (4-space indent, single quotes, 120 char width, trailing commas):
