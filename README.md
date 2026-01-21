@@ -1,10 +1,10 @@
 # tacocat-gallery-sam
 
-Back end for Tacocat's photo gallery. Implemented using the Amazon AWS Serverless Application Model (SAM).
+Back end for Tacocat's photo and video gallery. Implemented using the Amazon AWS Serverless Application Model (SAM).
 
 ## Key services
 
-Database (DynamoDB), image storage (S3), APIs (API Gateway), CDN (CloudFront), image EXIF/IPTC metadata extraction, image resizing.
+Database (DynamoDB), media storage (S3), APIs (API Gateway), CDN (CloudFront), image EXIF/IPTC metadata extraction, image resizing.
 
 # Getting Started
 

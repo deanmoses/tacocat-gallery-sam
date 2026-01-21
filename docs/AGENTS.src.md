@@ -31,16 +31,16 @@ END_AGENTS
 
 ## Project Overview
 
-AWS Serverless (SAM) backend for a photo gallery. Uses:
+AWS Serverless (SAM) backend for a photo and video gallery. Uses:
 
-- DynamoDB for metadata (info about photo albums and images)
-- S3 for image files: originals, resizes, thumbnails
-- Lambda for processing
-- API Gateway for the front end website to access the lambdas.
+- DynamoDB for metadata (info about albums, images, and videos)
+- S3 for media files: originals, derived images (resizes/thumbnails), transcoded videos
+- Lambda for processing (EXIF extraction, image resizing, video transcoding via MediaConvert)
+- API Gateway for the front end website to access the lambdas
 - CloudFront for CDN delivery
-- Redis Labs for search indexing.
+- Redis Labs for search indexing
 
-This project does NOT contain the front end, the photo gallery website. That's in another project.
+This project does NOT contain the front end, the gallery website. That's in another project.
 
 ## Common Commands
 
@@ -128,7 +128,8 @@ Composite key structure:
 ### Lambda Functions (`app/src/lambdas/`)
 
 - **api/**: REST endpoints (CRUD for albums/images, search, admin operations)
-- **processImageUpload/**: S3-triggered, extracts EXIF metadata, saves to DynamoDB
+- **processMediaUpload/**: S3-triggered, processes uploads (images: extract EXIF; videos: start transcoding)
+- **videoTranscodingComplete/**: EventBridge-triggered, handles MediaConvert job completion
 - **generateDerivedImage/**: Lambda URL, generates resized images via Sharp
 - **dynamoToRedis/**: DynamoDB Streams-triggered, syncs data to Redis for search
 

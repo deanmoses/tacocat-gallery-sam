@@ -17,16 +17,16 @@ See the [GitHub issue](https://github.com/deanmoses/tacocat-gallery-sam/issues/1
    - Web app must be updated to allow HEIC uploads (separate plan/PR for SvelteKit front end)
    - Web app should warn if uploading `foo.heic` when `foo.jpg` already exists in the album, since HEIC converts to JPEG and would overwrite
 
-2. **S3 triggers `processImageUpload` Lambda** (already happens)
+2. **S3 triggers `processMediaUpload` Lambda** (already happens)
 
-3. **`processImageUpload` Lambda detects HEIC and converts:**
+3. **`processMediaUpload` Lambda detects HEIC and converts:**
    - Check file extension for `.heic` or `.heif`
    - Convert to archival quality JPEG suitable for printing out posters (quality 92) using Sharp
    - Save JPEG to S3 Originals bucket (same path, `.jpg` extension)
    - Delete the original HEIC from S3
    - **Return early** — do not continue with metadata extraction
 
-4. **S3 triggers `processImageUpload` again for the new JPEG**
+4. **S3 triggers `processMediaUpload` again for the new JPEG**
    - `isHeicPath()` returns false for `.jpg`, so no conversion happens
    - Normal flow: extract metadata, save to DynamoDB, set album thumbnail, trigger detail image generation
 
@@ -67,7 +67,7 @@ Also add `isHeicPath()` helper to detect HEIC files by extension. Use case-insen
 
 - Change `isValidImagePath()` to `isValidImagePathForUpload()` so presigned URLs can be generated for HEIC files
 
-#### 4. Update `processImageUpload` Lambda (`template.yaml`)
+#### 4. Update `processMediaUpload` Lambda (`template.yaml`)
 
 - Add Sharp layer (needed for HEIC conversion; existing code uses exifreader for metadata, not Sharp)
 - Add S3 write/delete policy for the Originals bucket (currently only has read). SAM's `S3CrudPolicy` is already scoped to a specific bucket.
@@ -76,7 +76,7 @@ Also add `isHeicPath()` helper to detect HEIC files by extension. Use case-insen
 
 **Note:** The layer ARN is hardcoded to us-east-1. This is fine because all environments (dev/test/prod) deploy to us-east-1 per samconfig.toml.
 
-#### 5. Update `processImageUpload` Lambda (code)
+#### 5. Update `processMediaUpload` Lambda (code)
 
 - Use `isValidImagePathForUpload()` for initial validation
 - Early in the function, check `isHeicPath()`
@@ -163,7 +163,7 @@ await updateAlbumThumbnail(...);
 2. **`generateUploadUrls.spec.ts`**
    - Move `/2000/12-31/image.heic` from "invalid" to "valid" test cases
 
-3. **`processImageUpload.spec.ts`**
+3. **`processMediaUpload.spec.ts`**
    - Add test: `quarantine/...` paths return early (no processing)
    - Add test: HEIC paths return early after conversion (no metadata extraction, no DynamoDB write)
 
