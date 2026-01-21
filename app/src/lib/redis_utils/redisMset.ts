@@ -1,6 +1,6 @@
 import { RedisGalleryItem } from './redisTypes';
 import { RedisClient } from './redisClientUtils';
-import { isValidImagePath } from '../gallery_path_utils/galleryPathUtils';
+import { isValidMediaPath } from '../gallery_path_utils/galleryPathUtils';
 
 /**
  * Save the items to Redis.
@@ -18,5 +18,5 @@ function toPath(item: RedisGalleryItem): string {
     if (!item.parentPath) throw new Error(`Missing parentPath for ${item}`);
     if (!item.itemName) throw new Error(`Missing itemName for ${item}`);
     const path = `${item.parentPath}${item.itemName}`;
-    return isValidImagePath(path) ? path : path + '/';
+    return isValidMediaPath(path) ? path : path + '/';
 }
