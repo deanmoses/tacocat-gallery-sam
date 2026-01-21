@@ -32,6 +32,7 @@ END_AGENTS
 ## Project Overview
 
 AWS Serverless (SAM) backend for a photo gallery. Uses:
+
 - DynamoDB for metadata (info about photo albums and images)
 - S3 for image files: originals, resizes, thumbnails
 - Lambda for processing
@@ -39,7 +40,7 @@ AWS Serverless (SAM) backend for a photo gallery. Uses:
 - CloudFront for CDN delivery
 - Redis Labs for search indexing.
 
-This project does NOT contain the front end, the photo gallery website.  That's in another project.
+This project does NOT contain the front end, the photo gallery website. That's in another project.
 
 ## Common Commands
 
@@ -56,7 +57,7 @@ npm run lint          # ESLint with auto-fix
 # Building and deploying (from project root)
 sam build             # Build SAM application
 sam deploy --no-execute-changeset  # Validate template without deploying
-sam deploy            # Deploy to dev/staging 
+sam deploy            # Deploy to dev/staging
 sam sync --watch      # Deploy to dev/staging and watch mode for rapid dev iteration
 
 # Logs
@@ -71,11 +72,11 @@ npm run agent-docs    # Regenerate CLAUDE.md and AGENTS.md from docs/AGENTS.src.
 
 The project can create three environments. Each environment is a separate AWS infrastructure stack.
 
-| Environment | Stack Name | Web App | Purpose |
-|-------------|------------|--------|---------|
-| dev | tacocat-gallery-sam-dev | staging-pix.tacocat.com | Staging for manual testing |
-| test | tacocat-gallery-sam-test | test-pix.tacocat.com | Integration tests (CI) |
-| prod | tacocat-gallery-sam-prod | pix.tacocat.com | Production |
+| Environment | Stack Name               | Web App                 | Purpose                    |
+| ----------- | ------------------------ | ----------------------- | -------------------------- |
+| dev         | tacocat-gallery-sam-dev  | staging-pix.tacocat.com | Staging for manual testing |
+| test        | tacocat-gallery-sam-test | test-pix.tacocat.com    | Integration tests (CI)     |
+| prod        | tacocat-gallery-sam-prod | pix.tacocat.com         | Production                 |
 
 The web app is not in this project; it's built and hosted in other projects.
 
@@ -89,7 +90,7 @@ sam deploy                       # Deploy to dev (default)
 sam deploy --config-env test     # Deploy to test environment
 ```
 
-Do NOT deploy to the prod environment.  NEVER deploy to the prod environment.  That goes through a GitHub Actions CI/CD process.
+Do NOT deploy to the prod environment. NEVER deploy to the prod environment. That goes through a GitHub Actions CI/CD process.
 
 ### Running integration tests locally
 
@@ -106,7 +107,9 @@ Note: Integration tests require AWS credentials and hit actual AWS resources in 
 ## Architecture
 
 ### Gallery Path Structure
+
 Strict date-based hierarchy enforced throughout:
+
 - Root: `/`
 - Year albums: `/YYYY/`
 - Day albums: `/YYYY/MM-DD/`
@@ -115,18 +118,22 @@ Strict date-based hierarchy enforced throughout:
 All paths validated via regex in `app/src/lib/gallery_path_utils/`.
 
 ### DynamoDB Data Model
+
 Composite key structure:
+
 - Partition key: `parentPath` (e.g., `/2024/`)
 - Sort key: `itemName` (e.g., `01-15` or `photo.jpg`)
 - Item types: `album` or `image`
 
 ### Lambda Functions (`app/src/lambdas/`)
+
 - **api/**: REST endpoints (CRUD for albums/images, search, admin operations)
 - **processImageUpload/**: S3-triggered, extracts EXIF metadata, saves to DynamoDB
 - **generateDerivedImage/**: Lambda URL, generates resized images via Sharp
 - **dynamoToRedis/**: DynamoDB Streams-triggered, syncs data to Redis for search
 
 ### Shared Libraries (`app/src/lib/`)
+
 - **gallery/**: Core business logic organized by operation
 - **lambda_utils/**: Exception types, API Gateway helpers, response formatting
 - **dynamo_utils/**: DynamoDB query patterns
@@ -135,15 +142,16 @@ Composite key structure:
 - **gallery_path_utils/**: Path validation and parsing
 
 ### Lambda Handler Pattern
+
 ```typescript
 export const handler: APIGatewayProxyHandler = async (event) => {
-    try {
-        // Validate request
-        // Call business logic
-        return respondHttp(event, result);
-    } catch (e) {
-        return handleHttpExceptions(event, e);
-    }
+  try {
+    // Validate request
+    // Call business logic
+    return respondHttp(event, result);
+  } catch (e) {
+    return handleHttpExceptions(event, e);
+  }
 };
 ```
 
@@ -152,6 +160,7 @@ Custom exceptions: `NotFoundException`, `BadRequestException`, `UnauthorizedExce
 ## Code Style
 
 Prettier config (4-space indent, single quotes, 120 char width, trailing commas):
+
 ```javascript
 { semi: true, trailingComma: 'all', singleQuote: true, printWidth: 120, tabWidth: 4 }
 ```
@@ -161,8 +170,16 @@ Prettier config (4-space indent, single quotes, 120 char width, trailing commas)
 Use structured JSON logging for CloudWatch queryability:
 
 ```typescript
-console.info(JSON.stringify({ event: 'transcoding_complete', videoPath, videoId }));
-console.error(JSON.stringify({ event: 'transcoding_failed', videoPath, error: errorMessage }));
+console.info(
+  JSON.stringify({ event: "transcoding_complete", videoPath, videoId }),
+);
+console.error(
+  JSON.stringify({
+    event: "transcoding_failed",
+    videoPath,
+    error: errorMessage,
+  }),
+);
 ```
 
 - Always include an `event` field describing what happened

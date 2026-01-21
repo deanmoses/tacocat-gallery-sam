@@ -1,6 +1,6 @@
 # Plan: HEIC Support (DONE)
 
-This is the plan to support HEIC images.  
+This is the plan to support HEIC images.
 
 Status: IMPLEMENTED.
 
@@ -33,6 +33,7 @@ See the [GitHub issue](https://github.com/deanmoses/tacocat-gallery-sam/issues/1
 **No infinite loop:** The JPEG re-trigger is safe because `isHeicPath()` only matches `.heic`/`.heif` extensions. The JPEG goes through the normal non-HEIC path. There's no risk of repeated re-encoding.
 
 This two-trigger approach is cleaner than trying to do everything in one pass:
+
 - The JPEG goes through the exact same code path as any direct JPEG upload
 - No special-casing after conversion
 - The JPEG's S3 `versionId` is captured correctly
@@ -48,6 +49,7 @@ This layer compiles libheif, libde265, and Sharp from source to enable HEIC deco
 ### Code Changes Required
 
 #### 1. Update `template.yaml`
+
 - Change Sharp layer ARN from `Sharp-0_34_5` to the new HEIC-enabled layer `sharp-heic:1`
 
 #### 2. Update path validation (`galleryPathUtils.ts`)
@@ -62,9 +64,11 @@ Create a new function `isValidImagePathForUpload()` that accepts HEIC/HEIF in ad
 Also add `isHeicPath()` helper to detect HEIC files by extension. Use case-insensitive matching (`.HEIC`, `.Heic`, etc.).
 
 #### 3. Update `generateUploadUrls.ts`
+
 - Change `isValidImagePath()` to `isValidImagePathForUpload()` so presigned URLs can be generated for HEIC files
 
 #### 4. Update `processImageUpload` Lambda (`template.yaml`)
+
 - Add Sharp layer (needed for HEIC conversion; existing code uses exifreader for metadata, not Sharp)
 - Add S3 write/delete policy for the Originals bucket (currently only has read). SAM's `S3CrudPolicy` is already scoped to a specific bucket.
 - Add `External: - sharp` to esbuild config so it uses the layer instead of bundling
@@ -73,6 +77,7 @@ Also add `isHeicPath()` helper to detect HEIC files by extension. Use case-insen
 **Note:** The layer ARN is hardcoded to us-east-1. This is fine because all environments (dev/test/prod) deploy to us-east-1 per samconfig.toml.
 
 #### 5. Update `processImageUpload` Lambda (code)
+
 - Use `isValidImagePathForUpload()` for initial validation
 - Early in the function, check `isHeicPath()`
 - If HEIC:
@@ -91,10 +96,10 @@ Also add `isHeicPath()` helper to detect HEIC files by extension. Use case-insen
 
 **Strategy:** Wrap Sharp and ExifReader calls individually. Quarantine on failure. Let S3/DynamoDB errors propagate for retry.
 
-| Error source | Action | Rationale |
-|--------------|--------|-----------|
-| Sharp/ExifReader | Quarantine | File problem — won't fix itself on retry |
-| S3/DynamoDB/other | Propagate | Infrastructure problem — SDK + S3 retries handle it |
+| Error source      | Action     | Rationale                                           |
+| ----------------- | ---------- | --------------------------------------------------- |
+| Sharp/ExifReader  | Quarantine | File problem — won't fix itself on retry            |
+| S3/DynamoDB/other | Propagate  | Infrastructure problem — SDK + S3 retries handle it |
 
 **Skip quarantine prefix:** Early in the handler, check if the path starts with `quarantine/`. If so, return immediately.
 
@@ -137,14 +142,15 @@ await updateAlbumThumbnail(...);
 **`quarantineFile(bucket, key)`:** Copies file to `quarantine/{original-path}` (e.g., `quarantine/2024/01-15/photo.heic`), then deletes original.
 
 **Why this works:**
+
 - No error classification needed — try/catch placement determines behavior
 - Clear log messages indicate exactly which operation failed
 - S3/DynamoDB errors naturally propagate without extra logic
 
 #### 7. Logging
+
 - Log explicitly when HEIC conversion occurs: `"HEIC converted: /2024/01-15/photo.heic → /2024/01-15/photo.jpg"`
 - This distinguishes conversion triggers from normal JPEG uploads in CloudWatch
-
 
 ### Tests
 
@@ -185,7 +191,6 @@ Add to `app/src/test/data/images/`:
 - **`image.heic`** — Small HEIC file (1-2 MB) with EXIF metadata (dimensions, date taken). Any iPhone photo works.
 - **`FullMetadata.heic`** (optional) — HEIC with IPTC metadata (title, description, keywords) to verify metadata survives conversion
 
-
 # Appendix
 
 ## Memory Analysis
@@ -193,10 +198,12 @@ Add to `app/src/test/data/images/`:
 Sharp/libvips holds the decoded image in memory as uncompressed RGBA, plus working space for the output.
 
 **Uncompressed image size calculation:**
+
 - 12MP photo (4032×3024): 4032 × 3024 × 4 bytes = **48.8 MB**
 - 48MP photo (8064×6048): 8064 × 6048 × 4 bytes = **195 MB**
 
 **Working memory estimate:** 2-3× uncompressed size (input + output + processing overhead)
+
 - 12MP: ~100-150 MB
 - 48MP: ~400-600 MB
 
@@ -205,11 +212,11 @@ Sharp/libvips holds the decoded image in memory as uncompressed RGBA, plus worki
 **Decision:** Use 1024 MB. This handles typical 12MP photos with headroom and supports newer 48MP phones.
 
 **Cost impact:** Negligible.
+
 - Lambda pricing: $0.0000166667 per GB-second
 - At 1024 MB vs 256 MB for a 3-second conversion: ~$0.000037 extra per conversion
 - 1,000 HEIC uploads/month: ~$0.04 extra
 - More memory also means more CPU, which can reduce execution time and partially offset the cost
-
 
 ## Rejected Approaches
 
@@ -218,11 +225,13 @@ Sharp/libvips holds the decoded image in memory as uncompressed RGBA, plus worki
 Would have used this if the Sharp layer hadn't worked.
 
 **Pros:**
+
 - Pure JavaScript, no native dependencies
 - Add `heic-convert` to existing Node.js Lambda
 - Single Lambda, single flow
 
 **Cons:**
+
 - Slower — WASM is ~2-3x slower than native
 - Less battle-tested (~120k weekly downloads)
 - Higher memory usage — WASM decoder + Sharp both in memory
@@ -235,6 +244,7 @@ Would have used this if the Sharp layer hadn't worked.
 ### Python Lambda (pillow-heif)
 
 **Rejected because:**
+
 - Two runtimes in one project:
   - Two dependency systems (`package.json` + `requirements.txt`)
   - Two build processes
@@ -244,7 +254,6 @@ Would have used this if the Sharp layer hadn't worked.
   - Or change upload flow to go through Python first
   - Error handling across the handoff
 - New code to maintain in a language not used elsewhere in the project
-
 
 ## References
 
