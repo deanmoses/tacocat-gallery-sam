@@ -1,9 +1,12 @@
 import { isImageFormat, OptimizingParams } from './optimizeImage';
+import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS } from '../../lib/gallery_path_utils/galleryPathUtils';
 
 // Matches media paths: /i/2001/12-31/media.ext/VERSIONID/...
-// Supports images (jpg, jpeg, gif, png) and videos (mp4, mov, avi, mkv, webm, m4v, 3gp, mpg, mpeg)
-const pathMediaIdPattern =
-    /^\/i\/(?<ID>\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/[a-zA-Z0-9_-]+\.(jpg|jpeg|gif|png|mp4|mov|avi|mkv|webm|m4v|3gp|mpg|mpeg))\/(?<VERSION>[^/]+)/i;
+const mediaExtPattern = [...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS].join('|');
+const pathMediaIdPattern = new RegExp(
+    `^\\/i\\/(?<ID>\\d\\d\\d\\d\\/(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])\\/[a-zA-Z0-9_-]+\\.(${mediaExtPattern}))\\/(?<VERSION>[^/]+)`,
+    'i',
+);
 
 export type PathParams = OptimizingParams & {
     /** S3 key - like mediaPath, but without the leading slash, e.g. "2001/12-31/image.jpg" */

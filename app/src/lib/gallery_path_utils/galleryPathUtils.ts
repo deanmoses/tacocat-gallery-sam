@@ -1,6 +1,33 @@
 import { BaseGalleryRecord } from '../gallery/galleryTypes';
 
 /**
+ * Supported image extensions for original stored images.
+ */
+export const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif'];
+
+/**
+ * Our preferred image extensions for strict validation.
+ * For example, 'jpeg' is not allowed here, only 'jpg'.
+ */
+export const IMAGE_EXTENSIONS_STRICT = ['jpg', 'png', 'gif'];
+
+/**
+ * Extensions for HEIC / HEIF files
+ */
+export const HEIC_EXTENSIONS = ['heic', 'heif'];
+
+/**
+ * Supported image extensions for upload.
+ * Some get transformed into other file formats after uploaded.
+ */
+export const IMAGE_EXTENSIONS_FOR_UPLOAD = [...IMAGE_EXTENSIONS, ...HEIC_EXTENSIONS];
+
+/**
+ * Supported video extensions
+ */
+export const VIDEO_EXTENSIONS = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', '3gp', 'mpg', 'mpeg'];
+
+/**
  * Return true if specified string is a valid album or media path
  * like / or /2001/ or /2001/12-31/ or /2001/12-31/image.jpg or /2001/12-31/video.mp4
  */
@@ -10,7 +37,7 @@ export function isValidPath(path: string): boolean {
 
 /**
  * Return true if specified string is a valid album or media path for upload.
- * Like {@link isValidPath} but also accepts HEIC/HEIF image paths and video paths.
+ * Like {@link isValidPath} but also accepts HEIC/HEIF image paths.
  */
 export function isValidPathForUpload(path: string): boolean {
     return isValidAlbumPath(path) || isValidMediaPathForUpload(path);
@@ -55,7 +82,12 @@ export function isValidDayAlbumName(dayAlbumName: string): boolean {
  * For uploads that may include HEIC, use isValidImagePathForUpload().
  */
 export function isValidImagePath(imagePath: string): boolean {
-    return /^\/\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/[a-zA-Z0-9_-]+\.(jpg|jpeg|gif|png)$/i.test(imagePath);
+    const extPattern = IMAGE_EXTENSIONS.join('|');
+    const pattern = new RegExp(
+        `^/\\d\\d\\d\\d/(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])/[a-zA-Z0-9_-]+\\.(${extPattern})$`,
+        'i',
+    );
+    return pattern.test(imagePath);
 }
 
 /**
@@ -64,9 +96,12 @@ export function isValidImagePath(imagePath: string): boolean {
  * HEIC files are converted to JPEG after upload.
  */
 export function isValidImagePathForUpload(imagePath: string): boolean {
-    return /^\/\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/[a-zA-Z0-9_-]+\.(jpg|jpeg|gif|png|heic|heif)$/i.test(
-        imagePath,
+    const extPattern = IMAGE_EXTENSIONS_FOR_UPLOAD.join('|');
+    const pattern = new RegExp(
+        `^/\\d\\d\\d\\d/(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])/[a-zA-Z0-9_-]+\\.(${extPattern})$`,
+        'i',
     );
+    return pattern.test(imagePath);
 }
 
 /**
@@ -74,7 +109,8 @@ export function isValidImagePathForUpload(imagePath: string): boolean {
  * There must be at least one character before the "." before the extension.
  */
 export function hasHeicExtension(path: string): boolean {
-    return /.\.(heic|heif)$/i.test(path);
+    const pattern = new RegExp(`.\\.(${HEIC_EXTENSIONS.join('|')})$`, 'i');
+    return pattern.test(path);
 }
 
 /**
@@ -82,7 +118,8 @@ export function hasHeicExtension(path: string): boolean {
  * There must be at least one character before the "." before the extension.
  */
 export function hasVideoExtension(path: string): boolean {
-    return /.\.(mp4|mov|avi|mkv|webm|m4v|3gp|mpg|mpeg)$/i.test(path);
+    const pattern = new RegExp(`.\\.(${VIDEO_EXTENSIONS.join('|')})$`, 'i');
+    return pattern.test(path);
 }
 
 /**
@@ -91,7 +128,8 @@ export function hasVideoExtension(path: string): boolean {
  * There must be at least one character before the "." before the extension.
  */
 export function hasImageExtension(path: string): boolean {
-    return /.\.(jpg|jpeg|gif|png)$/i.test(path);
+    const pattern = new RegExp(`.\\.(${IMAGE_EXTENSIONS.join('|')})$`, 'i');
+    return pattern.test(path);
 }
 
 /**
@@ -103,9 +141,12 @@ export function hasImageExtension(path: string): boolean {
  * Supported video extensions: mp4, mov, avi, mkv, webm, m4v, 3gp, mpg, mpeg
  */
 export function isValidVideoPath(videoPath: string): boolean {
-    return /^\/\d\d\d\d\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\/[a-zA-Z0-9_-]+\.(mp4|mov|avi|mkv|webm|m4v|3gp|mpg|mpeg)$/i.test(
-        videoPath,
+    const extPattern = VIDEO_EXTENSIONS.join('|');
+    const pattern = new RegExp(
+        `^/\\d\\d\\d\\d/(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])/[a-zA-Z0-9_-]+\\.(${extPattern})$`,
+        'i',
     );
+    return pattern.test(videoPath);
 }
 
 /**
@@ -117,7 +158,9 @@ export function isValidVideoPath(videoPath: string): boolean {
  * @param videoName name of video
  */
 export function isValidVideoName(videoName: string): boolean {
-    return /^[a-zA-Z0-9_-]+\.(mp4|mov|avi|mkv|webm|m4v|3gp|mpg|mpeg)$/i.test(videoName);
+    const extPattern = VIDEO_EXTENSIONS.join('|');
+    const pattern = new RegExp(`^[a-zA-Z0-9_-]+\\.(${extPattern})$`, 'i');
+    return pattern.test(videoName);
 }
 
 /**
@@ -129,7 +172,9 @@ export function isValidVideoName(videoName: string): boolean {
  * @param videoName name of video
  */
 export function isValidVideoNameStrict(videoName: string): boolean {
-    return /^[a-z0-9]+([a-z0-9_]*[a-z0-9]+)*\.(mp4|mov|avi|mkv|webm|m4v|3gp|mpg|mpeg)$/.test(videoName);
+    const extPattern = VIDEO_EXTENSIONS.join('|');
+    const pattern = new RegExp(`^[a-z0-9]+([a-z0-9_]*[a-z0-9]+)*\\.(${extPattern})$`);
+    return pattern.test(videoName);
 }
 
 /**
@@ -159,7 +204,9 @@ export function isValidMediaPathForUpload(mediaPath: string): boolean {
  * @param imageName name of image
  */
 export function isValidImageName(imageName: string): boolean {
-    return /^[a-zA-Z0-9_-]+\.(jpg|jpeg|gif|png)$/i.test(imageName);
+    const extPattern = IMAGE_EXTENSIONS.join('|');
+    const pattern = new RegExp(`^[a-zA-Z0-9_-]+\\.(${extPattern})$`, 'i');
+    return pattern.test(imageName);
 }
 
 /**
@@ -172,7 +219,9 @@ export function isValidImageName(imageName: string): boolean {
  * @param imageName name of image
  */
 export function isValidImageNameStrict(imageName: string): boolean {
-    return /^[a-z0-9]+([a-z0-9_]*[a-z0-9]+)*\.(jpg|gif|png)$/.test(imageName);
+    const extPattern = IMAGE_EXTENSIONS_STRICT.join('|');
+    const pattern = new RegExp(`^[a-z0-9]+([a-z0-9_]*[a-z0-9]+)*\\.(${extPattern})$`);
+    return pattern.test(imageName);
 }
 
 /**
@@ -189,13 +238,15 @@ export function isValidMediaNameStrict(mediaName: string): boolean {
 }
 
 /**
- * Return the specified path's parent path and leaf item
- *  - /2001/12-31/image.jpg returns  '/2001/12-31/' and 'image.jpg'
- *  - /2001/12-31 returns '/2001/' and '12-31'
- *  - /2001 returns '/' and 2000'
- *  - / returns  '' and undefined
+ * Return the specified path's parent path and leaf item.
  *
- *  @param {String} path a path of the format /2001/12-31/image.jpg, or a subset thereof
+ * For example:
+ *  - /2001/12-31/image.jpg returns { parent: '/2001/12-31/', name: 'image.jpg' }
+ *  - /2001/12-31/ returns { parent: '/2001/', name: '12-31' }
+ *  - /2001/ returns { parent: '/', name: '2001' }
+ *  - / returns { parent: '', name: '' }
+ *
+ * @param path a path of the format /2001/12-31/image.jpg, or a subset thereof
  */
 export function getParentAndNameFromPath(path: string) {
     if (!path) throw new Error('Invalid path: cannot be empty');
@@ -216,16 +267,16 @@ export function getParentAndNameFromPath(path: string) {
 }
 
 /**
- * For the given path, return the parent path
+ * For the given path, return the parent path.
  *
  * For example:
- *  - /2001/12-31/image.jpg returns  /2001/12-31/
- *  - /2001/12-31 returns /2001/
- *  - /2001 returns /
- *  - / returns  '' TODO: MAYBE THIS SHOULD BE UNDEFINED
+ *  - /2001/12-31/image.jpg returns /2001/12-31/
+ *  - /2001/12-31/ returns /2001/
+ *  - /2001/ returns /
+ *  - / returns ''
  *
- * @param {String} path a path of the format /2001/12-31/image.jpg, or a subset thereof
- * @returns {String} parent path
+ * @param path a path of the format /2001/12-31/image.jpg, or a subset thereof
+ * @returns parent path
  */
 export function getParentFromPath(path: string): string {
     return getParentAndNameFromPath(path).parent;
@@ -250,13 +301,13 @@ export function getParentFromPathForUpload(path: string): string {
 }
 
 /**
- * For the given path, return the leaf name
+ * For the given path, return the leaf name.
  *
  * For example:
  *  - /2001/12-31/image.jpg returns image.jpg
- *  - /2001/12-31 returns 12-31
- *  - /2001 returns 2001
- *  - / returns  ''
+ *  - /2001/12-31/ returns 12-31
+ *  - /2001/ returns 2001
+ *  - / returns ''
  *
  * @param path a path of the format /2001/12-31/image.jpg, or a subset thereof
  * @returns name of leaf, like image.jpg
@@ -288,7 +339,7 @@ export function albumPathToDate(albumPath: string): Date {
 
 /**
  * Convert from any path to a date.
- * @param path album, image, or video path
+ * @param path album or media (image or video) path
  */
 export function pathToDate(path: string): Date {
     if (isValidAlbumPath(path)) return albumPathToDate(path);
@@ -296,6 +347,12 @@ export function pathToDate(path: string): Date {
     throw new Error(`Invalid path: [${path}]`);
 }
 
+/**
+ * Build the full path from a gallery record's parentPath and itemName.
+ *
+ * @param item A gallery record (album or media like image or video)
+ * @returns Full path like /2001/ for albums or /2001/12-31/image.jpg for images
+ */
 export function toPathFromItem(item: BaseGalleryRecord): string {
     switch (item?.itemType) {
         case 'album':
@@ -307,6 +364,18 @@ export function toPathFromItem(item: BaseGalleryRecord): string {
     }
 }
 
+/**
+ * Build an album path from its parent path and name.
+ *
+ * For example:
+ *  - ('/', '2001') returns /2001/
+ *  - ('/2001/', '12-31') returns /2001/12-31/
+ *  - (undefined, '/') returns / (root album special case)
+ *
+ * @param parentPath Parent album path like / or /2001/
+ * @param itemName Album name like 2001 or 12-31
+ * @returns Album path like /2001/ or /2001/12-31/
+ */
 export function toAlbumPath(parentPath: string | undefined, itemName: string | undefined): string {
     if (itemName === '/') return '/';
     if (!parentPath) throw new Error(`Undefined parentPath`);
@@ -314,6 +383,17 @@ export function toAlbumPath(parentPath: string | undefined, itemName: string | u
     return parentPath + itemName + '/';
 }
 
+/**
+ * Build a media path from its parent album path and filename.
+ *
+ * For example:
+ *  - ('/2001/12-31/', 'image.jpg') returns /2001/12-31/image.jpg
+ *  - ('/2001/12-31/', 'video.mp4') returns /2001/12-31/video.mp4
+ *
+ * @param parentPath Parent album path like /2001/12-31/
+ * @param itemName Media filename like image.jpg or video.mp4
+ * @returns Media path like /2001/12-31/image.jpg
+ */
 export function toMediaPath(parentPath: string | undefined, itemName: string | undefined): string {
     if (!parentPath) throw new Error(`Undefined parentPath`);
     if (!itemName) throw new Error(`Undefined itemName`);

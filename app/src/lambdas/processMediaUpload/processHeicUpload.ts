@@ -2,6 +2,7 @@ import { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand } fro
 import sharp from 'sharp';
 import { recordMediaProcessingError } from '../../lib/dynamo_utils/recordError';
 import { JPEG_ORIGINAL_QUALITY } from './mediaProcessingConstants';
+import { HEIC_EXTENSIONS } from '../../lib/gallery_path_utils/galleryPathUtils';
 
 const s3Client = new S3Client({});
 
@@ -17,7 +18,8 @@ const s3Client = new S3Client({});
  */
 export async function processHeicUpload(bucket: string, heicKey: string): Promise<string> {
     const heicPath = '/' + heicKey;
-    const jpegKey = heicKey.replace(/\.(heic|heif)$/i, '.jpg');
+    const heicExtPattern = new RegExp(`\\.(${HEIC_EXTENSIONS.join('|')})$`, 'i');
+    const jpegKey = heicKey.replace(heicExtPattern, '.jpg');
     console.info(JSON.stringify({ event: 'heic_conversion_started', heicKey, jpegKey }));
 
     // Download HEIC from S3

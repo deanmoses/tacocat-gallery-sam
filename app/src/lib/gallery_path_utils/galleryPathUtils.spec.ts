@@ -1,6 +1,11 @@
 import {
     getParentAndNameFromPath,
-    isValidAlbumPath as isValidPath,
+    getParentFromPath,
+    getParentFromPathForUpload,
+    getNameFromPath,
+    isValidPath,
+    isValidPathForUpload,
+    isValidAlbumPath,
     isValidDayAlbumName,
     isValidImageName,
     isValidImageNameStrict,
@@ -9,7 +14,10 @@ import {
     isValidYearAlbumPath,
     isValidDayAlbumPath,
     albumPathToDate,
+    pathToDate,
     toPathFromItem,
+    toAlbumPath,
+    toMediaPath,
     hasHeicExtension,
     hasVideoExtension,
     hasImageExtension,
@@ -48,7 +56,7 @@ describe('isValidAlbumPath', () => {
     ];
     invalidAlbumPaths.forEach((path) => {
         it(`Should be invalid: [${path}]`, () => {
-            expect(isValidPath(path)).toStrictEqual(false);
+            expect(isValidAlbumPath(path)).toStrictEqual(false);
         });
     });
 
@@ -65,7 +73,7 @@ describe('isValidAlbumPath', () => {
     ];
     validAlbumPaths.forEach((path) => {
         it(`Should be valid: [${path}]`, () => {
-            expect(isValidPath(path)).toStrictEqual(true);
+            expect(isValidAlbumPath(path)).toStrictEqual(true);
         });
     });
 });
@@ -1022,5 +1030,211 @@ describe('isValidMediaPathForUpload', () => {
         it(`Should be valid (video for upload): [${path}]`, () => {
             expect(isValidMediaPathForUpload(path)).toStrictEqual(true);
         });
+    });
+});
+
+describe('isValidPath', () => {
+    const invalidPaths = [
+        '',
+        'notapath',
+        '/not/a/real/path',
+        '//',
+        '/2001/12-31/image', // no extension
+        '/2001/image.jpg', // on year album
+        '/image.jpg', // on root
+    ];
+    invalidPaths.forEach((path) => {
+        it(`Should be invalid: [${path}]`, () => {
+            expect(isValidPath(path)).toStrictEqual(false);
+        });
+    });
+
+    // Valid album paths
+    const validAlbumPaths = ['/', '/2001/', '/2001/12-31/'];
+    validAlbumPaths.forEach((path) => {
+        it(`Should be valid (album): [${path}]`, () => {
+            expect(isValidPath(path)).toStrictEqual(true);
+        });
+    });
+
+    // Valid media paths
+    const validMediaPaths = ['/2001/12-31/image.jpg', '/2001/12-31/video.mp4'];
+    validMediaPaths.forEach((path) => {
+        it(`Should be valid (media): [${path}]`, () => {
+            expect(isValidPath(path)).toStrictEqual(true);
+        });
+    });
+
+    // HEIC should NOT be valid (not a stored format)
+    it('Should be invalid (HEIC not stored format)', () => {
+        expect(isValidPath('/2001/12-31/image.heic')).toStrictEqual(false);
+    });
+});
+
+describe('isValidPathForUpload', () => {
+    const invalidPaths = [
+        '',
+        'notapath',
+        '/not/a/real/path',
+        '/2001/12-31/image', // no extension
+        '/2001/image.jpg', // on year album
+        '/image.jpg', // on root
+        '/2001/12-31/file.pdf', // unsupported format
+    ];
+    invalidPaths.forEach((path) => {
+        it(`Should be invalid: [${path}]`, () => {
+            expect(isValidPathForUpload(path)).toStrictEqual(false);
+        });
+    });
+
+    // Valid album paths
+    const validAlbumPaths = ['/', '/2001/', '/2001/12-31/'];
+    validAlbumPaths.forEach((path) => {
+        it(`Should be valid (album): [${path}]`, () => {
+            expect(isValidPathForUpload(path)).toStrictEqual(true);
+        });
+    });
+
+    // Valid media paths including HEIC
+    const validMediaPaths = [
+        '/2001/12-31/image.jpg',
+        '/2001/12-31/image.heic',
+        '/2001/12-31/image.HEIF',
+        '/2001/12-31/video.mp4',
+    ];
+    validMediaPaths.forEach((path) => {
+        it(`Should be valid (media for upload): [${path}]`, () => {
+            expect(isValidPathForUpload(path)).toStrictEqual(true);
+        });
+    });
+});
+
+describe('getParentFromPath', () => {
+    const testCases = [
+        { in: '/', out: '' },
+        { in: '/2001/', out: '/' },
+        { in: '/2001/12-31/', out: '/2001/' },
+        { in: '/2001/12-31/image.jpg', out: '/2001/12-31/' },
+        { in: '/2001/12-31/video.mp4', out: '/2001/12-31/' },
+    ];
+    testCases.forEach((tc) => {
+        it(`[${tc.in}] -> [${tc.out}]`, () => {
+            expect(getParentFromPath(tc.in)).toStrictEqual(tc.out);
+        });
+    });
+
+    it('Should throw for invalid path', () => {
+        expect(() => getParentFromPath('invalid')).toThrow(/invalid/i);
+    });
+});
+
+describe('getParentFromPathForUpload', () => {
+    const testCases = [
+        { in: '/', out: '' },
+        { in: '/2001/', out: '/' },
+        { in: '/2001/12-31/', out: '/2001/' },
+        { in: '/2001/12-31/image.jpg', out: '/2001/12-31/' },
+        { in: '/2001/12-31/image.heic', out: '/2001/12-31/' },
+        { in: '/2001/12-31/video.mp4', out: '/2001/12-31/' },
+    ];
+    testCases.forEach((tc) => {
+        it(`[${tc.in}] -> [${tc.out}]`, () => {
+            expect(getParentFromPathForUpload(tc.in)).toStrictEqual(tc.out);
+        });
+    });
+
+    it('Should throw for invalid path', () => {
+        expect(() => getParentFromPathForUpload('invalid')).toThrow(/invalid/i);
+    });
+});
+
+describe('getNameFromPath', () => {
+    const testCases = [
+        { in: '/', out: '' },
+        { in: '/2001/', out: '2001' },
+        { in: '/2001/12-31/', out: '12-31' },
+        { in: '/2001/12-31/image.jpg', out: 'image.jpg' },
+        { in: '/2001/12-31/video.mp4', out: 'video.mp4' },
+    ];
+    testCases.forEach((tc) => {
+        it(`[${tc.in}] -> [${tc.out}]`, () => {
+            expect(getNameFromPath(tc.in)).toStrictEqual(tc.out);
+        });
+    });
+
+    it('Should throw for invalid path', () => {
+        expect(() => getNameFromPath('invalid')).toThrow(/invalid/i);
+    });
+});
+
+describe('pathToDate', () => {
+    const invalidInputs = ['', '2001/', '/2001', '/2001/12-31/image'];
+    invalidInputs.forEach((invalidInput) => {
+        it(`Invalid: [${invalidInput}]`, () => {
+            expect(() => pathToDate(invalidInput)).toThrow(/invalid/i);
+        });
+    });
+
+    // Album paths
+    const albumInputs = [
+        { in: '/', out: new Date(1826, 0, 1) },
+        { in: '/2001/', out: new Date(2001, 0, 1) },
+        { in: '/2001/12-31/', out: new Date(2001, 11, 31) },
+    ];
+    albumInputs.forEach((input) => {
+        it(`Album [${input.in}] -> [${input.out.toDateString()}]`, () => {
+            expect(pathToDate(input.in)).toEqual(input.out);
+        });
+    });
+
+    // Media paths (should return parent album's date)
+    const mediaInputs = [
+        { in: '/2001/12-31/image.jpg', out: new Date(2001, 11, 31) },
+        { in: '/2001/01-15/video.mp4', out: new Date(2001, 0, 15) },
+    ];
+    mediaInputs.forEach((input) => {
+        it(`Media [${input.in}] -> [${input.out.toDateString()}]`, () => {
+            expect(pathToDate(input.in)).toEqual(input.out);
+        });
+    });
+});
+
+describe('toAlbumPath', () => {
+    it('Root album', () => {
+        expect(toAlbumPath('', '/')).toBe('/');
+    });
+
+    it('Year album', () => {
+        expect(toAlbumPath('/', '2001')).toBe('/2001/');
+    });
+
+    it('Day album', () => {
+        expect(toAlbumPath('/2001/', '12-31')).toBe('/2001/12-31/');
+    });
+
+    it('Should throw for undefined parentPath', () => {
+        expect(() => toAlbumPath(undefined, '2001')).toThrow(/undefined/i);
+    });
+
+    it('Should throw for undefined itemName', () => {
+        expect(() => toAlbumPath('/', undefined)).toThrow(/undefined/i);
+    });
+});
+
+describe('toMediaPath', () => {
+    it('Image path', () => {
+        expect(toMediaPath('/2001/12-31/', 'image.jpg')).toBe('/2001/12-31/image.jpg');
+    });
+
+    it('Video path', () => {
+        expect(toMediaPath('/2001/12-31/', 'video.mp4')).toBe('/2001/12-31/video.mp4');
+    });
+
+    it('Should throw for undefined parentPath', () => {
+        expect(() => toMediaPath(undefined, 'image.jpg')).toThrow(/undefined/i);
+    });
+
+    it('Should throw for undefined itemName', () => {
+        expect(() => toMediaPath('/2001/12-31/', undefined)).toThrow(/undefined/i);
     });
 });
