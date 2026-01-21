@@ -192,6 +192,57 @@ Resources:
         StreamViewType: NEW_IMAGE
 
   # -----------------------------------------------------------------------------
+  # Table for errors the client needs to know about - media processing etc
+  # -----------------------------------------------------------------------------
+  ErrorTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Delete # Errors are transient, no need to retain
+    UpdateReplacePolicy: Delete
+    Properties:
+      TableName: !Sub ${AWS::StackName}-errors
+      AttributeDefinitions:
+        - AttributeName: path
+          AttributeType: S
+      KeySchema:
+        - AttributeName: path
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST # On-demand pricing, errors should be rare
+      OnDemandThroughput:
+        MaxReadRequestUnits: 10
+        MaxWriteRequestUnits: 10
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  # -----------------------------------------------------------------------------
+  # MediaConvert IAM role for video transcoding
+  # -----------------------------------------------------------------------------
+  MediaConvertRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${AWS::StackName}-mediaconvert-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: mediaconvert.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: MediaConvertS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource: !Sub arn:aws:s3:::${AWS::StackName}-original-images/*
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource: !Sub arn:aws:s3:::${AWS::StackName}-derived-images/d/*
+
+  # -----------------------------------------------------------------------------
   # CloudFront CDN distribution that serves the images
   # -----------------------------------------------------------------------------
 
@@ -248,6 +299,19 @@ Resources:
             FunctionAssociations:
               - EventType: viewer-request
                 FunctionARN: !GetAtt DerivedImagesUrlRewriteFunction.FunctionMetadata.FunctionARN
+          - PathPattern: /v/*
+            TargetOriginId: derived-images-bucket
+            Compress: true
+            ViewerProtocolPolicy: redirect-to-https
+            CachePolicyId: !Ref ImmutableCachePolicy
+            ResponseHeadersPolicyId: !Ref ImmutableResponseHeadersPolicy
+            ForwardedValues:
+              QueryString: false
+              Cookies:
+                Forward: none
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt VideoPlaybackUrlRewriteFunction.FunctionMetadata.FunctionARN
         DefaultCacheBehavior:
           TargetOriginId: original-images-bucket
           Compress: true
@@ -344,6 +408,29 @@ Resources:
       CloudFrontOriginAccessIdentityConfig:
         Comment: !Ref DerivedImagesBucket
 
+  # CloudFront Function to rewrite video playback URL
+  # Input: /v/2024/06-15/video.avi?id=<UUID>&version=<versionId>
+  # Output: /d/<UUID>/<versionId>/video/transcoded
+  VideoPlaybackUrlRewriteFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub RewriteVideoPlaybackUrl-${AWS::StackName}
+      AutoPublish: true
+      FunctionConfig:
+        Comment: !Sub Rewrite video playback URL for ${AWS::StackName}
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |+2
+        function handler(event) {
+            const r = event.request;
+            const id = r.querystring['id'];
+            const version = r.querystring['version'];
+            if (!id) return { statusCode: 400, statusDescription: 'Missing id' };
+            if (!version) return { statusCode: 400, statusDescription: 'Missing version' };
+            r.uri = '/d/' + id.value + '/' + version.value + '/video/transcoded';
+            r.querystring = {};
+            return r;
+        }
+
   # CloudFront Function to rewrite URL to derived images bucket
   DerivedImagesUrlRewriteFunction:
     Type: AWS::CloudFront::Function
@@ -380,12 +467,16 @@ Resources:
         Variables:
           ORIGINAL_IMAGES_BUCKET: !Ref OriginalImagesBucket
           DERIVED_IMAGES_BUCKET: !Ref DerivedImagesBucket
-          JPEG_QUALITY: 85
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref OriginalImagesBucket
-        - S3WritePolicy:
+        - S3ReadPolicy: # Read video posters
             BucketName: !Ref DerivedImagesBucket
+        - S3WritePolicy: # Write resized images
+            BucketName: !Ref DerivedImagesBucket
+        - DynamoDBReadPolicy:
+            TableName: !Ref GalleryItemDDBTable
       Layers:
         # Sharp layer with HEIC support via libheif/libde265
         # I build this in an AWS Code Builder project: sharp-heic-lambda-layer
@@ -600,20 +691,20 @@ Resources:
           - albumExistsLambda.ts
 
   # ---------------------------------------------------------------------------
-  # API Gateway lambda to determine whether image exists
+  # API Gateway lambda to determine whether media exists
   # ---------------------------------------------------------------------------
-  ImageExistsFunction:
+  MediaExistsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-ImageExists
+      FunctionName: !Sub ${AWS::StackName}-MediaExists
       CodeUri: app/src/lambdas/api/
-      Handler: imageExistsLambda.handler
-      Description: Determine whether image exists
+      Handler: mediaExistsLambda.handler
+      Description: Determine whether media (image or video) exists
       Events:
         Api:
           Type: Api
           Properties:
-            Path: /image/{imagePath+}
+            Path: /media/{mediaPath+}
             Method: HEAD
       Environment:
         Variables:
@@ -628,7 +719,7 @@ Resources:
         Target: es2020
         Sourcemap: true
         EntryPoints:
-          - imageExistsLambda.ts
+          - mediaExistsLambda.ts
 
   # ---------------------------------------------------------------------------
   # API Gateway lambda to retrieve album
@@ -734,20 +825,20 @@ Resources:
           - updateAlbumLambda.ts
 
   # ---------------------------------------------------------------------------
-  # API Gateway lambda to update existing image
+  # API Gateway lambda to update existing media
   # ---------------------------------------------------------------------------
-  UpdateImageFunction:
+  UpdateMediaFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-UpdateImage
+      FunctionName: !Sub ${AWS::StackName}-UpdateMedia
       CodeUri: app/src/lambdas/api/
-      Handler: updateImageLambda.handler
-      Description: Update existing image in DynamoDB
+      Handler: updateMediaLambda.handler
+      Description: Update existing media (image or video) in DynamoDB
       Events:
         Api:
           Type: Api
           Properties:
-            Path: /image/{imagePath+}
+            Path: /media/{mediaPath+}
             Method: PATCH
       Environment:
         Variables:
@@ -767,7 +858,7 @@ Resources:
         Target: es2020
         Sourcemap: true
         EntryPoints:
-          - updateImageLambda.ts
+          - updateMediaLambda.ts
 
   # ---------------------------------------------------------------------------
   # API Gateway lambda to set album's thumbnail
@@ -814,7 +905,7 @@ Resources:
         Api:
           Type: Api
           Properties:
-            Path: /thumb/{imagePath+}
+            Path: /thumb/{mediaPath+}
             Method: PATCH
       Environment:
         Variables:
@@ -832,20 +923,20 @@ Resources:
           - recutThumbnailLambda.ts
 
   # ---------------------------------------------------------------------------
-  # API Gateway lambda to rename an image
+  # API Gateway lambda to rename a media item
   # ---------------------------------------------------------------------------
-  RenameImageFunction:
+  RenameMediaFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-RenameImage
+      FunctionName: !Sub ${AWS::StackName}-RenameMedia
       CodeUri: app/src/lambdas/api/
-      Handler: renameImageLambda.handler
-      Description: Rename image in DynamoDB and S3
+      Handler: renameMediaLambda.handler
+      Description: Rename media (image or video) in DynamoDB and S3
       Events:
         Api:
           Type: Api
           Properties:
-            Path: /image-rename/{imagePath+}
+            Path: /media-rename/{mediaPath+}
             Method: POST
       Environment:
         Variables:
@@ -871,7 +962,7 @@ Resources:
         Target: es2020
         Sourcemap: true
         EntryPoints:
-          - renameImageLambda.ts
+          - renameMediaLambda.ts
 
   # ---------------------------------------------------------------------------
   # API Gateway lambda to rename an album
@@ -986,20 +1077,20 @@ Resources:
           - generateUploadUrlsLambda.ts
 
   # ---------------------------------------------------------------------------
-  # API Gateway lambda to delete image
+  # API Gateway lambda to delete media
   # ---------------------------------------------------------------------------
-  DeleteImageFunction:
+  DeleteMediaFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-DeleteImage
+      FunctionName: !Sub ${AWS::StackName}-DeleteMedia
       CodeUri: app/src/lambdas/api/
-      Handler: deleteImageLambda.handler
-      Description: Delete image from DynamoDB and S3
+      Handler: deleteMediaLambda.handler
+      Description: Delete media (image or video) from DynamoDB and S3
       Events:
         Api:
           Type: Api
           Properties:
-            Path: /image/{imagePath+}
+            Path: /media/{mediaPath+}
             Method: DELETE
       Environment:
         Variables:
@@ -1025,24 +1116,67 @@ Resources:
         Target: es2020
         Sourcemap: true
         EntryPoints:
-          - deleteImageLambda.ts
+          - deleteMediaLambda.ts
 
   # ---------------------------------------------------------------------------
-  # Lambda that processes uploaded image, extracts metadata and saves to DyanmoDB
+  # Lambda that retrieves errors for a batch of paths
   # ---------------------------------------------------------------------------
-  ProcessImageUploadFunction:
+  GetErrorsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-ProcessImageUpload
-      CodeUri: app/src/lambdas/processImageUpload/
-      Handler: processImageUploadLambda.handler
-      Description: Lambda that processes images uploaded to S3, extracts metadata and saves to DyanmoDB
+      FunctionName: !Sub ${AWS::StackName}-GetErrors
+      CodeUri: app/src/lambdas/api/
+      Handler: getErrorsLambda.handler
+      Description: Retrieves errors for a batch of paths
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /errors
+            Method: POST
+      Environment:
+        Variables:
+          ERROR_TABLE: !Ref ErrorTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ErrorTable
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - getErrorsLambda.ts
+
+  # ---------------------------------------------------------------------------
+  # Lambda that processes uploaded media (images and videos)
+  # ---------------------------------------------------------------------------
+  ProcessMediaUploadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-ProcessMediaUpload
+      CodeUri: app/src/lambdas/processMediaUpload/
+      Handler: processMediaUploadLambda.handler
+      Description: Lambda that processes media uploaded to S3 - images get metadata extracted, videos get sent to MediaConvert
       MemorySize: 1024 # HEIC conversion needs ~400-600MB for 48MP photos
       Policies:
         - S3CrudPolicy: # CRUD needed to write converted JPEG and delete original HEIC
             BucketName: !Sub "${AWS::StackName}-original-images"
         - DynamoDBCrudPolicy:
             TableName: !Ref GalleryItemDDBTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ErrorTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - mediaconvert:CreateJob
+                - mediaconvert:DescribeEndpoints
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - iam:PassRole
+              Resource: !GetAtt MediaConvertRole.Arn
       Layers:
         # Sharp layer with HEIC support via libheif/libde265
         # I build this in an AWS Code Builder project: sharp-heic-lambda-layer
@@ -1059,7 +1193,11 @@ Resources:
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
-          JPEG_ORIGINAL_QUALITY: 92
+          ERROR_TABLE: !Ref ErrorTable
+          MEDIA_CONVERT_ROLE_ARN: !GetAtt MediaConvertRole.Arn
+          DERIVED_IMAGES_BUCKET: !Ref DerivedImagesBucket
+          # Use !Sub instead of !Ref to avoid circular dependency (this Lambda is triggered by OriginalImagesBucket)
+          ORIGINAL_IMAGES_BUCKET: !Sub ${AWS::StackName}-original-images
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -1067,9 +1205,66 @@ Resources:
         Target: es2020
         Sourcemap: true
         EntryPoints:
-          - processImageUploadLambda.ts
+          - processMediaUploadLambda.ts
         External:
           - sharp
+
+  # ---------------------------------------------------------------------------
+  # Lambda triggered by MediaConvert job completion events via EventBridge
+  # ---------------------------------------------------------------------------
+  VideoTranscodingCompleteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-VideoTranscodingComplete
+      CodeUri: app/src/lambdas/videoTranscodingComplete/
+      Handler: videoTranscodingCompleteLambda.handler
+      Description: Handles MediaConvert job completion - writes DynamoDB record or error
+      Events:
+        MediaConvertComplete:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.mediaconvert
+              detail-type:
+                - MediaConvert Job State Change
+              detail:
+                status:
+                  - COMPLETE
+                  - ERROR
+                  - CANCELED
+                userMetadata:
+                  source:
+                    - !Ref DerivedImagesBucket
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+          ERROR_TABLE: !Ref ErrorTable
+          ORIGINAL_IMAGES_BUCKET: !Ref OriginalImagesBucket
+          DERIVED_IMAGES_BUCKET: !Ref DerivedImagesBucket
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GalleryItemDDBTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ErrorTable
+        - S3CrudPolicy:
+            BucketName: !Ref OriginalImagesBucket
+        - S3CrudPolicy:
+            BucketName: !Ref DerivedImagesBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - mediaconvert:GetJob
+                - mediaconvert:DescribeEndpoints
+              Resource: '*'
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - videoTranscodingCompleteLambda.ts
 
 # -----------------------------------------------------------------------------
 # Outputs

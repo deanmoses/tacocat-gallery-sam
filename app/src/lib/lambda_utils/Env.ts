@@ -3,9 +3,14 @@ export function getGalleryAppDomain(): string {
     return getEnv('GALLERY_APP_DOMAIN');
 }
 
-/** Name of DynamoDB Table in which gallery items are stored */
+/** Name of DynamoDB table in which gallery items are stored */
 export function getDynamoDbTableName(): string {
     return getEnv('GALLERY_ITEM_DDB_TABLE');
+}
+
+/** Name of DynamoDB table for errors */
+export function getErrorTableName(): string {
+    return getEnv('ERROR_TABLE');
 }
 
 /** Name of S3 bucket in which to store resized image */
@@ -16,16 +21,6 @@ export function getDerivedImagesBucketName(): string {
 /**  Name of the S3 bucket containing original image */
 export function getOriginalImagesBucketName(): string {
     return getEnv('ORIGINAL_IMAGES_BUCKET');
-}
-
-/** JPEG quality of derived images */
-export function getJpegQuality(): number {
-    return getEnvAsInt('JPEG_QUALITY');
-}
-
-/** JPEG quality for HEIC conversion (higher quality for storage as an original) */
-export function getJpegOriginalQuality(): number {
-    return getEnvAsInt('JPEG_ORIGINAL_QUALITY');
 }
 
 /** Domain of Lambda URL to generate derived images */
@@ -53,8 +48,9 @@ export function getRedisSearchPassword(): string {
     return getEnv('REDIS_SEARCH_PASSWORD');
 }
 
-function getEnvAsInt(name: string): number {
-    return parseInt(getEnv(name), 10);
+/** ARN of the IAM role for MediaConvert to access S3 */
+export function getMediaConvertRoleArn(): string {
+    return getEnv('MEDIA_CONVERT_ROLE_ARN');
 }
 
 function getEnv(name: string): string {

@@ -109,6 +109,7 @@ describe('syncRedis', () => {
         albumDate: new Date(2001, 0, 1).getTime(),
         versionId: 'v1',
         dimensions: { width: 1920, height: 1080 },
+        tags: ['photo', 'image', 'picture'],
     };
 
     const mockDynamoAlbum: AlbumItem = {

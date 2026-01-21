@@ -14,4 +14,9 @@ export default defineConfig(
     {
         ignores: ['node_modules/**', '.aws-sam/**'],
     },
+    {
+        rules: {
+            'no-extra-boolean-cast': 'off',
+        },
+    },
 );

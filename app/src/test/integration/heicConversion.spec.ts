@@ -2,7 +2,7 @@ import ExifReader from 'exifreader';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
-import { findImage } from '../../lib/gallery_client/AlbumObject';
+import { findMedia } from '../../lib/gallery_client/AlbumObject';
 import { getParentFromPath, isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { cleanUpAlbum } from './helpers/albumHelpers';
 import { reallyGetNameFromPath } from './helpers/pathHelpers';
@@ -56,7 +56,7 @@ test('DynamoDB entry exists with correct path', async () => {
     const album = await getAlbumAndChildren(albumPath);
     if (!album) throw new Error('Album not found');
     const imageName = reallyGetNameFromPath(jpegImagePath);
-    const image = findImage(album, imageName);
+    const image = findMedia(album, imageName);
     if (!image) throw new Error(`Image [${imageName}] not found in album`);
     expect(image.parentPath).toBe(albumPath);
     expect(image.itemName).toBe(imageName);
@@ -66,7 +66,7 @@ test('Dimensions were preserved through conversion', async () => {
     const album = await getAlbumAndChildren(albumPath);
     if (!album) throw new Error('Album not found');
     const imageName = reallyGetNameFromPath(jpegImagePath);
-    const image = findImage(album, imageName);
+    const image = findMedia(album, imageName);
     if (!image) throw new Error(`Image [${imageName}] not found in album`);
 
     // FullMetadataHeic.heic is 4032x3024
@@ -77,7 +77,7 @@ test('XMP metadata was preserved through conversion', async () => {
     const album = await getAlbumAndChildren(albumPath);
     if (!album) throw new Error('Album not found');
     const imageName = reallyGetNameFromPath(jpegImagePath);
-    const image = findImage(album, imageName);
+    const image = findMedia(album, imageName);
     if (!image) throw new Error(`Image [${imageName}] not found in album`);
 
     // These values are from FullMetadataHeic.heic's XMP metadata
@@ -90,7 +90,7 @@ test('Image has versionId from converted JPEG', async () => {
     const album = await getAlbumAndChildren(albumPath);
     if (!album) throw new Error('Album not found');
     const imageName = reallyGetNameFromPath(jpegImagePath);
-    const image = findImage(album, imageName);
+    const image = findMedia(album, imageName);
     if (!image) throw new Error(`Image [${imageName}] not found in album`);
     expect(image.versionId).toBeDefined();
     expect(image.versionId).not.toBe('');

@@ -4,7 +4,7 @@ import { NotFoundException } from '../../lambda_utils/NotFoundException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { DynamoDBClient, ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
-import { getParentAndNameFromPath, isValidImagePath } from '../../gallery_path_utils/galleryPathUtils';
+import { getParentAndNameFromPath, isValidMediaPath } from '../../gallery_path_utils/galleryPathUtils';
 import { getItem } from '../../dynamo_utils/ddbGet';
 import { ImageItem, Size } from '../galleryTypes';
 import { ServerException } from '../../lambda_utils/ServerException';
@@ -14,11 +14,11 @@ import { ServerException } from '../../lambda_utils/ServerException';
  *
  * @crop rectangle specified in percent of image
  */
-export async function recutThumbnail(imagePath: string, cropInPct: Rectangle) {
-    console.info(`Re-cutting [${imagePath}] thumbnail]`);
+export async function recutThumbnail(mediaPath: string, cropInPct: Rectangle) {
+    console.info(`Re-cutting [${mediaPath}] thumbnail]`);
 
-    if (!isValidImagePath(imagePath)) {
-        throw new BadRequestException(`Invalid image path [${imagePath}]`);
+    if (!isValidMediaPath(mediaPath)) {
+        throw new BadRequestException(`Invalid media path [${mediaPath}]`);
     }
 
     checkPercent('x', cropInPct.x);
@@ -27,21 +27,21 @@ export async function recutThumbnail(imagePath: string, cropInPct: Rectangle) {
     checkPercent('height', cropInPct.height);
 
     // Get original image dimensions so I can convert from percent to pixels
-    const image = await getItem<ImageItem>(imagePath, ['dimensions']);
+    const image = await getItem<ImageItem>(mediaPath, ['dimensions']);
     if (!image) {
-        throw new NotFoundException(`Image not found: [${imagePath}]`);
+        throw new NotFoundException(`Image not found: [${mediaPath}]`);
     }
     if (!image.dimensions) {
-        throw new ServerException(`Image dimensions not found: [${imagePath}]`);
+        throw new ServerException(`Image dimensions not found: [${mediaPath}]`);
     }
 
     // Build DynamoDB command
-    const imagePathParts = getParentAndNameFromPath(imagePath);
+    const mediaPathParts = getParentAndNameFromPath(mediaPath);
     const ddbCommand = new UpdateCommand({
         TableName: getDynamoDbTableName(),
         Key: {
-            parentPath: imagePathParts.parent,
-            itemName: imagePathParts.name,
+            parentPath: mediaPathParts.parent,
+            itemName: mediaPathParts.name,
         },
         UpdateExpression: 'SET updatedOn = :updatedOn, thumbnail = :thumbnail',
         ExpressionAttributeValues: {
@@ -58,12 +58,12 @@ export async function recutThumbnail(imagePath: string, cropInPct: Rectangle) {
         await docClient.send(ddbCommand);
     } catch (e) {
         if (e instanceof ConditionalCheckFailedException) {
-            throw new NotFoundException(`Image not found: [${imagePath}]`);
+            throw new NotFoundException(`Image not found: [${mediaPath}]`);
         }
         throw e;
     }
 
-    console.info(`Image [${imagePath}] thumbnail re-cut]`);
+    console.info(`Image [${mediaPath}] thumbnail re-cut]`);
 }
 
 /**

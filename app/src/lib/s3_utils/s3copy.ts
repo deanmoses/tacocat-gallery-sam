@@ -2,7 +2,7 @@ import { S3Client, CopyObjectCommand } from '@aws-sdk/client-s3';
 import { getOriginalImagesBucketName } from '../lambda_utils/Env';
 import { listOriginalImages } from './s3list';
 import { fromPathToS3OriginalBucketKey, fromS3OriginalBucketKeyToPath } from './s3path';
-import { getNameFromPath, isValidAlbumPath, isValidImagePath } from '../gallery_path_utils/galleryPathUtils';
+import { getNameFromPath, isValidAlbumPath, isValidMediaPath } from '../gallery_path_utils/galleryPathUtils';
 
 /**
  * Duplicate album's images to new path in S3 originals bucket.
@@ -21,15 +21,15 @@ export async function copyOriginals(oldAlbumPath: string, newAlbumPath: string):
     const imagesToCopy: { oldImagePath: string; newImagePath: string }[] = [];
     const s3List = await listOriginalImages(oldAlbumPath);
     if (s3List.Contents) {
-        for (const oldItem of s3List?.Contents) {
+        for (const oldItem of s3List.Contents) {
             if (!oldItem.Key) throw new Error(`No S3 key for image [${oldItem}]`);
             const oldImagePath = fromS3OriginalBucketKeyToPath(oldItem.Key);
             if (isValidAlbumPath(oldImagePath)) {
                 console.info(`S3 listed album [${oldImagePath}] as an object, skipping from delete`);
                 break;
             }
-            if (!isValidImagePath(oldImagePath)) {
-                throw new Error(`S3 listed invalid image path [${oldImagePath}]`);
+            if (!isValidMediaPath(oldImagePath)) {
+                throw new Error(`S3 listed invalid media path [${oldImagePath}]`);
             }
             const imageName = getNameFromPath(oldImagePath);
             if (!imageName) throw new Error(`No image name found in path [${oldImagePath}]`);
@@ -60,25 +60,25 @@ async function cpOrig(oldImagePath: string, newImagePath: string, newVersionIds:
 }
 
 /**
- * Duplicate image from one path to another in S3 originals bucket.
- * Leaves old image intact.
+ * Duplicate media (image or video) from one path to another in S3 originals bucket.
+ * Leaves old media intact.
  *
- * @param newImagePath path of source image like /2001/12-31/image.jpg
- * @param oldImagePath path of destination image like /2001/12-31/new_name.jpg
- * @returns VersionId of new image
+ * @param oldMediaPath path of source media like /2001/12-31/image.jpg or /2001/12-31/video.mp4
+ * @param newMediaPath path of destination media like /2001/12-31/new_name.jpg
+ * @returns VersionId of new media
  */
-export async function copyOriginal(oldImagePath: string, newImagePath: string): Promise<string> {
-    console.info(`Copying original image from [${oldImagePath}] to [${newImagePath}]...`);
-    if (!isValidImagePath(oldImagePath)) throw new Error(`Cannot copy, invalid source image path [${oldImagePath}]`);
-    if (!isValidImagePath(newImagePath)) throw new Error(`Cannot copy, invalid target image path [${newImagePath}]`);
+export async function copyOriginal(oldMediaPath: string, newMediaPath: string): Promise<string> {
+    console.info(`Copying original media from [${oldMediaPath}] to [${newMediaPath}]...`);
+    if (!isValidMediaPath(oldMediaPath)) throw new Error(`Cannot copy, invalid source media path [${oldMediaPath}]`);
+    if (!isValidMediaPath(newMediaPath)) throw new Error(`Cannot copy, invalid target media path [${newMediaPath}]`);
     const copyCommand = new CopyObjectCommand({
-        CopySource: `${getOriginalImagesBucketName()}${oldImagePath}`,
+        CopySource: `${getOriginalImagesBucketName()}${oldMediaPath}`,
         Bucket: getOriginalImagesBucketName(), // Destination bucket
-        Key: fromPathToS3OriginalBucketKey(newImagePath), // Destination key
+        Key: fromPathToS3OriginalBucketKey(newMediaPath), // Destination key
     });
     const client = new S3Client({});
     const response = await client.send(copyCommand);
     if (!response.VersionId)
-        throw new Error(`No version ID returned from S3 copy from [${oldImagePath}] to [${newImagePath}]`);
+        throw new Error(`No version ID returned from S3 copy from [${oldMediaPath}] to [${newMediaPath}]`);
     return response.VersionId;
 }

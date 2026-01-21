@@ -1,5 +1,5 @@
 import { FtSearchOptions, SearchReply } from '@redis/search';
-import { AlbumItem, GalleryItem, GalleryItemType, ImageItem } from '../gallery/galleryTypes';
+import { AlbumItem, GalleryItem, GalleryItemType, ImageItem, VideoItem } from '../gallery/galleryTypes';
 import { augmentAlbumThumbnailsWithImageInfo } from '../dynamo_utils/albumThumbnailHelper';
 import { createRedisSearchClient } from './redisClientUtils';
 
@@ -31,6 +31,10 @@ async function doSearch(query: RedisSearchQuery): Promise<SearchResults> {
                 'summary',
                 '$.published',
                 '$.dimensions',
+                // Video-specific fields
+                '$.id',
+                '$.duration',
+                '$.mediaType',
             ],
         };
         const itemType = query.itemType ? ` @itemType:{${query.itemType}}` : '';
@@ -79,6 +83,10 @@ function toGalleryItem(doc: RedisResult): GalleryItem {
         case 'album':
             return toAlbumItem(doc);
         case 'image':
+            // Videos have itemType 'image' but mediaType 'video'
+            if (doc.value['$.mediaType'] === 'video') {
+                return toVideoItem(doc);
+            }
             return toImageItem(doc);
         default:
             throw new Error(`Unknown itemType: ${doc.value.itemType}`);
@@ -115,6 +123,24 @@ function toImageItem(doc: RedisResult): ImageItem {
     return item;
 }
 
+function toVideoItem(doc: RedisResult): VideoItem {
+    const v = doc.value as RedisItem;
+    const item: VideoItem = {
+        path: doc.id as string,
+        parentPath: v['$.parentPath'],
+        itemName: v['$.itemName'],
+        itemType: 'image',
+        mediaType: 'video',
+        id: v['$.id']!,
+        versionId: v['$.versionId'],
+        dimensions: JSON.parse(v['$.dimensions']),
+        duration: v['$.duration']!,
+    };
+    if (v.title) item.title = v.title;
+    if (v['$.thumbnail']) item.thumbnail = JSON.parse(v['$.thumbnail']);
+    return item;
+}
+
 type RedisResult = {
     id: string;
     value: RedisItem;
@@ -130,4 +156,8 @@ type RedisItem = {
     ['$.published']?: boolean;
     summary?: string;
     title?: string;
+    // Video-specific fields
+    ['$.id']?: string;
+    ['$.duration']?: number;
+    ['$.mediaType']?: string;
 };

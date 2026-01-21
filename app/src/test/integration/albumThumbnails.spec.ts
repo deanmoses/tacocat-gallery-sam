@@ -1,4 +1,4 @@
-import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
+import { deleteMedia } from '../../lib/gallery/deleteMedia/deleteMedia';
 import { getAlbum, getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { recutThumbnail } from '../../lib/gallery/recutThumbnail/recutThumbnail';
 import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
@@ -132,7 +132,7 @@ test('Thumb on root displaying years honors recut', async () => {
 });
 
 test('Delete image', async () => {
-    await expect(deleteImage(imagePath2)).resolves.not.toThrow();
+    await expect(deleteMedia(imagePath2)).resolves.not.toThrow();
 });
 
 test('Should no longer be thumb of parent', async () => {

@@ -14,16 +14,47 @@ export type NavInfo = {
     title?: string;
 };
 
-export type GalleryItem = AlbumItem | ImageItem;
+/** A media item is either an image or a video */
+export type MediaItem = ImageItem | VideoItem;
+
+/** A gallery item is either an album or a media item (image or video) */
+export type GalleryItem = AlbumItem | MediaItem;
+
+/** All possible attribute names across all gallery item types (for DynamoDB projections) */
+export type GalleryItemKey = keyof (AlbumItem & ImageItem & VideoItem);
 
 /** Album without children */
 export type AlbumItem = BaseGalleryRecord & {
+    itemType: 'album';
     thumbnail?: AlbumThumbnailEntry;
     summary?: string;
     published?: boolean;
 };
 
-export type ImageItem = BaseGalleryRecord & {
+export type ImageItem = BaseMediaItem;
+
+export type VideoItem = BaseMediaItem & {
+    /**
+     * Distinguishes video from image
+     * Images don't have this field until we run a migration
+     */
+    mediaType: 'video';
+    /**
+     * URL-safe ID that's globally unique across all gallery items.
+     * For locating transcoded video and poster in Derived bucket
+     */
+    id: string;
+    /** Duration in seconds */
+    duration: number;
+};
+
+/** Base type with fields common to all media items (images and videos) */
+export type BaseMediaItem = BaseGalleryRecord & {
+    /**
+     * 'image' means 'media item' (image or video).
+     * Will be renamed to 'media' in a future migration.
+     */
+    itemType: 'image';
     versionId: string;
     dimensions: Size;
     thumbnail?: ImageThumbnailCrop;
@@ -31,7 +62,7 @@ export type ImageItem = BaseGalleryRecord & {
     tags?: string[];
 };
 
-/** Base that albums and images extend */
+/** Base type with fields common to all gallery items (albums, media) */
 export type BaseGalleryRecord = {
     path?: string;
     parentPath?: string;
@@ -41,7 +72,19 @@ export type BaseGalleryRecord = {
     description?: string;
 };
 
+/**
+ * DynamoDB itemType: 'album' or 'image', where 'image' means any media item, including videos.
+ * We will run a migration in the future to rename 'image' to 'media'.
+ */
 export type GalleryItemType = 'album' | 'image';
+
+/**
+ * Distinguishes between different types of media.
+ * Currently there's two types of media: video and image.
+ * Only videos have this field; images don't have mediaType yet,
+ * because that would require a migration.
+ */
+export type MediaType = 'video';
 
 export type AlbumThumbnailEntry = {
     path: string;

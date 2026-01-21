@@ -1,6 +1,9 @@
 /**
  * One-time migration to fix image dimensions and tags in DynamoDB.
  *
+ * THIS IS NOW OBSOLETE - the codebase has evolved and this will no longer run
+ * without getting fixed up.  Keeping it for reference only.
+ *
  * Addresses two GitHub issues:
  * - #106: Images with EXIF orientations 5-8 were stored with raw pixel dimensions
  *   instead of display dimensions (width/height swapped).
@@ -31,12 +34,12 @@ import { getDynamoDbTableName, getOriginalImagesBucketName } from '../../lambda_
 import {
     getParentAndNameFromPath,
     getParentFromPath,
-    isValidImagePath,
-    toImagePath,
+    isValidMediaPath,
+    toMediaPath,
     toAlbumPath,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { AlbumItem, ImageItem, Size } from '../galleryTypes';
-import { selectMetadata } from '../../../lambdas/processImageUpload/extractImageMetadata';
+import { selectMetadata } from '../../../lambdas/processMediaUpload/extractImageMetadata';
 import { mergeTags } from '../upsertImage/upsertImage';
 
 /** Migration mode: diagnose (read-only) or fix (write corrections) */
@@ -206,13 +209,13 @@ export async function migrateDimensions(input: MigrateInput, options: MigrateOpt
                         const chunk = imagesToProcess.slice(i, i + CHUNK_SIZE);
 
                         // Track the first image in chunk for accurate resume on error
-                        const firstImageInChunk = toImagePath(chunk[0].parentPath, chunk[0].itemName);
+                        const firstImageInChunk = toMediaPath(chunk[0].parentPath, chunk[0].itemName);
                         currentImagePath = firstImageInChunk;
 
                         // Process chunk concurrently, collect results
                         const chunkResults = await Promise.all(
                             chunk.map(async (img) => {
-                                const imgPath = toImagePath(img.parentPath, img.itemName);
+                                const imgPath = toMediaPath(img.parentPath, img.itemName);
                                 return await processImage(img, imgPath, mode, docClient, s3Client);
                             }),
                         );
@@ -318,11 +321,11 @@ function validateInput(input: MigrateInput): void {
         throw new Error(`Invalid mode: ${input.mode}. Must be 'diagnose' or 'fix'.`);
     }
 
-    if (input.image !== undefined && !isValidImagePath(input.image)) {
+    if (input.image !== undefined && !isValidMediaPath(input.image)) {
         throw new Error(`Invalid image path: ${input.image}`);
     }
 
-    if (input.startFrom !== undefined && !isValidImagePath(input.startFrom)) {
+    if (input.startFrom !== undefined && !isValidMediaPath(input.startFrom)) {
         throw new Error(`Invalid startFrom path: ${input.startFrom}`);
     }
 
@@ -467,7 +470,7 @@ async function processImage(
 
         // Only report/fix if S3 has tags that DynamoDB is missing
         const ddbTagSet = new Set(ddbTags ?? []);
-        const s3HasNewTags = (s3Tags ?? []).some((tag) => !ddbTagSet.has(tag));
+        const s3HasNewTags = (s3Tags ?? []).some((tag: string) => !ddbTagSet.has(tag));
 
         if (s3HasNewTags) {
             const issue = addIssue(

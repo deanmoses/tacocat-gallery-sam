@@ -1,4 +1,4 @@
-import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
+import { deleteMedia } from '../../lib/gallery/deleteMedia/deleteMedia';
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { getDerivedImageGeneratorDomain } from '../../lib/lambda_utils/Env';
 import { assertDynamoDBItemDoesNotExist, cleanUpAlbumAndParents } from './helpers/albumHelpers';
@@ -52,7 +52,7 @@ test('Derived image should exist in S3', async () => {
 });
 
 test('Delete image should not fail', async () => {
-    await expect(deleteImage(imagePath)).resolves.not.toThrow();
+    await expect(deleteMedia(imagePath)).resolves.not.toThrow();
 });
 
 test('Derived image bucket should no longer contain image', async () => {

@@ -1,7 +1,7 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { GetCommand, QueryCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { getAlbum, getAlbumAndChildren } from './getAlbum';
-import { AlbumItem, ImageItem } from '../galleryTypes';
+import { AlbumItem, GalleryItem, ImageItem } from '../galleryTypes';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
 
@@ -367,10 +367,7 @@ describe('getAlbumAndChildren()', () => {
 });
 
 /** Find child album or image by name */
-function findChild(
-    children: (AlbumItem | ImageItem)[] | undefined,
-    childName: string,
-): (AlbumItem | ImageItem) | undefined {
+function findChild(children: GalleryItem[] | undefined, childName: string): GalleryItem | undefined {
     if (!children) throw new Error('Did not receive children');
     return children.find((child) => child.itemName === childName);
 }

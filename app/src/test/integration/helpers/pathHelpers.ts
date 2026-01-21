@@ -32,7 +32,7 @@ export function getUniqueImagePathForToday(imageNamePrefix: string = 'image-'): 
  * Same as getNameFromPath(), but throws error if there's no name.
  * Useful so that tests don't have to always be testing for the existence of the path.
  *
- * @param path album or image path of the format /2001/12-31/image.jpg, or a subset thereof
+ * @param path album or media path of the format /2001/12-31/image.jpg, or a subset thereof
  * @returns leaf name
  */
 export function reallyGetNameFromPath(path: string): string {

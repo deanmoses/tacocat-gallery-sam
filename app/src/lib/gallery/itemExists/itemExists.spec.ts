@@ -1,6 +1,6 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
-import { albumExists, imageExists, itemExists } from './itemExists';
+import { albumExists, mediaExists, itemExists } from './itemExists';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
 
@@ -83,12 +83,12 @@ describe('albumExists()', () => {
     });
 });
 
-describe('imageExists()', () => {
+describe('mediaExists()', () => {
     describe('Invalid image paths', () => {
         const invalidPaths = ['', '/', '/2000/', '/2000/12-31/', '2000/12-31/image.jpg'];
         invalidPaths.forEach((path) => {
             test(`Path should be invalid: [${path}]`, async () => {
-                await expect(imageExists(path)).rejects.toThrow(/invalid/i);
+                await expect(mediaExists(path)).rejects.toThrow(/invalid/i);
             });
         });
     });
@@ -96,21 +96,21 @@ describe('imageExists()', () => {
     test("Image doesn't exist in DynamoDB", async () => {
         // Mock out the AWS method
         mockDocClient.on(GetCommand).resolves({});
-        const result = await imageExists('/2001/12-31/image.jpg');
+        const result = await mediaExists('/2001/12-31/image.jpg');
         expect(result).toBe(false);
     });
 
     test('Image in published album should exist for guest', async () => {
         // Mock out the AWS method
         mockDocClient.on(GetCommand).resolves({ Item: { published: true } });
-        const result = await imageExists('/2001/12-31/image.jpg');
+        const result = await mediaExists('/2001/12-31/image.jpg');
         expect(result).toBe(true);
     });
 
     test('Image in unpublished album should not exist for guest', async () => {
         // Mock out the AWS method
         mockDocClient.on(GetCommand).resolves({ Item: { itemName: 'image.jpg' } });
-        const result = await imageExists('/2001/12-31/image.jpg');
+        const result = await mediaExists('/2001/12-31/image.jpg');
         expect(result).toBe(false);
     });
 
@@ -118,7 +118,7 @@ describe('imageExists()', () => {
         // Mock out the AWS method
         mockDocClient.on(GetCommand).resolves({ Item: { itemName: 'image.jpg' } });
         const includeUnpublishedAlbums = true;
-        const result = await imageExists('/2001/12-31/image.jpg', includeUnpublishedAlbums);
+        const result = await mediaExists('/2001/12-31/image.jpg', includeUnpublishedAlbums);
         expect(result).toBe(true);
     });
 });

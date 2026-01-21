@@ -1,13 +1,13 @@
-import { Album, AlbumItem, ImageItem } from '../gallery/galleryTypes';
+import { Album, AlbumItem, ImageItem, VideoItem } from '../gallery/galleryTypes';
 
 /**
- * Find image in album by the image's name
+ * Find media in album by the media's name
  *
  * @param album album object
- * @param imagePath name of image, like image.jpg
+ * @param mediaName name of media, like image.jpg or video.mp4
  */
-export function findImage(album: Album | undefined, imageName: string | undefined): ImageItem | undefined {
-    return album?.children?.find((child) => child.itemName === imageName) as ImageItem;
+export function findMedia(album: Album | undefined, mediaName: string | undefined): ImageItem | VideoItem | undefined {
+    return album?.children?.find((child) => child.itemName === mediaName) as ImageItem | VideoItem | undefined;
 }
 
 /**

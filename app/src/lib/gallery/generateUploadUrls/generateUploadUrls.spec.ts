@@ -66,8 +66,8 @@ it('Should fail if image is not in album', async () => {
     expect(mockS3Client.calls().length).toBe(0);
 });
 
-it('Should fail on no images', async () => {
-    await expect(generateUploadUrls('/2001/12-31/', [])).rejects.toThrow(/images/i);
+it('Should fail on no media', async () => {
+    await expect(generateUploadUrls('/2001/12-31/', [])).rejects.toThrow(/media/i);
     expect(mockS3Client.calls().length).toBe(0);
 });
 
@@ -93,4 +93,31 @@ it('Should succeed for HEIC', async () => {
     const url = urls['/2001/12-31/image.heic'];
     if (!url) throw new Error(`No URL for /2001/12-31/image.heic`);
     new URL(url); // Throws if invalid URL
+});
+
+describe('Video uploads', () => {
+    const videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', '3gp', 'mpg', 'mpeg'];
+
+    videoExtensions.forEach((ext) => {
+        it(`Should succeed for .${ext} video`, async () => {
+            mockDDBClient.on(GetCommand).resolves({ Item: { itemName: '12-31' } });
+            const urls = await generateUploadUrls('/2001/12-31/', [`/2001/12-31/video.${ext}`]);
+            const url = urls[`/2001/12-31/video.${ext}`];
+            if (!url) throw new Error(`No URL for /2001/12-31/video.${ext}`);
+            new URL(url); // Throws if invalid URL
+        });
+    });
+
+    it('Should succeed for mixed images and videos', async () => {
+        mockDDBClient.on(GetCommand).resolves({ Item: { itemName: '12-31' } });
+        const urls = await generateUploadUrls('/2001/12-31/', [
+            '/2001/12-31/photo.jpg',
+            '/2001/12-31/clip.mp4',
+            '/2001/12-31/movie.mov',
+        ]);
+        expect(Object.keys(urls).length).toBe(3);
+        new URL(urls['/2001/12-31/photo.jpg']);
+        new URL(urls['/2001/12-31/clip.mp4']);
+        new URL(urls['/2001/12-31/movie.mov']);
+    });
 });

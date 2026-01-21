@@ -95,10 +95,13 @@ async function getChildren(
         'thumbnail',
         'summary', // for albums
         'published', // for albums
-        'versionId', // for images
-        'title', // for images
-        'tags', // for images
-        'dimensions', // for images
+        'versionId', // for images/videos
+        'title', // for images/videos
+        'tags', // for images/videos
+        'dimensions', // for images/videos
+        'mediaType', // for videos
+        'id', // for videos (UUID)
+        'duration', // for videos
     ]);
     if (!!children) {
         // Add path to each child

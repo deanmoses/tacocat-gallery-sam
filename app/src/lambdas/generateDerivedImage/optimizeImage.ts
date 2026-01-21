@@ -1,8 +1,11 @@
 import sharp, { Metadata, Region } from 'sharp';
 import { focusCrop, Point, Rectangle, Size } from './focusCrop';
-import { getJpegQuality } from '../../lib/lambda_utils/Env';
 
-export const imageFormats = ['webp', 'jpeg', 'avif', 'gif'] as const;
+/**
+ * Supported output formats for derived images.
+ * These are Sharp method names, not file extensions.
+ */
+export const imageFormats = ['webp', 'jpeg', 'avif'] as const;
 export type ImageFormat = (typeof imageFormats)[number];
 export const isImageFormat = (value: unknown): value is ImageFormat => imageFormats.includes(value as ImageFormat);
 
@@ -31,11 +34,11 @@ export const optimizeImage = async (image: Uint8Array, params: OptimizingParams)
         return await transformImage(image, { ...params, format: 'jpeg' });
     }
 
-    // Always return gifs as gifs
+    // Return gifs as webp
     if (['gif'].includes(meta.format ?? '')) {
         // to avoid animated thumbnails, only animate if new size is larger than 200px
         const animated = (!!params.width && params.width > 200) || (!!params.height && params.height > 200);
-        return await transformImage(image, { ...params, format: 'gif', animated });
+        return await transformImage(image, { ...params, format: 'webp', animated });
     }
 
     // For source images with format `png` or an alpha channel always
@@ -89,13 +92,11 @@ const transformImage = async (image: Uint8Array, params: TransformParams) => {
 export const getQuality = (format: ImageFormat, size: Size): number => {
     const pixels = size.width * size.height;
     if (format === 'jpeg' || format === 'webp') {
-        return getJpegQuality();
+        return 85;
     } else if (format === 'avif') {
         if (pixels < 400 * 400) return 55;
         if (pixels < 800 * 800) return 45;
         return 35;
-    } else if (format === 'gif') {
-        return 95;
     }
     throw Error(`automatic quality for format ${format} not implemented`);
 };

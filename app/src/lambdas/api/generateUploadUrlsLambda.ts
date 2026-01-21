@@ -17,8 +17,8 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         ensureHttpMethod(event, HttpMethod.POST);
         await ensureAuthorizedForWrites(event);
         const albumPath = getAlbumPath(event);
-        const imagePaths: string[] = getBodyAsJson(event);
-        const uploadUrls = await generateUploadUrls(albumPath, imagePaths);
+        const mediaPaths: string[] = getBodyAsJson(event);
+        const uploadUrls = await generateUploadUrls(albumPath, mediaPaths);
         return respondHttp(event, uploadUrls);
     } catch (e) {
         return handleHttpExceptions(event, e);

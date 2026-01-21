@@ -3,14 +3,14 @@ import { getAlbum } from '../../lib/gallery/getAlbum/getAlbum';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { renameAlbum } from '../../lib/gallery/renameAlbum/renameAlbum';
 import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
-import { findImage } from '../../lib/gallery_client/AlbumObject';
+import { findMedia } from '../../lib/gallery_client/AlbumObject';
 import { getParentFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import {
     assertDynamoDBItemDoesNotExist,
     assertDynamoDBItemExists,
     cleanUpAlbum,
     getAlbumAndChildrenOrThrow,
-    getImageOrThrow,
+    getMediaOrThrow,
 } from './helpers/albumHelpers';
 import { assertIsValidAlbumPath, assertIsValidImagePath, assertIsValidYearAlbumPath } from './helpers/pathHelpers';
 import { assertOriginalImageExists, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
@@ -79,7 +79,7 @@ afterAll(async () => {
 }, 20000 /* increases Jest's timeout */);
 
 test('Get old image version ID', async () => {
-    oldImageVersionId = (await getImageOrThrow(imagePath, true /* include unpublished albums */)).versionId;
+    oldImageVersionId = (await getMediaOrThrow(imagePath, true /* include unpublished albums */)).versionId;
     if (!oldImageVersionId) throw new Error(`No version ID found for image [${imagePath}]`);
 });
 
@@ -113,7 +113,7 @@ test('Should find new album', async () => {
     if (!album?.children) throw new Error(`New album [${newAlbumPath}] has no children`);
 
     // Ensure album contains image
-    const image = findImage(album, imageName);
+    const image = findMedia(album, imageName);
     if (!image) throw new Error(`Album does not contain image [${imageName}]`);
     expect(image.itemName).toBe(imageName);
     expect(image.parentPath).toBe(newAlbumPath);

@@ -1,10 +1,10 @@
 import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
-import { deleteImage } from '../../lib/gallery/deleteImage/deleteImage';
+import { deleteMedia } from '../../lib/gallery/deleteMedia/deleteMedia';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { getLatestAlbum } from '../../lib/gallery/getLatestAlbum/getLatestAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { recutThumbnail } from '../../lib/gallery/recutThumbnail/recutThumbnail';
-import { findImage } from '../../lib/gallery_client/AlbumObject';
+import { findMedia } from '../../lib/gallery_client/AlbumObject';
 import { getParentAndNameFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { assertDynamoDBItemDoesNotExist, cleanUpAlbum } from './helpers/albumHelpers';
 import { getAlbumPathForToday, reallyGetNameFromPath } from './helpers/pathHelpers';
@@ -71,13 +71,13 @@ test('Latest album honors recut thumb', async () => {
 test.todo("Latest album's thumbnail entry should honor an image rename");
 
 test('Delete image', async () => {
-    await expect(deleteImage(imagePath)).resolves.not.toThrow();
+    await expect(deleteMedia(imagePath)).resolves.not.toThrow();
 });
 
 test('Latest album should no longer have a thumbnail', async () => {
     const album = await getAlbumAndChildren(albumPath);
     if (!album) throw 'no album';
     const imageName = reallyGetNameFromPath(imagePath);
-    const image = findImage(album, imagePath);
+    const image = findMedia(album, imageName);
     if (!!image) throw new Error(`Image [${imageName}] should not exist in album [${albumPath}]`);
 });

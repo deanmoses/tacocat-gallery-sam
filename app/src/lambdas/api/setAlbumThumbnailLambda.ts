@@ -18,9 +18,9 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         await ensureAuthorizedForWrites(event);
         const albumPath = getAlbumPath(event);
         const body = getBodyAsJson(event);
-        const imagePath = body.imagePath;
-        await setAlbumThumbnail(albumPath, imagePath);
-        return respondSuccessMessage(event, `Album [${albumPath}] thumbnail set to [${imagePath}]`);
+        const mediaPath = body.mediaPath;
+        await setAlbumThumbnail(albumPath, mediaPath);
+        return respondSuccessMessage(event, `Album [${albumPath}] thumbnail set to [${mediaPath}]`);
     } catch (e) {
         return handleHttpExceptions(event, e);
     }

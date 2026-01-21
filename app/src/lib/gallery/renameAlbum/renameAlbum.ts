@@ -12,7 +12,7 @@ import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { itemExists } from '../itemExists/itemExists';
 import { copyOriginals } from '../../s3_utils/s3copy';
-import { deleteOriginalsAndDerivatives } from '../../s3_utils/s3delete';
+import { deleteOriginalsAndDerivativesForAlbum } from '../../s3_utils/s3delete';
 import { getFullChildrenFromDynamoDB, getFullItemFromDynamoDB, getItem } from '../../dynamo_utils/ddbGet';
 import { AlbumItem, ImageItem } from '../galleryTypes';
 
@@ -50,7 +50,7 @@ export async function renameAlbum(oldAlbumPath: string, newName: string): Promis
     const newVersionIds = await copyOriginals(oldAlbumPath, newAlbumPath);
     await moveAlbumInDynamoDB(oldAlbumPath, newAlbumPath, newVersionIds); // handles renaming thumbnail on parent album
     await renameAlbumThumb(getParentFromPath(oldAlbumPath), oldAlbumPath, newAlbumPath); // rename thumb on grandparent album
-    await deleteOriginalsAndDerivatives(oldAlbumPath);
+    await deleteOriginalsAndDerivativesForAlbum(oldAlbumPath);
     console.info(`Rename Album: renamed [${oldAlbumPath}] to [${newAlbumPath}]`);
     return newAlbumPath;
 }
@@ -121,11 +121,11 @@ async function moveAlbumInDynamoDB(
     const children = await getFullChildrenFromDynamoDB(oldAlbumPath);
     if (!!children) {
         children.forEach((child) => {
-            const imagePath = newAlbumPath + child.itemName;
-            const newVersionId = newVersionIds.get(imagePath);
+            const mediaPath = newAlbumPath + child.itemName;
+            const newVersionId = newVersionIds.get(mediaPath);
             if (!newVersionId) {
-                console.error(`No new version ID found for image [${imagePath}].  VersionIDs: `, newVersionIds);
-                throw new Error(`No new version ID found for image [${imagePath}]`);
+                console.error(`No new version ID found for media [${mediaPath}].  VersionIDs: `, newVersionIds);
+                throw new Error(`No new version ID found for media [${mediaPath}]`);
             }
             const image = child as ImageItem;
             image.parentPath = newAlbumPath;
