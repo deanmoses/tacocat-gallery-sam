@@ -1,13 +1,9 @@
-import {
-    migrateDimensions,
-    MigrateInput,
-    MigrateResult,
-} from '../../../lib/gallery/migrateDimensions/migrateDimensions';
+import { migrateDimensions, MigrateInput, MigrateResult } from './migrateDimensions';
 
 /**
- * Lambda function to validate and fix image dimensions in DynamoDB.
+ * This was a one-time migration to validate and fix image dimensions in DynamoDB.
  *
- * Invoke directly from AWS Console or CLI with:
+ * Invoke this Lambda function directly from AWS Console or CLI with:
  * - { "mode": "diagnose" } - Read-only check of all images
  * - { "mode": "fix" } - Fix orientation dimension issues
  * - { "mode": "diagnose", "image": "/2024/01-15/photo.jpg" } - Check single image

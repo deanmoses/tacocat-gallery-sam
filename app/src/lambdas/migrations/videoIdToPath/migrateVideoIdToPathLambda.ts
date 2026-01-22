@@ -39,7 +39,7 @@ const getNewTranscodedKey = (path: string, versionId: string) => `i${path}/${ver
 const getNewPosterKey = (path: string, versionId: string) => `i${path}/${versionId}/video-poster`;
 
 /**
- * Migration lambda to convert video storage from UUID-based to path-based.
+ * This was a one-time migration lambda to convert video storage from UUID-based to path-based.
  *
  * Invoke from AWS Console with:
  * { "paths": ["/2024/01-15/video.mp4", "/2024/02-20/another.mov"] }

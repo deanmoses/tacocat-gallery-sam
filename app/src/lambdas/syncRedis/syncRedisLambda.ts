@@ -5,7 +5,7 @@ import {
     SyncResult,
     SyncErrorResult,
     InitResult,
-} from '../../../lib/gallery/syncRedis/syncRedis';
+} from '../../lib/gallery/syncRedis/syncRedis';
 
 /** Event shape for direct Lambda invocation */
 export interface SyncRedisEvent {

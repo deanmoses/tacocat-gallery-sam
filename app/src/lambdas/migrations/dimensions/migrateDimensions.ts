@@ -29,18 +29,18 @@ import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import ExifReader from 'exifreader';
 import { Readable } from 'stream';
-import { getChildItems } from '../../dynamo_utils/ddbGet';
-import { getDynamoDbTableName, getOriginalImagesBucketName } from '../../lambda_utils/Env';
+import { getChildItems } from '../../../lib/dynamo_utils/ddbGet';
+import { getDynamoDbTableName, getOriginalImagesBucketName } from '../../../lib/lambda_utils/Env';
 import {
     getParentAndNameFromPath,
     getParentFromPath,
     isValidMediaPath,
     toMediaPath,
     toAlbumPath,
-} from '../../gallery_path_utils/galleryPathUtils';
-import { AlbumItem, ImageItem, Size } from '../galleryTypes';
-import { selectMetadata } from '../../../lambdas/processMediaUpload/extractImageMetadata';
-import { mergeTags } from '../upsertImage/upsertImage';
+} from '../../../lib/gallery_path_utils/galleryPathUtils';
+import { AlbumItem, ImageItem, Size } from '../../../lib/gallery/galleryTypes';
+import { selectMetadata } from '../../processMediaUpload/extractImageMetadata';
+import { mergeTags } from '../../../lib/gallery/upsertImage/upsertImage';
 
 /** Migration mode: diagnose (read-only) or fix (write corrections) */
 export type MigrateMode = 'diagnose' | 'fix';
