@@ -56,7 +56,6 @@ test('convert video', () => {
         parentPath: '/2024/06-15/',
         itemName: 'vacation.mp4',
         updatedOn: '2024-06-15T10:00:00.000Z',
-        id: 'abc123-uuid',
         versionId: 'VERSION456',
         dimensions: {
             width: 1920,
@@ -72,7 +71,6 @@ test('convert video', () => {
         itemName: 'vacation.mp4',
         itemNameSearchable: 'vacation mp ',
         albumDate: new Date(2024, 5, 15).getTime(), // June 15, 2024 in local timezone
-        id: 'abc123-uuid',
         versionId: 'VERSION456',
         dimensions: {
             width: 1920,
@@ -92,7 +90,6 @@ test('convert video with zero duration', () => {
         parentPath: '/2024/06-15/',
         itemName: 'short.mp4',
         updatedOn: '2024-06-15T10:00:00.000Z',
-        id: 'xyz789-uuid',
         versionId: 'VERSION789',
         dimensions: {
             width: 640,
@@ -105,7 +102,7 @@ test('convert video with zero duration', () => {
         itemType: 'image',
         mediaType: 'video',
         duration: 0,
-        id: 'xyz789-uuid',
+        versionId: 'VERSION789',
     });
 });
 

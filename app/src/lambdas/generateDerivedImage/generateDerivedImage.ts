@@ -1,6 +1,5 @@
 import { parseUrlPath } from './parsePath';
 import { loadOriginalImage, loadVideoPoster, saveOptimizedImage } from './s3';
-import { getVideoUuid } from './ddb';
 import { optimizeImage } from './optimizeImage';
 import { hasVideoExtension } from '../../lib/gallery_path_utils/galleryPathUtils';
 
@@ -15,7 +14,7 @@ export type DerivedImageResult = {
  * Generate a derived (resized/optimized) image from an original.
  *
  * For images: loads from Originals bucket
- * For videos: looks up UUID from DynamoDB, then loads poster from Derived bucket
+ * For videos: loads poster from Derived bucket
  *
  * @param method HTTP method (GET or HEAD)
  * @param urlPath URL path like /i/2024/01-15/image.jpg/<versionId>/200
@@ -35,12 +34,8 @@ export async function generateDerivedImage(method: string, urlPath: string): Pro
 
     let original: Uint8Array | undefined;
     if (hasVideoExtension(id)) {
-        const uuid = await getVideoUuid(id);
-        if (!uuid) {
-            console.error(JSON.stringify({ event: 'video_uuid_not_found', id }));
-            return notFound;
-        }
-        original = await loadVideoPoster(uuid, versionId);
+        // id is the S3 key (e.g., "2024/01-15/video.mp4")
+        original = await loadVideoPoster(id, versionId);
     } else {
         original = await loadOriginalImage(id, versionId);
     }

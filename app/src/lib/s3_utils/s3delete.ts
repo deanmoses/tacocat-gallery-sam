@@ -1,8 +1,7 @@
 import { DeleteObjectCommand, DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { getDerivedImagesBucketName, getOriginalImagesBucketName } from '../lambda_utils/Env';
-import { fromPathToS3DerivedImagesBucketKey, fromPathToS3OriginalBucketKey, getDerivedAssetIdPrefix } from './s3path';
+import { fromPathToS3OriginalBucketKey, getDerivedAssetPrefix, getDerivedAssetVersionPrefix } from './s3path';
 import { isValidAlbumPath, isValidMediaPath } from '../gallery_path_utils/galleryPathUtils';
-import { isValidUuid } from '../uuid_utils/uuidUtils';
 
 /**
  * For an entire album, delete all the media from S3, both originals and any derived files.
@@ -10,34 +9,20 @@ import { isValidUuid } from '../uuid_utils/uuidUtils';
  * Does not touch DynamoDB.
  *
  * @param albumPath Path of album, like /2001/12-31/
- * @param mediaIds Optional list of media IDs (for deleting transcoded videos and posters) - do NOT pass this for album renames; IDs survive renames
  */
-export async function deleteOriginalsAndDerivativesForAlbum(albumPath: string, mediaIds?: string[]): Promise<void> {
-    const deletePromises: Promise<void>[] = [deleteOriginalsForAlbum(albumPath), deleteDerivedFilesForAlbum(albumPath)];
-    if (mediaIds) {
-        for (const videoId of mediaIds) {
-            deletePromises.push(deleteDerivedFilesById(videoId));
-        }
-    }
-    await Promise.allSettled(deletePromises);
+export async function deleteOriginalsAndDerivativesForAlbum(albumPath: string): Promise<void> {
+    await Promise.allSettled([deleteOriginalsForAlbum(albumPath), deleteDerivedFilesForAlbum(albumPath)]);
 }
 
 /**
  * For a single media item, delete from S3 both the original and any derived files.
  *
- * For videos, also pass the UUID to delete the transcoded video and poster.
- *
  * Does not touch DynamoDB.
  *
  * @param mediaPath Path of media, like /2001/12-31/image.jpg or /2001/12-31/video.mp4
- * @param mediaId Optional DynamoDB ID of media item (for deleting transcoded video and poster) - do NOT pass this for album renames; IDs survive renames
  */
-export async function deleteOriginalAndDerivativesForMediaItem(mediaPath: string, mediaId?: string): Promise<void> {
-    const deletePromises = [deleteOriginalMedia(mediaPath), deleteDerivedFilesByPath(mediaPath)];
-    if (mediaId) {
-        deletePromises.push(deleteDerivedFilesById(mediaId));
-    }
-    await Promise.allSettled(deletePromises);
+export async function deleteOriginalAndDerivativesForMediaItem(mediaPath: string): Promise<void> {
+    await Promise.allSettled([deleteOriginalMedia(mediaPath), deleteDerivedFilesByPath(mediaPath)]);
 }
 
 /**
@@ -69,7 +54,7 @@ async function deleteDerivedFilesForAlbum(albumPath: string): Promise<void> {
     if (!isValidAlbumPath(albumPath)) {
         throw new Error(`Cannot delete derived files; invalid album path [${albumPath}]`);
     }
-    const derivedFilesPrefix = fromPathToS3DerivedImagesBucketKey(albumPath);
+    const derivedFilesPrefix = getDerivedAssetPrefix(albumPath);
     await deleteS3Folder(getDerivedImagesBucketName(), derivedFilesPrefix);
 }
 
@@ -95,11 +80,8 @@ async function deleteOriginalMedia(mediaPath: string): Promise<void> {
 }
 
 /**
- * For a single media item, delete from S3 any derived assets, such as thumbs
- * and resized images, that have been stored by media path.
- *
- * This only deletes files stored by path; to delete files stored by ID,
- * use {@link deleteDerivedFilesById}.
+ * For a single media item, delete from S3 any derived assets, such as thumbs,
+ * resized images, transcoded videos, and video posters.
  *
  * Does not touch DynamoDB.
  *
@@ -110,27 +92,26 @@ async function deleteDerivedFilesByPath(mediaPath: string): Promise<void> {
     if (!isValidMediaPath(mediaPath)) {
         throw new Error(`Cannot delete derived files; invalid media path [${mediaPath}]`);
     }
-    const derivedFilesPath = fromPathToS3DerivedImagesBucketKey(mediaPath);
+    const derivedFilesPath = getDerivedAssetPrefix(mediaPath);
     await deleteS3Folder(getDerivedImagesBucketName(), derivedFilesPath);
 }
 
 /**
- * Delete from S3 any derived assets, such as transcoded videos and posters
- * that have been stored by media ID.
- *
- * This only deletes files stored by ID; to delete files stored by path,
- * use {@link deleteDerivedFilesByPath}.
+ * Delete a specific version's derived assets from S3.
+ * Used for cleaning up partial transcode outputs on failure.
  *
  * Does not touch DynamoDB.
  *
- * @param mediaId the gallery item's DynamoDB ID
+ * @param mediaPath the gallery item's path, like /2001/12-31/video.mp4
+ * @param versionId the S3 version ID of the original media
  */
-async function deleteDerivedFilesById(mediaId: string): Promise<void> {
-    if (!isValidUuid(mediaId)) {
-        throw new Error(`Cannot delete assets; invalid UUID [${mediaId}]`);
+export async function deleteDerivedFilesByPathAndVersion(mediaPath: string, versionId: string): Promise<void> {
+    if (!isValidMediaPath(mediaPath)) {
+        throw new Error(`Cannot delete derived files; invalid media path [${mediaPath}]`);
     }
-    console.info(`Deleting assets for ID [${mediaId}]...`);
-    await deleteS3Folder(getDerivedImagesBucketName(), getDerivedAssetIdPrefix(mediaId));
+    const prefix = getDerivedAssetVersionPrefix(mediaPath, versionId);
+    console.info(`Deleting derived files for version [${prefix}]...`);
+    await deleteS3Folder(getDerivedImagesBucketName(), prefix);
 }
 
 /**

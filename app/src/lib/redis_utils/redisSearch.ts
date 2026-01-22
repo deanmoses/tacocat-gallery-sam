@@ -32,7 +32,6 @@ async function doSearch(query: RedisSearchQuery): Promise<SearchResults> {
                 '$.published',
                 '$.dimensions',
                 // Video-specific fields
-                '$.id',
                 '$.duration',
                 '$.mediaType',
             ],
@@ -131,7 +130,6 @@ function toVideoItem(doc: RedisResult): VideoItem {
         itemName: v['$.itemName'],
         itemType: 'image',
         mediaType: 'video',
-        id: v['$.id']!,
         versionId: v['$.versionId'],
         dimensions: JSON.parse(v['$.dimensions']),
         duration: v['$.duration']!,
@@ -157,7 +155,6 @@ type RedisItem = {
     summary?: string;
     title?: string;
     // Video-specific fields
-    ['$.id']?: string;
     ['$.duration']?: number;
     ['$.mediaType']?: string;
 };

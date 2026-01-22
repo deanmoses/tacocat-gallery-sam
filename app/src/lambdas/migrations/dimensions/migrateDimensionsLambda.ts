@@ -1,4 +1,8 @@
-import { migrateDimensions, MigrateInput, MigrateResult } from '../../lib/gallery/migrateDimensions/migrateDimensions';
+import {
+    migrateDimensions,
+    MigrateInput,
+    MigrateResult,
+} from '../../../lib/gallery/migrateDimensions/migrateDimensions';
 
 /**
  * Lambda function to validate and fix image dimensions in DynamoDB.

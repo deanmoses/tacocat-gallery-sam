@@ -1,12 +1,12 @@
-import { S3Client, CopyObjectCommand } from '@aws-sdk/client-s3';
-import { getOriginalImagesBucketName } from '../lambda_utils/Env';
+import { S3Client, CopyObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { getOriginalImagesBucketName, getDerivedImagesBucketName } from '../lambda_utils/Env';
 import { listOriginalImages } from './s3list';
-import { fromPathToS3OriginalBucketKey, fromS3OriginalBucketKeyToPath } from './s3path';
+import { fromPathToS3OriginalBucketKey, fromS3OriginalBucketKeyToPath, getDerivedAssetVersionPrefix } from './s3path';
 import { getNameFromPath, isValidAlbumPath, isValidMediaPath } from '../gallery_path_utils/galleryPathUtils';
 
 /**
- * Duplicate album's images to new path in S3 originals bucket.
- * Leaves old images intact.
+ * For an entire album, copy its media to new path in S3 originals bucket.
+ * Leaves old media intact.
  *
  * @param oldAlbumPath Path of source album like /2001/12-31/
  * @param newAlbumPath Path of destination album like /2001/12-29/
@@ -60,7 +60,7 @@ async function cpOrig(oldImagePath: string, newImagePath: string, newVersionIds:
 }
 
 /**
- * Duplicate media (image or video) from one path to another in S3 originals bucket.
+ * For a single media item (image or video) copy it from one path to another in S3 originals bucket.
  * Leaves old media intact.
  *
  * @param oldMediaPath path of source media like /2001/12-31/image.jpg or /2001/12-31/video.mp4
@@ -81,4 +81,59 @@ export async function copyOriginal(oldMediaPath: string, newMediaPath: string): 
     if (!response.VersionId)
         throw new Error(`No version ID returned from S3 copy from [${oldMediaPath}] to [${newMediaPath}]`);
     return response.VersionId;
+}
+
+/**
+ * For a single media item, copy all derived assets (thumbnails, video transcode,
+ * poster) from old path to new path.
+ *
+ * Used when renaming media to preserve cached derived images.
+ *
+ * @param oldPath Gallery path of source media like /2001/12-31/image.jpg
+ * @param newPath Gallery path of destination media like /2001/12-31/new_name.jpg
+ * @param oldVersionId S3 version ID of the old media
+ * @param newVersionId S3 version ID of the new media
+ */
+export async function copyDerivedAssets(
+    oldPath: string,
+    newPath: string,
+    oldVersionId: string,
+    newVersionId: string,
+): Promise<void> {
+    const derivedBucket = getDerivedImagesBucketName();
+    const oldPrefix = getDerivedAssetVersionPrefix(oldPath, oldVersionId);
+    const newPrefix = getDerivedAssetVersionPrefix(newPath, newVersionId);
+
+    // List all objects with the old prefix
+    const client = new S3Client({});
+    const listResponse = await client.send(
+        new ListObjectsV2Command({
+            Bucket: derivedBucket,
+            Prefix: oldPrefix,
+        }),
+    );
+
+    const objects = listResponse.Contents || [];
+    if (objects.length === 0) {
+        console.info(JSON.stringify({ event: 'no_derived_assets_to_copy', oldPrefix }));
+        return;
+    }
+
+    // Copy each object to the new prefix
+    // Note: Object count is bounded (videos: 2 files, images: ~5 cached sizes max)
+    await Promise.all(
+        objects.map(async (obj) => {
+            if (!obj.Key) return;
+            const newKey = obj.Key.replace(oldPrefix, newPrefix);
+            await client.send(
+                new CopyObjectCommand({
+                    Bucket: derivedBucket,
+                    CopySource: `${derivedBucket}/${obj.Key}`,
+                    Key: newKey,
+                }),
+            );
+        }),
+    );
+
+    console.info(JSON.stringify({ event: 'derived_assets_copied', count: objects.length, oldPrefix, newPrefix }));
 }

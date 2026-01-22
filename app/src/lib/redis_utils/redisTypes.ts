@@ -29,8 +29,6 @@ export type RedisVideoItem = RedisBaseGalleryRecord & {
     itemNameSearchable?: string;
     /** Distinguishes videos from images (both have itemType 'image') */
     mediaType: 'video';
-    /** UUID for locating transcoded video and poster in Derived bucket */
-    id: string;
     versionId: string;
     dimensions: Size;
     duration: number;

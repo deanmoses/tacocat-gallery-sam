@@ -47,7 +47,6 @@ function toRedisImage(awsImageItem: ImageItem): RedisImageItem {
 
 function toRedisVideo(awsVideoItem: VideoItem): RedisVideoItem {
     const path = toPath(awsVideoItem);
-    if (!awsVideoItem.id) throw new Error(`Missing id for ${path}`);
     if (!awsVideoItem.versionId) throw new Error(`Missing versionId for ${path}`);
     if (!awsVideoItem.dimensions) throw new Error(`Missing dimensions for ${path}`);
     if (awsVideoItem.duration == null) throw new Error(`Missing duration for ${path}`);
@@ -58,7 +57,6 @@ function toRedisVideo(awsVideoItem: VideoItem): RedisVideoItem {
         itemType: getItemType(awsVideoItem.itemType),
         mediaType: 'video',
         albumDate: toTimestampFromPath(path),
-        id: awsVideoItem.id,
         versionId: awsVideoItem.versionId,
         dimensions: awsVideoItem.dimensions,
         duration: awsVideoItem.duration,

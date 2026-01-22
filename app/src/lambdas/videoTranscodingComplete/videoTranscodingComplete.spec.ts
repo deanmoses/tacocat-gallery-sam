@@ -15,7 +15,10 @@ const mockDocClient = mockClient(DynamoDBDocumentClient);
 const mockS3Client = mockClient(S3Client);
 const mockMediaConvert = mockClient(MediaConvertClient);
 
-const VALID_UUID = '550e8400-e29b-41d4-a716-446655440000';
+// Path-based storage: i/<path>/<versionId>/
+const VIDEO_PATH = '/2024/06-15/video.mp4';
+const VERSION_ID = 'version123';
+const BASE_PREFIX = `i${VIDEO_PATH}/${VERSION_ID}`;
 
 beforeEach(() => {
     process.env.GALLERY_ITEM_DDB_TABLE = 'test-gallery-table';
@@ -36,19 +39,19 @@ beforeEach(() => {
     mockS3Client.on(CopyObjectCommand).resolves({});
 
     // Default HeadObjectCommand behavior:
-    // - Destination files (d/<UUID>/<versionId>/video/transcoded, d/<UUID>/<versionId>/video/poster) don't exist
+    // - Destination files (video-transcoded, video-poster) don't exist
     // - Source files have correct content types for content type verification
     mockS3Client
-        .on(HeadObjectCommand, { Key: `d/${VALID_UUID}/version123/video/transcoded` })
+        .on(HeadObjectCommand, { Key: `${BASE_PREFIX}/video-transcoded` })
         .rejects(new NotFound({ $metadata: {}, message: 'Not Found' }));
     mockS3Client
-        .on(HeadObjectCommand, { Key: `d/${VALID_UUID}/version123/video/poster` })
+        .on(HeadObjectCommand, { Key: `${BASE_PREFIX}/video-poster` })
         .rejects(new NotFound({ $metadata: {}, message: 'Not Found' }));
     mockS3Client
-        .on(HeadObjectCommand, { Key: `d/${VALID_UUID}/version123/video_transcoded.mp4` })
+        .on(HeadObjectCommand, { Key: `${BASE_PREFIX}/video_transcoded.mp4` })
         .resolves({ ContentType: 'video/mp4' });
     mockS3Client
-        .on(HeadObjectCommand, { Key: `d/${VALID_UUID}/version123/video_poster.0000000.jpg` })
+        .on(HeadObjectCommand, { Key: `${BASE_PREFIX}/video_poster.0000000.jpg` })
         .resolves({ ContentType: 'image/jpeg' });
 
     mockMediaConvert.on(DescribeEndpointsCommand).resolves({
@@ -71,9 +74,9 @@ function createCompleteEvent(
             status: 'COMPLETE',
             jobId: 'test-job-id',
             userMetadata: {
-                path: '/2024/06-15/video.mp4',
-                versionId: 'version123',
-                id: VALID_UUID,
+                path: VIDEO_PATH,
+                versionId: VERSION_ID,
+                // No id field - path-based storage
             },
             ...overrides,
         },
@@ -117,8 +120,9 @@ describe('handleVideoTranscodingComplete()', () => {
             expect(input?.Key?.itemName).toBe('video.mp4');
             expect(input?.ExpressionAttributeValues?.[':itemType']).toBe('image'); // itemType is 'image' for all media
             expect(input?.ExpressionAttributeValues?.[':mediaType']).toBe('video'); // mediaType distinguishes videos from images
-            expect(input?.ExpressionAttributeValues?.[':id']).toBe(VALID_UUID);
-            expect(input?.ExpressionAttributeValues?.[':versionId']).toBe('version123');
+            // No :id field - path-based storage
+            expect(input?.ExpressionAttributeValues?.[':id']).toBeUndefined();
+            expect(input?.ExpressionAttributeValues?.[':versionId']).toBe(VERSION_ID);
             expect(input?.ExpressionAttributeValues?.[':dimensions']).toEqual({ width: 1920, height: 1080 });
             expect(input?.ExpressionAttributeValues?.[':duration']).toBe(120);
         });
@@ -205,7 +209,7 @@ describe('handleVideoTranscodingComplete()', () => {
             expect(errorPut).toBeDefined();
 
             const item = errorPut?.args[0].input.Item;
-            expect(item?.path).toBe('/2024/06-15/video.mp4');
+            expect(item?.path).toBe(VIDEO_PATH);
             expect(item?.errorType).toBe('media_processing');
             expect(item?.errorMessage).toBe('Unsupported codec');
             expect(item?.ttl).toBeDefined();
@@ -223,14 +227,14 @@ describe('handleVideoTranscodingComplete()', () => {
             const originalDelete = deleteCalls.find((call) => call.args[0].input.Bucket === 'test-original-bucket');
             expect(originalDelete).toBeDefined();
             expect(originalDelete?.args[0].input.Key).toBe('2024/06-15/video.mp4');
-            expect(originalDelete?.args[0].input.VersionId).toBe('version123'); // Uses specific version
+            expect(originalDelete?.args[0].input.VersionId).toBe(VERSION_ID); // Uses specific version
         });
 
         test('Deletes partial outputs from derived bucket', async () => {
             mockS3Client.on(ListObjectsV2Command).resolves({
                 Contents: [
-                    { Key: `d/${VALID_UUID}/version123/video_transcoded.mp4` },
-                    { Key: `d/${VALID_UUID}/version123/video_poster.0000000.jpg` },
+                    { Key: `${BASE_PREFIX}/video_transcoded.mp4` },
+                    { Key: `${BASE_PREFIX}/video_poster.0000000.jpg` },
                 ],
             });
 
@@ -243,7 +247,7 @@ describe('handleVideoTranscodingComplete()', () => {
 
             const listCalls = mockS3Client.commandCalls(ListObjectsV2Command);
             const derivedListCall = listCalls.find((call) => call.args[0].input.Bucket === 'test-derived-bucket');
-            expect(derivedListCall?.args[0].input.Prefix).toBe(`d/${VALID_UUID}/version123/`);
+            expect(derivedListCall?.args[0].input.Prefix).toBe(`${BASE_PREFIX}/`);
 
             const deleteCalls = mockS3Client.commandCalls(DeleteObjectCommand);
             const derivedDeletes = deleteCalls.filter((call) => call.args[0].input.Bucket === 'test-derived-bucket');
@@ -282,7 +286,7 @@ describe('handleVideoTranscodingComplete()', () => {
 
         test('Handles partial userMetadata gracefully', async () => {
             const event = createCompleteEvent();
-            event.detail.userMetadata = { path: '/2024/06-15/video.mp4' }; // missing versionId and id
+            event.detail.userMetadata = { path: VIDEO_PATH }; // missing versionId
 
             // Should not throw
             await handleVideoTranscodingComplete(event);
@@ -291,25 +295,13 @@ describe('handleVideoTranscodingComplete()', () => {
             const putCalls = mockDocClient.commandCalls(PutCommand);
             expect(putCalls.length).toBe(0);
         });
-
-        test('Throws on invalid UUID format', async () => {
-            const event = createCompleteEvent({
-                userMetadata: {
-                    path: '/2024/06-15/video.mp4',
-                    versionId: 'version123',
-                    id: 'not-a-valid-uuid',
-                },
-            });
-
-            await expect(handleVideoTranscodingComplete(event)).rejects.toThrow(/invalid uuid/i);
-        });
     });
 
     describe('Content type verification', () => {
         test('Treats wrong video content type as failure', async () => {
             // Override to return wrong content type for video
             mockS3Client
-                .on(HeadObjectCommand, { Key: `d/${VALID_UUID}/version123/video_transcoded.mp4` })
+                .on(HeadObjectCommand, { Key: `${BASE_PREFIX}/video_transcoded.mp4` })
                 .resolves({ ContentType: 'application/octet-stream' });
 
             await handleVideoTranscodingComplete(createCompleteEvent());
@@ -332,7 +324,7 @@ describe('handleVideoTranscodingComplete()', () => {
         test('Treats wrong poster content type as failure', async () => {
             // Override to return wrong content type for poster
             mockS3Client
-                .on(HeadObjectCommand, { Key: `d/${VALID_UUID}/version123/video_poster.0000000.jpg` })
+                .on(HeadObjectCommand, { Key: `${BASE_PREFIX}/video_poster.0000000.jpg` })
                 .resolves({ ContentType: 'application/octet-stream' });
 
             await handleVideoTranscodingComplete(createCompleteEvent());
@@ -348,7 +340,7 @@ describe('handleVideoTranscodingComplete()', () => {
         test('Treats missing source video as failure', async () => {
             // Override to return NotFound for video source
             mockS3Client
-                .on(HeadObjectCommand, { Key: `d/${VALID_UUID}/version123/video_transcoded.mp4` })
+                .on(HeadObjectCommand, { Key: `${BASE_PREFIX}/video_transcoded.mp4` })
                 .rejects(new NotFound({ $metadata: {}, message: 'Not Found' }));
 
             await handleVideoTranscodingComplete(createCompleteEvent());
@@ -363,14 +355,14 @@ describe('handleVideoTranscodingComplete()', () => {
         test('Deletes partial outputs on content type failure', async () => {
             mockS3Client.on(ListObjectsV2Command).resolves({
                 Contents: [
-                    { Key: `d/${VALID_UUID}/version123/video_transcoded.mp4` },
-                    { Key: `d/${VALID_UUID}/version123/video_poster.0000000.jpg` },
+                    { Key: `${BASE_PREFIX}/video_transcoded.mp4` },
+                    { Key: `${BASE_PREFIX}/video_poster.0000000.jpg` },
                 ],
             });
 
             // Wrong content type triggers failure
             mockS3Client
-                .on(HeadObjectCommand, { Key: `d/${VALID_UUID}/version123/video_transcoded.mp4` })
+                .on(HeadObjectCommand, { Key: `${BASE_PREFIX}/video_transcoded.mp4` })
                 .resolves({ ContentType: 'text/plain' });
 
             await handleVideoTranscodingComplete(createCompleteEvent());
@@ -384,7 +376,7 @@ describe('handleVideoTranscodingComplete()', () => {
         test('Reverts original file on content type failure', async () => {
             // Wrong content type triggers failure
             mockS3Client
-                .on(HeadObjectCommand, { Key: `d/${VALID_UUID}/version123/video_transcoded.mp4` })
+                .on(HeadObjectCommand, { Key: `${BASE_PREFIX}/video_transcoded.mp4` })
                 .resolves({ ContentType: 'text/plain' });
 
             await handleVideoTranscodingComplete(createCompleteEvent());
@@ -394,7 +386,7 @@ describe('handleVideoTranscodingComplete()', () => {
             const originalDelete = deleteCalls.find((call) => call.args[0].input.Bucket === 'test-original-bucket');
             expect(originalDelete).toBeDefined();
             expect(originalDelete?.args[0].input.Key).toBe('2024/06-15/video.mp4');
-            expect(originalDelete?.args[0].input.VersionId).toBe('version123');
+            expect(originalDelete?.args[0].input.VersionId).toBe(VERSION_ID);
         });
     });
 });

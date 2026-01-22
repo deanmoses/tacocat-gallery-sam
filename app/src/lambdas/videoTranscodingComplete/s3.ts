@@ -9,11 +9,7 @@ import {
 import { getNameFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { getDerivedImagesBucketName } from '../../lib/lambda_utils/Env';
 import { objectExists } from '../../lib/s3_utils/s3exists';
-import {
-    getDerivedAssetIdVersionPrefix,
-    getTranscodedVideoS3Key,
-    getVideoPosterS3Key,
-} from '../../lib/s3_utils/s3path';
+import { getDerivedAssetVersionPrefix, getTranscodedVideoS3Key, getVideoPosterS3Key } from '../../lib/s3_utils/s3path';
 
 const s3Client = new S3Client({});
 
@@ -49,7 +45,7 @@ export type RenameResult = { success: true } | { success: false; error: string }
 /**
  * Rename MediaConvert outputs from original filename to clean names.
  * MediaConvert outputs: <filename>_transcoded.mp4 and <filename>_poster.0000000.jpg
- * We rename to: 'transcoded' and 'poster'
+ * We rename to: 'video-transcoded' and 'video-poster'
  *
  * We rename without extensions because it makes them easier for the rest of the
  * system to find without needing to know their file formats.  This enables us to
@@ -63,11 +59,7 @@ export type RenameResult = { success: true } | { success: false; error: string }
  *
  * @returns RenameResult indicating success or failure with error message
  */
-export async function renameMediaConvertOutputs(
-    videoPath: string,
-    videoId: string,
-    versionId: string,
-): Promise<RenameResult> {
+export async function renameMediaConvertOutputs(videoPath: string, versionId: string): Promise<RenameResult> {
     const derivedBucket = getDerivedImagesBucketName();
 
     // Extract original filename without extension from path
@@ -78,16 +70,16 @@ export async function renameMediaConvertOutputs(
     }
     const filenameWithoutExt = filename.replace(/\.[^.]+$/, '');
 
-    // Base path for this video version
-    const basePath = getDerivedAssetIdVersionPrefix(videoId, versionId);
+    // Base path for this video version: i/<path>/<versionId>/
+    const basePath = getDerivedAssetVersionPrefix(videoPath, versionId);
 
-    // Rename transcoded video: <filename>_transcoded.mp4 -> transcoded
+    // Rename transcoded video: <filename>_transcoded.mp4 -> video-transcoded
     const videoSourceKey = `${basePath}${filenameWithoutExt}_transcoded.mp4`;
-    const videoDestKey = getTranscodedVideoS3Key(videoId, versionId);
+    const videoDestKey = getTranscodedVideoS3Key(videoPath, versionId);
 
-    // Rename poster: <filename>_poster.0000000.jpg -> poster
+    // Rename poster: <filename>_poster.0000000.jpg -> video-poster
     const posterSourceKey = `${basePath}${filenameWithoutExt}_poster.0000000.jpg`;
-    const posterDestKey = getVideoPosterS3Key(videoId, versionId);
+    const posterDestKey = getVideoPosterS3Key(videoPath, versionId);
 
     // Check if already renamed (idempotent for Lambda retries)
     const videoAlreadyRenamed = await objectExists(derivedBucket, videoDestKey);
@@ -177,24 +169,24 @@ export async function renameMediaConvertOutputs(
 
         return { success: true };
     } catch (error) {
-        console.error(JSON.stringify({ event: 'transcoding_rename_failed', videoPath, videoId, error: String(error) }));
+        console.error(JSON.stringify({ event: 'transcoding_rename_failed', videoPath, error: String(error) }));
         throw error; // Re-throw to fail the Lambda and trigger retry
     }
 }
 
 /**
  * Delete partial MediaConvert outputs from derived bucket.
- * Deletes all files under d/<id>/<versionId>/ on transcoding failure.
+ * Deletes all files under i/<path>/<versionId>/ on transcoding failure.
  */
-export async function deletePartialOutputs(videoId: string, versionId: string): Promise<void> {
+export async function deletePartialOutputs(videoPath: string, versionId: string): Promise<void> {
     const derivedBucket = getDerivedImagesBucketName();
 
     // Prefix matches all files in this version's directory, including both
     // MediaConvert outputs and renamed outputs
-    const prefix = getDerivedAssetIdVersionPrefix(videoId, versionId);
+    const prefix = getDerivedAssetVersionPrefix(videoPath, versionId);
 
     try {
-        // List all objects with the filename prefix
+        // List all objects with the prefix
         const listResponse = await s3Client.send(
             new ListObjectsV2Command({
                 Bucket: derivedBucket,
