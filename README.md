@@ -102,10 +102,10 @@ When a PR is merged into `main`, the CI/CD system (GitHub Actions) automatically
 2. On GitHub, go to [_Actions_ > _Deploy to Production_](https://github.com/deanmoses/tacocat-gallery-sam/actions/workflows/deploy-prod.yml)
 3. Click "Run workflow" and select the `main` branch
 4. The workflow:
-   1. Runs tests
-   2. Deploys to prod (the `tacocat-gallery-sam-prod` AWS stack)
-      1. The live web app <https://pix.tacocat.com/> is attached to the prod stack
-   3. Creates a GitHub release (like 2027v2) with auto-generated release notes
+    1. Runs tests
+    2. Deploys to prod (the `tacocat-gallery-sam-prod` AWS stack)
+        1. The live web app <https://pix.tacocat.com/> is attached to the prod stack
+    3. Creates a GitHub release (like 2027v2) with auto-generated release notes
 
 ## Working with remote logs
 

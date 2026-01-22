@@ -4,7 +4,7 @@ import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { Readable } from 'stream';
 import { sdkStreamMixin } from '@smithy/util-stream';
 import { migrateDimensions } from './migrateDimensions';
-import { ImageItem, AlbumItem } from '../galleryTypes';
+import { ImageItem, AlbumItem } from '../../../lib/gallery/galleryTypes';
 import * as fs from 'fs';
 import * as path from 'path';
 

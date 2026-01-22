@@ -533,7 +533,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${AWS::StackName}-SyncRedis
-      CodeUri: app/src/lambdas/migrations/syncRedis/
+      CodeUri: app/src/lambdas/syncRedis/
       Handler: syncRedisLambda.handler
       Description: Sync DynamoDB to Redis (diagnose or fix discrepancies)
       Timeout: 900 # 15 minutes
@@ -554,40 +554,6 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - syncRedisLambda.ts
-
-  # ---------------------------------------------------------------------------
-  # Lambda to migrate video storage from UUID-based to path-based (one-time migration)
-  # ---------------------------------------------------------------------------
-  VideoIdToPathMigrationFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: !Sub ${AWS::StackName}-VideoIdToPathMigration
-      CodeUri: app/src/lambdas/migrations/videoIdToPath/
-      Handler: videoIdToPathLambda.handler
-      Description: Migrate video storage from UUID-based to path-based (one-time migration)
-      Timeout: 900 # 15 minutes
-      MemorySize: 512
-      Environment:
-        Variables:
-          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
-          DERIVED_IMAGES_BUCKET: !Ref DerivedImagesBucket
-      Policies:
-        - S3CrudPolicy:
-            BucketName: !Ref DerivedImagesBucket
-        - Statement:
-            - Effect: Allow
-              Action:
-                - dynamodb:BatchGetItem
-                - dynamodb:UpdateItem
-              Resource: !GetAtt GalleryItemDDBTable.Arn
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: es2020
-        Sourcemap: true
-        EntryPoints:
-          - videoIdToPathLambda.ts
 
   # ---------------------------------------------------------------------------
   # API Gateway lambda to search for albums and images

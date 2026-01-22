@@ -166,8 +166,8 @@ All API calls from the front end go through the AWS API Gateway.
 
 - **Authentication:** AWS Cognito User Pool; ID tokens delivered via HTTP-only cookies.
 - **Authorization:**
-  - _Read operations:_ Token existence check only (fast path for public content)
-  - _Write operations:_ Full JWT validation required
+    - _Read operations:_ Token existence check only (fast path for public content)
+    - _Write operations:_ Full JWT validation required
 - **CORS:** Enabled for gallery app domain with credentials support.
 
 ## Compute (AWS Lambda)
@@ -222,11 +222,11 @@ All media files are delivered to browsers via the AWS CloudFront CDN.
 
 **URL routing:**
 
-| Route   | Purpose         | Original URL                                       | S3 Key                               |
-| ------- | --------------- | -------------------------------------------------- | ------------------------------------ |
-| `/i/*`  | Derived images  | `/i/2024/06-15/photo.jpg?version=abc&size=200x200` | `i/2024/06-15/photo.jpg/abc/200x200` |
+| Route   | Purpose         | Original URL                                       | S3 Key                                        |
+| ------- | --------------- | -------------------------------------------------- | --------------------------------------------- |
+| `/i/*`  | Derived images  | `/i/2024/06-15/photo.jpg?version=abc&size=200x200` | `i/2024/06-15/photo.jpg/abc/200x200`          |
 | `/v/*`  | Video playback  | `/v/2024/06-15/video.mp4?version=abc`              | `i/2024/06-15/video.mp4/abc/video-transcoded` |
-| Default | Original images | `/2024/06-15/photo.jpg`                            | `2024/06-15/photo.jpg`               |
+| Default | Original images | `/2024/06-15/photo.jpg`                            | `2024/06-15/photo.jpg`                        |
 
 ### CloudFront Functions
 
@@ -258,15 +258,15 @@ Thumbnails and detail page images are generated **on-demand** the first time the
 3. **CloudFront checks cache** - if asset is already cached in CDN, return it immediately. Done!
 4. **CloudFront tries Derived bucket first** - if file exists, return it and cache in CDN. Done!
 5. **If not found**
-   1. **CloudFront fails over to Lambda** -
-      1. If the image is not in the Derived bucket, the bucket returns either a 404 (not found) or 403 (access denied, which S3 returns for non-existent keys).
-      2. CloudFront Origin Groups allow specifying a failover origin. CloudFront automatically retries the request against a Lambda Function URL pointing at the Derived Image Generation lambda.
-   2. **The Derived Image Generation Lambda generates the thumbnail:**
-      1. Fetches original from Originals bucket (or poster for videos)
-      2. Resizes using Sharp
-      3. Writes result to Derived bucket for future requests
-      4. If the image is under 5MB, it returns the image directly
-         1. **CloudFront caches the response** - subsequent requests served from cache. Done!
-      5. If the image is over 5MB, it returns a 503 Service Unavailable with retry-after: 1 header
+    1. **CloudFront fails over to Lambda** -
+        1. If the image is not in the Derived bucket, the bucket returns either a 404 (not found) or 403 (access denied, which S3 returns for non-existent keys).
+        2. CloudFront Origin Groups allow specifying a failover origin. CloudFront automatically retries the request against a Lambda Function URL pointing at the Derived Image Generation lambda.
+    2. **The Derived Image Generation Lambda generates the thumbnail:**
+        1. Fetches original from Originals bucket (or poster for videos)
+        2. Resizes using Sharp
+        3. Writes result to Derived bucket for future requests
+        4. If the image is under 5MB, it returns the image directly
+            1. **CloudFront caches the response** - subsequent requests served from cache. Done!
+        5. If the image is over 5MB, it returns a 503 Service Unavailable with retry-after: 1 header
 
 This "lazy generation" approach means thumbnails are only created when actually needed, and the Lambda is only invoked once per unique thumbnail.

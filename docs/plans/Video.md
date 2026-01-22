@@ -68,24 +68,24 @@ Derived Bucket:
 2. Browser uploads `my_video.avi` to Originals bucket using a presigned URL (same as images).
 
 3. A S3 trigger triggers the `ProcessMediaUpload` Lambda
-   - Detects video extension
-   - Validates upload rules (see below)
-   - Starts an AWS MediaConvert job, passing:
-     - JPG quality setting
-     - The original video's path and versionId via `userMetadata`
+    - Detects video extension
+    - Validates upload rules (see below)
+    - Starts an AWS MediaConvert job, passing:
+        - JPG quality setting
+        - The original video's path and versionId via `userMetadata`
 
 4. AWS MediaConvert (may take minutes)
-   - Transcodes to H.264 MP4 with faststart flag
-   - Extracts poster frame as JPG
-   - Writes outputs to Derived bucket:
-     - `i/<path>/<versionId>/video-transcoded`
-     - `i/<path>/<versionId>/video-poster`
+    - Transcodes to H.264 MP4 with faststart flag
+    - Extracts poster frame as JPG
+    - Writes outputs to Derived bucket:
+        - `i/<path>/<versionId>/video-transcoded`
+        - `i/<path>/<versionId>/video-poster`
 
 5. MediaConvert sends an EventBridge event containing the `userMetadata` containing the original video's path and versionId.
 
 6. This triggers the `VideoTranscodingComplete` lambda, which:
-   - If the EventBridge event status (`ERROR`, `CANCELED`), see 'On Failure' below.
-   - Else write DynamoDB record with `mediaType: 'video'`, `duration`, `path`, `versionId` etc.
+    - If the EventBridge event status (`ERROR`, `CANCELED`), see 'On Failure' below.
+    - Else write DynamoDB record with `mediaType: 'video'`, `duration`, `path`, `versionId` etc.
 
 7. Frontend polling sees the video appear in album
 
@@ -94,11 +94,11 @@ Derived Bucket:
 On failure of any step in the processing:
 
 - Write to the error table
-  - Write error to the `Error` DynamoDB table (see below) with `errorType: 'media_processing'`
-  - The Sveltekit front end polling checks error table, shows failure message
+    - Write error to the `Error` DynamoDB table (see below) with `errorType: 'media_processing'`
+    - The Sveltekit front end polling checks error table, shows failure message
 - Clean up
-  - Delete the original video from Originals bucket
-  - Delete any partial outputs by prefix `i/<path>/<versionId>/` from Derived bucket
+    - Delete the original video from Originals bucket
+    - Delete any partial outputs by prefix `i/<path>/<versionId>/` from Derived bucket
 
 ## Upload Rules
 
@@ -119,19 +119,19 @@ Video records are stored in the same DynamoDB `items` table as images and albums
 
 ```typescript
 interface VideoRecord {
-  parentPath: string; // partition key: /2024/06-15/
-  itemName: string; // sort key: video.avi
-  itemType: "image"; // 'image' now means "media item", either a still image or video
-  mediaType: "video"; // distinguishes from still images
-  path: string; // /2024/06-15/video.avi
-  versionId: string;
-  dimensions: { width: number; height: number };
-  duration: number; // seconds
-  updatedOn: string;
-  title?: string;
-  description?: string;
-  tags?: string[];
-  thumbnail?: Rectangle; // crop coords for poster
+    parentPath: string; // partition key: /2024/06-15/
+    itemName: string; // sort key: video.avi
+    itemType: 'image'; // 'image' now means "media item", either a still image or video
+    mediaType: 'video'; // distinguishes from still images
+    path: string; // /2024/06-15/video.avi
+    versionId: string;
+    dimensions: { width: number; height: number };
+    duration: number; // seconds
+    updatedOn: string;
+    title?: string;
+    description?: string;
+    tags?: string[];
+    thumbnail?: Rectangle; // crop coords for poster
 }
 ```
 
@@ -151,15 +151,15 @@ A new DynamoDB table for any sort of failure that happens async on the back end 
 
 ```typescript
 interface ErrorRecord {
-  path: string; // partition key
-  errorType: ErrorType; // e.g., 'media_processing'
-  errorMessage: string;
-  timestamp: string; // ISO 8601 timestamp
-  ttl: number; // DynamoDB TTL
+    path: string; // partition key
+    errorType: ErrorType; // e.g., 'media_processing'
+    errorMessage: string;
+    timestamp: string; // ISO 8601 timestamp
+    ttl: number; // DynamoDB TTL
 }
 
 enum ErrorType {
-  MediaProcessing = "media_processing",
+    MediaProcessing = 'media_processing',
 }
 ```
 
@@ -320,8 +320,8 @@ The flow:
 2. The S3 trigger triggers `ProcessMediaUpload` Lambda
 3. `ProcessMediaUpload` triggers new MediaConvert job with path and new versionId
 4. MediaConvert writes to new version paths:
-   - `i/<path>/<newVersionId>/video-transcoded`
-   - `i/<path>/<newVersionId>/video-poster`
+    - `i/<path>/<newVersionId>/video-transcoded`
+    - `i/<path>/<newVersionId>/video-poster`
 5. DynamoDB record updated by VideoTranscodingComplete (new versionId)
 6. Front end polls to detect that processing is done by re-retrieving the album. If the video has a new versionId, processing is complete.
 7. Front end requests thumbnail and detail page using new versionId
@@ -353,7 +353,7 @@ In the Sveltekit front end, a user will be able to delete a video.
 
 1. Delete from Originals bucket: `2024/06-15/video.avi`
 2. Delete from Derived bucket by prefix:
-   - Prefix `i/2024/06-15/video.avi/` → deletes transcoded video, poster, and all thumbnails
+    - Prefix `i/2024/06-15/video.avi/` → deletes transcoded video, poster, and all thumbnails
 3. Delete DynamoDB record
 
 ## Supported Video Extensions
@@ -439,21 +439,21 @@ An alternative would have been to use multi-part upload.
 Reasons to use Presigned URLs:
 
 - **Works as-is**. No changes to how uploads work
-  - This is the same mechanism as images: user uploads directly to S3 via presigned URL.
+    - This is the same mechanism as images: user uploads directly to S3 via presigned URL.
 - **Simpler**. Presigned URLs are simpler than multi-part upload, which is a reason we didn't use them for still images
 
 #### Drawbacks
 
 - **5GB upload limit**
-  - Presigned URLs work via a single S3 PUT, which has a max of 5GB.
-  - 5GB works for most scenarios:
-    - iPhone 1080p @ 30fps HEVC: ~125-150MB/min → **33-40 minutes** in 5GB
-    - iPhone 4K @ 30fps HEVC: ~170MB/min → **~29 minutes** in 5GB
-  - We'd prefer to support larger files, but don't want to sign up for the complexity of multipart upload at this point. Maybe later.
+    - Presigned URLs work via a single S3 PUT, which has a max of 5GB.
+    - 5GB works for most scenarios:
+        - iPhone 1080p @ 30fps HEVC: ~125-150MB/min → **33-40 minutes** in 5GB
+        - iPhone 4K @ 30fps HEVC: ~170MB/min → **~29 minutes** in 5GB
+    - We'd prefer to support larger files, but don't want to sign up for the complexity of multipart upload at this point. Maybe later.
 - **Uploads can't be resumed**
-  - With a Presigned URLs (single S3 PUT), if the upload fails, you have to re-start from the beginning.
-  - Multi-part upload would let parts fail, and you'd just reload that part.
-  - If this starts to be a problem, we can always switch to multi-part uploads at that point.
+    - With a Presigned URLs (single S3 PUT), if the upload fails, you have to re-start from the beginning.
+    - Multi-part upload would let parts fail, and you'd just reload that part.
+    - If this starts to be a problem, we can always switch to multi-part uploads at that point.
 
 **Presigned URL expiration:** Needs to be generous (1 hour?) for large uploads on slow connections.
 
