@@ -123,13 +123,13 @@ Composite key structure:
 
 ```typescript
 export const handler: APIGatewayProxyHandler = async (event) => {
-  try {
-    // Validate request
-    // Call business logic
-    return respondHttp(event, result);
-  } catch (e) {
-    return handleHttpExceptions(event, e);
-  }
+    try {
+        // Validate request
+        // Call business logic
+        return respondHttp(event, result);
+    } catch (e) {
+        return handleHttpExceptions(event, e);
+    }
 };
 ```
 
@@ -150,15 +150,13 @@ Prettier config (4-space indent, single quotes, 120 char width, trailing commas)
 Use structured JSON logging for CloudWatch queryability:
 
 ```typescript
-console.info(
-  JSON.stringify({ event: "transcoding_complete", videoPath, videoId }),
-);
+console.info(JSON.stringify({ event: 'transcoding_complete', videoPath, videoId }));
 console.error(
-  JSON.stringify({
-    event: "transcoding_failed",
-    videoPath,
-    error: errorMessage,
-  }),
+    JSON.stringify({
+        event: 'transcoding_failed',
+        videoPath,
+        error: errorMessage,
+    }),
 );
 ```
 

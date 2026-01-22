@@ -13,22 +13,22 @@ See the [GitHub issue](https://github.com/deanmoses/tacocat-gallery-sam/issues/1
 ### Upload Flow
 
 1. **Web app uploads HEIC to S3 Originals bucket**
-   - Uses existing presigned URL mechanism
-   - Web app must be updated to allow HEIC uploads (separate plan/PR for SvelteKit front end)
-   - Web app should warn if uploading `foo.heic` when `foo.jpg` already exists in the album, since HEIC converts to JPEG and would overwrite
+    - Uses existing presigned URL mechanism
+    - Web app must be updated to allow HEIC uploads (separate plan/PR for SvelteKit front end)
+    - Web app should warn if uploading `foo.heic` when `foo.jpg` already exists in the album, since HEIC converts to JPEG and would overwrite
 
 2. **S3 triggers `processMediaUpload` Lambda** (already happens)
 
 3. **`processMediaUpload` Lambda detects HEIC and converts:**
-   - Check file extension for `.heic` or `.heif`
-   - Convert to archival quality JPEG suitable for printing out posters (quality 92) using Sharp
-   - Save JPEG to S3 Originals bucket (same path, `.jpg` extension)
-   - Delete the original HEIC from S3
-   - **Return early** — do not continue with metadata extraction
+    - Check file extension for `.heic` or `.heif`
+    - Convert to archival quality JPEG suitable for printing out posters (quality 92) using Sharp
+    - Save JPEG to S3 Originals bucket (same path, `.jpg` extension)
+    - Delete the original HEIC from S3
+    - **Return early** — do not continue with metadata extraction
 
 4. **S3 triggers `processMediaUpload` again for the new JPEG**
-   - `isHeicPath()` returns false for `.jpg`, so no conversion happens
-   - Normal flow: extract metadata, save to DynamoDB, set album thumbnail, trigger detail image generation
+    - `isHeicPath()` returns false for `.jpg`, so no conversion happens
+    - Normal flow: extract metadata, save to DynamoDB, set album thumbnail, trigger detail image generation
 
 **No infinite loop:** The JPEG re-trigger is safe because `isHeicPath()` only matches `.heic`/`.heif` extensions. The JPEG goes through the normal non-HEIC path. There's no risk of repeated re-encoding.
 
@@ -101,13 +101,13 @@ Would have used this if the Sharp layer hadn't worked.
 **Rejected because:**
 
 - Two runtimes in one project:
-  - Two dependency systems (`package.json` + `requirements.txt`)
-  - Two build processes
-  - Mental context-switching
+    - Two dependency systems (`package.json` + `requirements.txt`)
+    - Two build processes
+    - Mental context-switching
 - Architectural complexity:
-  - Need to coordinate two Lambdas (S3 trigger → Python → S3 → Node.js)
-  - Or change upload flow to go through Python first
-  - Error handling across the handoff
+    - Need to coordinate two Lambdas (S3 trigger → Python → S3 → Node.js)
+    - Or change upload flow to go through Python first
+    - Error handling across the handoff
 - New code to maintain in a language not used elsewhere in the project
 
 ## References

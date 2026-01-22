@@ -27,12 +27,14 @@ Use the [Conventional Commit Format](https://www.conventionalcommits.org/), same
 
 ```markdown
 ## Summary
+
 One sentence describing the overall change.
 
 - Optional supporting details
 - If needed
 
 ## Test plan
+
 - [ ] How to verify it works
 ```
 
