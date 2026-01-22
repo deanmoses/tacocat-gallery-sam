@@ -240,7 +240,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - s3:PutObject
-                Resource: !Sub arn:aws:s3:::${AWS::StackName}-derived-images/d/*
+                Resource: !Sub arn:aws:s3:::${AWS::StackName}-derived-images/i/*
 
   # -----------------------------------------------------------------------------
   # CloudFront CDN distribution that serves the images
@@ -409,8 +409,8 @@ Resources:
         Comment: !Ref DerivedImagesBucket
 
   # CloudFront Function to rewrite video playback URL
-  # Input: /v/2024/06-15/video.avi?id=<UUID>&version=<versionId>
-  # Output: /d/<UUID>/<versionId>/video/transcoded
+  # Input: /v/2024/06-15/video.mp4?version=<versionId>
+  # Output: /i/2024/06-15/video.mp4/<versionId>/video-transcoded
   VideoPlaybackUrlRewriteFunction:
     Type: AWS::CloudFront::Function
     Properties:
@@ -422,11 +422,11 @@ Resources:
       FunctionCode: |+2
         function handler(event) {
             const r = event.request;
-            const id = r.querystring['id'];
             const version = r.querystring['version'];
-            if (!id) return { statusCode: 400, statusDescription: 'Missing id' };
             if (!version) return { statusCode: 400, statusDescription: 'Missing version' };
-            r.uri = '/d/' + id.value + '/' + version.value + '/video/transcoded';
+            // r.uri is like /v/2024/06-15/video.mp4 -> extract /2024/06-15/video.mp4
+            const path = r.uri.substring(2);
+            r.uri = '/i' + path + '/' + version.value + '/video-transcoded';
             r.querystring = {};
             return r;
         }
@@ -533,7 +533,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${AWS::StackName}-SyncRedis
-      CodeUri: app/src/lambdas/api/
+      CodeUri: app/src/lambdas/migrations/syncRedis/
       Handler: syncRedisLambda.handler
       Description: Sync DynamoDB to Redis (diagnose or fix discrepancies)
       Timeout: 900 # 15 minutes
@@ -556,28 +556,28 @@ Resources:
           - syncRedisLambda.ts
 
   # ---------------------------------------------------------------------------
-  # Lambda to fix image dimensions in DynamoDB (one-time migration)
+  # Lambda to migrate video storage from UUID-based to path-based (one-time migration)
   # ---------------------------------------------------------------------------
-  MigrateDimensionsFunction:
+  VideoIdToPathMigrationFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-MigrateDimensions
-      CodeUri: app/src/lambdas/api/
-      Handler: migrateDimensionsLambda.handler
-      Description: Fix image dimensions in DynamoDB (one-time migration)
+      FunctionName: !Sub ${AWS::StackName}-VideoIdToPathMigration
+      CodeUri: app/src/lambdas/migrations/videoIdToPath/
+      Handler: videoIdToPathLambda.handler
+      Description: Migrate video storage from UUID-based to path-based (one-time migration)
       Timeout: 900 # 15 minutes
-      MemorySize: 2048 # More memory/CPU for parallel S3 fetches and ExifReader
+      MemorySize: 512
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
-          ORIGINAL_IMAGES_BUCKET: !Ref OriginalImagesBucket
+          DERIVED_IMAGES_BUCKET: !Ref DerivedImagesBucket
       Policies:
-        - S3ReadPolicy:
-            BucketName: !Ref OriginalImagesBucket
+        - S3CrudPolicy:
+            BucketName: !Ref DerivedImagesBucket
         - Statement:
             - Effect: Allow
               Action:
-                - dynamodb:Query
+                - dynamodb:BatchGetItem
                 - dynamodb:UpdateItem
               Resource: !GetAtt GalleryItemDDBTable.Arn
     Metadata:
@@ -587,7 +587,7 @@ Resources:
         Target: es2020
         Sourcemap: true
         EntryPoints:
-          - migrateDimensionsLambda.ts
+          - videoIdToPathLambda.ts
 
   # ---------------------------------------------------------------------------
   # API Gateway lambda to search for albums and images

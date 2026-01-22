@@ -39,11 +39,6 @@ export type VideoItem = BaseMediaItem & {
      * Images don't have this field until we run a migration
      */
     mediaType: 'video';
-    /**
-     * URL-safe ID that's globally unique across all gallery items.
-     * For locating transcoded video and poster in Derived bucket
-     */
-    id: string;
     /** Duration in seconds */
     duration: number;
 };

@@ -37,9 +37,14 @@ export const loadOriginalImage = async (id: string, versionId: string): Promise<
 
 /**
  * Load video poster from the Derived bucket.
+ *
+ * @param s3Key S3 key like "2024/01-15/video.mp4"
+ * @param versionId S3 version ID of the original video
  */
-export const loadVideoPoster = async (id: string, versionId: string): Promise<Uint8Array | undefined> => {
-    const key = getVideoPosterS3Key(id, versionId);
+export const loadVideoPoster = async (s3Key: string, versionId: string): Promise<Uint8Array | undefined> => {
+    // Convert S3 key to gallery path (add leading slash)
+    const path = '/' + s3Key;
+    const key = getVideoPosterS3Key(path, versionId);
     try {
         const response = await s3.send(
             new GetObjectCommand({

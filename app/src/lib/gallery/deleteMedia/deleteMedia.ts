@@ -8,13 +8,9 @@ import {
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { deleteOriginalAndDerivativesForMediaItem } from '../../s3_utils/s3delete';
-import { getFullItemFromDynamoDB } from '../../dynamo_utils/ddbGet';
-import { VideoItem } from '../galleryTypes';
 
 /**
  * Delete specified media (image or video) from both DynamoDB and S3.
- *
- * For videos, this also deletes the transcoded video and poster from the Derived bucket.
  *
  * @param mediaPath Path of media to delete, like /2001/12-31/image.jpg or /2001/12-31/video.mp4
  */
@@ -25,33 +21,10 @@ export async function deleteMedia(mediaPath: string) {
         throw new BadRequestException(`Malformed media path: [${mediaPath}]`);
     }
 
-    // For videos, we need to get the UUID before deleting from DynamoDB
-    const mediaId = await getMediaIdIfExists(mediaPath);
-
     await deleteMediaFromDynamoDB(mediaPath);
     await removeMediaAsThumbnailFromParentAlbums(mediaPath);
-    await deleteOriginalAndDerivativesForMediaItem(mediaPath, mediaId);
+    await deleteOriginalAndDerivativesForMediaItem(mediaPath);
     console.info(`Delete Media: deleted media [${mediaPath}]`);
-}
-
-/**
- * Get the UUID from the media item's DynamoDB record if it exists.
- * Will only be present for videos.
- * Returns undefined for images or if the record doesn't exist.
- *
- * @param mediaPath Path of media, like /2001/12-31/video.mp4
- */
-async function getMediaIdIfExists(mediaPath: string): Promise<string | undefined> {
-    try {
-        const item = await getFullItemFromDynamoDB<VideoItem>(mediaPath);
-        if (item && 'id' in item && item.id) {
-            return item.id;
-        }
-    } catch (error) {
-        // Log but don't throw - deleting the item is more important than cleaning up video assets
-        console.warn(JSON.stringify({ event: 'delete_media_uuid_fetch_failed', mediaPath, error: String(error) }));
-    }
-    return undefined;
 }
 
 /**

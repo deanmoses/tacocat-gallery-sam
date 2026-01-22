@@ -88,43 +88,17 @@ S3 versioning is enabled on the Originals bucket. Each upload generates a new `v
 
 Stores generated assets: thumbnails, detail page images, transcoded videos, and video poster frames.
 
-**Two coexisting storage patterns:**
+#### S3 Key Structure
 
-| Pattern    | Used For                    | Key Structure                           | Example                                 |
-| ---------- | --------------------------- | --------------------------------------- | --------------------------------------- |
-| Path-based | Thumbs & Detail Page Images | `i/<path>/<versionId>/<size>`           | `i/2024/06-15/photo.jpg/abc123/200`     |
-| ID-based   | Videos                      | `d/<UUID>/<versionId>/<type>/<variant>` | `d/550e8400.../def456/video/transcoded` |
-
-#### Path-based structure
-
-Used for storing thumbnails and resized detail page images:
+The S3 key structure is `i/<path>/<versionId>/asset`:
 
 ```text
-i/<path>/<versionId>/
-├── 200x200    ← Thumbnail
-└── 1024       ← Detail page image
+i/2001/12-31/my_video.mov/<versionId>/
+├── 200x200             ← Thumbnail
+├── 1024                ← Detail page image
+├── video-transcoded    ← Transcoded video
+└── video-poster        ← JPG used as source for video thumbnail and detail page
 ```
-
-#### ID-based structure
-
-Currently used for storing video assets, but we want it to eventually store ALL derived assets:
-
-```text
-d/<UUID>/<versionId>/
-├── video/
-│   ├── transcoded    ← Playable MP4
-│   └── poster        ← Source JPG for thumbnails
-└── size/    ⬅️ THIS HASN'T HAPPENED YET
-    ├── 200x200       ← Thumbnail
-    └── 1024          ← Detail page image
-```
-
-#### ID is Better than Path
-
-We prefer for derived assets have S3 keys based on ID, not path, because it better supports rename. With IDs, renames don't require copying derived files.
-
-- For example, right now we don't allow renaming an album that contains images, because we don't want to deal with renaming all the derived assets. If we had ID-based derived assets, we could simply and easily rename albums without touching any derived assets.
-- For example, right now when we rename a media item, we delete its thumbs and detail page image, because renaming those are too complicated. If we had ID-based derived assets, we could rename the media item without touching its derived assets.
 
 #### No Extensions
 
@@ -137,14 +111,7 @@ This DOES mean, however, that the content type _must_ be stored as S3 metadata. 
 
 #### Versioning
 
-S3 versioning is disabled on the Derived bucket. Instead, assets are stored by the S3 version of the **original** media item:
-
-```text
-d/<UUID>/<versionId>/
-i/<path>/<versionId>/
-```
-
-This allows stale clients to continue accessing the old versions, even after the asset has been renamed. It means we can cache each derived asset immutably.
+S3 versioning is disabled on the Derived bucket. Instead, assets are stored by the S3 version of the **original** media item: `i/2001/12-31/my_video.mov/<versionId>/`. This allows stale clients to continue accessing the old versions, even after the asset has been renamed. It means we can cache each derived asset immutably.
 
 **No deleting old versions**. The system doesn't delete old versions of derived assets. We want to keep them around for at least a while until there's no more stale clients. And a new version is only created when a new media item is dragged over an existing one, which is super rare. So storage isn't an issue. We just keep them.
 
@@ -172,7 +139,6 @@ Stores albums and media items (images and videos).
 | ------------ | ---------------- | -------------- | ------------------ |
 | `itemType`   | `'album'`        | `'image'`      | `'image'` (legacy) |
 | `mediaType`  | —                | —              | `'video'`          |
-| `id`         | —                | —              | UUID               |
 | `versionId`  | —                | ✓              | ✓                  |
 | `dimensions` | —                | ✓              | ✓                  |
 | `duration`   | —                | —              | ✓ (seconds)        |
@@ -259,7 +225,7 @@ All media files are delivered to browsers via the AWS CloudFront CDN.
 | Route   | Purpose         | Original URL                                       | S3 Key                               |
 | ------- | --------------- | -------------------------------------------------- | ------------------------------------ |
 | `/i/*`  | Derived images  | `/i/2024/06-15/photo.jpg?version=abc&size=200x200` | `i/2024/06-15/photo.jpg/abc/200x200` |
-| `/v/*`  | Video playback  | `/v/2024/06-15/video.mp4?id=UUID&version=abc`      | `d/UUID/abc/video/transcoded`        |
+| `/v/*`  | Video playback  | `/v/2024/06-15/video.mp4?version=abc`              | `i/2024/06-15/video.mp4/abc/video-transcoded` |
 | Default | Original images | `/2024/06-15/photo.jpg`                            | `2024/06-15/photo.jpg`               |
 
 ### CloudFront Functions

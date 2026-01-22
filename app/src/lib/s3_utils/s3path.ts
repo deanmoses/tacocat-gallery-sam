@@ -1,4 +1,4 @@
-import { isValidPath, isValidPathForUpload } from '../gallery_path_utils/galleryPathUtils';
+import { isValidMediaPath, isValidPath, isValidPathForUpload } from '../gallery_path_utils/galleryPathUtils';
 
 /**
  * Given a gallery album or image path like /2001/12-31/ or /2001/12-31/image.jpg,
@@ -25,52 +25,51 @@ export function fromS3OriginalBucketKeyToPath(key: string): string {
     return '/' + key;
 }
 
-export function fromPathToS3DerivedImagesBucketKey(path: string): string {
+//
+// Derived asset paths in the Derived bucket
+// Structure: i/<path>/<versionId>/<asset>
+// For images: i/<path>/<versionId>/200, i/<path>/<versionId>/400, etc.
+// For videos: i/<path>/<versionId>/video-transcoded, i/<path>/<versionId>/video-poster
+//
+
+/**
+ * Get the S3 key prefix for a media items's derived assets: i/<path>/
+ *
+ * @param path A album OR media path (e.g., /2024/01-15/ or /2024/01-15/video.mp4)
+ */
+export function getDerivedAssetPrefix(path: string): string {
     if (!isValidPath(path)) throw new Error(`Invalid path: [${path}]`);
     return 'i' + path; // all images are under the '/i/' "folder"
 }
 
-//
-// Derived asset paths in the Derived bucket, keyed by the DynamoDB ID of the gallery item
-// Structure: d/<id>/<versionId>/<type>/...
-// Currently only used for video assets, but designed to support future media types
-//
-
 /**
- * Get the S3 key prefix for all versions of a media item's derived assets: d/<id>/
+ * Get the S3 key prefix for a media item's derived assets: i/<path>/<versionId>/
  *
- * @param id The DynamoDB ID of the gallery item
+ * @param path The gallery path (e.g., /2024/01-15/image.jpg or /2024/01-15/video.mp4)
+ * @param versionId The S3 version ID of the original media
  */
-export function getDerivedAssetIdPrefix(id: string): string {
-    return `d/${id}/`;
+export function getDerivedAssetVersionPrefix(path: string, versionId: string): string {
+    if (!isValidMediaPath(path)) throw new Error(`Invalid media path: [${path}]`);
+    if (!versionId) throw new Error(`Invalid versionId: [${versionId}]`);
+    return getDerivedAssetPrefix(path) + `/${versionId}/`;
 }
 
 /**
- * Get the S3 key prefix for a specific version of a media item's derived assets: d/<id>/<versionId>/
+ * Get the S3 key for a transcoded video: i/<path>/<versionId>/video-transcoded
  *
- * @param id The DynamoDB ID of the gallery item
- * @param versionId The S3 version ID of the gallery item's original media file
- */
-export function getDerivedAssetIdVersionPrefix(id: string, versionId: string): string {
-    return `d/${id}/${versionId}/`;
-}
-
-/**
- * Get the S3 key for a transcoded video: d/<id>/<versionId>/video/transcoded
- *
- * @param id The DynamoDB ID of the video
+ * @param path The gallery path of the video (e.g., /2024/01-15/video.mp4)
  * @param versionId The S3 version ID of the original video
  */
-export function getTranscodedVideoS3Key(id: string, versionId: string): string {
-    return `d/${id}/${versionId}/video/transcoded`;
+export function getTranscodedVideoS3Key(path: string, versionId: string): string {
+    return getDerivedAssetVersionPrefix(path, versionId) + 'video-transcoded';
 }
 
 /**
- * Get the S3 key for a video poster: d/<id>/<versionId>/video/poster
+ * Get the S3 key for a video poster: i/<path>/<versionId>/video-poster
  *
- * @param id The DynamoDB ID of the video
+ * @param path The gallery path of the video (e.g., /2024/01-15/video.mp4)
  * @param versionId The S3 version ID of the original video
  */
-export function getVideoPosterS3Key(id: string, versionId: string): string {
-    return `d/${id}/${versionId}/video/poster`;
+export function getVideoPosterS3Key(path: string, versionId: string): string {
+    return getDerivedAssetVersionPrefix(path, versionId) + 'video-poster';
 }

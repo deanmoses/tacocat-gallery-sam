@@ -11,7 +11,7 @@ import {
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { itemExists } from '../itemExists/itemExists';
-import { copyOriginal } from '../../s3_utils/s3copy';
+import { copyOriginal, copyDerivedAssets } from '../../s3_utils/s3copy';
 import { deleteOriginalAndDerivativesForMediaItem } from '../../s3_utils/s3delete';
 import { getFullItemFromDynamoDB } from '../../dynamo_utils/ddbGet';
 import { MediaItem } from '../galleryTypes';
@@ -24,10 +24,6 @@ import { MediaItem } from '../galleryTypes';
  * but v1 of the UI won't support that.  I can build that support when
  * I need it in the UI.
  *
- * For videos: The UUID is preserved in the DynamoDB record, so the transcoded
- * video and poster stored by <UUID> remain valid. Only the original file in the
- * Originals bucket and derived thumbnails are deleted/recreated.
- *
  * @param oldMediaPath Path of existing media like /2001/12-31/image.jpg or /2001/12-31/video.mp4
  * @param newName New name of media like newName.jpg or newName.mp4
  * @returns Path of new media like /2001/12-31/newName.jpg
@@ -38,9 +34,23 @@ export async function renameMedia(oldMediaPath: string, newName: string): Promis
     validateNewMediaName(oldMediaPath, newName);
     const newMediaPath = getParentFromPath(oldMediaPath) + newName;
     await Promise.all([assertMediaExists(oldMediaPath), assertMediaDoesNotExist(newMediaPath)]);
+
+    // Fetch media to get old versionId BEFORE copying original
+    const media = await getFullItemFromDynamoDB<MediaItem>(oldMediaPath);
+    if (!media) throw new Error(`Media not found: ${oldMediaPath}`);
+    if (!media.versionId) throw new Error(`Media missing versionId: ${oldMediaPath}`);
+    const oldVersionId = media.versionId;
+
     const newVersionId = await copyOriginal(oldMediaPath, newMediaPath);
+
+    // Copy all derived assets (thumbnails, video transcodes, posters) to new location
+    await copyDerivedAssets(oldMediaPath, newMediaPath, oldVersionId, newVersionId);
+
     await renameMediaInDynamoDB(oldMediaPath, newName, newVersionId);
-    await deleteOriginalAndDerivativesForMediaItem(oldMediaPath); // Don't pass ID; renames preserve derived assets saved by ID
+
+    // Clean up old media from S3
+    await deleteOriginalAndDerivativesForMediaItem(oldMediaPath);
+
     console.info(`Rename Media: renamed media from [${oldMediaPath}] to [${newMediaPath}]`);
     return newMediaPath;
 }

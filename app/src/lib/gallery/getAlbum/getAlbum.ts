@@ -100,7 +100,6 @@ async function getChildren(
         'tags', // for images/videos
         'dimensions', // for images/videos
         'mediaType', // for videos
-        'id', // for videos (UUID)
         'duration', // for videos
     ]);
     if (!!children) {

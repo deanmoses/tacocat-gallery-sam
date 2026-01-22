@@ -7,11 +7,6 @@ jest.mock('./s3', () => ({
     saveOptimizedImage: jest.fn(),
 }));
 
-// Mock the DynamoDB functions
-jest.mock('./ddb', () => ({
-    getVideoUuid: jest.fn(),
-}));
-
 // Mock optimizeImage but preserve isImageFormat which is used by parsePath
 jest.mock('./optimizeImage', () => ({
     ...jest.requireActual('./optimizeImage'),
@@ -19,12 +14,10 @@ jest.mock('./optimizeImage', () => ({
 }));
 
 import { loadOriginalImage, loadVideoPoster, saveOptimizedImage } from './s3';
-import { getVideoUuid } from './ddb';
 import { optimizeImage } from './optimizeImage';
 
 const mockLoadOriginalImage = loadOriginalImage as jest.MockedFunction<typeof loadOriginalImage>;
 const mockLoadVideoPoster = loadVideoPoster as jest.MockedFunction<typeof loadVideoPoster>;
-const mockGetVideoUuid = getVideoUuid as jest.MockedFunction<typeof getVideoUuid>;
 const mockSaveOptimizedImage = saveOptimizedImage as jest.MockedFunction<typeof saveOptimizedImage>;
 const mockOptimizeImage = optimizeImage as jest.MockedFunction<typeof optimizeImage>;
 
@@ -107,25 +100,22 @@ describe('generateDerivedImage', () => {
             expect(mockLoadOriginalImage).toHaveBeenCalledWith('2001/12-31/image.jpg', 'VERSIONID');
         });
 
-        it('should look up UUID and load video poster for video paths', async () => {
-            const uuid = '550e8400-e29b-41d4-a716-446655440000';
-            mockGetVideoUuid.mockResolvedValue(uuid);
+        it('should load video poster directly by path for video paths', async () => {
             mockLoadVideoPoster.mockResolvedValue(undefined);
 
             const result = await generateDerivedImage('GET', '/i/2001/12-31/video.mp4/VERSIONID/200');
 
-            expect(mockGetVideoUuid).toHaveBeenCalledWith('2001/12-31/video.mp4');
-            expect(mockLoadVideoPoster).toHaveBeenCalledWith(uuid, 'VERSIONID');
+            // Path-based storage: loadVideoPoster receives S3 key directly
+            expect(mockLoadVideoPoster).toHaveBeenCalledWith('2001/12-31/video.mp4', 'VERSIONID');
             expect(result.statusCode).toBe(404); // poster not found
         });
 
-        it('should return 404 when video UUID not found', async () => {
-            mockGetVideoUuid.mockResolvedValue(undefined);
+        it('should return 404 when video poster not found', async () => {
+            mockLoadVideoPoster.mockResolvedValue(undefined);
 
             const result = await generateDerivedImage('GET', '/i/2001/12-31/video.mp4/VERSIONID/200');
 
-            expect(mockGetVideoUuid).toHaveBeenCalledWith('2001/12-31/video.mp4');
-            expect(mockLoadVideoPoster).not.toHaveBeenCalled();
+            expect(mockLoadVideoPoster).toHaveBeenCalledWith('2001/12-31/video.mp4', 'VERSIONID');
             expect(result.statusCode).toBe(404);
         });
     });
