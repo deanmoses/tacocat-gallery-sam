@@ -57,8 +57,8 @@ Thumbnails and the derived detail image for the video live in the same place as 
 
 ```
 Derived Bucket:
-  /i/2001/12-31/my_video.avi/<versionId>/200      ← Thumbnail (derived from poster)
-  /i/2001/12-31/my_video.avi/<versionId>/1024     ← Detail page size (derived from poster)
+  i/2001/12-31/my_video.avi/<versionId>/200      ← Thumbnail (derived from poster)
+  i/2001/12-31/my_video.avi/<versionId>/1024     ← Detail page size (derived from poster)
 ```
 
 ## Video Upload Processing Flow
@@ -278,7 +278,7 @@ The existing flow works:
 Videos use the same thumbnail URL format as images:
 
 ```text
-/i/2024/06-15/my_video.avi/<versionId>/200
+i/2024/06-15/my_video.avi/<versionId>/200
 ```
 
 When generating a thumbnail for a video path, the Lambda fetches the **poster** from the Derived bucket:

@@ -7,6 +7,10 @@ reviews:
         - '!.aws-sam/**'
         - '!*.min.js'
         - '!app/src/test/data/**'
+    tools:
+        languagetool:
+            disabled_rules:
+                - 'EN_COMPOUNDS'
 
 knowledge_base:
     code_guidelines:
