@@ -125,6 +125,9 @@ export async function deleteDerivedFilesByPathAndVersion(mediaPath: string, vers
  * @returns number of objects deleted
  */
 async function deleteS3Folder(bucketName: string, keyPrefix: string): Promise<number> {
+    // TODO: handle pagination if the folder contains more than 1000 objects
+    // See https://github.com/deanmoses/tacocat-gallery-sam/issues/122
+
     // List the objects
     const s3Command = new ListObjectsV2Command({
         Bucket: bucketName,
