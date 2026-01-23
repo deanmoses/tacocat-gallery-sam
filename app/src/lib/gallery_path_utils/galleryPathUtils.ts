@@ -173,8 +173,10 @@ export function isValidVideoName(videoName: string): boolean {
  */
 export function isValidVideoNameStrict(videoName: string): boolean {
     const extPattern = VIDEO_EXTENSIONS.join('|');
-    // Use non-backtracking pattern to avoid ReDoS with long filenames
-    const pattern = new RegExp(`^[a-z0-9]([a-z0-9_]*[a-z0-9])?\\.(${extPattern})$`);
+    // Pattern: alphanumeric start, then optional groups of (single underscore + alphanumeric)
+    // ReDoS-safe because _ and [a-z0-9] are disjoint character classes (no ambiguity)
+    // Also rejects consecutive underscores (each _ must be followed by alphanumeric)
+    const pattern = new RegExp(`^[a-z0-9]+(_[a-z0-9]+)*\\.(${extPattern})$`);
     return pattern.test(videoName);
 }
 
@@ -221,8 +223,10 @@ export function isValidImageName(imageName: string): boolean {
  */
 export function isValidImageNameStrict(imageName: string): boolean {
     const extPattern = IMAGE_EXTENSIONS_STRICT.join('|');
-    // Use non-backtracking pattern to avoid ReDoS with long filenames
-    const pattern = new RegExp(`^[a-z0-9]([a-z0-9_]*[a-z0-9])?\\.(${extPattern})$`);
+    // Pattern: alphanumeric start, then optional groups of (single underscore + alphanumeric)
+    // ReDoS-safe because _ and [a-z0-9] are disjoint character classes (no ambiguity)
+    // Also rejects consecutive underscores (each _ must be followed by alphanumeric)
+    const pattern = new RegExp(`^[a-z0-9]+(_[a-z0-9]+)*\\.(${extPattern})$`);
     return pattern.test(imageName);
 }
 
