@@ -99,7 +99,9 @@ async function createMediaConvertJob(
                             Tracks: [1],
                         },
                     },
-                    VideoSelector: {},
+                    VideoSelector: {
+                        Rotate: 'AUTO', // Auto-detect and apply rotation from source metadata (fixes portrait iPhone videos)
+                    },
                     TimecodeSource: 'ZEROBASED',
                 },
             ],
