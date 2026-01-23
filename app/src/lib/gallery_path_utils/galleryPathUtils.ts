@@ -173,7 +173,8 @@ export function isValidVideoName(videoName: string): boolean {
  */
 export function isValidVideoNameStrict(videoName: string): boolean {
     const extPattern = VIDEO_EXTENSIONS.join('|');
-    const pattern = new RegExp(`^[a-z0-9]+([a-z0-9_]*[a-z0-9]+)*\\.(${extPattern})$`);
+    // Use non-backtracking pattern to avoid ReDoS with long filenames
+    const pattern = new RegExp(`^[a-z0-9]([a-z0-9_]*[a-z0-9])?\\.(${extPattern})$`);
     return pattern.test(videoName);
 }
 
@@ -220,7 +221,8 @@ export function isValidImageName(imageName: string): boolean {
  */
 export function isValidImageNameStrict(imageName: string): boolean {
     const extPattern = IMAGE_EXTENSIONS_STRICT.join('|');
-    const pattern = new RegExp(`^[a-z0-9]+([a-z0-9_]*[a-z0-9]+)*\\.(${extPattern})$`);
+    // Use non-backtracking pattern to avoid ReDoS with long filenames
+    const pattern = new RegExp(`^[a-z0-9]([a-z0-9_]*[a-z0-9])?\\.(${extPattern})$`);
     return pattern.test(imageName);
 }
 
