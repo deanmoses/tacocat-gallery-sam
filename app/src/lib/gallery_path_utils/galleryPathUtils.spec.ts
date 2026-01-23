@@ -491,6 +491,7 @@ describe('isValidImageName', () => {
         'newName.jpeg',
         'new-name.jpg',
         'new_name.jpg',
+        'monkey_river_15_howler_monkey_calling.jpg', // long filename regression test
     ];
     validImageNames.forEach((imageName) => {
         test(`Should be valid: [${imageName}]`, async () => {
@@ -651,6 +652,25 @@ describe('isValidMediaNameStrict', () => {
         test(`Should be valid: [${mediaName}]`, async () => {
             expect(isValidMediaNameStrict(mediaName)).toBe(true);
         });
+    });
+
+    // Regression test for ReDoS vulnerability: long filenames with underscores
+    // must complete quickly, not hang due to catastrophic backtracking
+    test('Should handle long filenames with multiple underscores without hanging', () => {
+        const longValidName = 'monkey_river_15_howler_monkey_calling.mov';
+        const longInvalidName = 'monkey_river_15_howler_monkey_calling_.mov'; // trailing underscore
+
+        const startValid = performance.now();
+        expect(isValidMediaNameStrict(longValidName)).toBe(true);
+        const validTime = performance.now() - startValid;
+
+        const startInvalid = performance.now();
+        expect(isValidMediaNameStrict(longInvalidName)).toBe(false);
+        const invalidTime = performance.now() - startInvalid;
+
+        // Both should complete in under 100ms (was hanging for 100+ seconds before fix)
+        expect(validTime).toBeLessThan(100);
+        expect(invalidTime).toBeLessThan(100);
     });
 });
 
@@ -906,6 +926,7 @@ describe('isValidVideoName', () => {
         'new-name.mp4',
         'new_name.mp4',
         'VIDEO.MOV',
+        'monkey_river_15_howler_monkey_calling.mov', // long filename regression test
     ];
     validVideoNames.forEach((videoName) => {
         test(`Should be valid: [${videoName}]`, async () => {
