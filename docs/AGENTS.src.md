@@ -79,10 +79,7 @@ npm run agent-docs    # Regenerate CLAUDE.md and AGENTS.md from docs/AGENTS.src.
 
 ### esbuild
 
-`sam build` shells out to esbuild on the host. It is pinned as an `app/`
-devDependency, but SAM resolves `node_modules` relative to each `CodeUri`, so the
-pinned binary is found only via PATH -- a global esbuild (Homebrew, `npm i -g`)
-silently shadows it and builds with a different version. To use the pinned one:
+`sam build` shells out to esbuild on the host. It is pinned as an `app/` devDependency, but SAM resolves `node_modules` relative to each `CodeUri`, so the pinned binary is found only via PATH -- a global esbuild (Homebrew, `npm i -g`) silently shadows it and builds with a different version. To use the pinned one:
 
 ```bash
 PATH="$PWD/app/node_modules/.bin:$PATH" sam build
@@ -182,11 +179,11 @@ For detailed architecture documentation (S3 storage patterns, CDN routing, desig
 
 ## Code Style
 
-Prettier config (4-space indent, single quotes, 120 char width, trailing commas):
+Prettier (see `.prettierrc.js`): 4-space indent, single quotes, 120 char width, trailing commas.
 
-```javascript
-{ semi: true, trailingComma: 'all', singleQuote: true, printWidth: 120, tabWidth: 4 }
-```
+### Don't wrap Markdown
+
+Never hard-wrap prose in Markdown. Write each paragraph and list item as one long line and let the viewer soft-wrap it to its own width; wrapping at ~80 columns turns into choppy short lines on a narrow screen. Tables, code blocks and YAML frontmatter keep their own line structure.
 
 ## Logging
 
