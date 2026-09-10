@@ -17,8 +17,8 @@ let image_updatedOn: string | undefined;
 
 beforeAll(async () => {
     imagePath = `${albumPath}image_${Date.now()}.jpg`; // unique to this test run to prevent collision with bad cleanup of prior tests
-    title = `Title ${Date.now}`;
-    description = `Description ${Date.now}`;
+    title = `Title ${Date.now()}`;
+    description = `Description ${Date.now()}`;
     expect(isValidAlbumPath(albumPath)).toBe(true);
     expect(isValidImagePath(imagePath)).toBe(true);
     await Promise.all([assertDynamoDBItemDoesNotExist(albumPath), assertOriginalImageDoesNotExist(imagePath)]);

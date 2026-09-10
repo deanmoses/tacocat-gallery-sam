@@ -20,6 +20,6 @@ app/src/test/data/
 
 # CloudFormation/SAM convention is 2-space indent and double quotes, which is
 # what every AWS doc and generator emits. Reformatting to this repo's 4-space
-# JS style rewrites all ~1150 lines and destroys blame on the infra that matters
+# JS style rewrites the whole file and destroys blame on the infra that matters
 # most. Correctness here is cfn-lint's job (`sam validate --lint`), not Prettier's.
 template.yaml

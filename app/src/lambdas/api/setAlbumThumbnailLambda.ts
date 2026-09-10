@@ -4,7 +4,8 @@ import {
     HttpMethod,
     ensureHttpMethod,
     getAlbumPath,
-    getBodyAsJson,
+    getBodyAsObject,
+    getStringField,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { ensureAuthorizedForWrites } from '../../lib/lambda_utils/AuthorizationHelpers';
 import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
@@ -17,8 +18,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         ensureHttpMethod(event, HttpMethod.PATCH);
         await ensureAuthorizedForWrites(event);
         const albumPath = getAlbumPath(event);
-        const body = getBodyAsJson(event);
-        const mediaPath = body.mediaPath;
+        const mediaPath = getStringField(getBodyAsObject(event), 'mediaPath');
         await setAlbumThumbnail(albumPath, mediaPath);
         return respondSuccessMessage(event, `Album [${albumPath}] thumbnail set to [${mediaPath}]`);
     } catch (e) {

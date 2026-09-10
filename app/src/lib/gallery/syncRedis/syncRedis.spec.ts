@@ -19,7 +19,7 @@ interface MockRedisClient {
         _list: jest.Mock;
     };
     dbSize: jest.Mock;
-    quit: jest.Mock;
+    close: jest.Mock;
 }
 
 const createMockRedisClient = (): MockRedisClient => ({
@@ -33,7 +33,7 @@ const createMockRedisClient = (): MockRedisClient => ({
         _list: jest.fn().mockResolvedValue([]),
     },
     dbSize: jest.fn().mockResolvedValue(0),
-    quit: jest.fn(),
+    close: jest.fn(),
 });
 
 beforeEach(() => {

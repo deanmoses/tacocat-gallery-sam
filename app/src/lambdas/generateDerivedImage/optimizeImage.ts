@@ -98,7 +98,7 @@ export const getQuality = (format: ImageFormat, size: Size): number => {
         if (pixels < 800 * 800) return 45;
         return 35;
     }
-    throw Error(`automatic quality for format ${format} not implemented`);
+    throw Error(`automatic quality for format ${String(format)} not implemented`);
 };
 
 export const getImageSize = ({ width, height, pageHeight, orientation }: Metadata) => {

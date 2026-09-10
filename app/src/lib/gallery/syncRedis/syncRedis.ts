@@ -1,6 +1,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
-import { SCHEMA_FIELD_TYPE } from '@redis/search';
+import { SCHEMA_FIELD_TYPE } from 'redis';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { toRedisItem, toPath } from '../../redis_utils/toRedisFromDynamo';
 import { RedisClient, createRedisWriteClient, SEARCH_INDEX_NAME } from '../../redis_utils/redisClientUtils';
@@ -169,7 +169,7 @@ export async function syncRedis(options: SyncOptions): Promise<SyncResult | Sync
         };
     } finally {
         if (shouldCloseRedis) {
-            await redisClient.quit();
+            await redisClient.close();
         }
     }
 }
@@ -392,7 +392,7 @@ export async function initRedis(options: Pick<SyncOptions, 'redisClient'>): Prom
         };
     } finally {
         if (shouldCloseRedis) {
-            await redisClient.quit();
+            await redisClient.close();
         }
     }
 }

@@ -11,7 +11,7 @@ describe('Redis search', () => {
     });
 
     afterAll(async () => {
-        await redisClient?.quit();
+        await redisClient?.close();
     });
 
     it('returns empty results for nonexistent term', async () => {

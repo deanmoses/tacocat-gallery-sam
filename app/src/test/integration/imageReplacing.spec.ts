@@ -66,7 +66,8 @@ test('Album should contain image with no metadata', async () => {
     const image_replace = await getMediaOrThrow(imagePath_replace, true /* includeUnpublishedAlbums */);
     if (image_replace.title) throw new Error(`Image [${imageName_replace}] has a title: [${image_replace.title}]`);
     if (image_replace.description) throw new Error(`[${imageName_replace}] has a desc: [${image_replace.description}]`);
-    if (image_replace.tags?.length) throw new Error(`[${imageName_replace}] has tags: [${image_replace.tags}]`);
+    if (image_replace.tags?.length)
+        throw new Error(`[${imageName_replace}] has tags: [${image_replace.tags.join(', ')}]`);
     if (!image_replace.versionId) throw new Error(`[${imageName_replace}] has no versionId`);
     image_replace_versionId1 = image_replace.versionId;
 });

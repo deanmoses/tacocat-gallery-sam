@@ -54,14 +54,7 @@ npm run agent-docs    # Regenerate CLAUDE.md and AGENTS.md from docs/AGENTS.src.
 
 ### esbuild
 
-`sam build` bundles all 21 Lambda functions with esbuild, which SAM requires on the
-host rather than bundling itself. esbuild is an `app/` devDependency, so
-`package-lock.json` pins the version, and CI puts `app/node_modules/.bin` on PATH.
-
-SAM resolves `node_modules` relative to each `CodeUri` (`app/src/lambdas/...`), not
-to `app/`, so the pinned binary is only found via PATH. A globally installed esbuild
-(Homebrew, `npm install -g`) will shadow the pinned one and silently build with a
-different version. To use the pinned version locally:
+`sam build` shells out to esbuild on the host. It is pinned as an `app/` devDependency, but SAM resolves `node_modules` relative to each `CodeUri`, so the pinned binary is found only via PATH -- a global esbuild (Homebrew, `npm i -g`) silently shadows it and builds with a different version. To use the pinned one:
 
 ```bash
 PATH="$PWD/app/node_modules/.bin:$PATH" sam build
@@ -161,48 +154,11 @@ For detailed architecture documentation (S3 storage patterns, CDN routing, desig
 
 ## Code Style
 
-Prettier config (4-space indent, single quotes, 120 char width, trailing commas):
+Prettier (see `.prettierrc.js`): 4-space indent, single quotes, 120 char width, trailing commas.
 
-```javascript
-{ semi: true, trailingComma: 'all', singleQuote: true, printWidth: 120, tabWidth: 4 }
-```
+### Don't wrap Markdown
 
-### Linting scope
-
-ESLint and Prettier run repo-wide, not just over `app/`. `node_modules` lives in
-`app/`, so the npm scripts `cd ..` first and point ESLint at
-`--config app/eslint.config.mjs`; that keeps plugin resolution working while the
-working directory is the repo root.
-
-Deliberate exclusions in `.prettierignore`, each for a reason:
-
-- `template.yaml` — CloudFormation/SAM convention is 2-space indent and double
-  quotes. Reformatting to this repo's JS style rewrites all ~1150 lines and
-  destroys blame on the infrastructure that matters most. Its correctness is
-  cfn-lint's job (`npm run lint:cfn`), not Prettier's. **Do not reformat this
-  file.**
-- `CLAUDE.md`, `AGENTS.md` — generated from `docs/AGENTS.src.md`. Formatting them
-  would fight the generator and trip the pre-commit guard.
-- `app/src/test/data/` — captured AWS payloads; keep them byte-identical to what
-  DynamoDB/S3/MediaConvert actually emit.
-- `app/package-lock.json` — npm's to format.
-
-TypeScript is linted with type-aware rules (`recommendedTypeChecked`). Rules that
-catch real defects -- unhandled promises, thrown non-Errors, `[object Object]` in
-messages -- are errors and fail CI. The `no-unsafe-*` family, `require-await` and
-`restrict-template-expressions` are **warnings on purpose**: they flag `any`
-leaking out of AWS SDK and `JSON.parse` boundaries, of which there is currently a
-backlog of ~73. Those warnings are expected. Do not silence them by turning the
-rules off, and do not treat a clean-but-warning lint run as a failure; chip away
-at them where you are already editing the file.
-
-Markdown is linted by markdownlint-cli2 (`npm run lint:md`); rules live in
-`.markdownlint.json` and the file list in `.markdownlint-cli2.jsonc`. The
-generated `CLAUDE.md`/`AGENTS.md` are skipped there because linting them just
-duplicates linting `docs/AGENTS.src.md`.
-
-Dependency updates come in weekly via Dependabot (`.github/dependabot.yml`),
-grouped so the AWS SDK arrives as one PR rather than a dozen.
+Never hard-wrap prose in Markdown. Write each paragraph and list item as one long line and let the viewer soft-wrap it to its own width; wrapping at ~80 columns turns into choppy short lines on a narrow screen. Tables, code blocks and YAML frontmatter keep their own line structure.
 
 ## Logging
 
@@ -246,11 +202,7 @@ console.error(
 
 ## Custom Skills
 
-This project has custom skills for git workflows. Always invoke these using the Skill tool instead of running commands manually:
-
-- `/branch` - Create branches with proper `type/short-description` naming
-- `/commit` - Create commits with Conventional Commit format
-- `/pr` - Create pull requests with proper title, description, and labels
+Use this project's `/branch`, `/commit` and `/pr` skills via the Skill tool rather than running git or gh by hand.
 
 ## Git Amend
 

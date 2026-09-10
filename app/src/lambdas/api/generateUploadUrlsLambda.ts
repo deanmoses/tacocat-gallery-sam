@@ -4,7 +4,7 @@ import {
     HttpMethod,
     ensureHttpMethod,
     getAlbumPath,
-    getBodyAsJson,
+    getBodyAsStringArray,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { ensureAuthorizedForWrites } from '../../lib/lambda_utils/AuthorizationHelpers';
 import { generateUploadUrls } from '../../lib/gallery/generateUploadUrls/generateUploadUrls';
@@ -17,7 +17,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         ensureHttpMethod(event, HttpMethod.POST);
         await ensureAuthorizedForWrites(event);
         const albumPath = getAlbumPath(event);
-        const mediaPaths: string[] = getBodyAsJson(event);
+        const mediaPaths = getBodyAsStringArray(event);
         const uploadUrls = await generateUploadUrls(albumPath, mediaPaths);
         return respondHttp(event, uploadUrls);
     } catch (e) {

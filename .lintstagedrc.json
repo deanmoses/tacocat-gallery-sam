@@ -1,5 +1,5 @@
 {
-    "*.{js,mjs,ts,json,md,yml,yaml}": "prettier --write --ignore-unknown",
+    "*.{json,yml,yaml}": "prettier --write --ignore-unknown",
     "*.{js,mjs,ts}": "eslint --config app/eslint.config.mjs --fix",
-    "*.md": "markdownlint-cli2"
+    "*.md": ["prettier --write", "markdownlint-cli2"]
 }

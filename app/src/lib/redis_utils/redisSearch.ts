@@ -1,4 +1,4 @@
-import { FtSearchOptions, SearchReply } from '@redis/search';
+import { FtSearchOptions } from 'redis';
 import { AlbumItem, GalleryItem, GalleryItemType, ImageItem, VideoItem } from '../gallery/galleryTypes';
 import { augmentAlbumThumbnailsWithImageInfo } from '../dynamo_utils/albumThumbnailHelper';
 import { createRedisSearchClient } from './redisClientUtils';
@@ -38,17 +38,13 @@ async function doSearch(query: RedisSearchQuery): Promise<SearchResults> {
         };
         const itemType = query.itemType ? ` @itemType:{${query.itemType}}` : '';
         const range = getRange(query.startDate, query.endDate);
-        const results = (await client.ft.search(
-            'idx:gallery',
-            query.terms + itemType + range,
-            searchOptions,
-        )) as SearchReply;
+        const results = await client.ft.search('idx:gallery', query.terms + itemType + range, searchOptions);
         return {
             total: results.total,
             items: results.documents.map((doc) => toGalleryItem(doc as unknown as RedisResult)),
         };
     } finally {
-        await client.quit();
+        await client.close();
     }
 }
 
@@ -88,7 +84,7 @@ function toGalleryItem(doc: RedisResult): GalleryItem {
             }
             return toImageItem(doc);
         default:
-            throw new Error(`Unknown itemType: ${doc.value.itemType}`);
+            throw new Error(`Unknown itemType: ${String(doc.value.itemType)}`);
     }
 }
 
