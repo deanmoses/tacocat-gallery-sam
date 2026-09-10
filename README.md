@@ -137,7 +137,7 @@ npm run lint          # ESLint with auto-fix
 
 # Building and deploying
 sam build             # Build SAM application
-sam deploy --no-execute-changeset  # Validate template without deploying
+sam deploy --no-execute-changeset  # Creates a changeset in AWS without executing it (uploads artifacts, needs credentials)
 sam deploy            # Deploy to dev/staging
 sam sync --watch      # Deploy to dev/staging and watch mode for rapid dev iteration
 
