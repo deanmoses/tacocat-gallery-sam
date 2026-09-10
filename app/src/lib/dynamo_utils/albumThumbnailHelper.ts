@@ -1,8 +1,8 @@
-import { BatchGetCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { BatchGetCommand } from '@aws-sdk/lib-dynamodb';
 import { GalleryItem, Rectangle } from '../gallery/galleryTypes';
 import { getParentAndNameFromPath, toMediaPath } from '../gallery_path_utils/galleryPathUtils';
 import { getDynamoDbTableName } from '../lambda_utils/Env';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { ddbDocClient } from './ddbClient';
 
 /**
  * Augment album thumbnails with info from the image,
@@ -43,9 +43,7 @@ export async function augmentAlbumThumbnailsWithImageInfo(galleryItems: GalleryI
             },
         },
     });
-    const ddbClient = new DynamoDBClient();
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
-    const result = await docClient.send(ddbCommand);
+    const result = await ddbDocClient.send(ddbCommand);
     const imgInfos = new Map<
         string,
         { parentPath?: string; itemName?: string; thumbnail?: Rectangle; versionId?: string }

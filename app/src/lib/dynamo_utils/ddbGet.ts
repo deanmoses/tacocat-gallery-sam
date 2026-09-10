@@ -1,8 +1,8 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { getParentAndNameFromPath, isValidAlbumPath, isValidPath } from '../gallery_path_utils/galleryPathUtils';
 import { getDynamoDbTableName } from '../lambda_utils/Env';
 import { GalleryItem, GalleryItemKey } from '../gallery/galleryTypes';
+import { ddbDocClient } from './ddbClient';
 
 /** DynamoDB reserved words that need aliasing in expressions */
 const RESERVED_WORDS = ['duration', 'id'] as const;
@@ -70,9 +70,7 @@ export async function getItem<T extends GalleryItem>(
             ddbCommand.input.ExpressionAttributeNames = ExpressionAttributeNames;
         }
     }
-    const ddbClient = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
-    const result = await docClient.send(ddbCommand);
+    const result = await ddbDocClient.send(ddbCommand);
     return result.Item as T;
 }
 
@@ -110,8 +108,6 @@ export async function getChildItems(
             ddbCommand.input.ExpressionAttributeNames = ExpressionAttributeNames;
         }
     }
-    const ddbClient = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
-    const results = await docClient.send(ddbCommand);
+    const results = await ddbDocClient.send(ddbCommand);
     return results?.Items as GalleryItem[] | undefined;
 }

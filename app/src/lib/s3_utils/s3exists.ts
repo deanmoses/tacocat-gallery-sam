@@ -1,6 +1,5 @@
-import { S3Client, HeadObjectCommand, NotFound } from '@aws-sdk/client-s3';
-
-const s3Client = new S3Client({});
+import { HeadObjectCommand, NotFound } from '@aws-sdk/client-s3';
+import { s3Client } from './s3Client';
 
 /**
  * Check if an S3 object exists.

@@ -2,12 +2,13 @@ import { Rectangle } from '../../../lambdas/generateDerivedImage/focusCrop';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { NotFoundException } from '../../lambda_utils/NotFoundException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
-import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { DynamoDBClient, ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
+import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import { getParentAndNameFromPath, isValidMediaPath } from '../../gallery_path_utils/galleryPathUtils';
 import { getItem } from '../../dynamo_utils/ddbGet';
 import { ImageItem, Size } from '../galleryTypes';
 import { ServerException } from '../../lambda_utils/ServerException';
+import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /**
  * Store thumbnail re-cut info about an image in DynamoDB
@@ -52,10 +53,8 @@ export async function recutThumbnail(mediaPath: string, cropInPct: Rectangle) {
     });
 
     // Send command to DynamoDB
-    const ddbClient = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
     try {
-        await docClient.send(ddbCommand);
+        await ddbDocClient.send(ddbCommand);
     } catch (e) {
         if (e instanceof ConditionalCheckFailedException) {
             throw new NotFoundException(`Image not found: [${mediaPath}]`);

@@ -1,5 +1,5 @@
-import { ConditionalCheckFailedException, DynamoDBClient, ExecuteStatementCommand } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { ConditionalCheckFailedException, ExecuteStatementCommand } from '@aws-sdk/client-dynamodb';
+import { DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import {
     getParentAndNameFromPath,
     getParentFromPath,
@@ -8,6 +8,7 @@ import {
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { deleteOriginalAndDerivativesForMediaItem } from '../../s3_utils/s3delete';
+import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /**
  * Delete specified media (image or video) from both DynamoDB and S3.
@@ -35,9 +36,6 @@ export async function deleteMedia(mediaPath: string) {
 async function deleteMediaFromDynamoDB(mediaPath: string) {
     console.info(`Delete Media: deleting from DynamoDB [${mediaPath}]...`);
 
-    const ddbClient = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
-
     // TODO: block delete if the album contains child photos or child albums
     const tableName = getDynamoDbTableName();
     const pathParts = getParentAndNameFromPath(mediaPath);
@@ -48,7 +46,7 @@ async function deleteMediaFromDynamoDB(mediaPath: string) {
             itemName: pathParts.name,
         },
     });
-    await docClient.send(ddbCommand);
+    await ddbDocClient.send(ddbCommand);
 }
 
 /**
@@ -87,10 +85,8 @@ async function removeMediaAsAlbumThumbnail(mediaPath: string, albumPath: string)
             { S: mediaPath },
         ],
     });
-    const ddbClient = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
     try {
-        await docClient.send(ddbCommand);
+        await ddbDocClient.send(ddbCommand);
         console.info(`Delete Media: album [${albumPath}]: removed media [${mediaPath}] as its thumbnail`);
     } catch (e) {
         if (e instanceof ConditionalCheckFailedException) {

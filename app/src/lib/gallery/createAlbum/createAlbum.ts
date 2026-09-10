@@ -1,8 +1,9 @@
-import { ConditionalCheckFailedException, DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
+import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { getParentAndNameFromPath, isValidAlbumPath } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
+import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /**
  * Create album, but don't throw an exception if it already exists.
@@ -76,10 +77,8 @@ export async function createAlbum(
         if (!!attributesToSet?.summary) ddbCommand.input.Item.summary = attributesToSet?.summary;
         if (!!attributesToSet?.published) ddbCommand.input.Item.published = attributesToSet?.published;
     }
-    const ddbClient = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
     try {
-        await docClient.send(ddbCommand);
+        await ddbDocClient.send(ddbCommand);
         console.info(`Create Album: created [${albumPath}]`);
         return true;
     } catch (e) {

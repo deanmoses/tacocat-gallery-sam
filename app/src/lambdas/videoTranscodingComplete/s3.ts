@@ -1,5 +1,4 @@
 import {
-    S3Client,
     DeleteObjectCommand,
     ListObjectsV2Command,
     CopyObjectCommand,
@@ -10,8 +9,7 @@ import { getNameFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { getDerivedImagesBucketName } from '../../lib/lambda_utils/Env';
 import { objectExists } from '../../lib/s3_utils/s3exists';
 import { getDerivedAssetVersionPrefix, getTranscodedVideoS3Key, getVideoPosterS3Key } from '../../lib/s3_utils/s3path';
-
-const s3Client = new S3Client({});
+import { s3Client } from '../../lib/s3_utils/s3Client';
 
 // Content type prefixes to verify MediaConvert set a valid content type.
 // We check prefixes (not exact types) to allow for codec variations like video/webm, image/png, etc.

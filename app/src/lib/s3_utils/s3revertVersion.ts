@@ -1,6 +1,5 @@
-import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
-
-const s3Client = new S3Client({});
+import { DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { s3Client } from './s3Client';
 
 /**
  * Revert an S3 object to its previous version by deleting the specified version.

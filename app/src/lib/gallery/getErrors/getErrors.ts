@@ -1,9 +1,9 @@
 import { setTimeout } from 'node:timers/promises';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { BatchGetCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { BatchGetCommand } from '@aws-sdk/lib-dynamodb';
 import { getErrorTableName } from '../../lambda_utils/Env';
 import { isValidPath } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
+import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 export type GetErrorsRequest = {
     /** Gallery item paths (album, image, or video) to check for errors */
@@ -13,9 +13,6 @@ export type GetErrorsRequest = {
 export type GetErrorsResponse = {
     errors: Record<string, string>;
 };
-
-const ddbClient = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(ddbClient);
 
 /**
  * Get errors for the specified paths.
@@ -74,7 +71,7 @@ async function getErrorBatch(paths: string[]): Promise<Record<string, string>> {
             },
         });
 
-        const result = await docClient.send(ddbCommand);
+        const result = await ddbDocClient.send(ddbCommand);
 
         result.Responses?.[tableName]?.forEach((item) => {
             if (item.path && item.errorMessage) {

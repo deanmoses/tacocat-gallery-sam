@@ -1,8 +1,9 @@
-import { DynamoDBClient, ExecuteStatementCommand } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { ExecuteStatementCommand } from '@aws-sdk/client-dynamodb';
+import { DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { getParentAndNameFromPath, isValidAlbumPath } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
+import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /**
  * Delete an empty album.  Cannot contain children.
@@ -38,9 +39,7 @@ async function albumContainsChildren(albumPath: string): Promise<boolean> {
     const ddbCommand = new ExecuteStatementCommand({
         Statement: `SELECT itemName FROM "${getDynamoDbTableName()}" WHERE parentPath='${albumPath}'`,
     });
-    const ddbClient = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
-    const results = await docClient.send(ddbCommand);
+    const results = await ddbDocClient.send(ddbCommand);
     return !!results?.Items?.length;
 }
 
@@ -60,7 +59,5 @@ async function deleteAlbumFromDynamoDB(albumPath: string) {
         },
     });
 
-    const ddbClient = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
-    await docClient.send(ddbCommand);
+    await ddbDocClient.send(ddbCommand);
 }

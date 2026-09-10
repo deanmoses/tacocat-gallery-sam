@@ -102,7 +102,13 @@ Conditions:
 Globals:
   Function:
     Runtime: nodejs24.x
-    MemorySize: 256
+    # 256MB gives only ~0.15 vCPU, which throttled both init and request handling.
+    # Lambda bills GB-seconds, so faster-at-more-memory is roughly cost neutral.
+    MemorySize: 1024
+    # Graviton: ~20% cheaper per GB-second and typically faster for Node.
+    # The two Sharp functions override this back to x86_64 (see below).
+    Architectures:
+      - arm64
     Timeout: 100 # TODO decrease this; the default is 3!
     LoggingConfig:
       LogFormat: JSON
@@ -461,6 +467,10 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-GenerateDerivedImage
       CodeUri: app/src/lambdas/generateDerivedImage/
       Handler: generateDerivedImageLambda.handler
+      # Pinned to x86_64: the sharp-heic layer is a native x86_64 build.
+      # Rebuild that layer for arm64 to let this inherit the global arm64 setting.
+      Architectures:
+        - x86_64
       Description: Generates derived images
       MemorySize: 1024 # Sharp is CPU-bound; at the inherited 256MB (~0.14 vCPU) this averaged 3.7s
       Environment:
@@ -537,6 +547,7 @@ Resources:
       Handler: syncRedisLambda.handler
       Description: Sync DynamoDB to Redis (diagnose or fix discrepancies)
       Timeout: 900 # 15 minutes
+      MemorySize: 256 # I/O bound bulk sync; extra vCPU wouldn't speed it up
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
@@ -585,7 +596,6 @@ Resources:
       BuildProperties:
         Minify: true
         Target: es2020
-        Sourcemap: true
         EntryPoints:
           - searchLambda.ts
 
@@ -616,7 +626,6 @@ Resources:
       BuildProperties:
         Minify: true
         Target: es2020
-        Sourcemap: true
         EntryPoints:
           - getLatestAlbumLambda.ts
 
@@ -652,7 +661,6 @@ Resources:
       BuildProperties:
         Minify: true
         Target: es2020
-        Sourcemap: true
         EntryPoints:
           - albumExistsLambda.ts
 
@@ -683,7 +691,6 @@ Resources:
       BuildProperties:
         Minify: true
         Target: es2020
-        Sourcemap: true
         EntryPoints:
           - mediaExistsLambda.ts
 
@@ -719,7 +726,6 @@ Resources:
       BuildProperties:
         Minify: true
         Target: es2020
-        Sourcemap: true
         EntryPoints:
           - getAlbumLambda.ts
 
@@ -750,7 +756,6 @@ Resources:
       BuildProperties:
         Minify: true
         Target: es2020
-        Sourcemap: true
         EntryPoints:
           - createAlbumLambda.ts
 
@@ -786,7 +791,6 @@ Resources:
       BuildProperties:
         Minify: true
         Target: es2020
-        Sourcemap: true
         EntryPoints:
           - updateAlbumLambda.ts
 
@@ -822,7 +826,6 @@ Resources:
       BuildProperties:
         Minify: true
         Target: es2020
-        Sourcemap: true
         EntryPoints:
           - updateMediaLambda.ts
 
@@ -853,7 +856,6 @@ Resources:
       BuildProperties:
         Minify: true
         Target: es2020
-        Sourcemap: true
         EntryPoints:
           - setAlbumThumbnailLambda.ts
 
@@ -884,7 +886,6 @@ Resources:
       BuildProperties:
         Minify: true
         Target: es2020
-        Sourcemap: true
         EntryPoints:
           - recutThumbnailLambda.ts
 
@@ -926,7 +927,6 @@ Resources:
       BuildProperties:
         Minify: true
         Target: es2020
-        Sourcemap: true
         EntryPoints:
           - renameMediaLambda.ts
 
@@ -968,7 +968,6 @@ Resources:
       BuildProperties:
         Minify: true
         Target: es2020
-        Sourcemap: true
         EntryPoints:
           - renameAlbumLambda.ts
 
@@ -1004,7 +1003,6 @@ Resources:
       BuildProperties:
         Minify: true
         Target: es2020
-        Sourcemap: true
         EntryPoints:
           - deleteAlbumLambda.ts
 
@@ -1038,7 +1036,6 @@ Resources:
       BuildProperties:
         Minify: true
         Target: es2020
-        Sourcemap: true
         EntryPoints:
           - generateUploadUrlsLambda.ts
 
@@ -1080,7 +1077,6 @@ Resources:
       BuildProperties:
         Minify: true
         Target: es2020
-        Sourcemap: true
         EntryPoints:
           - deleteMediaLambda.ts
 
@@ -1111,7 +1107,6 @@ Resources:
       BuildProperties:
         Minify: true
         Target: es2020
-        Sourcemap: true
         EntryPoints:
           - getErrorsLambda.ts
 
@@ -1124,6 +1119,10 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-ProcessMediaUpload
       CodeUri: app/src/lambdas/processMediaUpload/
       Handler: processMediaUploadLambda.handler
+      # Pinned to x86_64: the sharp-heic layer is a native x86_64 build.
+      # Rebuild that layer for arm64 to let this inherit the global arm64 setting.
+      Architectures:
+        - x86_64
       Description: Lambda that processes media uploaded to S3 - images get metadata extracted, videos get sent to MediaConvert
       MemorySize: 1024 # HEIC conversion needs ~400-600MB for 48MP photos
       Policies:

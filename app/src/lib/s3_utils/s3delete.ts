@@ -1,7 +1,8 @@
-import { DeleteObjectCommand, DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, DeleteObjectsCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { getDerivedImagesBucketName, getOriginalImagesBucketName } from '../lambda_utils/Env';
 import { fromPathToS3OriginalBucketKey, getDerivedAssetPrefix, getDerivedAssetVersionPrefix } from './s3path';
 import { isValidAlbumPath, isValidMediaPath } from '../gallery_path_utils/galleryPathUtils';
+import { s3Client } from './s3Client';
 
 /**
  * For an entire album, delete all the media from S3, both originals and any derived files.
@@ -75,8 +76,7 @@ async function deleteOriginalMedia(mediaPath: string): Promise<void> {
         Bucket: getOriginalImagesBucketName(),
         Key: originalMediaObjectKey,
     });
-    const client = new S3Client({});
-    await client.send(s3Command);
+    await s3Client.send(s3Command);
 }
 
 /**
@@ -133,8 +133,7 @@ async function deleteS3Folder(bucketName: string, keyPrefix: string): Promise<nu
         Bucket: bucketName,
         Prefix: keyPrefix, // the 'folder'
     });
-    const client = new S3Client({});
-    const objectsToDelete = await client.send(s3Command);
+    const objectsToDelete = await s3Client.send(s3Command);
 
     // Do a bulk delete of the objects
     if (objectsToDelete?.KeyCount) {
@@ -147,7 +146,7 @@ async function deleteS3Folder(bucketName: string, keyPrefix: string): Promise<nu
             },
         });
 
-        const deletedObjects = await client.send(deleteCommand);
+        const deletedObjects = await s3Client.send(deleteCommand);
         console.info(`Deleted [${deletedObjects?.Deleted?.length}] derived files.`);
         if (deletedObjects?.Errors) {
             deletedObjects.Errors.map((error) => console.error(`${error.Key} could not be deleted - ${error.Code}`));

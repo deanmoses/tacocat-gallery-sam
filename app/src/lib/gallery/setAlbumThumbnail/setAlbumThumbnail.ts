@@ -5,9 +5,10 @@ import {
     isValidMediaPath,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
-import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { DynamoDBClient, ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
+import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import { itemExists } from '../itemExists/itemExists';
+import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /**
  * Set image as its parent album's thumbnail, if the album does not already
@@ -95,10 +96,8 @@ async function setThumb(albumPath: string, mediaPath: string, replaceExistingThu
             : '(attribute_exists (itemName) AND attribute_not_exists (thumbnail))',
     });
 
-    const client = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(client);
     try {
-        await docClient.send(ddbCommand);
+        await ddbDocClient.send(ddbCommand);
         return true;
     } catch (e) {
         // ConditionalCheckFailed means album already has a thumb.

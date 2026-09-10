@@ -1,5 +1,4 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
+import { GetCommand } from '@aws-sdk/lib-dynamodb';
 import {
     getParentAndNameFromPath,
     getParentFromPath,
@@ -10,6 +9,7 @@ import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { getItem } from '../../dynamo_utils/ddbGet';
 import { AlbumItem } from '../galleryTypes';
+import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /**
  * Return true if the specified album exists in DynamoDB.
@@ -72,10 +72,8 @@ export async function itemExists(path: string): Promise<boolean> {
         ProjectionExpression: 'parentPath,published', // Must get at least one field or else it returns ALL fields
     });
 
-    const ddbClient = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
     try {
-        const response = await docClient.send(ddbCommand);
+        const response = await ddbDocClient.send(ddbCommand);
         return !!response?.Item;
     } catch (e) {
         console.error(`Error attempting to retrieve item [${path}]: `, e);
