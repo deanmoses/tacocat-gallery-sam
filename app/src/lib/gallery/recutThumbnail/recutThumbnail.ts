@@ -71,7 +71,7 @@ export async function recutThumbnail(mediaPath: string, cropInPct: Rectangle) {
  */
 function checkPercent(name: string, value: unknown) {
     if (!isPercent(value)) {
-        throw new BadRequestException(`Invalid ${name} [${value}]`);
+        throw new BadRequestException(`Invalid ${name} [${String(value)}]`);
     }
 }
 

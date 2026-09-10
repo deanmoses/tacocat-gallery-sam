@@ -84,7 +84,7 @@ function toGalleryItem(doc: RedisResult): GalleryItem {
             }
             return toImageItem(doc);
         default:
-            throw new Error(`Unknown itemType: ${doc.value.itemType}`);
+            throw new Error(`Unknown itemType: ${String(doc.value.itemType)}`);
     }
 }
 

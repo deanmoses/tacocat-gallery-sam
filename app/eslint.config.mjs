@@ -63,6 +63,13 @@ export default defineConfig(
             '@typescript-eslint/no-base-to-string': 'error',
             '@typescript-eslint/no-unnecessary-type-assertion': 'error',
 
+            // Both of these are at zero, so gate CI to keep them there.
+            // restrict-template-expressions is the compile-time half of
+            // no-base-to-string above: it catches the `unknown` and `never`
+            // interpolations that only stringify badly once they run.
+            '@typescript-eslint/require-await': 'error',
+            '@typescript-eslint/restrict-template-expressions': 'error',
+
             // `any` leaking out of the AWS SDK and JSON.parse boundaries. Worth
             // seeing and worth chipping away at, but there is too much of it to
             // gate CI on today.
@@ -72,8 +79,6 @@ export default defineConfig(
             '@typescript-eslint/no-unsafe-return': 'warn',
             '@typescript-eslint/no-unsafe-call': 'warn',
             '@typescript-eslint/no-unsafe-enum-comparison': 'warn',
-            '@typescript-eslint/require-await': 'warn',
-            '@typescript-eslint/restrict-template-expressions': 'warn',
         },
     },
 );

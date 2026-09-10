@@ -414,7 +414,7 @@ async function processImage(
                 imgResult,
                 imagePath,
                 'corrupt',
-                `Failed to extract metadata: ${e instanceof Error ? e.message : e}`,
+                `Failed to extract metadata: ${e instanceof Error ? e.message : String(e)}`,
             );
             return imgResult;
         }

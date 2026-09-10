@@ -477,7 +477,7 @@ describe('isValidImageName', () => {
         'a b.jpg',
     ];
     invalidImageNames.forEach((imageName) => {
-        test(`Should be invalid: [${imageName}]`, async () => {
+        test(`Should be invalid: [${imageName}]`, () => {
             expect(isValidImageName(imageName)).toBe(false);
         });
     });
@@ -494,7 +494,7 @@ describe('isValidImageName', () => {
         'monkey_river_15_howler_monkey_calling.jpg', // long filename regression test
     ];
     validImageNames.forEach((imageName) => {
-        test(`Should be valid: [${imageName}]`, async () => {
+        test(`Should be valid: [${imageName}]`, () => {
             expect(isValidImageName(imageName)).toBe(true);
         });
     });
@@ -544,14 +544,14 @@ describe('isValidImageNameStrict', () => {
         'a___b.jpg', // multiple consecutive underscores
     ];
     invalidImageNamesStrict.forEach((imageName) => {
-        test(`Should be invalid: [${imageName}]`, async () => {
+        test(`Should be invalid: [${imageName}]`, () => {
             expect(isValidImageNameStrict(imageName)).toBe(false);
         });
     });
 
     const validImageNamesStrict = ['image.jpg', 'a.jpg', 'a_b.jpg', 'image1_renamed.jpg', 'image.gif', 'image.png'];
     validImageNamesStrict.forEach((imageName) => {
-        test(`Should be valid: [${imageName}]`, async () => {
+        test(`Should be valid: [${imageName}]`, () => {
             expect(isValidImageNameStrict(imageName)).toBe(true);
         });
     });
@@ -599,7 +599,7 @@ describe('isValidVideoNameStrict', () => {
         'a___b.mp4', // multiple consecutive underscores
     ];
     invalidVideoNamesStrict.forEach((videoName) => {
-        test(`Should be invalid: [${videoName}]`, async () => {
+        test(`Should be invalid: [${videoName}]`, () => {
             expect(isValidVideoNameStrict(videoName)).toBe(false);
         });
     });
@@ -617,7 +617,7 @@ describe('isValidVideoNameStrict', () => {
         'video.3gp',
     ];
     validVideoNamesStrict.forEach((videoName) => {
-        test(`Should be valid: [${videoName}]`, async () => {
+        test(`Should be valid: [${videoName}]`, () => {
             expect(isValidVideoNameStrict(videoName)).toBe(true);
         });
     });
@@ -642,7 +642,7 @@ describe('isValidMediaNameStrict', () => {
         'video__1.mp4', // consecutive underscores
     ];
     invalidMediaNamesStrict.forEach((mediaName) => {
-        test(`Should be invalid: [${mediaName}]`, async () => {
+        test(`Should be invalid: [${mediaName}]`, () => {
             expect(isValidMediaNameStrict(mediaName)).toBe(false);
         });
     });
@@ -659,7 +659,7 @@ describe('isValidMediaNameStrict', () => {
         'movie.avi',
     ];
     validMediaNamesStrict.forEach((mediaName) => {
-        test(`Should be valid: [${mediaName}]`, async () => {
+        test(`Should be valid: [${mediaName}]`, () => {
             expect(isValidMediaNameStrict(mediaName)).toBe(true);
         });
     });
@@ -910,7 +910,7 @@ describe('isValidVideoName', () => {
         'a b.mp4',
     ];
     invalidVideoNames.forEach((videoName) => {
-        test(`Should be invalid: [${videoName}]`, async () => {
+        test(`Should be invalid: [${videoName}]`, () => {
             expect(isValidVideoName(videoName)).toBe(false);
         });
     });
@@ -931,7 +931,7 @@ describe('isValidVideoName', () => {
         'monkey_river_15_howler_monkey_calling.mov', // long filename regression test
     ];
     validVideoNames.forEach((videoName) => {
-        test(`Should be valid: [${videoName}]`, async () => {
+        test(`Should be valid: [${videoName}]`, () => {
             expect(isValidVideoName(videoName)).toBe(true);
         });
     });

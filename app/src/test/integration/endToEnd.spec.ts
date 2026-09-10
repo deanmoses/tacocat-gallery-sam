@@ -23,7 +23,7 @@ afterAll(async () => {
     await cleanUpAlbumAndParents(albumPath);
 });
 
-test('validate test setup', async () => {
+test('validate test setup', () => {
     expect(isValidAlbumPath(albumPath)).toBe(true);
     expect(isValidImagePath(imagePath)).toBe(true);
 });
