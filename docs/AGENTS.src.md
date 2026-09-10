@@ -68,6 +68,21 @@ sam logs -n FunctionName --tail          # Specific function logs
 npm run agent-docs    # Regenerate CLAUDE.md and AGENTS.md from docs/AGENTS.src.md
 ```
 
+### esbuild
+
+`sam build` bundles all 21 Lambda functions with esbuild, which SAM requires on the
+host rather than bundling itself. esbuild is an `app/` devDependency, so
+`package-lock.json` pins the version, and CI puts `app/node_modules/.bin` on PATH.
+
+SAM resolves `node_modules` relative to each `CodeUri` (`app/src/lambdas/...`), not
+to `app/`, so the pinned binary is only found via PATH. A globally installed esbuild
+(Homebrew, `npm install -g`) will shadow the pinned one and silently build with a
+different version. To use the pinned version locally:
+
+```bash
+PATH="$PWD/app/node_modules/.bin:$PATH" sam build
+```
+
 ## Environments
 
 The project can create three environments. Each environment is a separate AWS infrastructure stack.

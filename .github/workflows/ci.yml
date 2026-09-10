@@ -85,12 +85,15 @@ jobs:
                   cache: 'npm'
                   cache-dependency-path: app/package-lock.json
 
-            - name: Install esbuild globally
-              run: npm install -g esbuild
-
             - name: Install dependencies
               working-directory: app
               run: npm ci
+
+            - name: Add esbuild to PATH
+              # esbuild is a devDependency, so package-lock.json pins the version.
+              # SAM resolves node_modules relative to each CodeUri rather than to
+              # app/, so the binary has to reach it via PATH.
+              run: echo "$GITHUB_WORKSPACE/app/node_modules/.bin" >> "$GITHUB_PATH"
 
             - name: Setup AWS SAM CLI
               uses: aws-actions/setup-sam@v3
