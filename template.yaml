@@ -113,9 +113,8 @@ Globals:
           COGNITO_CLIENT_ID: !Ref CognitoClientID
   Api:
     Name: !Sub Tacocat Gallery API - ${Env}
-    # Gzip/brotli responses over 1KB. Album JSON is ~28KB uncompressed, ~8KB gzipped.
-    # Unset means no compression at all, which is the default.
-    MinimumCompressionSize: 1000
+    MinimumCompressionSize: 1000 # Gzip/brotli responses over 1KB
+    OpenApiVersion: '3.0.1' # Stops SAM creating unused "Stage" stage
     Domain:
       DomainName: !Sub api.${GalleryAppDomain}
       CertificateArn: !Ref DomainCertificateArn
