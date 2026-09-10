@@ -46,9 +46,9 @@ Sharp with HEIC support is provided via a custom Lambda layer built outside of t
 
 This layer compiles libheif, libde265, and Sharp from source to enable HEIC decoding.
 
-# Appendix
+## Appendix
 
-## Memory Analysis
+### Memory Analysis
 
 Sharp/libvips holds the decoded image in memory as uncompressed RGBA, plus working space for the output.
 
@@ -66,16 +66,16 @@ Sharp/libvips holds the decoded image in memory as uncompressed RGBA, plus worki
 
 **Decision:** Use 1024 MB. This handles typical 12MP photos with headroom and supports newer 48MP phones.
 
-## Cost Impact: Negligible
+### Cost Impact: Negligible
 
 - Lambda pricing: $0.0000166667 per GB-second
 - At 1024 MB vs 256 MB for a 3-second conversion: ~$0.000037 extra per conversion
 - 1,000 HEIC uploads/month: ~$0.04 extra
 - More memory also means more CPU, which can reduce execution time and partially offset the cost
 
-## Rejected Approaches
+### Rejected Approaches
 
-### WASM Conversion (heic-convert)
+#### WASM Conversion (heic-convert)
 
 Would have used this if the Sharp layer hadn't worked.
 
@@ -92,11 +92,11 @@ Would have used this if the Sharp layer hadn't worked.
 - Higher memory usage — WASM decoder + Sharp both in memory
 - Synchronous decoding can block event loop
 
-### Browser-Side Conversion
+#### Browser-Side Conversion
 
 **Rejected because:** Browser Canvas `toBlob('image/jpeg', quality)` uses the browser's built-in JPEG encoder, which produces noticeably worse quality than Sharp/mozjpeg at the same quality setting. Would need quality ~0.92-0.95 in browser to match Sharp at 0.85.
 
-### Python Lambda (pillow-heif)
+#### Python Lambda (pillow-heif)
 
 **Rejected because:**
 
@@ -110,7 +110,7 @@ Would have used this if the Sharp layer hadn't worked.
     - Error handling across the handoff
 - New code to maintain in a language not used elsewhere in the project
 
-## References
+### References
 
 - [sharp-heic-lambda-layer](https://github.com/zoellner/sharp-heic-lambda-layer) — Lambda layer source
 - [Can I Use: HEIF/HEIC](https://caniuse.com/heif) — Browser support

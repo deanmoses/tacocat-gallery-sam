@@ -43,6 +43,10 @@ jobs:
               working-directory: app
               run: npm run format:check
 
+            - name: Lint markdown
+              working-directory: app
+              run: npm run lint:md
+
             - name: Lint shell scripts
               # shellcheck is preinstalled on ubuntu-latest runners
               run: shellcheck scripts/*.sh .husky/pre-commit

@@ -1,5 +1,7 @@
 START_IGNORE
 
+<!-- markdownlint-disable-file MD041 -->
+
 This is the source file for generating CLAUDE.md and AGENTS.md.
 Do not edit those files directly - edit this file instead.
 
@@ -56,6 +58,7 @@ npm run lint          # ESLint, check only (fails on violations)
 npm run lint:fix      # ESLint with auto-fix
 npm run format:check  # Prettier, check only
 npm run format        # Prettier with auto-fix
+npm run lint:md       # markdownlint
 npm run lint:shell    # shellcheck on shell scripts (requires shellcheck)
 npm run lint:actions  # actionlint on GitHub workflows (requires actionlint)
 
@@ -207,6 +210,14 @@ Deliberate exclusions in `.prettierignore`, each for a reason:
   DynamoDB/S3/MediaConvert actually emit.
 - `app/package-lock.json` — npm's to format.
 
+Markdown is linted by markdownlint-cli2 (`npm run lint:md`); rules live in
+`.markdownlint.json` and the file list in `.markdownlint-cli2.jsonc`. The
+generated `CLAUDE.md`/`AGENTS.md` are skipped there because linting them just
+duplicates linting `docs/AGENTS.src.md`.
+
+Dependency updates come in weekly via Dependabot (`.github/dependabot.yml`),
+grouped so the AWS SDK arrives as one PR rather than a dozen.
+
 ## Logging
 
 Use structured JSON logging for CloudWatch queryability:
@@ -243,8 +254,8 @@ console.error(
 
 - **gh CLI**: Use the `gh` CLI tool for GitHub operations.
 - **Branch protection**: The `main` branch is protected. All changes require a pull request.
-- **Pre-commit hooks**: Husky runs gitleaks (secret scanning), shellcheck, actionlint, lint-staged, type checking, and unit tests on commit. gitleaks, shellcheck, and actionlint are skipped with a warning if not installed locally; CI enforces them regardless.
-- **CI workflow**: On PR and push to main, runs lint, format check, shellcheck, actionlint, type check, unit tests, and SAM build. On push to main, also deploys to staging.
+- **Pre-commit hooks**: Husky runs gitleaks (secret scanning), shellcheck, actionlint, markdownlint, lint-staged, type checking, and unit tests on commit. gitleaks, shellcheck, and actionlint are skipped with a warning if not installed locally; CI enforces them regardless.
+- **CI workflow**: On PR and push to main, runs lint, format check, markdownlint, shellcheck, actionlint, type check, unit tests, and SAM build. On push to main, also deploys to staging.
 - **Production deploy**: Manual workflow dispatch from GitHub Actions. Runs tests, deploys to prod, creates a release tag (YYYYvN format), and generates release notes.
 
 START_CLAUDE
