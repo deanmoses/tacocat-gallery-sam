@@ -59,7 +59,10 @@ export async function setAlbumThumbnail(
     }
 
     const thumbWasReplaced = await setThumb(albumPath, mediaPath, replaceExistingThumb);
-    console.info(`Set Album Thumb: set album [${albumPath}] thumbnail to [${mediaPath}]`);
+    // The case where the thumb was not set is already logged by setThumb()
+    if (thumbWasReplaced) {
+        console.info(`Set Album Thumb: set album [${albumPath}] thumbnail to [${mediaPath}]`);
+    }
     return thumbWasReplaced;
 }
 
