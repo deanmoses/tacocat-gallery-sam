@@ -38,7 +38,7 @@
         "aws-jwt-verify": "^5.2.1",
         "exifreader": "^4.44.1",
         "mime": "^4.1.0",
-        "redis": "^5.12.1",
+        "redis": "^6.2.1",
         "sharp": "^0.34.5"
     },
     "devDependencies": {
