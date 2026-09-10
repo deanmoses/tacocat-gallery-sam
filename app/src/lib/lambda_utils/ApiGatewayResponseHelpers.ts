@@ -35,6 +35,11 @@ export function respondHttp(_event: APIGatewayProxyEvent, body: object, statusCo
             'Access-Control-Allow-Methods': 'HEAD, GET, OPTIONS, POST, PUT, PATCH, DELETE',
             'Access-Control-Allow-Credentials': 'true',
             'Access-Control-Allow-Origin': `https://${getGalleryAppDomain()}`,
+            // Lets the gallery app read this response's full Resource Timing entry
+            // (DNS/TCP/TLS, nextHopProtocol, transferSize). Without it the browser
+            // zeroes those out for cross-origin responses. Separate from CORS above:
+            // that governs reading the body, this governs reading the timings.
+            'Timing-Allow-Origin': `https://${getGalleryAppDomain()}`,
         },
     };
 }

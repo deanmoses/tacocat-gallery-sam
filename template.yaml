@@ -113,6 +113,9 @@ Globals:
           COGNITO_CLIENT_ID: !Ref CognitoClientID
   Api:
     Name: !Sub Tacocat Gallery API - ${Env}
+    # Gzip/brotli responses over 1KB. Album JSON is ~28KB uncompressed, ~8KB gzipped.
+    # Unset means no compression at all, which is the default.
+    MinimumCompressionSize: 1000
     Domain:
       DomainName: !Sub api.${GalleryAppDomain}
       CertificateArn: !Ref DomainCertificateArn
@@ -253,6 +256,9 @@ Resources:
       DistributionConfig:
         Enabled: true
         Comment: !Sub Images for ${AWS::StackName}
+        # Without this CloudFormation defaults to http1.1, which caps the browser at
+        # ~6 concurrent connections -- painful for an album of 65 thumbnails
+        HttpVersion: http2and3
         Aliases:
         - !Sub img.${GalleryAppDomain}
         ViewerCertificate:
@@ -334,6 +340,12 @@ Resources:
           Items:
             - Header: Cache-Control
               Value: public, max-age=31536000, immutable
+              Override: true
+            # Lets the gallery app read the full Resource Timing entry for thumbnails
+            # (nextHopProtocol, transferSize, DNS/TCP/TLS). Cross-origin timings are
+            # zeroed out without it. Applied on cache hits too, so no invalidation needed.
+            - Header: Timing-Allow-Origin
+              Value: !Sub https://${GalleryAppDomain}
               Override: true
 
   # Caching policy to cache forever
