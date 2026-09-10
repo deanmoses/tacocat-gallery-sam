@@ -24,7 +24,6 @@
  * @see https://github.com/deanmoses/tacocat-gallery-sam/issues/109
  */
 
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import ExifReader from 'exifreader';
@@ -41,6 +40,8 @@ import {
 import { AlbumItem, ImageItem, Size } from '../../../lib/gallery/galleryTypes';
 import { selectMetadata } from '../../processMediaUpload/extractImageMetadata';
 import { mergeTags } from '../../../lib/gallery/upsertImage/upsertImage';
+import { ddbDocClient } from '../../../lib/dynamo_utils/ddbClient';
+import { s3Client as sharedS3Client } from '../../../lib/s3_utils/s3Client';
 
 /** Migration mode: diagnose (read-only) or fix (write corrections) */
 export type MigrateMode = 'diagnose' | 'fix';
@@ -128,8 +129,8 @@ export async function migrateDimensions(input: MigrateInput, options: MigrateOpt
     console.log(JSON.stringify({ event: 'migrate_start', mode, image, startFrom }));
 
     // Set up clients
-    const docClient = options.docClient ?? DynamoDBDocumentClient.from(new DynamoDBClient({}));
-    const s3Client = options.s3Client ?? new S3Client({});
+    const docClient = options.docClient ?? ddbDocClient;
+    const s3Client = options.s3Client ?? sharedS3Client;
 
     const result: MigrateResult = {
         albumsChecked: 0,

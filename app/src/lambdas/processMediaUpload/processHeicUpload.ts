@@ -1,10 +1,9 @@
-import { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { GetObjectCommand, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import sharp from 'sharp';
 import { recordMediaProcessingError } from '../../lib/dynamo_utils/recordError';
 import { JPEG_ORIGINAL_QUALITY } from './mediaProcessingConstants';
 import { HEIC_EXTENSIONS } from '../../lib/gallery_path_utils/galleryPathUtils';
-
-const s3Client = new S3Client({});
+import { s3Client } from '../../lib/s3_utils/s3Client';
 
 /**
  * Process a HEIC/HEIF upload by converting to JPEG and saving to S3.

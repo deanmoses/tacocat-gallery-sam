@@ -1,9 +1,9 @@
-import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { getParentAndNameFromPath, isValidImagePath } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { ImageCreateRequest } from '../galleryTypes';
+import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /**
  * Merge existing and incoming tags, deduplicating and filtering out empty values.
@@ -41,9 +41,6 @@ export async function upsertImage(imagePath: string, image: ImageCreateRequest):
     const pathParts = getParentAndNameFromPath(imagePath);
     if (!pathParts.name) throw new Error('Expecting path to have a leaf, got none');
 
-    const ddbClient = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
-
     // Fetch existing tags to merge with incoming tags
     const getCommand = new GetCommand({
         TableName: getDynamoDbTableName(),
@@ -53,7 +50,7 @@ export async function upsertImage(imagePath: string, image: ImageCreateRequest):
         },
         ProjectionExpression: 'tags',
     });
-    const existingItem = await docClient.send(getCommand);
+    const existingItem = await ddbDocClient.send(getCommand);
     const existingTags = existingItem.Item?.tags as string[] | undefined;
 
     // Construct the DynamoDB update command
@@ -100,5 +97,5 @@ export async function upsertImage(imagePath: string, image: ImageCreateRequest):
     ddbCommand.input.UpdateExpression = updateExpression;
 
     // Send update command to DynamoDB
-    await docClient.send(ddbCommand);
+    await ddbDocClient.send(ddbCommand);
 }

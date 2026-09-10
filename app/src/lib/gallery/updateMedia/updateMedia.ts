@@ -2,9 +2,9 @@ import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { NotFoundException } from '../../lambda_utils/NotFoundException';
 import { getParentAndNameFromPath, isValidMediaPath } from '../../gallery_path_utils/galleryPathUtils';
 import { buildUpdatePartiQL } from '../../dynamo_utils/DynamoUpdateBuilder';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, ExecuteStatementCommand } from '@aws-sdk/lib-dynamodb';
+import { ExecuteStatementCommand } from '@aws-sdk/lib-dynamodb';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
+import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /**
  * Update a media item's attributes (like title and description) in DynamoDB
@@ -54,9 +54,7 @@ export async function updateMedia(mediaPath: string, attributesToUpdate: Record<
     //
 
     try {
-        const ddbClient = new DynamoDBClient({});
-        const docClient = DynamoDBDocumentClient.from(ddbClient);
-        await docClient.send(ddbCommand);
+        await ddbDocClient.send(ddbCommand);
     } catch (e) {
         if (e?.toString().includes('conditional')) {
             throw new NotFoundException('Media not found: ' + mediaPath);

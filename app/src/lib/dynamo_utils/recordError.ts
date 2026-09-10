@@ -1,6 +1,6 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { getErrorTableName } from '../lambda_utils/Env';
+import { ddbDocClient } from './ddbClient';
 
 /**
  * Types of errors that can be recorded in the error table.
@@ -16,9 +16,6 @@ export enum ErrorType {
  */
 const ERROR_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 
-const ddbClient = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(ddbClient);
-
 /**
  * Record an error to the error table.
  * Does not throw on failure - logs error and returns false.
@@ -30,7 +27,7 @@ const docClient = DynamoDBDocumentClient.from(ddbClient);
  */
 export async function recordError(errorType: ErrorType, path: string, errorMessage: string): Promise<boolean> {
     try {
-        await docClient.send(
+        await ddbDocClient.send(
             new PutCommand({
                 TableName: getErrorTableName(),
                 Item: {

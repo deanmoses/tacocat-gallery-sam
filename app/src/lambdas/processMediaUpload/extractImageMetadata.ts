@@ -1,7 +1,8 @@
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
 import ExifReader from 'exifreader';
 import { Readable } from 'stream';
 import { ImageCreateRequest } from '../../lib/gallery/galleryTypes';
+import { s3Client } from '../../lib/s3_utils/s3Client';
 
 /**
  * Error thrown when ExifReader fails to extract metadata from an image.
@@ -22,8 +23,7 @@ export async function extractImageMetadata(bucket: string, objectKey: string): P
         Bucket: bucket,
         Key: objectKey,
     });
-    const client = new S3Client({});
-    const response = await client.send(s3Command);
+    const response = await s3Client.send(s3Command);
     // TODO: download this async, because you don't need to download
     // the full image to read the metadata.
     //

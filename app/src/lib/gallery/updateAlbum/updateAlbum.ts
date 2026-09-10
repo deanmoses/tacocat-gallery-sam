@@ -7,11 +7,12 @@ import {
     isValidDayAlbumPath,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { buildUpdatePartiQL } from '../../dynamo_utils/DynamoUpdateBuilder';
-import { ConditionalCheckFailedException, DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, ExecuteStatementCommand } from '@aws-sdk/lib-dynamodb';
+import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
+import { ExecuteStatementCommand } from '@aws-sdk/lib-dynamodb';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { AlbumItem, AlbumUpdateRequest } from '../galleryTypes';
 import { getAlbum } from '../getAlbum/getAlbum';
+import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /**
  * Update an album's attributes (like description and summary) in DynamoDB
@@ -82,10 +83,8 @@ export async function updateAlbum(albumPath: string, attributesToUpdate: AlbumUp
     //
     // Send update to DynamoDB
     //
-    const ddbClient = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
     try {
-        await docClient.send(ddbCommand);
+        await ddbDocClient.send(ddbCommand);
     } catch (e) {
         if (e instanceof ConditionalCheckFailedException) {
             throw new NotFoundException(`Album not found: [${albumPath}]`);

@@ -1,5 +1,5 @@
-import { MediaConvertClient, GetJobCommand } from '@aws-sdk/client-mediaconvert';
-import { getMediaConvertEndpoint } from './getMediaConvertEndpoint';
+import { GetJobCommand } from '@aws-sdk/client-mediaconvert';
+import { getMediaConvertClient } from './mediaConvertClient';
 
 export interface MediaConvertJobMetadata {
     duration: number;
@@ -13,8 +13,7 @@ export interface MediaConvertJobMetadata {
  * @returns Job metadata including duration (seconds) and dimensions
  */
 export async function getMediaConvertJobMetadata(jobId: string): Promise<MediaConvertJobMetadata> {
-    const endpoint = await getMediaConvertEndpoint();
-    const mediaConvertClient = new MediaConvertClient({ endpoint });
+    const mediaConvertClient = await getMediaConvertClient();
 
     const response = await mediaConvertClient.send(new GetJobCommand({ Id: jobId }));
     const job = response.Job;

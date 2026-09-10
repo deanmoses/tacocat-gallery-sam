@@ -1,9 +1,9 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { getParentAndNameFromPath, isValidVideoPath } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { Size } from '../galleryTypes';
+import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /**
  * Create or update a video in DynamoDB.
@@ -31,11 +31,8 @@ export async function upsertVideo(
     const pathParts = getParentAndNameFromPath(videoPath);
     if (!pathParts.name) throw new Error('Expecting path to have a leaf, got none');
 
-    const ddbClient = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
-
     const now = new Date().toISOString();
-    await docClient.send(
+    await ddbDocClient.send(
         new UpdateCommand({
             TableName: getDynamoDbTableName(),
             Key: {

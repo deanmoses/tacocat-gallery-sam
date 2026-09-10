@@ -1,18 +1,17 @@
-import { GetObjectCommand, PutObjectCommand, S3Client, NoSuchKey } from '@aws-sdk/client-s3';
+import { GetObjectCommand, PutObjectCommand, NoSuchKey } from '@aws-sdk/client-s3';
 import { env } from './env';
 import { getVideoPosterS3Key } from '../../lib/s3_utils/s3path';
+import { s3Client } from '../../lib/s3_utils/s3Client';
 
 const originalImagesBucket = env('ORIGINAL_IMAGES_BUCKET');
 const optimizedImagesBucket = env('DERIVED_IMAGES_BUCKET');
-
-const s3 = new S3Client({});
 
 /**
  * Load original image from the Originals bucket.
  */
 export const loadOriginalImage = async (id: string, versionId: string): Promise<Uint8Array | undefined> => {
     try {
-        const response = await s3.send(
+        const response = await s3Client.send(
             new GetObjectCommand({
                 Bucket: originalImagesBucket,
                 Key: id,
@@ -46,7 +45,7 @@ export const loadVideoPoster = async (s3Key: string, versionId: string): Promise
     const path = '/' + s3Key;
     const key = getVideoPosterS3Key(path, versionId);
     try {
-        const response = await s3.send(
+        const response = await s3Client.send(
             new GetObjectCommand({
                 Bucket: optimizedImagesBucket,
                 Key: key,
@@ -77,7 +76,7 @@ export const loadVideoPoster = async (s3Key: string, versionId: string): Promise
  */
 export const saveOptimizedImage = async (path: string, image: Buffer, contentType: string, cacheControl: string) => {
     try {
-        await s3.send(
+        await s3Client.send(
             new PutObjectCommand({
                 Bucket: optimizedImagesBucket,
                 Key: path.substring(1),

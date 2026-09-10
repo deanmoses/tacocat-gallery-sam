@@ -1,5 +1,5 @@
-import { DynamoDBClient, ExecuteStatementCommand } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
+import { ExecuteStatementCommand } from '@aws-sdk/client-dynamodb';
+import { TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
 import {
     getParentAndNameFromPath,
     getParentFromPath,
@@ -15,6 +15,7 @@ import { copyOriginals } from '../../s3_utils/s3copy';
 import { deleteOriginalsAndDerivativesForAlbum } from '../../s3_utils/s3delete';
 import { getFullChildrenFromDynamoDB, getFullItemFromDynamoDB, getItem } from '../../dynamo_utils/ddbGet';
 import { AlbumItem, ImageItem } from '../galleryTypes';
+import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /**
  * Rename a day album in both DynamoDB and S3.
@@ -155,9 +156,7 @@ async function moveAlbumInDynamoDB(
 
     //console.log(`transaction: `, JSON.stringify(ddbCommand.input.TransactItems, null, 2));
 
-    const ddbClient = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
-    await docClient.send(ddbCommand);
+    await ddbDocClient.send(ddbCommand);
 }
 
 /**
@@ -192,9 +191,7 @@ export async function renameAlbumThumb(
                 ` SET updatedOn='${new Date().toISOString()}'` +
                 ` WHERE parentPath='${albumPathParts.parent}' AND itemName='${albumPathParts.name}'`,
         });
-        const ddbClient = new DynamoDBClient({});
-        const docClient = DynamoDBDocumentClient.from(ddbClient);
-        await docClient.send(ddbCommand);
+        await ddbDocClient.send(ddbCommand);
         console.info(`Renamed album [${albumPath}] thumb from [${oldImagePath}] to [${newImagePath}]`);
     } else {
         console.info(`Album [${albumPath}] did not have an image within [${oldPathOfAlbumWithThumb}] as its thumbnail`);

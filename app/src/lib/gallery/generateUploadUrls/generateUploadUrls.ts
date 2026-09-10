@@ -9,6 +9,7 @@ import {
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { itemExists } from '../itemExists/itemExists';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { s3Client } from '../../s3_utils/s3Client';
 
 /** Presigned URL expiration in seconds */
 const UPLOAD_URL_EXPIRATION_SECONDS = 60 * 60; // 1 hour is enough large video uploads
@@ -31,7 +32,6 @@ export async function generateUploadUrls(albumPath: string, mediaPaths: string[]
             throw new BadRequestException(`Media [${mediaPath}] not in album [${albumPath}]`);
     }
     if (!(await itemExists(albumPath))) throw new BadRequestException(`Album does not exist: [${albumPath}]`);
-    const s3Client = new S3Client({});
     const uploadUrls: UploadUrlMap = {};
     for (const mediaPath of mediaPaths) {
         uploadUrls[mediaPath] = await generateUploadUrl(s3Client, mediaPath);

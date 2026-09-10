@@ -1,5 +1,4 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, BatchGetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { BatchGetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import {
     S3Client,
     CopyObjectCommand,
@@ -8,6 +7,8 @@ import {
     HeadObjectCommand,
     NotFound,
 } from '@aws-sdk/client-s3';
+import { ddbDocClient } from '../../../lib/dynamo_utils/ddbClient';
+import { s3Client } from '../../../lib/s3_utils/s3Client';
 
 /** Event shape for direct Lambda invocation */
 export interface VideoIdToPathEvent {
@@ -57,10 +58,6 @@ export const handler = async (event: VideoIdToPathEvent): Promise<MigrationResul
         throw new Error('Invalid input: must provide non-empty array of video paths');
     }
 
-    const ddbClient = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
-    const s3Client = new S3Client({});
-
     console.info(JSON.stringify({ event: 'migration_started', totalPaths: event.paths.length }));
 
     // =========================================================================
@@ -83,7 +80,7 @@ export const handler = async (event: VideoIdToPathEvent): Promise<MigrationResul
             };
         });
 
-        const response = await docClient.send(
+        const response = await ddbDocClient.send(
             new BatchGetCommand({
                 RequestItems: {
                     [tableName]: { Keys: keys },
@@ -206,7 +203,7 @@ export const handler = async (event: VideoIdToPathEvent): Promise<MigrationResul
 
             // Remove id field from DynamoDB record
             const lastSlash = path.lastIndexOf('/');
-            await docClient.send(
+            await ddbDocClient.send(
                 new UpdateCommand({
                     TableName: tableName,
                     Key: {

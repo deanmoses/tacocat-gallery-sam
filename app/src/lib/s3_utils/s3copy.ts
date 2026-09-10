@@ -1,8 +1,9 @@
-import { S3Client, CopyObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { CopyObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { getOriginalImagesBucketName, getDerivedImagesBucketName } from '../lambda_utils/Env';
 import { listOriginalImages } from './s3list';
 import { fromPathToS3OriginalBucketKey, fromS3OriginalBucketKeyToPath, getDerivedAssetVersionPrefix } from './s3path';
 import { getNameFromPath, isValidAlbumPath, isValidMediaPath } from '../gallery_path_utils/galleryPathUtils';
+import { s3Client } from './s3Client';
 
 /**
  * For an entire album, copy its media to new path in S3 originals bucket.
@@ -76,8 +77,7 @@ export async function copyOriginal(oldMediaPath: string, newMediaPath: string): 
         Bucket: getOriginalImagesBucketName(), // Destination bucket
         Key: fromPathToS3OriginalBucketKey(newMediaPath), // Destination key
     });
-    const client = new S3Client({});
-    const response = await client.send(copyCommand);
+    const response = await s3Client.send(copyCommand);
     if (!response.VersionId)
         throw new Error(`No version ID returned from S3 copy from [${oldMediaPath}] to [${newMediaPath}]`);
     return response.VersionId;
@@ -105,8 +105,7 @@ export async function copyDerivedAssets(
     const newPrefix = getDerivedAssetVersionPrefix(newPath, newVersionId);
 
     // List all objects with the old prefix
-    const client = new S3Client({});
-    const listResponse = await client.send(
+    const listResponse = await s3Client.send(
         new ListObjectsV2Command({
             Bucket: derivedBucket,
             Prefix: oldPrefix,
@@ -125,7 +124,7 @@ export async function copyDerivedAssets(
         objects.map(async (obj) => {
             if (!obj.Key) return;
             const newKey = obj.Key.replace(oldPrefix, newPrefix);
-            await client.send(
+            await s3Client.send(
                 new CopyObjectCommand({
                     Bucket: derivedBucket,
                     CopySource: `${derivedBucket}/${obj.Key}`,

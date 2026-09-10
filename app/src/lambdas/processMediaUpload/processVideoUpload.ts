@@ -1,7 +1,7 @@
-import { MediaConvertClient, CreateJobCommand, CreateJobRequest } from '@aws-sdk/client-mediaconvert';
+import { CreateJobCommand, CreateJobRequest } from '@aws-sdk/client-mediaconvert';
 import { isValidVideoPath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { getMediaConvertRoleArn, getDerivedImagesBucketName } from '../../lib/lambda_utils/Env';
-import { getMediaConvertEndpoint } from '../../lib/mediaconvert_utils/getMediaConvertEndpoint';
+import { getMediaConvertClient } from '../../lib/mediaconvert_utils/mediaConvertClient';
 import { JPEG_ORIGINAL_QUALITY } from './mediaProcessingConstants';
 import { recordMediaProcessingError } from '../../lib/dynamo_utils/recordError';
 import { revertS3Version } from '../../lib/s3_utils/s3revertVersion';
@@ -67,8 +67,7 @@ async function createMediaConvertJob(
     versionId: string,
     videoPath: string,
 ): Promise<void> {
-    const endpoint = await getMediaConvertEndpoint();
-    const client = new MediaConvertClient({ endpoint });
+    const client = await getMediaConvertClient();
 
     const roleArn = getMediaConvertRoleArn();
     const derivedBucket = getDerivedImagesBucketName();

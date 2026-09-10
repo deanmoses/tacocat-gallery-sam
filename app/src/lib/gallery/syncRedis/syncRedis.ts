@@ -1,4 +1,3 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { SCHEMA_FIELD_TYPE } from 'redis';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
@@ -7,6 +6,7 @@ import { RedisClient, createRedisWriteClient, SEARCH_INDEX_NAME } from '../../re
 import { saveToRedis } from '../../redis_utils/redisMset';
 import { GalleryItem } from '../galleryTypes';
 import { RedisGalleryItem } from '../../redis_utils/redisTypes';
+import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /** Sync mode: diagnose (read-only), fix (write corrections), or init (create index) */
 export type SyncMode = 'diagnose' | 'fix' | 'init';
@@ -90,7 +90,7 @@ export async function syncRedis(options: SyncOptions): Promise<SyncResult | Sync
     console.log(JSON.stringify({ event: 'sync_start', mode }));
 
     // Set up clients
-    const docClient = options.docClient ?? DynamoDBDocumentClient.from(new DynamoDBClient({}));
+    const docClient = options.docClient ?? ddbDocClient;
     const redisClient = options.redisClient ?? (await createRedisWriteClient());
     const shouldCloseRedis = !options.redisClient;
 

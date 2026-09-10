@@ -1,5 +1,5 @@
-import { DynamoDBClient, ExecuteStatementCommand, ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
+import { ExecuteStatementCommand, ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
+import { TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
 import {
     getNameFromPath,
     getParentAndNameFromPath,
@@ -15,6 +15,7 @@ import { copyOriginal, copyDerivedAssets } from '../../s3_utils/s3copy';
 import { deleteOriginalAndDerivativesForMediaItem } from '../../s3_utils/s3delete';
 import { getFullItemFromDynamoDB } from '../../dynamo_utils/ddbGet';
 import { MediaItem } from '../galleryTypes';
+import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /**
  * Rename a media item (image or video) in both DynamoDB and S3.
@@ -155,9 +156,7 @@ async function moveMediaInDynamoDB(oldMediaPath: string, newMediaName: string, n
             },
         ],
     });
-    const ddbClient = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
-    await docClient.send(ddbCommand);
+    await ddbDocClient.send(ddbCommand);
 }
 
 /**
@@ -189,10 +188,8 @@ export async function renameAlbumThumb(albumPath: string, oldMediaPath: string, 
         ],
     });
 
-    const ddbClient = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(ddbClient);
     try {
-        await docClient.send(ddbCommand);
+        await ddbDocClient.send(ddbCommand);
         console.info(`Album [${albumPath}]: renamed thumbnail from [${oldMediaPath}] to [${newMediaPath}]`);
     } catch (e) {
         if (e instanceof ConditionalCheckFailedException) {
