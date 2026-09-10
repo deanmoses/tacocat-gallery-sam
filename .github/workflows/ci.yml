@@ -22,10 +22,10 @@ jobs:
         outputs:
             code_changed: ${{ steps.filter.outputs.code }}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
               with:
                   fetch-depth: 0 # Required for paths-filter to compare commits on push
-            - uses: dorny/paths-filter@v3
+            - uses: dorny/paths-filter@v4
               id: filter
               with:
                   predicate-quantifier: 'every'
@@ -76,10 +76,10 @@ jobs:
         timeout-minutes: 20
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
 
             - name: Setup Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v7
               with:
                   node-version: '24'
                   cache: 'npm'
@@ -93,7 +93,7 @@ jobs:
               run: npm ci
 
             - name: Setup AWS SAM CLI
-              uses: aws-actions/setup-sam@v2
+              uses: aws-actions/setup-sam@v3
               with:
                   use-installer: true
 
@@ -101,7 +101,7 @@ jobs:
               run: sam build
 
             - name: Configure AWS credentials
-              uses: aws-actions/configure-aws-credentials@v4
+              uses: aws-actions/configure-aws-credentials@v6
               with:
                   aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
                   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
