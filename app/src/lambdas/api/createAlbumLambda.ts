@@ -4,7 +4,7 @@ import {
     HttpMethod,
     ensureHttpMethod,
     getAlbumPath,
-    getBodyAsJson,
+    getBodyAsAttributes,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { ensureAuthorizedForWrites } from '../../lib/lambda_utils/AuthorizationHelpers';
 import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
@@ -17,7 +17,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         ensureHttpMethod(event, HttpMethod.PUT);
         await ensureAuthorizedForWrites(event);
         const albumPath = getAlbumPath(event);
-        const attributesToSet = getBodyAsJson(event);
+        const attributesToSet = getBodyAsAttributes(event);
         await createAlbum(albumPath, attributesToSet);
         return respondSuccessMessage(event, `Album [${albumPath}] created`);
     } catch (e) {

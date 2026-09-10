@@ -3,7 +3,7 @@ import { handleHttpExceptions, respondSuccessMessage } from '../../lib/lambda_ut
 import {
     HttpMethod,
     ensureHttpMethod,
-    getBodyAsJson,
+    getBodyAsAttributes,
     getMediaPath,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { ensureAuthorizedForWrites } from '../../lib/lambda_utils/AuthorizationHelpers';
@@ -17,7 +17,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         ensureHttpMethod(event, HttpMethod.PATCH);
         await ensureAuthorizedForWrites(event);
         const mediaPath = getMediaPath(event);
-        const attributesToUpdate = getBodyAsJson(event);
+        const attributesToUpdate = getBodyAsAttributes(event);
         await updateMedia(mediaPath, attributesToUpdate);
         return respondSuccessMessage(event, `Updated media [${mediaPath}]`);
     } catch (e) {

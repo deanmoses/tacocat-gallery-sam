@@ -3,7 +3,8 @@ import { handleHttpExceptions, respondSuccessMessage } from '../../lib/lambda_ut
 import {
     HttpMethod,
     ensureHttpMethod,
-    getBodyAsJson,
+    getBodyAsObject,
+    getNumberField,
     getMediaPath,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { ensureAuthorizedForWrites } from '../../lib/lambda_utils/AuthorizationHelpers';
@@ -18,7 +19,13 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         ensureHttpMethod(event, HttpMethod.PATCH);
         await ensureAuthorizedForWrites(event);
         const mediaPath = getMediaPath(event);
-        const crop: Rectangle = getBodyAsJson(event);
+        const body = getBodyAsObject(event);
+        const crop: Rectangle = {
+            x: getNumberField(body, 'x'),
+            y: getNumberField(body, 'y'),
+            width: getNumberField(body, 'width'),
+            height: getNumberField(body, 'height'),
+        };
         await recutThumbnail(mediaPath, crop);
         return respondSuccessMessage(event, `Media [${mediaPath}] thumbnail re-cut`);
     } catch (e) {
