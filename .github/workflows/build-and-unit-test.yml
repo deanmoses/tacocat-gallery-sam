@@ -58,8 +58,11 @@ jobs:
               run: npm run compile
 
             - name: Unit tests
+              # `npm test` also runs tsc, which the Type check step above already
+              # did. Run Jest alone here; ts-jest is transpile-only, so types are
+              # gated entirely by that step.
               working-directory: app
-              run: npm test
+              run: npm run test:jest
 
             - name: Setup AWS SAM CLI
               uses: aws-actions/setup-sam@v3

@@ -8,8 +8,9 @@
         "node": ">=24 <25"
     },
     "scripts": {
-        "test": "npm run compile && jest --selectProjects=unit --silent",
-        "test:verbose": "npm run compile && jest --selectProjects=unit",
+        "test": "tsc & TSC=$!; jest --selectProjects=unit --silent; JEST=$?; wait $TSC && exit $JEST",
+        "test:verbose": "tsc & TSC=$!; jest --selectProjects=unit; JEST=$?; wait $TSC && exit $JEST",
+        "test:jest": "jest --selectProjects=unit --silent",
         "test:integration": "npm run compile && jest --selectProjects=integration --silent",
         "test:all": "npm run compile && jest",
         "lint": "cd .. && eslint . --config app/eslint.config.mjs",
