@@ -83,7 +83,7 @@ describe('delete', () => {
             const children = (await getAlbumAndChildren(albumPath, true /* include unpublished */))?.children;
             if (!children) throw new Error('no children');
             for (const child of children) {
-                if (!child.parentPath) throw 'child has no parent path';
+                if (!child.parentPath) throw new Error('child has no parent path');
                 const childPath = child.parentPath + child.itemName;
                 await expect(deleteMedia(childPath)).resolves.not.toThrow();
             }

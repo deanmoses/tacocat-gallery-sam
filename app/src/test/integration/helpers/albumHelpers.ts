@@ -90,13 +90,13 @@ async function cleanUpChildren(albumPath: string): Promise<void> {
 async function cleanUpChildMediaItem(albumPath: string, child: GalleryItem): Promise<void> {
     console.log(`Album Cleanup: cleaning up album [${albumPath}]'s child [${child?.itemName}]`);
     try {
-        if (!child.itemName) throw 'child has no name';
+        if (!child.itemName) throw new Error('child has no name');
         if (isValidDayAlbumName(child.itemName)) {
             console.error(
                 `Album Cleanup: album [${albumPath}] contains child album [${child?.itemName}].  Delete child albums before parent albums.  Continuing.`,
             );
         } else {
-            if (!child.parentPath) throw 'child has no parent path';
+            if (!child.parentPath) throw new Error('child has no parent path');
             const childPath = child.parentPath + child.itemName;
             console.log(`Album Cleanup: deleting album [${albumPath}]'s media [${childPath}]`);
             await deleteMedia(childPath);

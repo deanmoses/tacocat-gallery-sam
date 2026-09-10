@@ -17,7 +17,7 @@ fi
 
 # If source file or build script is staged, allow the commit
 # (the pre-commit hook will regenerate the output files)
-if echo "$staged_files" | grep -qE "(docs/AGENTS\.src\.md|app/scripts/build-agent-docs\.mjs)$"; then
+if echo "$staged_files" | grep -qE "(docs/AGENTS\.src\.md|scripts/build-agent-docs\.mjs)$"; then
     exit 0
 fi
 

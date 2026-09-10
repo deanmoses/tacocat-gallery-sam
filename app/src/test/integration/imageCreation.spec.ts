@@ -51,7 +51,7 @@ test('Grandparent album was created', async () => {
 
 test('Album contains image', async () => {
     const album = await getAlbumAndChildren(albumPath);
-    if (!album) throw 'no album';
+    if (!album) throw new Error('no album');
     const imageName = reallyGetNameFromPath(imagePath);
     const image = findMedia(album, imageName);
     if (!image) throw new Error(`Did not find child image`);
@@ -81,7 +81,7 @@ test('Delete image', async () => {
 
 test('Album should not contain deleted image', async () => {
     const album = await getAlbumAndChildren(albumPath);
-    if (!album) throw 'no album';
+    if (!album) throw new Error('no album');
     const imageName = reallyGetNameFromPath(imagePath);
     const image = findMedia(album, imageName);
     if (image) throw new Error(`Image [${imageName}] should not exist in album [${albumPath}]`);

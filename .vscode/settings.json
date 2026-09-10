@@ -1,7 +1,7 @@
 {
-  "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "jest.rootPath": "app",
-  "jest.autoRun": { "watch": false },
-  "jest.showCoverageOnLoad": false
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "jest.rootPath": "app",
+    "jest.autoRun": { "watch": false },
+    "jest.showCoverageOnLoad": false
 }

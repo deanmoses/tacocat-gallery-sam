@@ -1,0 +1,11 @@
+{
+    // Rule configuration lives in .markdownlint.json, which this file inherits.
+    "globs": ["**/*.md"],
+    "ignores": [
+        "**/node_modules/**",
+        ".aws-sam/**",
+        // Generated from docs/AGENTS.src.md; linting them duplicates linting the source.
+        "CLAUDE.md",
+        "AGENTS.md",
+    ],
+}

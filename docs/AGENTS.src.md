@@ -1,5 +1,7 @@
 START_IGNORE
 
+<!-- markdownlint-disable-file MD041 -->
+
 This is the source file for generating CLAUDE.md and AGENTS.md.
 Do not edit those files directly - edit this file instead.
 
@@ -52,11 +54,18 @@ npm test              # unit tests with silent console output
 npm run test:verbose  # unit tests with console output. Use for debugging only, this gets pretty noisy
 npm run test:integration  # integration tests (requires AWS credentials)
 npm run test:all      # all tests (unit + integration)
-npm run lint          # ESLint with auto-fix
+npm run lint          # ESLint, check only (fails on violations)
+npm run lint:fix      # ESLint with auto-fix
+npm run format:check  # Prettier, check only
+npm run format        # Prettier with auto-fix
+npm run lint:md       # markdownlint
+npm run lint:cfn      # cfn-lint on template.yaml (via SAM CLI)
+npm run lint:shell    # shellcheck on shell scripts (requires shellcheck)
+npm run lint:actions  # actionlint on GitHub workflows (requires actionlint)
 
 # Building and deploying (from project root)
 sam build             # Build SAM application
-sam deploy --no-execute-changeset  # Validate template without deploying
+sam deploy --no-execute-changeset  # Creates a changeset in AWS without executing it (uploads artifacts, needs credentials)
 sam deploy            # Deploy to dev/staging
 sam sync --watch      # Deploy to dev/staging and watch mode for rapid dev iteration
 
@@ -66,6 +75,21 @@ sam logs -n FunctionName --tail          # Specific function logs
 
 # Documentation
 npm run agent-docs    # Regenerate CLAUDE.md and AGENTS.md from docs/AGENTS.src.md
+```
+
+### esbuild
+
+`sam build` bundles all 21 Lambda functions with esbuild, which SAM requires on the
+host rather than bundling itself. esbuild is an `app/` devDependency, so
+`package-lock.json` pins the version, and CI puts `app/node_modules/.bin` on PATH.
+
+SAM resolves `node_modules` relative to each `CodeUri` (`app/src/lambdas/...`), not
+to `app/`, so the pinned binary is only found via PATH. A globally installed esbuild
+(Homebrew, `npm install -g`) will shadow the pinned one and silently build with a
+different version. To use the pinned version locally:
+
+```bash
+PATH="$PWD/app/node_modules/.bin:$PATH" sam build
 ```
 
 ## Environments
@@ -168,6 +192,43 @@ Prettier config (4-space indent, single quotes, 120 char width, trailing commas)
 { semi: true, trailingComma: 'all', singleQuote: true, printWidth: 120, tabWidth: 4 }
 ```
 
+### Linting scope
+
+ESLint and Prettier run repo-wide, not just over `app/`. `node_modules` lives in
+`app/`, so the npm scripts `cd ..` first and point ESLint at
+`--config app/eslint.config.mjs`; that keeps plugin resolution working while the
+working directory is the repo root.
+
+Deliberate exclusions in `.prettierignore`, each for a reason:
+
+- `template.yaml` — CloudFormation/SAM convention is 2-space indent and double
+  quotes. Reformatting to this repo's JS style rewrites all ~1150 lines and
+  destroys blame on the infrastructure that matters most. Its correctness is
+  cfn-lint's job (`npm run lint:cfn`), not Prettier's. **Do not reformat this
+  file.**
+- `CLAUDE.md`, `AGENTS.md` — generated from `docs/AGENTS.src.md`. Formatting them
+  would fight the generator and trip the pre-commit guard.
+- `app/src/test/data/` — captured AWS payloads; keep them byte-identical to what
+  DynamoDB/S3/MediaConvert actually emit.
+- `app/package-lock.json` — npm's to format.
+
+TypeScript is linted with type-aware rules (`recommendedTypeChecked`). Rules that
+catch real defects -- unhandled promises, thrown non-Errors, `[object Object]` in
+messages -- are errors and fail CI. The `no-unsafe-*` family, `require-await` and
+`restrict-template-expressions` are **warnings on purpose**: they flag `any`
+leaking out of AWS SDK and `JSON.parse` boundaries, of which there is currently a
+backlog of ~73. Those warnings are expected. Do not silence them by turning the
+rules off, and do not treat a clean-but-warning lint run as a failure; chip away
+at them where you are already editing the file.
+
+Markdown is linted by markdownlint-cli2 (`npm run lint:md`); rules live in
+`.markdownlint.json` and the file list in `.markdownlint-cli2.jsonc`. The
+generated `CLAUDE.md`/`AGENTS.md` are skipped there because linting them just
+duplicates linting `docs/AGENTS.src.md`.
+
+Dependency updates come in weekly via Dependabot (`.github/dependabot.yml`),
+grouped so the AWS SDK arrives as one PR rather than a dozen.
+
 ## Logging
 
 Use structured JSON logging for CloudWatch queryability:
@@ -204,8 +265,8 @@ console.error(
 
 - **gh CLI**: Use the `gh` CLI tool for GitHub operations.
 - **Branch protection**: The `main` branch is protected. All changes require a pull request.
-- **Pre-commit hooks**: Husky runs gitleaks (secret scanning), lint-staged, type checking, and unit tests on commit.
-- **CI workflow**: On PR and push to main, runs lint, type check, unit tests, and SAM build. On push to main, also deploys to staging.
+- **Pre-commit hooks**: Husky runs gitleaks (secret scanning), shellcheck, actionlint, markdownlint, lint-staged, type checking, and unit tests on commit. gitleaks, shellcheck, and actionlint are skipped with a warning if not installed locally; CI enforces them regardless.
+- **CI workflow**: On PR and push to main, runs lint, format check, markdownlint, shellcheck, actionlint, cfn-lint, type check, unit tests, and SAM build. On push to main, also deploys to staging.
 - **Production deploy**: Manual workflow dispatch from GitHub Actions. Runs tests, deploys to prod, creates a release tag (YYYYvN format), and generates release notes.
 
 START_CLAUDE

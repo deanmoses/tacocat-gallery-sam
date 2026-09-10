@@ -115,7 +115,7 @@ async function getChildren(
                 children = (children as AlbumItem[]).filter((child) => child.published);
             }
             // Augment album thumbnail entries with info from the image record in DynamoDB
-            await augmentAlbumThumbnailsWithImageInfo(children as AlbumItem[]);
+            await augmentAlbumThumbnailsWithImageInfo(children);
         }
     }
     return children;
@@ -169,6 +169,7 @@ function getPrevAndNext(path: string, peers: GalleryItem[], includeUnpublishedAl
                     return true; // functions as a break, stops the execution of some()
                 }
             }
+            return false; // keep scanning
         });
     }
     return nav;

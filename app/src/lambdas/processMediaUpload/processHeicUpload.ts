@@ -48,10 +48,9 @@ export async function processHeicUpload(bucket: string, heicKey: string): Promis
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         console.error(JSON.stringify({ event: 'heic_conversion_failed', key: heicKey, error: errorMessage }));
 
-        let errorRecorded = false;
         let fileDeleted = false;
 
-        errorRecorded = await recordMediaProcessingError(heicPath, `HEIC conversion failed: ${errorMessage}`);
+        const errorRecorded = await recordMediaProcessingError(heicPath, `HEIC conversion failed: ${errorMessage}`);
 
         try {
             await s3Client.send(

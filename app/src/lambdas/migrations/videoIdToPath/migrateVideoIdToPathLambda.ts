@@ -100,8 +100,7 @@ export const handler = async (event: VideoIdToPathEvent): Promise<MigrationResul
             const itemName = path.substring(lastSlash + 1);
 
             const item = items.find((i) => i.parentPath === parentPath && i.itemName === itemName) as
-                | Record<string, unknown>
-                | undefined;
+                Record<string, unknown> | undefined;
 
             if (!item) {
                 const error = `Path not found in DynamoDB: ${path}`;

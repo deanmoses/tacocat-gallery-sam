@@ -188,7 +188,9 @@ function decodeContinuationToken(token?: string): Record<string, unknown> | unde
     try {
         return JSON.parse(Buffer.from(token, 'base64').toString());
     } catch (e) {
-        throw new Error(`Invalid continuation token: ${e instanceof Error ? e.message : String(e)}`);
+        throw new Error(`Invalid continuation token: ${e instanceof Error ? e.message : String(e)}`, {
+            cause: e,
+        });
     }
 }
 

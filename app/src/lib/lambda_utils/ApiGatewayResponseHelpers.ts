@@ -25,7 +25,7 @@ export function respond404NotFound(event: APIGatewayProxyEvent, message: string)
 /**
  * Create an API Gateway lambda function response
  */
-export function respondHttp(event: APIGatewayProxyEvent, body: object, statusCode = 200): APIGatewayProxyResult {
+export function respondHttp(_event: APIGatewayProxyEvent, body: object, statusCode = 200): APIGatewayProxyResult {
     return {
         isBase64Encoded: false,
         statusCode: statusCode,
@@ -35,6 +35,11 @@ export function respondHttp(event: APIGatewayProxyEvent, body: object, statusCod
             'Access-Control-Allow-Methods': 'HEAD, GET, OPTIONS, POST, PUT, PATCH, DELETE',
             'Access-Control-Allow-Credentials': 'true',
             'Access-Control-Allow-Origin': `https://${getGalleryAppDomain()}`,
+            // Lets the gallery app read this response's full Resource Timing entry
+            // (DNS/TCP/TLS, nextHopProtocol, transferSize). Without it the browser
+            // zeroes those out for cross-origin responses. Separate from CORS above:
+            // that governs reading the body, this governs reading the timings.
+            'Timing-Allow-Origin': `https://${getGalleryAppDomain()}`,
         },
     };
 }

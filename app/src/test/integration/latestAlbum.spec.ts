@@ -34,7 +34,8 @@ test('Should get latest album', async () => {
     expect(album.itemName).toBe(albumPathParts.name);
     expect(album.parentPath).toBe(albumPathParts.parent);
     expect(album.path).toBe(albumPath);
-    if (album.thumbnail?.path) throw new Error(`Was expecting album thumbnail to be undefined [${album.thumbnail}]`);
+    if (album.thumbnail?.path)
+        throw new Error(`Was expecting album thumbnail to be undefined [${JSON.stringify(album.thumbnail)}]`);
 });
 
 test('Upload image', async () => {
@@ -76,7 +77,7 @@ test('Delete image', async () => {
 
 test('Latest album should no longer have a thumbnail', async () => {
     const album = await getAlbumAndChildren(albumPath);
-    if (!album) throw 'no album';
+    if (!album) throw new Error('no album');
     const imageName = reallyGetNameFromPath(imagePath);
     const image = findMedia(album, imageName);
     if (!!image) throw new Error(`Image [${imageName}] should not exist in album [${albumPath}]`);

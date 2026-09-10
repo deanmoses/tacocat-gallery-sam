@@ -15,8 +15,8 @@ export async function saveToRedis(redisClient: RedisClient, items: RedisGalleryI
 }
 
 function toPath(item: RedisGalleryItem): string {
-    if (!item.parentPath) throw new Error(`Missing parentPath for ${item}`);
-    if (!item.itemName) throw new Error(`Missing itemName for ${item}`);
+    if (!item.parentPath) throw new Error(`Missing parentPath for ${JSON.stringify(item)}`);
+    if (!item.itemName) throw new Error(`Missing itemName for ${JSON.stringify(item)}`);
     const path = `${item.parentPath}${item.itemName}`;
     return isValidMediaPath(path) ? path : path + '/';
 }

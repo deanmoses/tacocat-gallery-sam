@@ -6,18 +6,18 @@ import { RedisAlbumItem, RedisGalleryItem, RedisImageItem, RedisVideoItem } from
  * Convert from an AWS gallery item to a Redis gallery item
  */
 export function toRedisItem(awsItem: GalleryItem): RedisGalleryItem {
-    if (!awsItem.parentPath) throw new Error(`Missing parentPath for ${awsItem}`);
-    if (!awsItem.itemName) throw new Error(`Missing itemName for ${awsItem}`);
-    if (!awsItem.itemType) throw new Error(`Missing itemType for ${awsItem}`);
+    if (!awsItem.parentPath) throw new Error(`Missing parentPath for ${JSON.stringify(awsItem)}`);
+    if (!awsItem.itemName) throw new Error(`Missing itemName for ${JSON.stringify(awsItem)}`);
+    if (!awsItem.itemType) throw new Error(`Missing itemType for ${JSON.stringify(awsItem)}`);
     switch (awsItem.itemType) {
         case 'image':
             // Videos have itemType 'image' but also have mediaType 'video'
             if ('mediaType' in awsItem && awsItem.mediaType === 'video') {
-                return toRedisVideo(awsItem as VideoItem);
+                return toRedisVideo(awsItem);
             }
-            return toRedisImage(awsItem as ImageItem);
+            return toRedisImage(awsItem);
         case 'album':
-            return toRedisAlbum(awsItem as AlbumItem);
+            return toRedisAlbum(awsItem);
         default: {
             const exhaustiveCheck: never = awsItem;
             throw new Error(`Unrecognized itemType: [${(exhaustiveCheck as GalleryItem).itemType}]`);

@@ -61,7 +61,7 @@ test('Year album shows day thumb', async () => {
     const albumName = getNameFromPath(albumPath);
     if (!albumName) throw new Error(`No album name in path [${albumPath}]`);
     const album = findSubAlbum(yearAlbum, albumName);
-    if (!album) throw new Error(`No album [${albumPath}] in year [${yearAlbum}]`);
+    if (!album) throw new Error(`No album [${albumPath}] in year [${yearPath}]`);
     if (!album?.thumbnail) throw new Error(`Album [${albumPath}] has no thumbnail`);
     if (!album.thumbnail.versionId) throw new Error(`Album [${albumPath}] has no thumbnail versionId`);
     expect(album.thumbnail.path).toBe(imagePath2);
@@ -112,7 +112,7 @@ test('Thumb on year displaying days honors recut', async () => {
     const albumName = getNameFromPath(albumPath);
     if (!albumName) throw new Error(`No album name in path [${albumPath}]`);
     const album = findSubAlbum(grandParentAlbum, albumName);
-    if (!album) throw new Error(`No album [${albumPath}] in year [${grandParentAlbum}]`);
+    if (!album) throw new Error(`No album [${albumPath}] in year [${grandparentPath}]`);
     if (!album?.thumbnail) throw new Error(`Expected album [${albumPath}] to have thumbnail`);
     expect(album.thumbnail.path).toBe(imagePath2);
     expect(album.thumbnail.crop).toEqual(cropInPx);

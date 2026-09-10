@@ -16,25 +16,45 @@ jobs:
         timeout-minutes: 15
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
 
             - name: Setup Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v7
               with:
                   node-version: '24'
                   cache: 'npm'
                   cache-dependency-path: app/package-lock.json
 
-            - name: Install esbuild globally
-              run: npm install -g esbuild
-
             - name: Install dependencies
               working-directory: app
               run: npm ci
 
+            - name: Add esbuild to PATH
+              # esbuild is a devDependency, so package-lock.json pins the version.
+              # SAM resolves node_modules relative to each CodeUri rather than to
+              # app/, so the binary has to reach it via PATH.
+              run: echo "$GITHUB_WORKSPACE/app/node_modules/.bin" >> "$GITHUB_PATH"
+
             - name: Lint
               working-directory: app
               run: npm run lint
+
+            - name: Format check
+              working-directory: app
+              run: npm run format:check
+
+            - name: Lint markdown
+              working-directory: app
+              run: npm run lint:md
+
+            - name: Lint shell scripts
+              # shellcheck is preinstalled on ubuntu-latest runners
+              run: shellcheck scripts/*.sh .husky/pre-commit
+
+            - name: Lint GitHub Actions workflows
+              uses: docker://rhysd/actionlint:1.7.12
+              with:
+                  args: -color
 
             - name: Type check
               working-directory: app
@@ -45,9 +65,12 @@ jobs:
               run: npm test
 
             - name: Setup AWS SAM CLI
-              uses: aws-actions/setup-sam@v2
+              uses: aws-actions/setup-sam@v3
               with:
                   use-installer: true
+
+            - name: Lint CloudFormation template
+              run: sam validate --lint
 
             - name: SAM build
               run: sam build
@@ -63,24 +86,27 @@ jobs:
         timeout-minutes: 30
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
 
             - name: Setup Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v7
               with:
                   node-version: '24'
                   cache: 'npm'
                   cache-dependency-path: app/package-lock.json
 
-            - name: Install esbuild globally
-              run: npm install -g esbuild
-
             - name: Install dependencies
               working-directory: app
               run: npm ci
 
+            - name: Add esbuild to PATH
+              # esbuild is a devDependency, so package-lock.json pins the version.
+              # SAM resolves node_modules relative to each CodeUri rather than to
+              # app/, so the binary has to reach it via PATH.
+              run: echo "$GITHUB_WORKSPACE/app/node_modules/.bin" >> "$GITHUB_PATH"
+
             - name: Setup AWS SAM CLI
-              uses: aws-actions/setup-sam@v2
+              uses: aws-actions/setup-sam@v3
               with:
                   use-installer: true
 
@@ -88,7 +114,7 @@ jobs:
               run: sam build
 
             - name: Configure AWS credentials
-              uses: aws-actions/configure-aws-credentials@v4
+              uses: aws-actions/configure-aws-credentials@v6
               with:
                   aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
                   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -105,7 +131,7 @@ jobs:
             contents: write # Required for tags and releases
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
               with:
                   fetch-depth: 0
 
@@ -125,13 +151,13 @@ jobs:
                       new_tag="${year}v1"
                   else
                       # Extract version number and increment
-                      version_num=${latest_tag#${year}v}
+                      version_num=${latest_tag#"${year}"v}
                       new_version=$((version_num + 1))
                       new_tag="${year}v${new_version}"
                   fi
 
                   echo "Creating tag: $new_tag"
-                  echo "tag=$new_tag" >> $GITHUB_OUTPUT
+                  echo "tag=$new_tag" >> "$GITHUB_OUTPUT"
 
                   git config user.name "github-actions[bot]"
                   git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -139,7 +165,7 @@ jobs:
                   git push origin "$new_tag"
 
             - name: Create GitHub Release
-              uses: softprops/action-gh-release@v2
+              uses: softprops/action-gh-release@v3
               with:
                   tag_name: ${{ steps.tag.outputs.tag }}
                   name: ${{ steps.tag.outputs.tag }}

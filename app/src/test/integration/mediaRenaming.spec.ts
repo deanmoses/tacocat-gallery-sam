@@ -30,7 +30,11 @@ beforeAll(async () => {
     expect(isValidImagePath(imagePath1)).toBe(true);
     expect(isValidImagePath(imagePath2)).toBe(true);
     await assertDynamoDBItemDoesNotExist(albumPath);
-    await Promise.all([await uploadImage('image.jpg', imagePath1), await uploadImage('image.jpg', imagePath2)]);
+    // Sequential on purpose: both uploads land in an album that does not exist
+    // yet, and running them concurrently would race to auto-create it. This was
+    // already the effective order -- the inner awaits made Promise.all a no-op.
+    await uploadImage('image.jpg', imagePath1);
+    await uploadImage('image.jpg', imagePath2);
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
     await Promise.all([
         assertDynamoDBItemExists(albumPath),
@@ -62,13 +66,13 @@ test("Cannot rename an image that doesn't exist", async () => {
 
 test('Cannot rename to same name as an existing image', async () => {
     const imageName2 = getNameFromPath(imagePath2);
-    if (!imageName2) throw 'no image 2';
+    if (!imageName2) throw new Error('no image 2');
     await expect(renameImage(imagePath1, imageName2)).rejects.toThrow(/exists/i);
 });
 
 test('Do the rename', async () => {
     const image1NewName = getNameFromPath(renameImagePath1);
-    if (!image1NewName) throw 'no image 1 new name';
+    if (!image1NewName) throw new Error('no image 1 new name');
     await renameImage(imagePath1, image1NewName);
 }, 10000 /* increase Jest's timeout */);
 
@@ -79,12 +83,12 @@ test('GetAlbum() should reflect rename', async () => {
 
     // Ensure album doesn't contain old image
     const oldImageName = getNameFromPath(imagePath1);
-    if (!oldImageName) throw 'no old image name';
+    if (!oldImageName) throw new Error('no old image name');
     if (findMedia(album, oldImageName)) throw new Error(`Album still contains old image [${oldImageName}]`);
 
     // Ensure album contains new image
     const newImageName = getNameFromPath(renameImagePath1);
-    if (!newImageName) throw 'no new image name';
+    if (!newImageName) throw new Error('no new image name');
     const renamedImage = findMedia(album, newImageName);
     if (!renamedImage) throw new Error(`Album does not contain new image [${newImageName}]`);
     expect(renamedImage.itemName).toBe(newImageName);

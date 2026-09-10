@@ -1,15 +1,21 @@
 {
     "compilerOptions": {
-        "target": "ES2021",
+        "target": "ES2022",
         "strict": true,
         "preserveConstEnums": true,
         "noEmit": true,
         "sourceMap": false,
-        "module": "es2015",
-        "moduleResolution": "node",
+        "module": "preserve",
+        "moduleResolution": "bundler",
         "esModuleInterop": true,
         "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true
+        "types": ["node", "jest"],
+        "forceConsistentCasingInFileNames": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitOverride": true,
+        "noImplicitReturns": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true
     },
-    "exclude": ["node_modules", "**/*.test.ts"]
+    "exclude": ["node_modules"]
 }

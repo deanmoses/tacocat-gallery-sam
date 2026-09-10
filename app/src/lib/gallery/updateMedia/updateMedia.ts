@@ -43,7 +43,7 @@ export async function updateMedia(mediaPath: string, attributesToUpdate: Record<
 
     attributesToUpdate['updatedOn'] = new Date().toISOString();
     const pathParts = getParentAndNameFromPath(mediaPath);
-    if (!pathParts.name) throw 'Expecting path to have a leaf, got none';
+    if (!pathParts.name) throw new Error('Expecting path to have a leaf, got none');
     const partiQL = buildUpdatePartiQL(getDynamoDbTableName(), pathParts.parent, pathParts.name, attributesToUpdate);
     const ddbCommand = new ExecuteStatementCommand({
         Statement: partiQL,

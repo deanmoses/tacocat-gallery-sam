@@ -22,7 +22,7 @@ export async function copyOriginals(oldAlbumPath: string, newAlbumPath: string):
     const s3List = await listOriginalImages(oldAlbumPath);
     if (s3List.Contents) {
         for (const oldItem of s3List.Contents) {
-            if (!oldItem.Key) throw new Error(`No S3 key for image [${oldItem}]`);
+            if (!oldItem.Key) throw new Error(`No S3 key for image [${JSON.stringify(oldItem)}]`);
             const oldImagePath = fromS3OriginalBucketKeyToPath(oldItem.Key);
             if (isValidAlbumPath(oldImagePath)) {
                 console.info(`S3 listed album [${oldImagePath}] as an object, skipping from delete`);

@@ -29,7 +29,7 @@ describe('buildUpdateSql', () => {
         expect.assertions(1);
         attrs = { description: "Don't" };
         expect(buildUpdatePartiQL('someTableName', '/', '2020', attrs)).toBe(
-            `UPDATE "someTableName"\nSET description='Don\'\'t'\nWHERE parentPath='/' AND itemName='2020'`,
+            `UPDATE "someTableName"\nSET description='Don''t'\nWHERE parentPath='/' AND itemName='2020'`,
         );
     });
     test('empty string', () => {
