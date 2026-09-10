@@ -1,5 +1,5 @@
 import { BatchGetCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { AlbumItem, GalleryItem, Rectangle } from '../gallery/galleryTypes';
+import { GalleryItem, Rectangle } from '../gallery/galleryTypes';
 import { getParentAndNameFromPath, toMediaPath } from '../gallery_path_utils/galleryPathUtils';
 import { getDynamoDbTableName } from '../lambda_utils/Env';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
@@ -17,7 +17,7 @@ export async function augmentAlbumThumbnailsWithImageInfo(galleryItems: GalleryI
     const mediaPaths = new Set<string>();
     for (const galleryItem of galleryItems) {
         if ('image' === galleryItem.itemType) continue;
-        const album = galleryItem as AlbumItem;
+        const album = galleryItem;
         // some albums don't have thumbnails
         if (album.thumbnail?.path) {
             mediaPaths.add(album.thumbnail.path);
@@ -56,7 +56,7 @@ export async function augmentAlbumThumbnailsWithImageInfo(galleryItems: GalleryI
     });
     for (const galleryItem of galleryItems) {
         if ('image' === galleryItem.itemType) continue;
-        const album = galleryItem as AlbumItem;
+        const album = galleryItem;
         if (album.thumbnail?.path) {
             const imgInfo = imgInfos.get(album.thumbnail.path);
             if (!imgInfo)

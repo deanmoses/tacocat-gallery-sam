@@ -72,7 +72,7 @@ export async function updateAlbum(albumPath: string, attributesToUpdate: AlbumUp
     const attrs: Partial<AlbumItem> = attributesToUpdate;
     attrs.updatedOn = new Date().toISOString();
     const pathParts = getParentAndNameFromPath(albumPath);
-    if (!pathParts.name) throw 'Expecting path to have a leaf, got none';
+    if (!pathParts.name) throw new Error('Expecting path to have a leaf, got none');
     const tableName = getDynamoDbTableName();
     const partiQL = buildUpdatePartiQL(tableName, pathParts.parent, pathParts.name, attrs);
     const ddbCommand = new ExecuteStatementCommand({

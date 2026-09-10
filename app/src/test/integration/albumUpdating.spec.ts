@@ -17,13 +17,15 @@ let summary: string;
 let album_updatedOn: string | undefined;
 
 beforeAll(async () => {
-    description = `Description [${Date.now}]`;
-    summary = `Summary [${Date.now}]`;
-    await Promise.all([
-        await assertDynamoDBItemDoesNotExist(yearAlbumPath),
-        await assertDynamoDBItemDoesNotExist(albumPath),
-    ]);
-    await Promise.all([await createAlbum(yearAlbumPath), await createAlbum(albumPath)]);
+    description = `Description [${Date.now()}]`;
+    summary = `Summary [${Date.now()}]`;
+    // Independent reads, so genuinely concurrent. The inner awaits this used to
+    // have made Promise.all a no-op: each promise was already settled.
+    await Promise.all([assertDynamoDBItemDoesNotExist(yearAlbumPath), assertDynamoDBItemDoesNotExist(albumPath)]);
+    // Sequential on purpose: albumPath is a child of yearAlbumPath, so the year
+    // album has to exist first. This was already the effective order.
+    await createAlbum(yearAlbumPath);
+    await createAlbum(albumPath);
     await assertDynamoDBItemExists(albumPath);
 });
 
@@ -50,15 +52,15 @@ test('get empty album', async () => {
 });
 
 test('fail to publish if parent is not published', async () => {
-    await expect(updateAlbum(albumPath, { published: true } as AlbumUpdateRequest)).rejects.toThrow(/parent/i);
+    await expect(updateAlbum(albumPath, { published: true })).rejects.toThrow(/parent/i);
 });
 
 test('publish parent should succeeed', async () => {
-    await expect(updateAlbum(yearAlbumPath, { published: true } as AlbumUpdateRequest)).resolves.not.toThrow();
+    await expect(updateAlbum(yearAlbumPath, { published: true })).resolves.not.toThrow();
 });
 
 test('publish suceeds after parent is published', async () => {
-    await expect(updateAlbum(albumPath, { published: true } as AlbumUpdateRequest)).resolves.not.toThrow();
+    await expect(updateAlbum(albumPath, { published: true })).resolves.not.toThrow();
 });
 
 test('set description', async () => {

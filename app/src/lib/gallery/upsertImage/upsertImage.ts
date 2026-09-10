@@ -39,7 +39,7 @@ export async function upsertImage(imagePath: string, image: ImageCreateRequest):
     });
 
     const pathParts = getParentAndNameFromPath(imagePath);
-    if (!pathParts.name) throw 'Expecting path to have a leaf, got none';
+    if (!pathParts.name) throw new Error('Expecting path to have a leaf, got none');
 
     const ddbClient = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(ddbClient);

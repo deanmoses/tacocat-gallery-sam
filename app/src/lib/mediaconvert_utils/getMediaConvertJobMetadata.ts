@@ -1,4 +1,4 @@
-import { MediaConvertClient, GetJobCommand, VideoDetail } from '@aws-sdk/client-mediaconvert';
+import { MediaConvertClient, GetJobCommand } from '@aws-sdk/client-mediaconvert';
 import { getMediaConvertEndpoint } from './getMediaConvertEndpoint';
 
 export interface MediaConvertJobMetadata {
@@ -33,7 +33,7 @@ export async function getMediaConvertJobMetadata(jobId: string): Promise<MediaCo
         const outputDetails = firstGroup.OutputDetails;
         if (outputDetails && outputDetails.length > 0) {
             const output = outputDetails[0];
-            const videoDetails = output.VideoDetails as VideoDetail | undefined;
+            const videoDetails = output.VideoDetails;
             if (videoDetails) {
                 if (videoDetails.WidthInPx) width = videoDetails.WidthInPx;
                 if (videoDetails.HeightInPx) height = videoDetails.HeightInPx;

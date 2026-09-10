@@ -19,9 +19,7 @@ test('fail on no attributes', async () => {
 });
 
 test('fail on unknown attribute', async () => {
-    await expect(
-        updateMedia(imagePath, { unknownAttr: '' } as unknown as Record<string, string | boolean>),
-    ).rejects.toThrow(/unknown.*attribute/i);
+    await expect(updateMedia(imagePath, { unknownAttr: '' })).rejects.toThrow(/unknown.*attribute/i);
 });
 
 test('title', async () => {

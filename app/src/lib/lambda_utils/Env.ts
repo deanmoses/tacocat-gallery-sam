@@ -55,6 +55,6 @@ export function getMediaConvertRoleArn(): string {
 
 function getEnv(name: string): string {
     const value = process.env[name];
-    if (!value) throw `No such environment variable [${name}]`;
+    if (!value) throw new Error(`No such environment variable [${name}]`);
     return value;
 }

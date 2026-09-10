@@ -115,7 +115,7 @@ async function getChildren(
                 children = (children as AlbumItem[]).filter((child) => child.published);
             }
             // Augment album thumbnail entries with info from the image record in DynamoDB
-            await augmentAlbumThumbnailsWithImageInfo(children as AlbumItem[]);
+            await augmentAlbumThumbnailsWithImageInfo(children);
         }
     }
     return children;

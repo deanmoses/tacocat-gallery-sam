@@ -93,10 +93,10 @@ function toGalleryItem(doc: RedisResult): GalleryItem {
 }
 
 function toAlbumItem(doc: RedisResult): AlbumItem {
-    const v = doc.value as RedisItem;
+    const v = doc.value;
     if (!v['$.thumbnail']) throw new Error(`Album ${doc.id} has no thumbnail`);
     const item: AlbumItem = {
-        path: doc.id as string,
+        path: doc.id,
         parentPath: v['$.parentPath'],
         itemName: v['$.itemName'],
         itemType: 'album',
@@ -108,9 +108,9 @@ function toAlbumItem(doc: RedisResult): AlbumItem {
 }
 
 function toImageItem(doc: RedisResult): ImageItem {
-    const v = doc.value as RedisItem;
+    const v = doc.value;
     const item: ImageItem = {
-        path: doc.id as string,
+        path: doc.id,
         parentPath: v['$.parentPath'],
         itemName: v['$.itemName'],
         itemType: 'image',
@@ -123,9 +123,9 @@ function toImageItem(doc: RedisResult): ImageItem {
 }
 
 function toVideoItem(doc: RedisResult): VideoItem {
-    const v = doc.value as RedisItem;
+    const v = doc.value;
     const item: VideoItem = {
-        path: doc.id as string,
+        path: doc.id,
         parentPath: v['$.parentPath'],
         itemName: v['$.itemName'],
         itemType: 'image',
