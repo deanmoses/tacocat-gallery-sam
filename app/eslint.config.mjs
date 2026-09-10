@@ -15,6 +15,13 @@ export default defineConfig(
         ignores: ['node_modules/**', '.aws-sam/**'],
     },
     {
+        // Root-level .js config files (.prettierrc.js) are CommonJS, not ESM
+        files: ['**/*.js'],
+        languageOptions: {
+            sourceType: 'commonjs',
+        },
+    },
+    {
         rules: {
             'no-extra-boolean-cast': 'off',
         },

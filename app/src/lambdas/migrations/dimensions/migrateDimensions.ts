@@ -56,12 +56,7 @@ export interface MigrateInput {
 
 /** Issue types that can be detected */
 export type IssueType =
-    | 'corrupt'
-    | 'missingFromS3'
-    | 'dimensionsOrientation'
-    | 'dimensionsOther'
-    | 'tagsMismatch'
-    | 'versionIdInvalid';
+    'corrupt' | 'missingFromS3' | 'dimensionsOrientation' | 'dimensionsOther' | 'tagsMismatch' | 'versionIdInvalid';
 
 /** A single issue found during migration */
 export interface Issue {

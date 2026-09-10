@@ -12,7 +12,7 @@
         "test:verbose": "npm run compile && jest --selectProjects=unit",
         "test:integration": "npm run compile && jest --selectProjects=integration --silent",
         "test:all": "npm run compile && jest",
-        "lint": "eslint '*.ts' --quiet --fix",
+        "lint": "eslint . --quiet --fix",
         "prepare": "cd .. && husky",
         "compile": "tsc",
         "agent-docs": "node ../scripts/build-agent-docs.mjs"

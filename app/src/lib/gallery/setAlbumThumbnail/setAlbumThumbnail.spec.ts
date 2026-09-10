@@ -110,9 +110,7 @@ describe('Valid Input', () => {
         const imagePath = '/1899/12-31/anotherImage.jpg';
 
         // Mock out the AWS method
-        mockDocClient.on(GetCommand).resolves({
-            /* return no album */
-        });
+        mockDocClient.on(GetCommand).resolves({/* return no album */});
 
         // do the update
         await expect(setImageAsParentAlbumThumbnailIfNoneExists(imagePath)).rejects.toThrow(/album.*not.*found/i);
