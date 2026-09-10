@@ -1,4 +1,4 @@
-import { FtSearchOptions } from '@redis/search';
+import { FtSearchOptions } from 'redis';
 import { AlbumItem, GalleryItem, GalleryItemType, ImageItem, VideoItem } from '../gallery/galleryTypes';
 import { augmentAlbumThumbnailsWithImageInfo } from '../dynamo_utils/albumThumbnailHelper';
 import { createRedisSearchClient } from './redisClientUtils';
