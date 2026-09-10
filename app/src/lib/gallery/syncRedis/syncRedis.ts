@@ -169,7 +169,7 @@ export async function syncRedis(options: SyncOptions): Promise<SyncResult | Sync
         };
     } finally {
         if (shouldCloseRedis) {
-            await redisClient.quit();
+            await redisClient.close();
         }
     }
 }
@@ -392,7 +392,7 @@ export async function initRedis(options: Pick<SyncOptions, 'redisClient'>): Prom
         };
     } finally {
         if (shouldCloseRedis) {
-            await redisClient.quit();
+            await redisClient.close();
         }
     }
 }

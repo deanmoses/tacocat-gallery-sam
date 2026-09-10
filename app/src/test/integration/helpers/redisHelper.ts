@@ -7,7 +7,7 @@ async function redisItemExists(path: string): Promise<boolean> {
         const result = await client.json.get(path);
         return result !== null;
     } finally {
-        await client.quit();
+        await client.close();
     }
 }
 

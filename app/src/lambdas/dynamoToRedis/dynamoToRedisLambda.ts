@@ -50,7 +50,7 @@ async function syncToRedis(itemsToSave: RedisGalleryItem[], pathsToDelete: strin
             if (itemsToSave.length > 0) await saveToRedis(redisClient, itemsToSave);
             if (pathsToDelete.length > 0) await redisClient.del(pathsToDelete);
         } finally {
-            await redisClient.quit();
+            await redisClient.close();
         }
     }
 }

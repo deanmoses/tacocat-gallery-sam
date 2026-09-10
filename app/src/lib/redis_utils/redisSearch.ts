@@ -44,7 +44,7 @@ async function doSearch(query: RedisSearchQuery): Promise<SearchResults> {
             items: results.documents.map((doc) => toGalleryItem(doc as unknown as RedisResult)),
         };
     } finally {
-        await client.quit();
+        await client.close();
     }
 }
 
