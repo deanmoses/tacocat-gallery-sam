@@ -34,6 +34,7 @@ npm run lint:fix      # ESLint with auto-fix
 npm run format:check  # Prettier, check only
 npm run format        # Prettier with auto-fix
 npm run lint:md       # markdownlint
+npm run lint:cfn      # cfn-lint on template.yaml (via SAM CLI)
 npm run lint:shell    # shellcheck on shell scripts (requires shellcheck)
 npm run lint:actions  # actionlint on GitHub workflows (requires actionlint)
 
@@ -178,7 +179,8 @@ Deliberate exclusions in `.prettierignore`, each for a reason:
 - `template.yaml` — CloudFormation/SAM convention is 2-space indent and double
   quotes. Reformatting to this repo's JS style rewrites all ~1150 lines and
   destroys blame on the infrastructure that matters most. Its correctness is
-  cfn-lint's job, not Prettier's. **Do not reformat this file.**
+  cfn-lint's job (`npm run lint:cfn`), not Prettier's. **Do not reformat this
+  file.**
 - `CLAUDE.md`, `AGENTS.md` — generated from `docs/AGENTS.src.md`. Formatting them
   would fight the generator and trip the pre-commit guard.
 - `app/src/test/data/` — captured AWS payloads; keep them byte-identical to what
@@ -230,7 +232,7 @@ console.error(
 - **gh CLI**: Use the `gh` CLI tool for GitHub operations.
 - **Branch protection**: The `main` branch is protected. All changes require a pull request.
 - **Pre-commit hooks**: Husky runs gitleaks (secret scanning), shellcheck, actionlint, markdownlint, lint-staged, type checking, and unit tests on commit. gitleaks, shellcheck, and actionlint are skipped with a warning if not installed locally; CI enforces them regardless.
-- **CI workflow**: On PR and push to main, runs lint, format check, markdownlint, shellcheck, actionlint, type check, unit tests, and SAM build. On push to main, also deploys to staging.
+- **CI workflow**: On PR and push to main, runs lint, format check, markdownlint, shellcheck, actionlint, cfn-lint, type check, unit tests, and SAM build. On push to main, also deploys to staging.
 - **Production deploy**: Manual workflow dispatch from GitHub Actions. Runs tests, deploys to prod, creates a release tag (YYYYvN format), and generates release notes.
 
 ## Git Amend

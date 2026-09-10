@@ -292,10 +292,6 @@ Resources:
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: !Ref ImmutableCachePolicy
             ResponseHeadersPolicyId: !Ref ImmutableResponseHeadersPolicy
-            ForwardedValues:
-              QueryString: false
-              Cookies:
-                Forward: none
             FunctionAssociations:
               - EventType: viewer-request
                 FunctionARN: !GetAtt DerivedImagesUrlRewriteFunction.FunctionMetadata.FunctionARN
@@ -305,10 +301,6 @@ Resources:
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: !Ref ImmutableCachePolicy
             ResponseHeadersPolicyId: !Ref ImmutableResponseHeadersPolicy
-            ForwardedValues:
-              QueryString: false
-              Cookies:
-                Forward: none
             FunctionAssociations:
               - EventType: viewer-request
                 FunctionARN: !GetAtt VideoPlaybackUrlRewriteFunction.FunctionMetadata.FunctionARN
@@ -316,11 +308,7 @@ Resources:
           TargetOriginId: original-images-bucket
           Compress: true
           ViewerProtocolPolicy: redirect-to-https
-          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized managed policy - use this if not using a custom ForwardedValues
-          ForwardedValues:
-            QueryString: false
-            Cookies:
-              Forward: none
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized managed policy
         OriginGroups:
           Quantity: 1
           Items:

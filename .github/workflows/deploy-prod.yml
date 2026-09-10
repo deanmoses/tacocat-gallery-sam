@@ -69,6 +69,9 @@ jobs:
               with:
                   use-installer: true
 
+            - name: Lint CloudFormation template
+              run: sam validate --lint
+
             - name: SAM build
               run: sam build
 
