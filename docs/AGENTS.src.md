@@ -212,6 +212,15 @@ Deliberate exclusions in `.prettierignore`, each for a reason:
   DynamoDB/S3/MediaConvert actually emit.
 - `app/package-lock.json` — npm's to format.
 
+TypeScript is linted with type-aware rules (`recommendedTypeChecked`). Rules that
+catch real defects -- unhandled promises, thrown non-Errors, `[object Object]` in
+messages -- are errors and fail CI. The `no-unsafe-*` family, `require-await` and
+`restrict-template-expressions` are **warnings on purpose**: they flag `any`
+leaking out of AWS SDK and `JSON.parse` boundaries, of which there is currently a
+backlog of ~73. Those warnings are expected. Do not silence them by turning the
+rules off, and do not treat a clean-but-warning lint run as a failure; chip away
+at them where you are already editing the file.
+
 Markdown is linted by markdownlint-cli2 (`npm run lint:md`); rules live in
 `.markdownlint.json` and the file list in `.markdownlint-cli2.jsonc`. The
 generated `CLAUDE.md`/`AGENTS.md` are skipped there because linting them just
