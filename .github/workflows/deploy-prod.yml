@@ -39,6 +39,19 @@ jobs:
               working-directory: app
               run: npm run lint
 
+            - name: Format check
+              working-directory: app
+              run: npm run format:check
+
+            - name: Lint shell scripts
+              # shellcheck is preinstalled on ubuntu-latest runners
+              run: shellcheck scripts/*.sh .husky/pre-commit
+
+            - name: Lint GitHub Actions workflows
+              uses: docker://rhysd/actionlint:1.7.12
+              with:
+                  args: -color
+
             - name: Type check
               working-directory: app
               run: npm run compile
@@ -131,13 +144,13 @@ jobs:
                       new_tag="${year}v1"
                   else
                       # Extract version number and increment
-                      version_num=${latest_tag#${year}v}
+                      version_num=${latest_tag#"${year}"v}
                       new_version=$((version_num + 1))
                       new_tag="${year}v${new_version}"
                   fi
 
                   echo "Creating tag: $new_tag"
-                  echo "tag=$new_tag" >> $GITHUB_OUTPUT
+                  echo "tag=$new_tag" >> "$GITHUB_OUTPUT"
 
                   git config user.name "github-actions[bot]"
                   git config user.email "github-actions[bot]@users.noreply.github.com"

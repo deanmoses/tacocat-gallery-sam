@@ -52,7 +52,12 @@ npm test              # unit tests with silent console output
 npm run test:verbose  # unit tests with console output. Use for debugging only, this gets pretty noisy
 npm run test:integration  # integration tests (requires AWS credentials)
 npm run test:all      # all tests (unit + integration)
-npm run lint          # ESLint with auto-fix
+npm run lint          # ESLint, check only (fails on violations)
+npm run lint:fix      # ESLint with auto-fix
+npm run format:check  # Prettier, check only
+npm run format        # Prettier with auto-fix
+npm run lint:shell    # shellcheck on shell scripts (requires shellcheck)
+npm run lint:actions  # actionlint on GitHub workflows (requires actionlint)
 
 # Building and deploying (from project root)
 sam build             # Build SAM application
@@ -183,6 +188,25 @@ Prettier config (4-space indent, single quotes, 120 char width, trailing commas)
 { semi: true, trailingComma: 'all', singleQuote: true, printWidth: 120, tabWidth: 4 }
 ```
 
+### Linting scope
+
+ESLint and Prettier run repo-wide, not just over `app/`. `node_modules` lives in
+`app/`, so the npm scripts `cd ..` first and point ESLint at
+`--config app/eslint.config.mjs`; that keeps plugin resolution working while the
+working directory is the repo root.
+
+Deliberate exclusions in `.prettierignore`, each for a reason:
+
+- `template.yaml` — CloudFormation/SAM convention is 2-space indent and double
+  quotes. Reformatting to this repo's JS style rewrites all ~1150 lines and
+  destroys blame on the infrastructure that matters most. Its correctness is
+  cfn-lint's job, not Prettier's. **Do not reformat this file.**
+- `CLAUDE.md`, `AGENTS.md` — generated from `docs/AGENTS.src.md`. Formatting them
+  would fight the generator and trip the pre-commit guard.
+- `app/src/test/data/` — captured AWS payloads; keep them byte-identical to what
+  DynamoDB/S3/MediaConvert actually emit.
+- `app/package-lock.json` — npm's to format.
+
 ## Logging
 
 Use structured JSON logging for CloudWatch queryability:
@@ -219,8 +243,8 @@ console.error(
 
 - **gh CLI**: Use the `gh` CLI tool for GitHub operations.
 - **Branch protection**: The `main` branch is protected. All changes require a pull request.
-- **Pre-commit hooks**: Husky runs gitleaks (secret scanning), lint-staged, type checking, and unit tests on commit.
-- **CI workflow**: On PR and push to main, runs lint, type check, unit tests, and SAM build. On push to main, also deploys to staging.
+- **Pre-commit hooks**: Husky runs gitleaks (secret scanning), shellcheck, actionlint, lint-staged, type checking, and unit tests on commit. gitleaks, shellcheck, and actionlint are skipped with a warning if not installed locally; CI enforces them regardless.
+- **CI workflow**: On PR and push to main, runs lint, format check, shellcheck, actionlint, type check, unit tests, and SAM build. On push to main, also deploys to staging.
 - **Production deploy**: Manual workflow dispatch from GitHub Actions. Runs tests, deploys to prod, creates a release tag (YYYYvN format), and generates release notes.
 
 START_CLAUDE

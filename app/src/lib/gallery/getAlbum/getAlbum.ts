@@ -169,6 +169,7 @@ function getPrevAndNext(path: string, peers: GalleryItem[], includeUnpublishedAl
                     return true; // functions as a break, stops the execution of some()
                 }
             }
+            return false; // keep scanning
         });
     }
     return nav;

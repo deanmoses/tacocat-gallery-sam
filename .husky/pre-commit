@@ -1,4 +1,10 @@
+#!/usr/bin/env sh
 set -e
+
+# node_modules lives in app/, but linting and formatting are repo-wide, so run
+# from the repo root with the app's pinned binaries on PATH.
+PATH="$PWD/app/node_modules/.bin:$PATH"
+export PATH
 
 # Check for direct edits to generated agent docs (must run first)
 ./scripts/guard-generated-agent-docs.sh
@@ -10,16 +16,29 @@ if git diff --cached --name-only | grep -qE "(docs/AGENTS\.src\.md|scripts/build
 fi
 
 # Scan for secrets (requires installing gitleaks)
-if command -v gitleaks &> /dev/null; then
+if command -v gitleaks >/dev/null 2>&1; then
     gitleaks protect --staged --no-banner
 else
     echo "Warning: gitleaks not installed, skipping secret scan"
 fi
 
-cd app
+# Shell and GitHub Actions linting. Both are enforced in CI; these are just an
+# early warning for devs who have the tools installed.
+if command -v shellcheck >/dev/null 2>&1; then
+    shellcheck scripts/*.sh .husky/pre-commit
+else
+    echo "Warning: shellcheck not installed, skipping shell lint"
+fi
 
-# Run lint-staged (formats and lints staged files only)
-npx lint-staged
+if command -v actionlint >/dev/null 2>&1; then
+    actionlint
+else
+    echo "Warning: actionlint not installed, skipping GitHub Actions lint"
+fi
+
+# Format and lint staged files only
+lint-staged
 
 # Run unit tests (includes type check)
+cd app
 npm test

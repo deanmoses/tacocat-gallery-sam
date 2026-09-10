@@ -25,7 +25,7 @@ export function respond404NotFound(event: APIGatewayProxyEvent, message: string)
 /**
  * Create an API Gateway lambda function response
  */
-export function respondHttp(event: APIGatewayProxyEvent, body: object, statusCode = 200): APIGatewayProxyResult {
+export function respondHttp(_event: APIGatewayProxyEvent, body: object, statusCode = 200): APIGatewayProxyResult {
     return {
         isBase64Encoded: false,
         statusCode: statusCode,

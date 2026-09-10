@@ -1,0 +1,25 @@
+# Build output
+.aws-sam/
+app/coverage/
+
+# Generated: CLAUDE.md and AGENTS.md come from docs/AGENTS.src.md via
+# scripts/build-agent-docs.mjs. Formatting them here would fight the generator.
+CLAUDE.md
+AGENTS.md
+
+# Lockfile is npm's to format
+app/package-lock.json
+
+# Test fixtures are captured AWS payloads; keep them byte-identical to what
+# DynamoDB/S3/MediaConvert actually emit.
+app/src/test/data/
+
+# Personal settings; ignored via global gitignore for some devs, so pin it here
+# to keep `format:check` consistent between local runs and CI.
+.claude/settings.local.json
+
+# CloudFormation/SAM convention is 2-space indent and double quotes, which is
+# what every AWS doc and generator emits. Reformatting to this repo's 4-space
+# JS style rewrites all ~1150 lines and destroys blame on the infra that matters
+# most. Correctness here is cfn-lint's job (`sam validate --lint`), not Prettier's.
+template.yaml

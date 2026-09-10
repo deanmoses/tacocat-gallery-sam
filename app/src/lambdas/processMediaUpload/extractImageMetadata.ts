@@ -9,7 +9,7 @@ import { ImageCreateRequest } from '../../lib/gallery/galleryTypes';
  * from infrastructure errors like S3 (which should propagate for retry).
  */
 export class MetadataExtractionError extends Error {
-    readonly cause?: unknown;
+    override readonly cause?: unknown;
     constructor(message: string, cause?: unknown) {
         super(message);
         this.name = 'MetadataExtractionError';

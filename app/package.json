@@ -12,7 +12,12 @@
         "test:verbose": "npm run compile && jest --selectProjects=unit",
         "test:integration": "npm run compile && jest --selectProjects=integration --silent",
         "test:all": "npm run compile && jest",
-        "lint": "eslint . --quiet --fix",
+        "lint": "cd .. && eslint . --config app/eslint.config.mjs",
+        "lint:fix": "cd .. && eslint . --config app/eslint.config.mjs --fix",
+        "lint:shell": "cd .. && shellcheck scripts/*.sh .husky/pre-commit",
+        "lint:actions": "cd .. && actionlint",
+        "format": "cd .. && prettier --write .",
+        "format:check": "cd .. && prettier --check .",
         "prepare": "cd .. && husky",
         "compile": "tsc",
         "agent-docs": "node ../scripts/build-agent-docs.mjs"
@@ -47,6 +52,7 @@
         "eslint": "^10.10.0",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-prettier": "^5.5.6",
+        "globals": "^17.12.0",
         "husky": "^9.1.7",
         "jest": "^30.5.1",
         "lint-staged": "^16.4.0",
@@ -55,9 +61,5 @@
         "ts-node": "^10.9.2",
         "typescript": "^6.0.3",
         "typescript-eslint": "^8.70.0"
-    },
-    "lint-staged": {
-        "*.{js,ts,svelte,json,css,html,md}": "prettier --write",
-        "*.{js,ts,svelte}": "eslint --fix"
     }
 }
