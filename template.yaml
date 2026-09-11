@@ -619,7 +619,7 @@ Resources:
         # Sharp layer with HEIC support via libheif/libde265
         # I build this in an AWS Code Builder project: sharp-heic-lambda-layer
         # I tried setting this as a parameter, but it didn't update when I changed it
-        - arn:aws:lambda:us-east-1:010410881828:layer:sharp-heic:1
+        - arn:aws:lambda:us-east-1:010410881828:layer:sharp-heic:2
       FunctionUrlConfig:
         AuthType: NONE #TODO: authentication
     Metadata:
@@ -1280,7 +1280,7 @@ Resources:
         # Sharp layer with HEIC support via libheif/libde265
         # I build this in an AWS Code Builder project: sharp-heic-lambda-layer
         # I tried setting this as a parameter, but it didn't update when I changed it
-        - arn:aws:lambda:us-east-1:010410881828:layer:sharp-heic:1
+        - arn:aws:lambda:us-east-1:010410881828:layer:sharp-heic:2
       Events:
         FileUploadEvent:
           Type: S3

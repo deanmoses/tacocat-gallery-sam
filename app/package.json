@@ -40,7 +40,7 @@
         "exifreader": "^4.44.1",
         "mime": "^4.1.0",
         "redis": "^6.2.1",
-        "sharp": "^0.34.5"
+        "sharp": "0.35.1"
     },
     "devDependencies": {
         "@aws-sdk/types": "^3.974.5",
