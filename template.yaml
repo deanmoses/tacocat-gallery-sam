@@ -627,7 +627,7 @@ Resources:
       BuildProperties:
         Minify: true
         Sourcemap: true
-        Target: es2020
+        Target: node24
         EntryPoints:
           - generateDerivedImageLambda.ts
         External:
@@ -666,7 +666,7 @@ Resources:
       BuildProperties:
         Minify: true
         Sourcemap: true
-        Target: es2020
+        Target: node24
         EntryPoints:
           - dynamoToRedisLambda.ts
 
@@ -695,7 +695,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: es2020
+        Target: node24
         Sourcemap: true
         EntryPoints:
           - syncRedisLambda.ts
@@ -729,7 +729,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: es2020
+        Target: node24
         EntryPoints:
           - searchLambda.ts
 
@@ -759,7 +759,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: es2020
+        Target: node24
         EntryPoints:
           - getLatestAlbumLambda.ts
 
@@ -794,7 +794,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: es2020
+        Target: node24
         EntryPoints:
           - albumExistsLambda.ts
 
@@ -824,7 +824,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: es2020
+        Target: node24
         EntryPoints:
           - mediaExistsLambda.ts
 
@@ -859,7 +859,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: es2020
+        Target: node24
         EntryPoints:
           - getAlbumLambda.ts
 
@@ -889,7 +889,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: es2020
+        Target: node24
         EntryPoints:
           - createAlbumLambda.ts
 
@@ -924,7 +924,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: es2020
+        Target: node24
         EntryPoints:
           - updateAlbumLambda.ts
 
@@ -959,7 +959,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: es2020
+        Target: node24
         EntryPoints:
           - updateMediaLambda.ts
 
@@ -989,7 +989,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: es2020
+        Target: node24
         EntryPoints:
           - setAlbumThumbnailLambda.ts
 
@@ -1019,7 +1019,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: es2020
+        Target: node24
         EntryPoints:
           - recutThumbnailLambda.ts
 
@@ -1060,7 +1060,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: es2020
+        Target: node24
         EntryPoints:
           - renameMediaLambda.ts
 
@@ -1101,7 +1101,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: es2020
+        Target: node24
         EntryPoints:
           - renameAlbumLambda.ts
 
@@ -1136,7 +1136,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: es2020
+        Target: node24
         EntryPoints:
           - deleteAlbumLambda.ts
 
@@ -1169,7 +1169,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: es2020
+        Target: node24
         EntryPoints:
           - generateUploadUrlsLambda.ts
 
@@ -1210,7 +1210,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: es2020
+        Target: node24
         EntryPoints:
           - deleteMediaLambda.ts
 
@@ -1240,7 +1240,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: es2020
+        Target: node24
         EntryPoints:
           - getErrorsLambda.ts
 
@@ -1301,7 +1301,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: es2020
+        Target: node24
         Sourcemap: true
         EntryPoints:
           - processMediaUploadLambda.ts
@@ -1360,7 +1360,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: es2020
+        Target: node24
         Sourcemap: true
         EntryPoints:
           - videoTranscodingCompleteLambda.ts
