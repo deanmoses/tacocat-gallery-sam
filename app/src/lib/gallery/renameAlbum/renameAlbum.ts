@@ -125,7 +125,13 @@ async function moveAlbumInDynamoDB(
             const mediaPath = newAlbumPath + child.itemName;
             const newVersionId = newVersionIds.get(mediaPath);
             if (!newVersionId) {
-                console.error(`No new version ID found for media [${mediaPath}].  VersionIDs: `, newVersionIds);
+                console.error(
+                    JSON.stringify({
+                        event: 'rename_album_missing_version_id',
+                        mediaPath,
+                        versionIds: Object.fromEntries(newVersionIds),
+                    }),
+                );
                 throw new Error(`No new version ID found for media [${mediaPath}]`);
             }
             const image = child as ImageItem;

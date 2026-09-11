@@ -66,7 +66,9 @@ async function validateIdToken(token: string): Promise<CognitoIdTokenPayload | u
     try {
         return await getVerifier().verify(token);
     } catch (e) {
-        console.warn('JWT validation failed:', e instanceof Error ? e.message : e);
+        console.warn(
+            JSON.stringify({ event: 'jwt_validation_failed', error: e instanceof Error ? e.message : String(e) }),
+        );
         return undefined;
     }
 }

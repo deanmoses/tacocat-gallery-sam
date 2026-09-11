@@ -70,8 +70,9 @@ sam deploy            # Deploy to dev/staging
 sam sync --watch      # Deploy to dev/staging and watch mode for rapid dev iteration
 
 # Logs
-sam logs --include-traces --tail         # All function logs
+sam logs --include-traces --tail         # All function logs (one shared log group per stack)
 sam logs -n FunctionName --tail          # Specific function logs
+aws logs tail tacocat-gallery-sam/dev --since 1h   # Same log group via the AWS CLI
 
 # Documentation
 npm run agent-docs    # Regenerate CLAUDE.md and AGENTS.md from docs/AGENTS.src.md
