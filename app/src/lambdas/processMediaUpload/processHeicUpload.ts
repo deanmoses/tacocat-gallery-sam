@@ -39,7 +39,15 @@ export async function processHeicUpload(bucket: string, heicKey: string): Promis
     // Convert HEIC to JPEG using Sharp
     let jpegBuffer: Buffer;
     try {
-        jpegBuffer = await sharp(heicBuffer).keepMetadata().jpeg({ quality: JPEG_ORIGINAL_QUALITY }).toBuffer();
+        // `unlimited` disables libheif's security limits. libvips 8.18 clamps HEIF `max_items` to 16
+        // (foreign/heifload.c), but a tiled iPhone HEIC references one item per tile - a 4032x3024
+        // photo has 48 - so libheif rejects the file as a corrupt header before decoding starts.
+        // Removing the cap is safe here: Lambda's own memory ceiling is a harder bound than the
+        // libheif memory limits this also lifts. Do not remove without re-running heicConversion.spec.
+        jpegBuffer = await sharp(heicBuffer, { unlimited: true })
+            .keepMetadata()
+            .jpeg({ quality: JPEG_ORIGINAL_QUALITY })
+            .toBuffer();
     } catch (error) {
         // Conversion failed - record error and delete the HEIC
         // Each step is independent - don't let one failure prevent the others
