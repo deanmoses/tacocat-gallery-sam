@@ -12,11 +12,15 @@ import { GalleryItem } from '../../lib/gallery/galleryTypes';
  * A Lambda that receives DynamoDB stream events and replicates the data to Redis
  */
 export const handler: DynamoDBStreamHandler = async (event) => {
-    console.info(`DynamoDB to Redis: processing ${event?.Records?.length} records`);
+    console.info({ event: 'dynamo_to_redis_started', recordCount: event?.Records?.length });
     const { itemsToSave, pathsToDelete } = toRedisItems(event);
-    console.info(`DynamoDB to Redis: saving ${itemsToSave.length} items and deleting ${pathsToDelete.length}`);
+    console.info({
+        event: 'dynamo_to_redis_syncing',
+        saveCount: itemsToSave.length,
+        deleteCount: pathsToDelete.length,
+    });
     await syncToRedis(itemsToSave, pathsToDelete);
-    console.info(`DynamoDB to Redis: processed ${event?.Records?.length} records`);
+    console.info({ event: 'dynamo_to_redis_complete', recordCount: event?.Records?.length });
 };
 
 /** Extract Redis items from DynamoDB stream event */
@@ -28,15 +32,15 @@ function toRedisItems(event: DynamoDBStreamEvent): { itemsToSave: RedisGalleryIt
             const newImage = unmarshall(record.dynamodb.NewImage as { [key: string]: AttributeValue }) as GalleryItem;
             const redisItem = toRedisItem(newImage);
             itemsToSave.push(redisItem);
-            console.log(`${record.eventName}: %j`, redisItem);
+            console.info({ event: 'redis_item_upsert', dynamoEvent: record.eventName, item: redisItem });
         } else if ('REMOVE' === record.eventName) {
             const parentPath = record.dynamodb?.Keys?.['parentPath']?.S;
             const itemName = record.dynamodb?.Keys?.['itemName']?.S;
             const path = toPath(parentPath, itemName);
             pathsToDelete.push(path);
-            console.log(`${record.eventName}: ${path}`);
+            console.info({ event: 'redis_item_delete', dynamoEvent: record.eventName, path });
         } else {
-            console.info(`DynamoDB to Redis: unhandled event [${record.eventName}]`);
+            console.warn({ event: 'dynamo_to_redis_unhandled_event', dynamoEvent: record.eventName });
         }
     }
     return { itemsToSave, pathsToDelete };

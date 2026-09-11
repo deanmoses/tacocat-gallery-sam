@@ -46,7 +46,7 @@ export async function getMediaConvertJobMetadata(jobId: string): Promise<MediaCo
 
     // Log warning if duration extraction failed
     if (duration === 0) {
-        console.warn(JSON.stringify({ event: 'mediaconvert_duration_extraction_failed', jobId }));
+        console.warn({ event: 'mediaconvert_duration_extraction_failed', jobId });
     }
 
     return {

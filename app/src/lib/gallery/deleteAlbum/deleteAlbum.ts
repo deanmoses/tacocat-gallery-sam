@@ -11,7 +11,7 @@ import { ddbDocClient } from '../../dynamo_utils/ddbClient';
  * @param albumPath Path of the album to delete, like /2001/12-31/
  */
 export async function deleteAlbum(albumPath: string) {
-    console.info(`Delete Album: deleting [${albumPath}]...`);
+    console.info({ event: 'album_delete_started', albumPath });
     if (!isValidAlbumPath(albumPath)) {
         throw new BadRequestException(`Malformed album path: [${albumPath}]`);
     }
@@ -27,7 +27,7 @@ export async function deleteAlbum(albumPath: string) {
     }
 
     await deleteAlbumFromDynamoDB(albumPath);
-    console.info(`Delete Album: deleted [${albumPath}]`);
+    console.info({ event: 'album_deleted', albumPath });
 }
 
 /**

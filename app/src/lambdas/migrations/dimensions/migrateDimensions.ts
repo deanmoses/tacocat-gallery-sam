@@ -126,7 +126,7 @@ export async function migrateDimensions(input: MigrateInput, options: MigrateOpt
     validateInput(input);
 
     const { mode, image, startFrom } = input;
-    console.log(JSON.stringify({ event: 'migrate_start', mode, image, startFrom }));
+    console.info({ event: 'migrate_start', mode, image, startFrom });
 
     // Set up clients
     const docClient = options.docClient ?? ddbDocClient;
@@ -234,27 +234,23 @@ export async function migrateDimensions(input: MigrateInput, options: MigrateOpt
                         if (unfixableIssueCount >= MAX_UNFIXABLE_ISSUES) {
                             result.stoppedEarly = true;
                             result.startFrom = firstImageInChunk;
-                            console.log(
-                                JSON.stringify({
-                                    event: 'migrate_stopped_early',
-                                    reason: 'max_unfixable_issues',
-                                    count: unfixableIssueCount,
-                                    startFrom: firstImageInChunk,
-                                }),
-                            );
+                            console.info({
+                                event: 'migrate_stopped_early',
+                                reason: 'max_unfixable_issues',
+                                count: unfixableIssueCount,
+                                startFrom: firstImageInChunk,
+                            });
                             break;
                         }
                         if (result.issues.length >= MAX_ISSUES) {
                             result.stoppedEarly = true;
                             result.startFrom = firstImageInChunk;
-                            console.log(
-                                JSON.stringify({
-                                    event: 'migrate_stopped_early',
-                                    reason: 'max_issues',
-                                    count: result.issues.length,
-                                    startFrom: firstImageInChunk,
-                                }),
-                            );
+                            console.info({
+                                event: 'migrate_stopped_early',
+                                reason: 'max_issues',
+                                count: result.issues.length,
+                                startFrom: firstImageInChunk,
+                            });
                             break;
                         }
                     }
@@ -270,13 +266,11 @@ export async function migrateDimensions(input: MigrateInput, options: MigrateOpt
         result.stoppedEarly = true;
         result.startFrom = currentImagePath;
         result.error = e instanceof Error ? e.message : String(e);
-        console.error(
-            JSON.stringify({
-                event: 'migrate_error',
-                error: result.error,
-                startFrom: currentImagePath,
-            }),
-        );
+        console.error({
+            event: 'migrate_error',
+            error: result.error,
+            startFrom: currentImagePath,
+        });
         // Continue to return result with error info instead of throwing
     }
 
@@ -285,21 +279,19 @@ export async function migrateDimensions(input: MigrateInput, options: MigrateOpt
     result.issuesFixable = result.issues.filter((i) => isFixableIssueType(i.type)).length;
     result.issuesUnfixable = result.issuesFound - result.issuesFixable;
 
-    console.log(
-        JSON.stringify({
-            event: result.error ? 'migrate_error_complete' : 'migrate_complete',
-            mode,
-            albumsChecked: result.albumsChecked,
-            imagesChecked: result.imagesChecked,
-            issuesFound: result.issuesFound,
-            issuesFixable: result.issuesFixable,
-            issuesUnfixable: result.issuesUnfixable,
-            issuesFixed: result.issuesFixed,
-            stoppedEarly: result.stoppedEarly,
-            durationMs: result.durationMs,
-            error: result.error,
-        }),
-    );
+    console.info({
+        event: result.error ? 'migrate_error_complete' : 'migrate_complete',
+        mode,
+        albumsChecked: result.albumsChecked,
+        imagesChecked: result.imagesChecked,
+        issuesFound: result.issuesFound,
+        issuesFixable: result.issuesFixable,
+        issuesUnfixable: result.issuesUnfixable,
+        issuesFixed: result.issuesFixed,
+        stoppedEarly: result.stoppedEarly,
+        durationMs: result.durationMs,
+        error: result.error,
+    });
 
     return result;
 }
@@ -483,13 +475,11 @@ async function processImage(
             }
         }
     } catch (e) {
-        console.error(
-            JSON.stringify({
-                event: 'process_image_error',
-                path: imagePath,
-                error: e instanceof Error ? e.message : String(e),
-            }),
-        );
+        console.error({
+            event: 'process_image_error',
+            path: imagePath,
+            error: e instanceof Error ? e.message : String(e),
+        });
         throw e;
     }
 
@@ -526,7 +516,7 @@ function addIssue(result: { issues: Issue[] }, path: string, type: IssueType, de
     result.issues.push(issue);
 
     if (issuesLogged < MAX_ISSUES_TO_LOG) {
-        console.log(JSON.stringify({ event: 'issue_found', path, type, details }));
+        console.info({ event: 'issue_found', path, type, details });
         issuesLogged++;
     }
 
@@ -549,7 +539,7 @@ async function updateDimensions(docClient: DynamoDBDocumentClient, imagePath: st
         },
     });
     await docClient.send(command);
-    console.log(JSON.stringify({ event: 'dimensions_updated', path: imagePath, dimensions }));
+    console.info({ event: 'dimensions_updated', path: imagePath, dimensions });
 }
 
 /** Update tags in DynamoDB */
@@ -568,5 +558,5 @@ async function updateTags(docClient: DynamoDBDocumentClient, imagePath: string, 
         },
     });
     await docClient.send(command);
-    console.log(JSON.stringify({ event: 'tags_updated', path: imagePath, tags }));
+    console.info({ event: 'tags_updated', path: imagePath, tags });
 }

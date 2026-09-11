@@ -34,7 +34,7 @@ export async function deleteOriginalAndDerivativesForMediaItem(mediaPath: string
  * @param albumPath Path of album, like /2001/12-31/
  */
 async function deleteOriginalsForAlbum(albumPath: string): Promise<void> {
-    console.info(`Deleting original media for album [${albumPath}]...`);
+    console.info({ event: 's3_album_originals_delete_started', albumPath });
     if (!isValidAlbumPath(albumPath)) {
         throw new Error(`Cannot delete original media; invalid album path [${albumPath}]`);
     }
@@ -51,7 +51,7 @@ async function deleteOriginalsForAlbum(albumPath: string): Promise<void> {
  * @param albumPath Path of album, like /2001/12-31/
  */
 async function deleteDerivedFilesForAlbum(albumPath: string): Promise<void> {
-    console.info(`Deleting derived files for album [${albumPath}]...`);
+    console.info({ event: 's3_album_derived_delete_started', albumPath });
     if (!isValidAlbumPath(albumPath)) {
         throw new Error(`Cannot delete derived files; invalid album path [${albumPath}]`);
     }
@@ -67,7 +67,7 @@ async function deleteDerivedFilesForAlbum(albumPath: string): Promise<void> {
  * @param mediaPath Path of media, like /2001/12-31/image.jpg or /2001/12-31/video.mp4
  */
 async function deleteOriginalMedia(mediaPath: string): Promise<void> {
-    console.info(`Deleting original media from S3 [${mediaPath}]...`);
+    console.info({ event: 's3_media_original_delete_started', mediaPath });
     if (!isValidMediaPath(mediaPath)) {
         throw new Error(`Cannot delete original media; invalid media path [${mediaPath}]`);
     }
@@ -88,7 +88,7 @@ async function deleteOriginalMedia(mediaPath: string): Promise<void> {
  * @param mediaPath the gallery item's path, like /2001/12-31/image.jpg or /2001/12-31/video.mp4
  */
 async function deleteDerivedFilesByPath(mediaPath: string): Promise<void> {
-    console.info(`Deleting derived files from S3 [${mediaPath}]...`);
+    console.info({ event: 's3_media_derived_delete_started', mediaPath });
     if (!isValidMediaPath(mediaPath)) {
         throw new Error(`Cannot delete derived files; invalid media path [${mediaPath}]`);
     }
@@ -110,7 +110,7 @@ export async function deleteDerivedFilesByPathAndVersion(mediaPath: string, vers
         throw new Error(`Cannot delete derived files; invalid media path [${mediaPath}]`);
     }
     const prefix = getDerivedAssetVersionPrefix(mediaPath, versionId);
-    console.info(`Deleting derived files for version [${prefix}]...`);
+    console.info({ event: 's3_version_derived_delete_started', prefix });
     await deleteS3Folder(getDerivedImagesBucketName(), prefix);
 }
 
@@ -137,7 +137,12 @@ async function deleteS3Folder(bucketName: string, keyPrefix: string): Promise<nu
 
     // Do a bulk delete of the objects
     if (objectsToDelete?.KeyCount) {
-        console.info(`Deleting [${objectsToDelete?.Contents?.length}] derived files...`);
+        console.info({
+            event: 's3_folder_delete_started',
+            bucket: bucketName,
+            keyPrefix,
+            count: objectsToDelete?.Contents?.length,
+        });
         const deleteCommand = new DeleteObjectsCommand({
             Bucket: bucketName,
             Delete: {
@@ -147,12 +152,15 @@ async function deleteS3Folder(bucketName: string, keyPrefix: string): Promise<nu
         });
 
         const deletedObjects = await s3Client.send(deleteCommand);
-        console.info(`Deleted [${deletedObjects?.Deleted?.length}] derived files.`);
+        console.info({
+            event: 's3_folder_deleted',
+            bucket: bucketName,
+            keyPrefix,
+            count: deletedObjects?.Deleted?.length,
+        });
         if (deletedObjects?.Errors) {
             deletedObjects.Errors.forEach((error) =>
-                console.error(
-                    JSON.stringify({ event: 'derived_file_delete_failed', key: error.Key, code: error.Code }),
-                ),
+                console.error({ event: 'derived_file_delete_failed', key: error.Key, code: error.Code }),
             );
         }
 

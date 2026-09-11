@@ -19,7 +19,7 @@ export async function processHeicUpload(bucket: string, heicKey: string): Promis
     const heicPath = '/' + heicKey;
     const heicExtPattern = new RegExp(`\\.(${HEIC_EXTENSIONS.join('|')})$`, 'i');
     const jpegKey = heicKey.replace(heicExtPattern, '.jpg');
-    console.info(JSON.stringify({ event: 'heic_conversion_started', heicKey, jpegKey }));
+    console.info({ event: 'heic_conversion_started', heicKey, jpegKey });
 
     // Download HEIC from S3
     const getResponse = await s3Client.send(
@@ -45,7 +45,7 @@ export async function processHeicUpload(bucket: string, heicKey: string): Promis
         // Each step is independent - don't let one failure prevent the others
         // Record error first so user sees feedback even if cleanup fails
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error(JSON.stringify({ event: 'heic_conversion_failed', key: heicKey, error: errorMessage }));
+        console.error({ event: 'heic_conversion_failed', key: heicKey, error: errorMessage });
 
         let fileDeleted = false;
 
@@ -59,12 +59,12 @@ export async function processHeicUpload(bucket: string, heicKey: string): Promis
                 }),
             );
             fileDeleted = true;
-            console.info(JSON.stringify({ event: 'heic_deleted', key: heicKey }));
+            console.info({ event: 'heic_deleted', key: heicKey });
         } catch (deleteError) {
-            console.error(JSON.stringify({ event: 'heic_delete_failed', key: heicKey, error: String(deleteError) }));
+            console.error({ event: 'heic_delete_failed', key: heicKey, error: String(deleteError) });
         }
 
-        console.info(JSON.stringify({ event: 'heic_cleanup_complete', key: heicKey, errorRecorded, fileDeleted }));
+        console.info({ event: 'heic_cleanup_complete', key: heicKey, errorRecorded, fileDeleted });
         return ''; // Return empty string to indicate failure
     }
 
@@ -86,6 +86,6 @@ export async function processHeicUpload(bucket: string, heicKey: string): Promis
         }),
     );
 
-    console.info(JSON.stringify({ event: 'heic_conversion_complete', heicKey, jpegKey }));
+    console.info({ event: 'heic_conversion_complete', heicKey, jpegKey });
     return jpegKey;
 }

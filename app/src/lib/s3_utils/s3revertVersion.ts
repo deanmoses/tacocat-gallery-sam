@@ -25,10 +25,10 @@ export async function revertS3Version(bucket: string, key: string, versionId: st
                 VersionId: versionId,
             }),
         );
-        console.info(JSON.stringify({ event: 'version_deleted', key, versionId }));
+        console.info({ event: 'version_deleted', key, versionId });
         return true;
     } catch (error) {
-        console.error(JSON.stringify({ event: 'version_delete_failed', key, versionId, error: String(error) }));
+        console.error({ event: 'version_delete_failed', key, versionId, error: String(error) });
         return false;
     }
 }

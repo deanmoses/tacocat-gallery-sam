@@ -13,7 +13,7 @@ import { ddbDocClient } from '../../dynamo_utils/ddbClient';
  * @param attributesToUpdate bag of attributes to update
  */
 export async function updateMedia(mediaPath: string, attributesToUpdate: Record<string, string | boolean>) {
-    console.info(`Update Media: updating [${mediaPath}]...`);
+    console.info({ event: 'media_update_started', mediaPath });
     if (!isValidMediaPath(mediaPath)) {
         throw new BadRequestException(`Malformed media path: [${mediaPath}]`);
     }
@@ -62,5 +62,5 @@ export async function updateMedia(mediaPath: string, attributesToUpdate: Record<
             throw e;
         }
     }
-    console.info(`Update Media: updated [${mediaPath}]`);
+    console.info({ event: 'media_updated', mediaPath });
 }

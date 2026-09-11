@@ -7,11 +7,11 @@ export async function search(query: SearchQuery): Promise<SearchResults> {
         const k = key as keyof SearchQuery;
         if (query[k] === undefined) delete query[k];
     }
-    console.info(`Search: searching gallery for `, query);
+    console.info({ event: 'search_started', query });
     if (!query) throw new BadRequestException('No query supplied');
     const rquery = convertToRedisSearchQuery(query);
     const results = await searchRedis(rquery);
-    console.info(`Search: searched gallery for`, query, `Total: ${results.total}, returned: ${results?.items?.length}`);
+    console.info({ event: 'search_complete', query, total: results.total, returned: results?.items?.length });
     return results;
 }
 

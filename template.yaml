@@ -532,12 +532,24 @@ Resources:
         function handler(event) {
             const r = event.request;
             const version = r.querystring['version'];
-            if (!version) return { statusCode: 400, statusDescription: 'Missing version' };
+            if (!version) return error('Missing Version');
             // r.uri is like /v/2024/06-15/video.mp4 -> extract /2024/06-15/video.mp4
             const path = r.uri.substring(2);
             r.uri = '/i' + path + '/' + version.value + '/video-transcoded';
             r.querystring = {};
             return r;
+        }
+        // HTTP/2 and HTTP/3 dropped the reason phrase, so statusDescription reaches
+        // almost no one: this distribution sets HttpVersion http2and3.  Carry the reason
+        // in a JSON body instead, in the same { errorMessage } shape that the API's
+        // handleHttpExceptions() returns, so clients parse CDN and API errors the same way.
+        function error(errorMessage) {
+            return {
+                statusCode: 400,
+                statusDescription: errorMessage,
+                headers: { 'content-type': { value: 'application/json' } },
+                body: JSON.stringify({ errorMessage: errorMessage }),
+            };
         }
 
   # CloudFront Function to rewrite URL to derived images bucket
@@ -553,14 +565,26 @@ Resources:
         function handler(event) {
             const r = event.request;
             const v = r.querystring['version'], c = r.querystring['crop'], s = r.querystring['size'];
-            if (!v) return { statusCode: 400, statusDescription: 'Missing Version' };
-            if (!s) return { statusCode: 400, statusDescription: 'Missing Size' };
+            if (!v) return error('Missing Version');
+            if (!s) return error('Missing Size');
             r.uri += path(v) + path(s) + crop(c);
             r.querystring = {};
             return r;
         }
         function path(p) { return p ? '/' + p.value : ''; }
         function crop(p) { return p ? '/crop=' + p.value : ''; }
+        // HTTP/2 and HTTP/3 dropped the reason phrase, so statusDescription reaches
+        // almost no one: this distribution sets HttpVersion http2and3.  Carry the reason
+        // in a JSON body instead, in the same { errorMessage } shape that the API's
+        // handleHttpExceptions() returns, so clients parse CDN and API errors the same way.
+        function error(errorMessage) {
+            return {
+                statusCode: 400,
+                statusDescription: errorMessage,
+                headers: { 'content-type': { value: 'application/json' } },
+                body: JSON.stringify({ errorMessage: errorMessage }),
+            };
+        }
 
   # ---------------------------------------------------------------------------
   # Lambda to generate derived images

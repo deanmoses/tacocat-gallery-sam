@@ -13,7 +13,8 @@ import { getDerivedImagesBucketName } from '../../lib/lambda_utils/Env';
 import { HeadObjectCommand, S3Client, NotFound } from '@aws-sdk/client-s3';
 import { getTranscodedVideoS3Key, getVideoPosterS3Key } from '../../lib/s3_utils/s3path';
 
-const yearPath = '/1705/'; // unique to this suite to prevent pollution
+const yearPath = '/1710/'; // unique to this suite to prevent pollution: afterAll deletes this
+// whole year album, which wipes any other suite sharing it.  /1705/ belongs to mediaUpdating.
 const albumPath = `${yearPath}09-03/`;
 const videoPath = `${albumPath}testvideo.mp4`;
 

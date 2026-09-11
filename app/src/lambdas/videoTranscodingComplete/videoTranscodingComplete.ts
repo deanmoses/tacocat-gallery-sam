@@ -40,10 +40,10 @@ export async function handleVideoTranscodingComplete(event: MediaConvertJobState
     const videoPath = userMetadata?.path;
     const versionId = userMetadata?.versionId;
 
-    console.info(JSON.stringify({ event: 'transcoding_event_received', jobId, status, videoPath }));
+    console.info({ event: 'transcoding_event_received', jobId, status, videoPath });
 
     if (!videoPath || !versionId) {
-        console.error(JSON.stringify({ event: 'transcoding_missing_metadata', jobId, videoPath, versionId }));
+        console.error({ event: 'transcoding_missing_metadata', jobId, videoPath, versionId });
         return;
     }
 
@@ -62,7 +62,7 @@ export async function handleVideoTranscodingComplete(event: MediaConvertJobState
  * If content type verification fails, treats as a failure: records error, deletes outputs, reverts original.
  */
 async function handleSuccess(jobId: string, videoPath: string, versionId: string): Promise<void> {
-    console.info(JSON.stringify({ event: 'transcoding_success_processing', jobId, videoPath }));
+    console.info({ event: 'transcoding_success_processing', jobId, videoPath });
 
     // Verify content types and rename MediaConvert outputs
     // MediaConvert outputs: S3_PATH/<filename>_transcoded.mp4 and S3_PATH/<filename>_poster.0000000.jpg
@@ -70,9 +70,7 @@ async function handleSuccess(jobId: string, videoPath: string, versionId: string
     const renameResult = await renameMediaConvertOutputs(videoPath, versionId);
     if (!renameResult.success) {
         // Content type verification or rename failed - treat as a failure
-        console.error(
-            JSON.stringify({ event: 'transcoding_rename_validation_failed', videoPath, error: renameResult.error }),
-        );
+        console.error({ event: 'transcoding_rename_validation_failed', videoPath, error: renameResult.error });
         await handleFailure(videoPath, versionId, renameResult.error);
         return;
     }
@@ -91,12 +89,12 @@ async function handleSuccess(jobId: string, videoPath: string, versionId: string
     // Write/update video record in DynamoDB
     await upsertVideo(videoPath, versionId, dimensions, duration);
 
-    console.info(JSON.stringify({ event: 'transcoding_dynamo_written', videoPath, duration, dimensions }));
+    console.info({ event: 'transcoding_dynamo_written', videoPath, duration, dimensions });
 
     // Set as album thumbnail if none exists
     await setImageAsParentAlbumThumbnailIfNoneExists(videoPath);
 
-    console.info(JSON.stringify({ event: 'transcoding_complete', videoPath }));
+    console.info({ event: 'transcoding_complete', videoPath });
 }
 
 /**
@@ -104,7 +102,7 @@ async function handleSuccess(jobId: string, videoPath: string, versionId: string
  * Write to error table, revert original file, clean up partial outputs.
  */
 async function handleFailure(videoPath: string, versionId: string, errorMessage: string): Promise<void> {
-    console.error(JSON.stringify({ event: 'transcoding_failed', videoPath, error: errorMessage }));
+    console.error({ event: 'transcoding_failed', videoPath, error: errorMessage });
 
     await recordMediaProcessingError(videoPath, errorMessage);
 
@@ -113,9 +111,9 @@ async function handleFailure(videoPath: string, versionId: string, errorMessage:
     const key = videoPath.substring(1); // Remove leading slash
     try {
         await revertS3Version(originalBucket, key, versionId);
-        console.info(JSON.stringify({ event: 'transcoding_original_reverted', key }));
+        console.info({ event: 'transcoding_original_reverted', key });
     } catch (error) {
-        console.error(JSON.stringify({ event: 'transcoding_original_revert_failed', key, error: String(error) }));
+        console.error({ event: 'transcoding_original_revert_failed', key, error: String(error) });
     }
 
     // Delete partial outputs from derived bucket

@@ -26,7 +26,7 @@ export async function generateDerivedImage(method: string, urlPath: string): Pro
 
     const { id, versionId, error, ...params } = parseUrlPath(urlPath);
     if (error) {
-        console.error(JSON.stringify({ event: 'parse_error', urlPath: urlPath, error }));
+        console.error({ event: 'parse_error', urlPath: urlPath, error });
         return badRequest;
     }
     if (!versionId) return badRequest;

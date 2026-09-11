@@ -58,7 +58,7 @@ export const handler = async (event: VideoIdToPathEvent): Promise<MigrationResul
         throw new Error('Invalid input: must provide non-empty array of video paths');
     }
 
-    console.info(JSON.stringify({ event: 'migration_started', totalPaths: event.paths.length }));
+    console.info({ event: 'migration_started', totalPaths: event.paths.length });
 
     // =========================================================================
     // Phase 1: Validate all inputs upfront
@@ -101,14 +101,14 @@ export const handler = async (event: VideoIdToPathEvent): Promise<MigrationResul
 
             if (!item) {
                 const error = `Path not found in DynamoDB: ${path}`;
-                console.error(JSON.stringify({ event: 'validation_error', path, error }));
+                console.error({ event: 'validation_error', path, error });
                 errors.push(error);
                 continue;
             }
 
             if (!item.versionId) {
                 const error = `Missing versionId in DynamoDB: ${path}`;
-                console.error(JSON.stringify({ event: 'validation_error', path, error }));
+                console.error({ event: 'validation_error', path, error });
                 errors.push(error);
                 continue;
             }
@@ -121,7 +121,7 @@ export const handler = async (event: VideoIdToPathEvent): Promise<MigrationResul
             videoRecords.push(record);
 
             if (!record.id) {
-                console.info(JSON.stringify({ event: 'already_migrated', path }));
+                console.info({ event: 'already_migrated', path });
                 alreadyMigrated.push(path);
             } else {
                 toMigrate.push(record);
@@ -131,24 +131,20 @@ export const handler = async (event: VideoIdToPathEvent): Promise<MigrationResul
 
     // Fail if any validation errors
     if (errors.length > 0) {
-        console.error(
-            JSON.stringify({
-                event: 'validation_failed',
-                totalErrors: errors.length,
-                errors,
-            }),
-        );
+        console.error({
+            event: 'validation_failed',
+            totalErrors: errors.length,
+            errors,
+        });
         throw new Error(`Validation failed with ${errors.length} errors. See logs for details.`);
     }
 
-    console.info(
-        JSON.stringify({
-            event: 'validation_complete',
-            totalRecords: videoRecords.length,
-            toMigrate: toMigrate.length,
-            alreadyMigrated: alreadyMigrated.length,
-        }),
-    );
+    console.info({
+        event: 'validation_complete',
+        totalRecords: videoRecords.length,
+        toMigrate: toMigrate.length,
+        alreadyMigrated: alreadyMigrated.length,
+    });
 
     // =========================================================================
     // Phase 2: Migrate each video
@@ -163,7 +159,7 @@ export const handler = async (event: VideoIdToPathEvent): Promise<MigrationResul
         if (!versionId) throw new Error(`Corrupt record missing versionId: ${path}`);
 
         try {
-            console.info(JSON.stringify({ event: 'migrating_video', path, id, versionId }));
+            console.info({ event: 'migrating_video', path, id, versionId });
 
             // Verify source files exist before copying (fail fast if missing)
             const oldTranscodedKey = getOldTranscodedKey(id, versionId);
@@ -188,7 +184,7 @@ export const handler = async (event: VideoIdToPathEvent): Promise<MigrationResul
                     Key: newTranscodedKey,
                 }),
             );
-            console.info(JSON.stringify({ event: 'copied_transcoded', from: oldTranscodedKey, to: newTranscodedKey }));
+            console.info({ event: 'copied_transcoded', from: oldTranscodedKey, to: newTranscodedKey });
 
             // Copy poster
             const newPosterKey = getNewPosterKey(path, versionId);
@@ -199,7 +195,7 @@ export const handler = async (event: VideoIdToPathEvent): Promise<MigrationResul
                     Key: newPosterKey,
                 }),
             );
-            console.info(JSON.stringify({ event: 'copied_poster', from: oldPosterKey, to: newPosterKey }));
+            console.info({ event: 'copied_poster', from: oldPosterKey, to: newPosterKey });
 
             // Remove id field from DynamoDB record
             const lastSlash = path.lastIndexOf('/');
@@ -216,17 +212,17 @@ export const handler = async (event: VideoIdToPathEvent): Promise<MigrationResul
                     },
                 }),
             );
-            console.info(JSON.stringify({ event: 'removed_id_from_ddb', path }));
+            console.info({ event: 'removed_id_from_ddb', path });
 
             // Delete all files under d/<id>/ prefix
             await deleteS3Prefix(s3Client, derivedBucket, getOldIdPrefix(id));
-            console.info(JSON.stringify({ event: 'deleted_old_files', prefix: getOldIdPrefix(id) }));
+            console.info({ event: 'deleted_old_files', prefix: getOldIdPrefix(id) });
 
             migrated++;
-            console.info(JSON.stringify({ event: 'video_migrated', path }));
+            console.info({ event: 'video_migrated', path });
         } catch (error) {
             const errorMsg = `Failed to migrate ${path}: ${error instanceof Error ? error.message : String(error)}`;
-            console.error(JSON.stringify({ event: 'migration_error', path, error: errorMsg }));
+            console.error({ event: 'migration_error', path, error: errorMsg });
             migrationErrors.push(errorMsg);
             failed++;
         }
@@ -240,7 +236,7 @@ export const handler = async (event: VideoIdToPathEvent): Promise<MigrationResul
         errors: migrationErrors,
     };
 
-    console.info(JSON.stringify({ event: 'migration_complete', ...result }));
+    console.info({ event: 'migration_complete', ...result });
 
     return result;
 };
@@ -265,7 +261,7 @@ async function deleteS3Prefix(client: S3Client, bucket: string, prefix: string):
 
     const objects = listResponse.Contents || [];
     if (objects.length === 0) {
-        console.info(JSON.stringify({ event: 'no_objects_to_delete', prefix }));
+        console.info({ event: 'no_objects_to_delete', prefix });
         return;
     }
 
@@ -278,5 +274,5 @@ async function deleteS3Prefix(client: S3Client, bucket: string, prefix: string):
         }),
     );
 
-    console.info(JSON.stringify({ event: 'deleted_objects', prefix, count: objects.length }));
+    console.info({ event: 'deleted_objects', prefix, count: objects.length });
 }

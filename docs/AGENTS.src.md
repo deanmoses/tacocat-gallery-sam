@@ -188,22 +188,17 @@ Never hard-wrap prose in Markdown. Write each paragraph and list item as one lon
 
 ## Logging
 
-Use structured JSON logging for CloudWatch queryability:
+Use structured logging for CloudWatch queryability. Pass a plain object as the single argument to the console method:
 
 ```typescript
-console.info(JSON.stringify({ event: 'transcoding_complete', videoPath, videoId }));
-console.error(
-    JSON.stringify({
-        event: 'transcoding_failed',
-        videoPath,
-        error: errorMessage,
-    }),
-);
+console.info({ event: 'transcoding_complete', videoPath, videoId });
+console.error({ event: 'transcoding_failed', videoPath, error: errorMessage });
 ```
 
-- Always include an `event` field describing what happened
+- Always include an `event` field (snake_case) describing what happened
 - Include relevant context (IDs, paths, etc.) as additional fields
 - Use `console.info` for success/progress, `console.error` for failures, `console.warn` for warnings
+- Never `JSON.stringify` the object or pass extra arguments. The Lambda functions use the JSON log format, so the runtime already wraps each record in JSON with `timestamp`, `level` and `requestId` and nests a single object argument under `message` as real JSON. A pre-stringified string gets escaped into `message`, and Logs Insights can't then query its fields without a `parse` step.
 
 ## Key Configuration Files
 

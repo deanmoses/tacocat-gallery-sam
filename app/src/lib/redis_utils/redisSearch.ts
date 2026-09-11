@@ -1,5 +1,14 @@
 import { FtSearchOptions } from 'redis';
-import { AlbumItem, GalleryItem, GalleryItemType, ImageItem, VideoItem } from '../gallery/galleryTypes';
+import {
+    AlbumItem,
+    AlbumThumbnailEntry,
+    GalleryItem,
+    GalleryItemType,
+    ImageItem,
+    ImageThumbnailCrop,
+    Size,
+    VideoItem,
+} from '../gallery/galleryTypes';
 import { augmentAlbumThumbnailsWithImageInfo } from '../dynamo_utils/albumThumbnailHelper';
 import { createRedisSearchClient } from './redisClientUtils';
 
@@ -97,7 +106,7 @@ function toAlbumItem(doc: RedisResult): AlbumItem {
         itemName: v['$.itemName'],
         itemType: 'album',
         published: v['$.published'],
-        thumbnail: JSON.parse(v['$.thumbnail']),
+        thumbnail: JSON.parse(v['$.thumbnail']) as AlbumThumbnailEntry,
     };
     if (v.summary) item.summary = v.summary;
     return item;
@@ -111,10 +120,10 @@ function toImageItem(doc: RedisResult): ImageItem {
         itemName: v['$.itemName'],
         itemType: 'image',
         versionId: v['$.versionId'],
-        dimensions: JSON.parse(v['$.dimensions']),
+        dimensions: JSON.parse(v['$.dimensions']) as Size,
     };
     if (v.title) item.title = v.title;
-    if (v['$.thumbnail']) item.thumbnail = JSON.parse(v['$.thumbnail']);
+    if (v['$.thumbnail']) item.thumbnail = JSON.parse(v['$.thumbnail']) as ImageThumbnailCrop;
     return item;
 }
 
@@ -127,11 +136,11 @@ function toVideoItem(doc: RedisResult): VideoItem {
         itemType: 'image',
         mediaType: 'video',
         versionId: v['$.versionId'],
-        dimensions: JSON.parse(v['$.dimensions']),
+        dimensions: JSON.parse(v['$.dimensions']) as Size,
         duration: v['$.duration']!,
     };
     if (v.title) item.title = v.title;
-    if (v['$.thumbnail']) item.thumbnail = JSON.parse(v['$.thumbnail']);
+    if (v['$.thumbnail']) item.thumbnail = JSON.parse(v['$.thumbnail']) as ImageThumbnailCrop;
     return item;
 }
 

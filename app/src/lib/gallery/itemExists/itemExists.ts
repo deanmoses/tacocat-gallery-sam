@@ -76,7 +76,7 @@ export async function itemExists(path: string): Promise<boolean> {
         const response = await ddbDocClient.send(ddbCommand);
         return !!response?.Item;
     } catch (e) {
-        console.error(JSON.stringify({ event: 'item_exists_check_failed', path, error: String(e) }));
+        console.error({ event: 'item_exists_check_failed', path, error: String(e) });
         throw e;
     }
 }

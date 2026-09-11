@@ -16,7 +16,7 @@ import { ddbDocClient } from '../../dynamo_utils/ddbClient';
  * @param mediaPath Path of media to delete, like /2001/12-31/image.jpg or /2001/12-31/video.mp4
  */
 export async function deleteMedia(mediaPath: string) {
-    console.info(`Delete Media: deleting media [${mediaPath}]...`);
+    console.info({ event: 'media_delete_started', mediaPath });
 
     if (!isValidMediaPath(mediaPath)) {
         throw new BadRequestException(`Malformed media path: [${mediaPath}]`);
@@ -25,7 +25,7 @@ export async function deleteMedia(mediaPath: string) {
     await deleteMediaFromDynamoDB(mediaPath);
     await removeMediaAsThumbnailFromParentAlbums(mediaPath);
     await deleteOriginalAndDerivativesForMediaItem(mediaPath);
-    console.info(`Delete Media: deleted media [${mediaPath}]`);
+    console.info({ event: 'media_deleted', mediaPath });
 }
 
 /**
@@ -34,7 +34,7 @@ export async function deleteMedia(mediaPath: string) {
  * @param mediaPath Path of media, like /2001/12-31/image.jpg or /2001/12-31/video.mp4
  */
 async function deleteMediaFromDynamoDB(mediaPath: string) {
-    console.info(`Delete Media: deleting from DynamoDB [${mediaPath}]...`);
+    console.info({ event: 'media_dynamo_delete_started', mediaPath });
 
     // TODO: block delete if the album contains child photos or child albums
     const tableName = getDynamoDbTableName();
@@ -55,7 +55,7 @@ async function deleteMediaFromDynamoDB(mediaPath: string) {
  * @param mediaPath Path of media, like /2001/12-31/image.jpg or /2001/12-31/video.mp4
  */
 async function removeMediaAsThumbnailFromParentAlbums(mediaPath: string) {
-    console.info(`Delete Media: removing media as any album thumbnail [${mediaPath}]...`);
+    console.info({ event: 'album_thumbnail_removal_started', mediaPath });
 
     const parentAlbumPath = getParentFromPath(mediaPath);
     await removeMediaAsAlbumThumbnail(mediaPath, parentAlbumPath);
@@ -87,10 +87,15 @@ async function removeMediaAsAlbumThumbnail(mediaPath: string, albumPath: string)
     });
     try {
         await ddbDocClient.send(ddbCommand);
-        console.info(`Delete Media: album [${albumPath}]: removed media [${mediaPath}] as its thumbnail`);
+        console.info({ event: 'album_thumbnail_removed', albumPath, mediaPath });
     } catch (e) {
         if (e instanceof ConditionalCheckFailedException) {
-            console.info(`Delete Media: album [${albumPath}] did not have media [${mediaPath}] as its thumbnail`);
+            console.info({
+                event: 'album_thumbnail_unchanged',
+                albumPath,
+                mediaPath,
+                reason: 'media_was_not_thumbnail',
+            });
         } else {
             throw e;
         }
