@@ -45,14 +45,14 @@ test('Requesting derived image without version should fail', async () => {
     const derivedImageUrl = `https://${imageCdnDomain}/i${imagePath}?size=${derivedImageSize}`;
     const response = await fetch(derivedImageUrl, { cache: 'no-store' });
     expect(response.status).toBe(400);
-    expect(response.statusText).toMatch(/version/i);
+    expect(await errorMessageOf(response)).toMatch(/version/i);
 });
 
 test('Requesting derived image without size should fail', async () => {
     const derivedImageUrl = `https://${imageCdnDomain}/i${imagePath}?version=${derivedImageVersionId}`;
     const response = await fetch(derivedImageUrl, { cache: 'no-store' });
     expect(response.status).toBe(400);
-    expect(response.statusText).toMatch(/size/i);
+    expect(await errorMessageOf(response)).toMatch(/size/i);
 });
 
 test('Generate derived image', async () => {
@@ -68,3 +68,15 @@ test('Generate derived image', async () => {
         throw new Error(`[${derivedImagePath}] doesn't exist in derived image bucket`);
     }
 }, 15000 /* increases Jest's timeout */);
+
+/**
+ * Extract the reason from an error response from the CloudFront Function at the edge.
+ *
+ * Read the reason from the body, never from response.statusText: statusText is the
+ * HTTP/1.1 reason phrase, which HTTP/2 and HTTP/3 dropped, and this distribution
+ * serves both.  The edge returns the same { errorMessage } JSON shape as the API.
+ */
+async function errorMessageOf(response: Response): Promise<string | undefined> {
+    const body = (await response.json()) as { errorMessage?: string };
+    return body.errorMessage;
+}
