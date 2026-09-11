@@ -89,12 +89,18 @@ Parameters:
   CognitoClientID:
     Description: Cognito App Client ID for authentication
     Type: String
+  AlertEmail:
+    Description: Email address that receives CloudWatch alarm (prod and dev) and AWS Budget (prod) notifications
+    Type: String
 
 # -----------------------------------------------------------------------------
 # Conditions are boolean conditions that can be used to control resources
 # -----------------------------------------------------------------------------
 Conditions:
   IsProd: !Equals [ !Ref Env, "prod" ]
+  # Alarms that mean "something threw" also run in dev, where bugs surface during manual
+  # testing. Prod 6 + dev 4 = 10 alarm metrics, exactly the CloudWatch always-free tier.
+  SendAlerts: !Or [ !Condition IsProd, !Equals [ !Ref Env, "dev" ] ]
 
 # -----------------------------------------------------------------------------
 # Configuration properties inherited by all resources, such as Lambda functions
@@ -112,6 +118,9 @@ Globals:
     Timeout: 100 # TODO decrease this; the default is 3!
     LoggingConfig:
       LogFormat: JSON
+      # One log group for the whole stack so retention is set once, as code.
+      # Lambda names each stream with the function name, so filtering still works.
+      LogGroup: !Ref GalleryLogGroup
     Environment:
         Variables:
           GALLERY_APP_DOMAIN: !Ref GalleryAppDomain
@@ -134,6 +143,71 @@ Globals:
 # Resources are the actual AWS assets to be provisioned
 # -----------------------------------------------------------------------------
 Resources:
+  # -----------------------------------------------------------------------------
+  # CloudWatch log group shared by every Lambda in the stack
+  # -----------------------------------------------------------------------------
+  GalleryLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: !If [ "IsProd", "Retain", "Delete" ] # don't delete in prod
+    UpdateReplacePolicy: !If [ "IsProd", "Retain", "Delete" ] # don't delete in prod
+    Properties:
+      LogGroupName: !Sub tacocat-gallery-sam/${Env} # Lambda refuses custom log groups that start with aws/
+      RetentionInDays: !If [ "IsProd", 90, 30 ]
+
+  # -----------------------------------------------------------------------------
+  # Alerting: CloudWatch alarms publish to this topic; prod and dev email a human.
+  # Alarm emails are rendered by SNS as readable text, including AlarmDescription.
+  # -----------------------------------------------------------------------------
+  AlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub ${AWS::StackName}-alerts
+
+  AlertsEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: SendAlerts
+    Properties:
+      TopicArn: !Ref AlertsTopic
+      Protocol: email
+      Endpoint: !Ref AlertEmail # SNS sends a confirmation email that must be clicked once
+
+  # -----------------------------------------------------------------------------
+  # S3 bucket for CloudFront access logs (standard logging v2, delivered by
+  # CloudWatch Logs). No ACLs: S3's default bucket-owner-enforced setting accepts
+  # the bucket-owner-full-control header that log delivery sends.
+  # -----------------------------------------------------------------------------
+  CloudFrontLogsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !If [ "IsProd", "Retain", "Delete" ] # don't delete in prod
+    UpdateReplacePolicy: !If [ "IsProd", "Retain", "Delete" ] # don't delete in prod
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-cloudfront-logs
+      LifecycleConfiguration:
+        Rules:
+          - Id: Expire Old Logs
+            ExpirationInDays: 90
+            Status: Enabled
+
+  CloudFrontLogsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CloudFrontLogsBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AWSLogsDeliveryWrite
+            Effect: Allow
+            Principal:
+              Service: delivery.logs.amazonaws.com
+            Action: s3:PutObject
+            Resource: !Sub ${CloudFrontLogsBucket.Arn}/*
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: bucket-owner-full-control
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:delivery-source:*
+
   # -----------------------------------------------------------------------------
   # S3 bucket for original images
   # -----------------------------------------------------------------------------
@@ -334,6 +408,36 @@ Resources:
                   - OriginId: derived-images-bucket
                   - OriginId: generate-derived-image-lambda
 
+  # ---------------------------------------------------------------------------
+  # CloudFront standard logging (v2) for the image distribution -> S3.
+  # Three CloudWatch Logs resources: source (the distribution), destination
+  # (the bucket), and the delivery that pairs them. Must live in us-east-1.
+  # Enabled in every environment so the wiring is proven in dev before prod.
+  # ---------------------------------------------------------------------------
+  ImageLogDeliverySource:
+    Type: AWS::Logs::DeliverySource
+    Properties:
+      Name: !Sub ${AWS::StackName}-image-cdn
+      LogType: ACCESS_LOGS
+      ResourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${ImageDistribution}
+
+  ImageLogDeliveryDestination:
+    Type: AWS::Logs::DeliveryDestination
+    Properties:
+      Name: !Sub ${AWS::StackName}-image-cdn-s3
+      DestinationResourceArn: !GetAtt CloudFrontLogsBucket.Arn
+      OutputFormat: w3c # tab-separated with a #Fields header; cannot be changed without replacing this resource
+
+  ImageLogDelivery:
+    Type: AWS::Logs::Delivery
+    DependsOn:
+      - ImageLogDeliverySource
+      - CloudFrontLogsBucketPolicy
+    Properties:
+      DeliverySourceName: !Sub ${AWS::StackName}-image-cdn # must equal ImageLogDeliverySource.Name
+      DeliveryDestinationArn: !GetAtt ImageLogDeliveryDestination.Arn
+      S3SuffixPath: image/{yyyy}/{MM}/{dd}/
+
   # Set Cache-Control header to cache forever
   ImmutableResponseHeadersPolicy:
     Type: AWS::CloudFront::ResponseHeadersPolicy
@@ -522,6 +626,12 @@ Resources:
             Stream: !GetAtt GalleryItemDDBTable.StreamArn
             StartingPosition: LATEST
             BatchSize: 100
+            # Isolate a poison record instead of failing the whole batch (bisections don't consume retries)
+            BisectBatchOnFunctionError: true
+            # Default (-1) retries until the record expires from the stream, blocking the shard for
+            # up to 24h behind one bad record. SyncRedis can fully reconcile Redis, so give up sooner;
+            # the DynamoToRedis errors alarm reports it.
+            MaximumRetryAttempts: 3
       Environment:
         Variables:
           REDIS_HOST: !Ref RedisHost
@@ -1230,6 +1340,186 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - videoTranscodingCompleteLambda.ts
+
+  # -----------------------------------------------------------------------------
+  # Alarms. All publish to AlertsTopic, which emails AlertEmail.
+  # The AlarmDescription is the body of the email: say what broke and what to do.
+  # Free tier is 10 alarm metrics: prod uses 6 (the CloudFront alarm counts 2) and
+  # dev uses 4 (the error alarms; the CDN rate alarm needs traffic dev never has).
+  # -----------------------------------------------------------------------------
+
+  # Most image requests failing during a period when people are actually browsing.
+  # A rate is meaningless at low volume: most quiet hours hold 1-3 requests, so a
+  # single 404 is a 100% error rate. Gate on >200 requests in the hour.
+  ImageDistribution4xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: IsProd
+    Properties:
+      AlarmName: !Sub ${AWS::StackName}-image-cdn-4xx
+      AlarmDescription: >-
+        More than 25% of image CDN requests returned 4xx during an hour with more than 200 requests.
+        Photos are probably not loading for visitors. Check the S3 origin and the derived-image Lambda,
+        then the CloudFront access logs in the cloudfront-logs bucket for the failing paths.
+      ComparisonOperator: GreaterThanThreshold
+      Threshold: 25
+      EvaluationPeriods: 1
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlertsTopic
+      Metrics:
+        - Id: requests
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/CloudFront
+              MetricName: Requests
+              Dimensions:
+                - Name: DistributionId
+                  Value: !Ref ImageDistribution
+                - Name: Region
+                  Value: Global # CloudFront metrics always carry Region=Global
+            Period: 3600
+            Stat: Sum
+        - Id: errorRate
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/CloudFront
+              MetricName: 4xxErrorRate
+              Dimensions:
+                - Name: DistributionId
+                  Value: !Ref ImageDistribution
+                - Name: Region
+                  Value: Global
+            Period: 3600
+            Stat: Average
+        - Id: gatedErrorRate
+          Label: 4xx error rate (only counted above 200 requests/hour)
+          Expression: IF(requests > 200, errorRate, 0)
+          ReturnData: true
+
+  # Zero-500 shop: any 5xx the client saw is worth an email. This metric counts
+  # caught-and-returned 500s (invisible to the Lambda Errors metric), Lambda
+  # timeouts/crashes surfacing as 502, and API Gateway's own 5xx.
+  ApiGateway5xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: SendAlerts
+    Properties:
+      AlarmName: !Sub ${AWS::StackName}-api-5xx
+      AlarmDescription: >-
+        The API returned a 5xx to a client. Search log group tacocat-gallery-sam/prod for
+        event = server_exception or unexpected_exception in this window; if nothing, look for a
+        Lambda timeout or crash in the same window.
+      Namespace: AWS/ApiGateway
+      MetricName: 5XXError
+      Dimensions:
+        - Name: ApiName
+          Value: !Sub Tacocat Gallery API - ${Env} # must match Globals.Api.Name exactly
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlertsTopic
+
+  # The async Lambdas have no client to report to, so a thrown error is retried
+  # and then dropped silently. Errors counts every failed attempt, including a
+  # first attempt whose retry then succeeded, so one email may be a false alarm.
+  ProcessMediaUploadErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: SendAlerts
+    Properties:
+      AlarmName: !Sub ${AWS::StackName}-ProcessMediaUpload-errors
+      AlarmDescription: >-
+        Processing an uploaded photo or video threw an error. If the retry did not succeed the
+        media will not appear in the gallery. Search log group tacocat-gallery-sam/prod, streams
+        named ProcessMediaUpload, around this time.
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ProcessMediaUploadFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlertsTopic
+
+  VideoTranscodingCompleteErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: SendAlerts
+    Properties:
+      AlarmName: !Sub ${AWS::StackName}-VideoTranscodingComplete-errors
+      AlarmDescription: >-
+        Handling a finished MediaConvert job threw an error, so a video may be transcoded but not
+        recorded in the gallery. Search log group tacocat-gallery-sam/prod, streams named
+        VideoTranscodingComplete, around this time, and check the errors DynamoDB table.
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref VideoTranscodingCompleteFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlertsTopic
+
+  DynamoToRedisErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: SendAlerts
+    Properties:
+      AlarmName: !Sub ${AWS::StackName}-DynamoToRedis-errors
+      AlarmDescription: >-
+        Syncing DynamoDB changes to Redis threw an error. After 3 retries the records are dropped and
+        search results go stale. Invoke the SyncRedis Lambda to fully reconcile Redis, then search log
+        group tacocat-gallery-sam/prod, streams named DynamoToRedis, for the cause.
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref DynamoToRedisFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlertsTopic
+
+  # -----------------------------------------------------------------------------
+  # Monthly cost guard rail. Budgets is account-wide, so this watches the whole
+  # AWS bill, not just this stack. Budgets emails directly; no SNS involved.
+  # -----------------------------------------------------------------------------
+  MonthlyCostBudget:
+    Type: AWS::Budgets::Budget
+    Condition: IsProd
+    Properties:
+      Budget:
+        BudgetName: !Sub ${AWS::StackName}-monthly-cost
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: 15
+          Unit: USD
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
 
 # -----------------------------------------------------------------------------
 # Outputs

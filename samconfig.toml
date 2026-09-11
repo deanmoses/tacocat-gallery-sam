@@ -42,6 +42,7 @@ parameter_overrides = [
     "RedisWritePasswordSecret=Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordDev",
     "CognitoUserPoolID=us-east-1_DdPFtamLz",
     "CognitoClientID=7asah0n7edj39i2b9st1fu1olo",
+    "AlertEmail=moses@tacocat.com",
 ]
 confirm_changeset = true
 resolve_s3 = true
@@ -62,6 +63,7 @@ parameter_overrides = [
     "RedisWritePasswordSecret=Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordTest",
     "CognitoUserPoolID=us-east-1_DdPFtamLz",
     "CognitoClientID=7asah0n7edj39i2b9st1fu1olo",
+    "AlertEmail=moses@tacocat.com",
 ]
 confirm_changeset = false
 resolve_s3 = true
@@ -82,6 +84,7 @@ parameter_overrides = [
     "RedisWritePasswordSecret=Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordProd",
     "CognitoUserPoolID=us-east-1_DdPFtamLz",
     "CognitoClientID=7asah0n7edj39i2b9st1fu1olo",
+    "AlertEmail=moses@tacocat.com",
 ]
 confirm_changeset = true
 resolve_s3 = true

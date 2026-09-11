@@ -149,7 +149,11 @@ async function deleteS3Folder(bucketName: string, keyPrefix: string): Promise<nu
         const deletedObjects = await s3Client.send(deleteCommand);
         console.info(`Deleted [${deletedObjects?.Deleted?.length}] derived files.`);
         if (deletedObjects?.Errors) {
-            deletedObjects.Errors.map((error) => console.error(`${error.Key} could not be deleted - ${error.Code}`));
+            deletedObjects.Errors.forEach((error) =>
+                console.error(
+                    JSON.stringify({ event: 'derived_file_delete_failed', key: error.Key, code: error.Code }),
+                ),
+            );
         }
 
         return deletedObjects.Deleted?.length || 0;
