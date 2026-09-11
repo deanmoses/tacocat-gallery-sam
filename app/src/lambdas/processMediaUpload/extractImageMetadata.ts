@@ -89,7 +89,7 @@ export function selectMetadata(tags: ExifReader.ExpandedTags): Partial<ImageCrea
             width: parsedWidth,
         };
     } else {
-        console.error(JSON.stringify({ event: 'image_no_dimensions_in_metadata', title: image.title }));
+        console.error({ event: 'image_no_dimensions_in_metadata', title: image.title });
     }
 
     // Check IPTC keywords first, then XMP subject

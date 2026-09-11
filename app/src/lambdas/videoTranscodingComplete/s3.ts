@@ -113,7 +113,7 @@ export async function renameMediaConvertOutputs(videoPath: string, versionId: st
     try {
         // Rename video file (idempotent: skip copy if destination exists)
         if (videoAlreadyRenamed) {
-            console.info(JSON.stringify({ event: 'transcoding_video_already_renamed', destKey: videoDestKey }));
+            console.info({ event: 'transcoding_video_already_renamed', destKey: videoDestKey });
         } else {
             await s3Client.send(
                 new CopyObjectCommand({
@@ -122,13 +122,11 @@ export async function renameMediaConvertOutputs(videoPath: string, versionId: st
                     Key: videoDestKey,
                 }),
             );
-            console.info(
-                JSON.stringify({
-                    event: 'transcoding_video_renamed',
-                    sourceKey: videoSourceKey,
-                    destKey: videoDestKey,
-                }),
-            );
+            console.info({
+                event: 'transcoding_video_renamed',
+                sourceKey: videoSourceKey,
+                destKey: videoDestKey,
+            });
         }
         // Always try to delete source (idempotent: DeleteObject succeeds even if key doesn't exist)
         await s3Client.send(
@@ -140,7 +138,7 @@ export async function renameMediaConvertOutputs(videoPath: string, versionId: st
 
         // Rename poster file (idempotent: skip copy if destination exists)
         if (posterAlreadyRenamed) {
-            console.info(JSON.stringify({ event: 'transcoding_poster_already_renamed', destKey: posterDestKey }));
+            console.info({ event: 'transcoding_poster_already_renamed', destKey: posterDestKey });
         } else {
             await s3Client.send(
                 new CopyObjectCommand({
@@ -149,13 +147,11 @@ export async function renameMediaConvertOutputs(videoPath: string, versionId: st
                     Key: posterDestKey,
                 }),
             );
-            console.info(
-                JSON.stringify({
-                    event: 'transcoding_poster_renamed',
-                    sourceKey: posterSourceKey,
-                    destKey: posterDestKey,
-                }),
-            );
+            console.info({
+                event: 'transcoding_poster_renamed',
+                sourceKey: posterSourceKey,
+                destKey: posterDestKey,
+            });
         }
         // Always try to delete source (idempotent: DeleteObject succeeds even if key doesn't exist)
         await s3Client.send(
@@ -167,7 +163,7 @@ export async function renameMediaConvertOutputs(videoPath: string, versionId: st
 
         return { success: true };
     } catch (error) {
-        console.error(JSON.stringify({ event: 'transcoding_rename_failed', videoPath, error: String(error) }));
+        console.error({ event: 'transcoding_rename_failed', videoPath, error: String(error) });
         throw error; // Re-throw to fail the Lambda and trigger retry
     }
 }
@@ -194,7 +190,7 @@ export async function deletePartialOutputs(videoPath: string, versionId: string)
 
         const objects = listResponse.Contents || [];
         if (objects.length === 0) {
-            console.info(JSON.stringify({ event: 'transcoding_no_partial_outputs', prefix }));
+            console.info({ event: 'transcoding_no_partial_outputs', prefix });
             return;
         }
 
@@ -212,17 +208,13 @@ export async function deletePartialOutputs(videoPath: string, versionId: string)
             }
         }
 
-        console.info(
-            JSON.stringify({
-                event: 'transcoding_partial_outputs_deleted',
-                prefix,
-                count: deletedKeys.length,
-                deletedKeys,
-            }),
-        );
+        console.info({
+            event: 'transcoding_partial_outputs_deleted',
+            prefix,
+            count: deletedKeys.length,
+            deletedKeys,
+        });
     } catch (error) {
-        console.error(
-            JSON.stringify({ event: 'transcoding_partial_outputs_delete_failed', prefix, error: String(error) }),
-        );
+        console.error({ event: 'transcoding_partial_outputs_delete_failed', prefix, error: String(error) });
     }
 }

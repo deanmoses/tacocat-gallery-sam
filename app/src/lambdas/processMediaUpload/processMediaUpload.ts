@@ -21,9 +21,9 @@ export async function processMediaUpload(bucket: string, key: string, versionId:
 
     if (!isValidMediaPathForUpload(mediaPath)) {
         if (isValidAlbumPath(mediaPath)) {
-            console.info(JSON.stringify({ event: 's3_album_folder_created', mediaPath }));
+            console.info({ event: 's3_album_folder_created', mediaPath });
         } else {
-            console.error(JSON.stringify({ event: 's3_invalid_media_path', mediaPath }));
+            console.error({ event: 's3_invalid_media_path', mediaPath });
         }
     } else if (hasVideoExtension(mediaPath)) {
         await processVideoUpload(bucket, key, versionId);

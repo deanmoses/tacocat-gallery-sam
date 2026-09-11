@@ -36,7 +36,7 @@ export async function setAlbumThumbnail(
     mediaPath: string,
     replaceExistingThumb = true,
 ): Promise<boolean> {
-    console.info(`Set Album Thumb: setting album [${albumPath}] thumbnail to [${mediaPath}]...`);
+    console.info({ event: 'album_thumbnail_set_started', albumPath, mediaPath });
     if (!isValidAlbumPath(albumPath)) {
         throw new BadRequestException(`Error setting album thumbnail. Invalid album path: [${albumPath}]`);
     }
@@ -62,7 +62,7 @@ export async function setAlbumThumbnail(
     const thumbWasReplaced = await setThumb(albumPath, mediaPath, replaceExistingThumb);
     // The case where the thumb was not set is already logged by setThumb()
     if (thumbWasReplaced) {
-        console.info(`Set Album Thumb: set album [${albumPath}] thumbnail to [${mediaPath}]`);
+        console.info({ event: 'album_thumbnail_set', albumPath, mediaPath });
     }
     return thumbWasReplaced;
 }
@@ -107,9 +107,12 @@ async function setThumb(albumPath: string, mediaPath: string, replaceExistingThu
         // for the existence of the album, which another method in this
         // file did do.
         if (e instanceof ConditionalCheckFailedException) {
-            console.info(
-                `Set Album Thumb: not setting album [${albumPath}]'s thumb to [${mediaPath}] because album already has a thumb`,
-            );
+            console.info({
+                event: 'album_thumbnail_unchanged',
+                albumPath,
+                mediaPath,
+                reason: 'album_already_has_thumbnail',
+            });
         } else {
             throw e;
         }

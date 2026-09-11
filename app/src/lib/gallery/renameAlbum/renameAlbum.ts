@@ -27,7 +27,7 @@ import { ddbDocClient } from '../../dynamo_utils/ddbClient';
  * @returns Path of new album like /2001/12-29/
  */
 export async function renameAlbum(oldAlbumPath: string, newName: string): Promise<string> {
-    console.info(`Rename Album: renaming [${oldAlbumPath}] to [${newName}]...`);
+    console.info({ event: 'album_rename_started', oldAlbumPath, newName });
     if (!isValidAlbumPath(oldAlbumPath)) {
         throw new BadRequestException(`Existing album path is invalid: [${oldAlbumPath}]`);
     }
@@ -52,7 +52,7 @@ export async function renameAlbum(oldAlbumPath: string, newName: string): Promis
     await moveAlbumInDynamoDB(oldAlbumPath, newAlbumPath, newVersionIds); // handles renaming thumbnail on parent album
     await renameAlbumThumb(getParentFromPath(oldAlbumPath), oldAlbumPath, newAlbumPath); // rename thumb on grandparent album
     await deleteOriginalsAndDerivativesForAlbum(oldAlbumPath);
-    console.info(`Rename Album: renamed [${oldAlbumPath}] to [${newAlbumPath}]`);
+    console.info({ event: 'album_renamed', oldAlbumPath, newAlbumPath });
     return newAlbumPath;
 }
 
@@ -83,7 +83,7 @@ async function moveAlbumInDynamoDB(
     newAlbumPath: string,
     newVersionIds: Map<string, string>,
 ): Promise<void> {
-    console.info(`Rename Album: moving album and images in DynamoDB from [${oldAlbumPath}] to [${newAlbumPath}]...`);
+    console.info({ event: 'album_dynamo_move_started', oldAlbumPath, newAlbumPath });
     const oldAlbumPathParts = getParentAndNameFromPath(oldAlbumPath);
     const newAlbumPathParts = getParentAndNameFromPath(newAlbumPath);
     const now = new Date().toISOString();
@@ -125,13 +125,11 @@ async function moveAlbumInDynamoDB(
             const mediaPath = newAlbumPath + child.itemName;
             const newVersionId = newVersionIds.get(mediaPath);
             if (!newVersionId) {
-                console.error(
-                    JSON.stringify({
-                        event: 'rename_album_missing_version_id',
-                        mediaPath,
-                        versionIds: Object.fromEntries(newVersionIds),
-                    }),
-                );
+                console.error({
+                    event: 'rename_album_missing_version_id',
+                    mediaPath,
+                    versionIds: Object.fromEntries(newVersionIds),
+                });
                 throw new Error(`No new version ID found for media [${mediaPath}]`);
             }
             const image = child as ImageItem;
@@ -160,8 +158,6 @@ async function moveAlbumInDynamoDB(
         });
     }
 
-    //console.log(`transaction: `, JSON.stringify(ddbCommand.input.TransactItems, null, 2));
-
     await ddbDocClient.send(ddbCommand);
 }
 
@@ -178,9 +174,12 @@ export async function renameAlbumThumb(
     oldPathOfAlbumWithThumb: string,
     newPathOfAlbumWithThumb: string,
 ): Promise<void> {
-    console.info(
-        `Maybe updating [${albumPath}]'s thumb path from [${oldPathOfAlbumWithThumb}] to [${newPathOfAlbumWithThumb}]...`,
-    );
+    console.info({
+        event: 'album_thumbnail_rename_started',
+        albumPath,
+        oldPathOfAlbumWithThumb,
+        newPathOfAlbumWithThumb,
+    });
     if (!isValidAlbumPath(albumPath)) throw new Error(`Invalid album path: [${albumPath}]`);
     if (!isValidAlbumPath(oldPathOfAlbumWithThumb)) throw new Error(`Invalid old path: [${oldPathOfAlbumWithThumb}]`);
     if (!isValidAlbumPath(newPathOfAlbumWithThumb)) throw new Error(`Invalid new path: [${newPathOfAlbumWithThumb}]`);
@@ -198,8 +197,13 @@ export async function renameAlbumThumb(
                 ` WHERE parentPath='${albumPathParts.parent}' AND itemName='${albumPathParts.name}'`,
         });
         await ddbDocClient.send(ddbCommand);
-        console.info(`Renamed album [${albumPath}] thumb from [${oldImagePath}] to [${newImagePath}]`);
+        console.info({ event: 'album_thumbnail_renamed', albumPath, oldImagePath, newImagePath });
     } else {
-        console.info(`Album [${albumPath}] did not have an image within [${oldPathOfAlbumWithThumb}] as its thumbnail`);
+        console.info({
+            event: 'album_thumbnail_unchanged',
+            albumPath,
+            oldPathOfAlbumWithThumb,
+            reason: 'thumbnail_not_within_renamed_album',
+        });
     }
 }

@@ -16,7 +16,7 @@ import { ddbDocClient } from '../../dynamo_utils/ddbClient';
  * @crop rectangle specified in percent of image
  */
 export async function recutThumbnail(mediaPath: string, cropInPct: Rectangle) {
-    console.info(`Re-cutting [${mediaPath}] thumbnail]`);
+    console.info({ event: 'thumbnail_recut_started', mediaPath });
 
     if (!isValidMediaPath(mediaPath)) {
         throw new BadRequestException(`Invalid media path [${mediaPath}]`);
@@ -62,7 +62,7 @@ export async function recutThumbnail(mediaPath: string, cropInPct: Rectangle) {
         throw e;
     }
 
-    console.info(`Image [${mediaPath}] thumbnail re-cut]`);
+    console.info({ event: 'thumbnail_recut', mediaPath });
 }
 
 /**

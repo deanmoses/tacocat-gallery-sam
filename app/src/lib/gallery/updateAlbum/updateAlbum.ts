@@ -21,7 +21,7 @@ import { ddbDocClient } from '../../dynamo_utils/ddbClient';
  * @param attributesToUpdate bag of attributes to update
  */
 export async function updateAlbum(albumPath: string, attributesToUpdate: AlbumUpdateRequest) {
-    console.info(`Update Album: updating [${albumPath}]...`);
+    console.info({ event: 'album_update_started', albumPath });
     if (!isValidAlbumPath(albumPath)) {
         throw new BadRequestException(`Malformed album path: [${albumPath}]`);
     }
@@ -92,5 +92,5 @@ export async function updateAlbum(albumPath: string, attributesToUpdate: AlbumUp
         throw e;
     }
 
-    console.info(`Update Album: updated [${albumPath}]`);
+    console.info({ event: 'album_updated', albumPath });
 }

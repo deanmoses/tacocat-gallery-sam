@@ -54,10 +54,10 @@ export async function recordError(errorType: ErrorType, path: string, errorMessa
                 Item: item,
             }),
         );
-        console.info(JSON.stringify({ event: 'error_recorded', errorType, path }));
+        console.info({ event: 'error_recorded', errorType, path });
         return true;
     } catch (error) {
-        console.error(JSON.stringify({ event: 'error_record_failed', errorType, path, error: String(error) }));
+        console.error({ event: 'error_record_failed', errorType, path, error: String(error) });
         return false;
     }
 }

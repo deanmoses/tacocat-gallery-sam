@@ -30,7 +30,7 @@ import { ddbDocClient } from '../../dynamo_utils/ddbClient';
  * @returns Path of new media like /2001/12-31/newName.jpg
  */
 export async function renameMedia(oldMediaPath: string, newName: string): Promise<string> {
-    console.info(`Rename Media: renaming [${oldMediaPath}] to [${newName}]...`);
+    console.info({ event: 'media_rename_started', oldMediaPath, newName });
     assertIsValidMediaPath(oldMediaPath);
     validateNewMediaName(oldMediaPath, newName);
     const newMediaPath = getParentFromPath(oldMediaPath) + newName;
@@ -52,7 +52,7 @@ export async function renameMedia(oldMediaPath: string, newName: string): Promis
     // Clean up old media from S3
     await deleteOriginalAndDerivativesForMediaItem(oldMediaPath);
 
-    console.info(`Rename Media: renamed media from [${oldMediaPath}] to [${newMediaPath}]`);
+    console.info({ event: 'media_renamed', oldMediaPath, newMediaPath });
     return newMediaPath;
 }
 
@@ -128,7 +128,7 @@ async function renameMediaInDynamoDB(oldMediaPath: string, newMediaName: string,
  * @param newVersionId Version ID of new media
  */
 async function moveMediaInDynamoDB(oldMediaPath: string, newMediaName: string, newVersionId: string) {
-    console.info(`Rename Media: renaming media entry in DynamoDB from [${oldMediaPath}] to [${newMediaName}]...`);
+    console.info({ event: 'media_dynamo_rename_started', oldMediaPath, newMediaName });
     const oldPathParts = getParentAndNameFromPath(oldMediaPath);
     const media = await getFullItemFromDynamoDB<MediaItem>(oldMediaPath);
     if (!media) throw new Error(`Old media [${oldMediaPath}] not found in DynamoDB`);
@@ -168,7 +168,7 @@ async function moveMediaInDynamoDB(oldMediaPath: string, newMediaName: string, n
  * @param newMediaPath New path of media like /2001/12-31/new_name.jpg
  */
 export async function renameAlbumThumb(albumPath: string, oldMediaPath: string, newMediaPath: string): Promise<void> {
-    console.info(`Attempting to rename thumb of [${albumPath}] from [${oldMediaPath}] to [${newMediaPath}]...`);
+    console.info({ event: 'album_thumbnail_rename_started', albumPath, oldMediaPath, newMediaPath });
     if (!isValidAlbumPath(albumPath)) throw new Error(`Invalid album path: [${albumPath}]`);
     if (!isValidMediaPath(oldMediaPath)) throw new Error(`Invalid media path: [${oldMediaPath}]`);
     if (!isValidMediaPath(newMediaPath)) throw new Error(`Invalid media path: [${newMediaPath}]`);
@@ -190,10 +190,15 @@ export async function renameAlbumThumb(albumPath: string, oldMediaPath: string, 
 
     try {
         await ddbDocClient.send(ddbCommand);
-        console.info(`Album [${albumPath}]: renamed thumbnail from [${oldMediaPath}] to [${newMediaPath}]`);
+        console.info({ event: 'album_thumbnail_renamed', albumPath, oldMediaPath, newMediaPath });
     } catch (e) {
         if (e instanceof ConditionalCheckFailedException) {
-            console.info(`Album [${albumPath}] did not have media [${oldMediaPath}] as its thumbnail`);
+            console.info({
+                event: 'album_thumbnail_unchanged',
+                albumPath,
+                mediaPath: oldMediaPath,
+                reason: 'media_was_not_thumbnail',
+            });
         } else {
             throw e;
         }

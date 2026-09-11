@@ -414,7 +414,7 @@ describe('syncRedis', () => {
     });
 
     test('logs only first 10 missing/mismatched items', async () => {
-        const consoleSpy = jest.spyOn(console, 'log');
+        const consoleSpy = jest.spyOn(console, 'info');
         const mockRedis = createMockRedisClient();
 
         // Create 15 items, all missing from Redis
@@ -442,7 +442,9 @@ describe('syncRedis', () => {
         expect(successResult.missing).toBe(15);
 
         // But only log 10 individual item_missing events
-        const missingLogs = consoleSpy.mock.calls.filter((call) => (call[0] as string).includes('item_missing'));
+        const missingLogs = consoleSpy.mock.calls.filter(
+            (call) => (call[0] as { event?: string }).event === 'item_missing',
+        );
         expect(missingLogs).toHaveLength(10);
 
         consoleSpy.mockRestore();

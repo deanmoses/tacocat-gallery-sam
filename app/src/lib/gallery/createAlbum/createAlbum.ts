@@ -79,11 +79,11 @@ export async function createAlbum(
     }
     try {
         await ddbDocClient.send(ddbCommand);
-        console.info(`Create Album: created [${albumPath}]`);
+        console.info({ event: 'album_created', albumPath });
         return true;
     } catch (e) {
         if (e instanceof ConditionalCheckFailedException) {
-            console.info(`Create Album: already exists [${albumPath}]`);
+            console.info({ event: 'album_already_exists', albumPath });
             if (throwIfExists) {
                 throw new BadRequestException(`Album already exists: [${albumPath}]`);
             }

@@ -23,7 +23,7 @@ const AUDIO_BITRATE = 128_000; // 128 kbps AAC - standard for web video
  */
 export async function processVideoUpload(bucket: string, key: string, versionId: string | undefined): Promise<void> {
     const videoPath = '/' + key;
-    console.info(JSON.stringify({ event: 'video_processing_started', videoPath }));
+    console.info({ event: 'video_processing_started', videoPath });
 
     if (!isValidVideoPath(videoPath)) {
         throw new Error(`Video Processor: invalid video path [${videoPath}]`);
@@ -37,11 +37,11 @@ export async function processVideoUpload(bucket: string, key: string, versionId:
 
     try {
         await createMediaConvertJob(bucket, key, versionId, videoPath);
-        console.info(JSON.stringify({ event: 'mediaconvert_job_created', videoPath }));
+        console.info({ event: 'mediaconvert_job_created', videoPath });
     } catch (error) {
         // MediaConvert job creation failed - clean up and record error
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(JSON.stringify({ event: 'mediaconvert_job_creation_failed', videoPath, error: errorMessage }));
+        console.error({ event: 'mediaconvert_job_creation_failed', videoPath, error: errorMessage });
 
         // Record error for frontend to display
         await recordMediaProcessingError(videoPath, `Video processing failed: ${errorMessage}`);

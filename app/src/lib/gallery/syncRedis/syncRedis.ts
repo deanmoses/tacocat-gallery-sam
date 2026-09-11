@@ -87,7 +87,7 @@ export async function syncRedis(options: SyncOptions): Promise<SyncResult | Sync
     const startTime = Date.now();
     const { mode, continuationToken } = options;
 
-    console.log(JSON.stringify({ event: 'sync_start', mode }));
+    console.info({ event: 'sync_start', mode });
 
     // Set up clients
     const docClient = options.docClient ?? ddbDocClient;
@@ -116,7 +116,7 @@ export async function syncRedis(options: SyncOptions): Promise<SyncResult | Sync
                 const { items, nextKey } = await scanDynamoBatch(docClient, lastEvaluatedKey);
 
                 if (items.length > 0) {
-                    console.log(JSON.stringify({ event: 'scan_page', page: batchNumber, itemCount: items.length }));
+                    console.info({ event: 'scan_page', page: batchNumber, itemCount: items.length });
 
                     const batchResult = await compareBatch(items, redisClient, stats);
 
@@ -229,13 +229,13 @@ async function compareBatch(items: GalleryItem[], redisClient: RedisClient, stat
         if (!actual) {
             result.missing.push(expected);
             if (!stats || stats.itemsLogged < MAX_ITEMS_TO_LOG) {
-                console.log(JSON.stringify({ event: 'item_missing', path }));
+                console.info({ event: 'item_missing', path });
                 if (stats) stats.itemsLogged++;
             }
         } else if (!deepEqual(expected, actual)) {
             result.mismatched.push(expected);
             if (!stats || stats.itemsLogged < MAX_ITEMS_TO_LOG) {
-                console.log(JSON.stringify({ event: 'item_mismatched', path }));
+                console.info({ event: 'item_mismatched', path });
                 if (stats) stats.itemsLogged++;
             }
         } else {
@@ -276,43 +276,37 @@ function accumulateStats(stats: SyncStats, batchResult: BatchResult): void {
 
 /** Log batch completion */
 function logBatchComplete(batchNumber: number, result: BatchResult): void {
-    console.log(
-        JSON.stringify({
-            event: 'batch_complete',
-            batch: batchNumber,
-            checked: result.checked,
-            missing: result.missing.length,
-            mismatched: result.mismatched.length,
-        }),
-    );
+    console.info({
+        event: 'batch_complete',
+        batch: batchNumber,
+        checked: result.checked,
+        missing: result.missing.length,
+        mismatched: result.mismatched.length,
+    });
 }
 
 /** Log batch error with continuation token for resuming */
 function logBatchError(batchNumber: number, e: unknown, lastEvaluatedKey?: Record<string, unknown>): void {
     const token = lastEvaluatedKey ? Buffer.from(JSON.stringify(lastEvaluatedKey)).toString('base64') : undefined;
-    console.error(
-        JSON.stringify({
-            event: 'batch_error',
-            batch: batchNumber,
-            error: e instanceof Error ? e.message : String(e),
-            continuationToken: token,
-            resumeFromStart: !token,
-        }),
-    );
+    console.error({
+        event: 'batch_error',
+        batch: batchNumber,
+        error: e instanceof Error ? e.message : String(e),
+        continuationToken: token,
+        resumeFromStart: !token,
+    });
 }
 
 /** Log sync completion */
 function logSyncComplete(stats: SyncStats, totalInRedis: number, durationMs: number): void {
-    console.log(
-        JSON.stringify({
-            event: 'sync_complete',
-            totalInDynamoDB: stats.totalInDynamoDB,
-            totalInRedis,
-            missing: stats.missing,
-            mismatched: stats.mismatched,
-            durationMs,
-        }),
-    );
+    console.info({
+        event: 'sync_complete',
+        totalInDynamoDB: stats.totalInDynamoDB,
+        totalInRedis,
+        missing: stats.missing,
+        mismatched: stats.mismatched,
+        durationMs,
+    });
 }
 
 /**
@@ -365,7 +359,7 @@ function delay(ms: number): Promise<void> {
 export async function initRedis(options: Pick<SyncOptions, 'redisClient'>): Promise<InitResult> {
     const startTime = Date.now();
 
-    console.log(JSON.stringify({ event: 'init_start' }));
+    console.info({ event: 'init_start' });
 
     const redisClient = options.redisClient ?? (await createRedisWriteClient());
     const shouldCloseRedis = !options.redisClient;
@@ -374,7 +368,7 @@ export async function initRedis(options: Pick<SyncOptions, 'redisClient'>): Prom
         const exists = await indexExists(redisClient);
 
         if (exists) {
-            console.log(JSON.stringify({ event: 'init_complete', indexAlreadyExisted: true }));
+            console.info({ event: 'init_complete', indexAlreadyExisted: true });
             return {
                 indexCreated: false,
                 indexAlreadyExisted: true,
@@ -384,7 +378,7 @@ export async function initRedis(options: Pick<SyncOptions, 'redisClient'>): Prom
 
         await createIndex(redisClient);
 
-        console.log(JSON.stringify({ event: 'init_complete', indexCreated: true }));
+        console.info({ event: 'init_complete', indexCreated: true });
         return {
             indexCreated: true,
             indexAlreadyExisted: false,

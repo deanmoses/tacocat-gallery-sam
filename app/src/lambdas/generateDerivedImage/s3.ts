@@ -21,15 +21,13 @@ export const loadOriginalImage = async (id: string, versionId: string): Promise<
         return response.Body && response.Body.transformToByteArray();
     } catch (err) {
         if (err instanceof NoSuchKey) return undefined;
-        console.error(
-            JSON.stringify({
-                event: 'load_original_error',
-                bucket: originalImagesBucket,
-                key: id,
-                versionId,
-                error: String(err),
-            }),
-        );
+        console.error({
+            event: 'load_original_error',
+            bucket: originalImagesBucket,
+            key: id,
+            versionId,
+            error: String(err),
+        });
         throw err;
     }
 };
@@ -54,14 +52,12 @@ export const loadVideoPoster = async (s3Key: string, versionId: string): Promise
         return response.Body && response.Body.transformToByteArray();
     } catch (err) {
         if (err instanceof NoSuchKey) return undefined;
-        console.error(
-            JSON.stringify({
-                event: 'load_video_poster_error',
-                bucket: optimizedImagesBucket,
-                key,
-                error: String(err),
-            }),
-        );
+        console.error({
+            event: 'load_video_poster_error',
+            bucket: optimizedImagesBucket,
+            key,
+            error: String(err),
+        });
         throw err;
     }
 };
@@ -86,14 +82,12 @@ export const saveOptimizedImage = async (path: string, image: Buffer, contentTyp
             }),
         );
     } catch (err) {
-        console.error(
-            JSON.stringify({
-                event: 'save_optimized_error',
-                bucket: optimizedImagesBucket,
-                key: path.substring(1),
-                error: String(err),
-            }),
-        );
+        console.error({
+            event: 'save_optimized_error',
+            bucket: optimizedImagesBucket,
+            key: path.substring(1),
+            error: String(err),
+        });
         throw err;
     }
 };

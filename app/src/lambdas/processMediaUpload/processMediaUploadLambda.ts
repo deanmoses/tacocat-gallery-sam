@@ -12,10 +12,10 @@ export const handler: S3Handler = async (event) => {
     for (const record of event.Records) {
         const key = record?.s3?.object?.key;
 
-        console.info(JSON.stringify({ event: 's3_event_received', eventName: record?.eventName, key }));
+        console.info({ event: 's3_event_received', eventName: record?.eventName, key });
 
         if (!key) {
-            console.error(JSON.stringify({ event: 's3_missing_key', record }));
+            console.error({ event: 's3_missing_key', record });
             continue;
         }
 
@@ -25,7 +25,7 @@ export const handler: S3Handler = async (event) => {
             !record.eventName.includes('ObjectCreated') ||
             record.eventName.includes('ObjectCreated:Copy')
         ) {
-            console.error(JSON.stringify({ event: 's3_unexpected_event', eventName: record?.eventName, key }));
+            console.error({ event: 's3_unexpected_event', eventName: record?.eventName, key });
             continue;
         }
 

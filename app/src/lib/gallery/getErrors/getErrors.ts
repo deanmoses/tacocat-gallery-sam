@@ -88,24 +88,20 @@ async function getErrorBatch(paths: string[]): Promise<Record<string, string>> {
         if (unprocessedKeys && unprocessedKeys.length > 0) {
             retryCount++;
             if (retryCount > MAX_RETRIES) {
-                console.error(
-                    JSON.stringify({
-                        event: 'batch_get_errors_max_retries',
-                        maxRetries: MAX_RETRIES,
-                        unprocessedCount: unprocessedKeys.length,
-                    }),
-                );
+                console.error({
+                    event: 'batch_get_errors_max_retries',
+                    maxRetries: MAX_RETRIES,
+                    unprocessedCount: unprocessedKeys.length,
+                });
                 break;
             }
             const delayMs = Math.min(100 * Math.pow(2, retryCount), 3000); // 200ms, 400ms, 800ms, 1600ms, 3000ms
-            console.warn(
-                JSON.stringify({
-                    event: 'batch_get_errors_retry',
-                    unprocessedCount: unprocessedKeys.length,
-                    retryCount,
-                    delayMs,
-                }),
-            );
+            console.warn({
+                event: 'batch_get_errors_retry',
+                unprocessedCount: unprocessedKeys.length,
+                retryCount,
+                delayMs,
+            });
             await setTimeout(delayMs);
             keysToFetch = unprocessedKeys as { path: string }[];
         } else {

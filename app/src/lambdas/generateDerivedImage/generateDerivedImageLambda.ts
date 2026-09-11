@@ -34,10 +34,10 @@ export const handler: LambdaFunctionUrlHandler = async (event) => {
     const method = event.requestContext.http.method;
     const path = event.rawPath;
     try {
-        console.info(JSON.stringify({ event: 'request_received', method, path }));
+        console.info({ event: 'request_received', method, path });
         return await generateDerivedImage(method, path);
     } catch (err) {
-        console.error(JSON.stringify({ event: 'unhandled_error', method, path, error: String(err) }));
+        console.error({ event: 'unhandled_error', method, path, error: String(err) });
         return internalServerError;
     }
 };

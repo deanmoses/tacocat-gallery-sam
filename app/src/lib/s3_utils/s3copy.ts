@@ -14,7 +14,7 @@ import { s3Client } from './s3Client';
  * @returns Map of new image paths to new version IDs
  */
 export async function copyOriginals(oldAlbumPath: string, newAlbumPath: string): Promise<Map<string, string>> {
-    console.info(`Copying original images from album [${oldAlbumPath}] to [${newAlbumPath}]...`);
+    console.info({ event: 's3_album_originals_copy_started', oldAlbumPath, newAlbumPath });
     if (!isValidAlbumPath(oldAlbumPath)) throw new Error(`Invalid old album path [${oldAlbumPath}]`);
     if (!isValidAlbumPath(newAlbumPath)) throw new Error(`Invalid new album path [${newAlbumPath}]`);
 
@@ -26,7 +26,11 @@ export async function copyOriginals(oldAlbumPath: string, newAlbumPath: string):
             if (!oldItem.Key) throw new Error(`No S3 key for image [${JSON.stringify(oldItem)}]`);
             const oldImagePath = fromS3OriginalBucketKeyToPath(oldItem.Key);
             if (isValidAlbumPath(oldImagePath)) {
-                console.info(`S3 listed album [${oldImagePath}] as an object, skipping from delete`);
+                console.info({
+                    event: 's3_album_object_skipped',
+                    path: oldImagePath,
+                    reason: 's3_listed_album_itself_as_object',
+                });
                 break;
             }
             if (!isValidMediaPath(oldImagePath)) {
@@ -41,15 +45,15 @@ export async function copyOriginals(oldAlbumPath: string, newAlbumPath: string):
     // Do the copy
     const newVersionIds: Map<string, string> = new Map();
     if (imagesToCopy.length === 0) {
-        console.info(`No S3 objects to copy from [${oldAlbumPath}] to [${newAlbumPath}]`);
+        console.info({ event: 's3_no_originals_to_copy', oldAlbumPath, newAlbumPath });
     } else {
-        console.info(`Copying ${imagesToCopy.length} S3 objects from [${oldAlbumPath}] to [${newAlbumPath}]...`);
+        console.info({ event: 's3_originals_copy_started', count: imagesToCopy.length, oldAlbumPath, newAlbumPath });
         // The right way to copy a "folder" of images appears to be to
         // iterate over all the objects and copy them individually.
         // AWS *does* have a batch job thing, but it's for large scale, millions of objects.
         // But it's weird because I can bulk DELETE, why the inconsistency?
         await Promise.all(imagesToCopy.map((image) => cpOrig(image.oldImagePath, image.newImagePath, newVersionIds)));
-        console.info(`Copied ${imagesToCopy.length} S3 objects from [${oldAlbumPath}] to [${newAlbumPath}]`);
+        console.info({ event: 's3_originals_copied', count: imagesToCopy.length, oldAlbumPath, newAlbumPath });
     }
     return newVersionIds;
 }
@@ -69,7 +73,7 @@ async function cpOrig(oldImagePath: string, newImagePath: string, newVersionIds:
  * @returns VersionId of new media
  */
 export async function copyOriginal(oldMediaPath: string, newMediaPath: string): Promise<string> {
-    console.info(`Copying original media from [${oldMediaPath}] to [${newMediaPath}]...`);
+    console.info({ event: 's3_media_original_copy_started', oldMediaPath, newMediaPath });
     if (!isValidMediaPath(oldMediaPath)) throw new Error(`Cannot copy, invalid source media path [${oldMediaPath}]`);
     if (!isValidMediaPath(newMediaPath)) throw new Error(`Cannot copy, invalid target media path [${newMediaPath}]`);
     const copyCommand = new CopyObjectCommand({
@@ -114,7 +118,7 @@ export async function copyDerivedAssets(
 
     const objects = listResponse.Contents || [];
     if (objects.length === 0) {
-        console.info(JSON.stringify({ event: 'no_derived_assets_to_copy', oldPrefix }));
+        console.info({ event: 'no_derived_assets_to_copy', oldPrefix });
         return;
     }
 
@@ -134,5 +138,5 @@ export async function copyDerivedAssets(
         }),
     );
 
-    console.info(JSON.stringify({ event: 'derived_assets_copied', count: objects.length, oldPrefix, newPrefix }));
+    console.info({ event: 'derived_assets_copied', count: objects.length, oldPrefix, newPrefix });
 }
