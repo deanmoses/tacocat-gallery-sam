@@ -186,7 +186,7 @@ async function ensureIndexExists(redisClient: RedisClient): Promise<void> {
 function decodeContinuationToken(token?: string): Record<string, unknown> | undefined {
     if (!token) return undefined;
     try {
-        return JSON.parse(Buffer.from(token, 'base64').toString());
+        return JSON.parse(Buffer.from(token, 'base64').toString()) as Record<string, unknown>;
     } catch (e) {
         throw new Error(`Invalid continuation token: ${e instanceof Error ? e.message : String(e)}`, {
             cause: e,

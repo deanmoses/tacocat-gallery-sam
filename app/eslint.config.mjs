@@ -70,15 +70,15 @@ export default defineConfig(
             '@typescript-eslint/require-await': 'error',
             '@typescript-eslint/restrict-template-expressions': 'error',
 
-            // `any` leaking out of the AWS SDK and JSON.parse boundaries. Worth
-            // seeing and worth chipping away at, but there is too much of it to
-            // gate CI on today.
-            '@typescript-eslint/no-unsafe-assignment': 'warn',
-            '@typescript-eslint/no-unsafe-argument': 'warn',
-            '@typescript-eslint/no-unsafe-member-access': 'warn',
-            '@typescript-eslint/no-unsafe-return': 'warn',
-            '@typescript-eslint/no-unsafe-call': 'warn',
-            '@typescript-eslint/no-unsafe-enum-comparison': 'warn',
+            // `any` leaking out of the AWS SDK and JSON.parse boundaries. These
+            // are all at zero, so gate CI to keep them there: cast at the
+            // boundary to the type the projection or parse is known to produce.
+            '@typescript-eslint/no-unsafe-assignment': 'error',
+            '@typescript-eslint/no-unsafe-argument': 'error',
+            '@typescript-eslint/no-unsafe-member-access': 'error',
+            '@typescript-eslint/no-unsafe-return': 'error',
+            '@typescript-eslint/no-unsafe-call': 'error',
+            '@typescript-eslint/no-unsafe-enum-comparison': 'error',
         },
     },
 );

@@ -1,8 +1,14 @@
 import { BatchGetCommand } from '@aws-sdk/lib-dynamodb';
-import { GalleryItem, Rectangle } from '../gallery/galleryTypes';
+import { GalleryItem, ImageItem } from '../gallery/galleryTypes';
 import { getParentAndNameFromPath, toMediaPath } from '../gallery_path_utils/galleryPathUtils';
 import { getDynamoDbTableName } from '../lambda_utils/Env';
 import { ddbDocClient } from './ddbClient';
+
+/**
+ * The image attributes needed to augment an album thumbnail.
+ * Every field is optional: this is a DynamoDB projection, so any of them can be absent.
+ */
+type ImageInfo = Partial<Pick<ImageItem, 'parentPath' | 'itemName' | 'thumbnail' | 'versionId'>>;
 
 /**
  * Augment album thumbnails with info from the image,
@@ -44,11 +50,11 @@ export async function augmentAlbumThumbnailsWithImageInfo(galleryItems: GalleryI
         },
     });
     const result = await ddbDocClient.send(ddbCommand);
-    const imgInfos = new Map<
-        string,
-        { parentPath?: string; itemName?: string; thumbnail?: Rectangle; versionId?: string }
-    >();
-    result.Responses?.[getDynamoDbTableName()]?.forEach((item) => {
+    const imgInfos = new Map<string, ImageInfo>();
+    // The DynamoDB document client returns `Record<string, any>` rows; the
+    // ProjectionExpression above pins down which attributes come back.
+    const rows = result.Responses?.[getDynamoDbTableName()] as ImageInfo[] | undefined;
+    rows?.forEach((item) => {
         const mediaPath = toMediaPath(item.parentPath, item.itemName);
         imgInfos.set(mediaPath, item);
     });

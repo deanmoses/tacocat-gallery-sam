@@ -1,7 +1,7 @@
 import { QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { AlbumThumbnail, ImageItem } from '../galleryTypes';
-import { toPathFromItem } from '../../gallery_path_utils/galleryPathUtils';
+import { toAlbumPath } from '../../gallery_path_utils/galleryPathUtils';
 import { getItem } from '../../dynamo_utils/ddbGet';
 import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
@@ -32,9 +32,11 @@ async function getLatestAlbumInAlbum(path: string): Promise<AlbumThumbnail | und
         ProjectionExpression: 'itemName,parentPath,itemType,updatedOn,summary,thumbnail',
         ScanIndexForward: false, // sort results in descending order, i.e., newest first
     });
-    const album = (await ddbDocClient.send(ddbCommand))?.Items?.[0];
+    // The DynamoDB document client returns `Record<string, any>`; the query
+    // filters on itemType 'album', so the rows are albums.
+    const album = (await ddbDocClient.send(ddbCommand))?.Items?.[0] as AlbumThumbnail | undefined;
     if (album) {
-        album.path = toPathFromItem(album);
+        album.path = toAlbumPath(album.parentPath, album.itemName);
         if (album.thumbnail?.path) {
             const image = await getItem<ImageItem>(album.thumbnail.path, ['thumbnail', 'versionId']);
             if (image) {

@@ -10,6 +10,20 @@ export enum ErrorType {
 }
 
 /**
+ * A record in the error table.
+ */
+export type ErrorRecord = {
+    /** Path of the gallery item the error is about */
+    path: string;
+    errorType: ErrorType;
+    errorMessage: string;
+    /** ISO 8601 timestamp of when the error was recorded */
+    timestamp: string;
+    /** Unix epoch seconds at which DynamoDB auto-deletes this record */
+    ttl: number;
+};
+
+/**
  * DynamoDB TTL for error records, in seconds.
  * DynamoDB will auto-delete records after this duration.
  * 24 hours is long enough for the UI to see it; any longer, use CloudWatch logs.
@@ -27,16 +41,17 @@ const ERROR_TTL_SECONDS = 24 * 60 * 60; // 24 hours
  */
 export async function recordError(errorType: ErrorType, path: string, errorMessage: string): Promise<boolean> {
     try {
+        const item: ErrorRecord = {
+            path,
+            errorType,
+            errorMessage,
+            timestamp: new Date().toISOString(),
+            ttl: Math.floor(Date.now() / 1000) + ERROR_TTL_SECONDS,
+        };
         await ddbDocClient.send(
             new PutCommand({
                 TableName: getErrorTableName(),
-                Item: {
-                    path,
-                    errorType,
-                    errorMessage,
-                    timestamp: new Date().toISOString(),
-                    ttl: Math.floor(Date.now() / 1000) + ERROR_TTL_SECONDS,
-                },
+                Item: item,
             }),
         );
         console.info(JSON.stringify({ event: 'error_recorded', errorType, path }));

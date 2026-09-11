@@ -4,6 +4,7 @@ import { getErrorTableName } from '../../lambda_utils/Env';
 import { isValidPath } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { ddbDocClient } from '../../dynamo_utils/ddbClient';
+import { ErrorRecord } from '../../dynamo_utils/recordError';
 
 export type GetErrorsRequest = {
     /** Gallery item paths (album, image, or video) to check for errors */
@@ -73,7 +74,10 @@ async function getErrorBatch(paths: string[]): Promise<Record<string, string>> {
 
         const result = await ddbDocClient.send(ddbCommand);
 
-        result.Responses?.[tableName]?.forEach((item) => {
+        // The DynamoDB document client returns `Record<string, any>` rows; the
+        // ProjectionExpression above pins down which attributes come back.
+        const rows = result.Responses?.[tableName] as Partial<ErrorRecord>[] | undefined;
+        rows?.forEach((item) => {
             if (item.path && item.errorMessage) {
                 errors[item.path] = item.errorMessage;
             }

@@ -9,7 +9,7 @@ jest.mock('./s3', () => ({
 
 // Mock optimizeImage but preserve isImageFormat which is used by parsePath
 jest.mock('./optimizeImage', () => ({
-    ...jest.requireActual('./optimizeImage'),
+    ...jest.requireActual<typeof import('./optimizeImage')>('./optimizeImage'),
     optimizeImage: jest.fn(),
 }));
 

@@ -1,5 +1,5 @@
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, BatchGetCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, BatchGetCommand, BatchGetCommandInput } from '@aws-sdk/lib-dynamodb';
 import { getErrors } from './getErrors';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 
@@ -88,7 +88,7 @@ describe('getErrors()', () => {
         let batchCallCount = 0;
 
         // Mock returns errors for first and last items
-        mockDocClient.on(BatchGetCommand).callsFake((input) => {
+        mockDocClient.on(BatchGetCommand).callsFake((input: BatchGetCommandInput) => {
             batchCallCount++;
             const keys = input.RequestItems?.['test-errors']?.Keys ?? [];
 
