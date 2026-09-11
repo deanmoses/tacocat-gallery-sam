@@ -1,4 +1,4 @@
-import sharp, { Metadata, Region } from 'sharp';
+import sharp from 'sharp';
 import { focusCrop, Point, Rectangle, Size } from './focusCrop';
 
 /**
@@ -101,7 +101,7 @@ export const getQuality = (format: ImageFormat, size: Size): number => {
     throw Error(`automatic quality for format ${String(format)} not implemented`);
 };
 
-export const getImageSize = ({ width, height, pageHeight, orientation }: Metadata) => {
+export const getImageSize = ({ width, height, pageHeight, orientation }: sharp.Metadata) => {
     if (!width || !height) throw Error('original image has no size');
     if (!!pageHeight) height = pageHeight; // animated gif, use pageHeight instead of height because height is all frames combined
     // if present, orientation is 1 2 3 4 5 6 7 8 and describes rotation and mirroring, see https://exiftool.org/TagNames/EXIF.html
@@ -123,7 +123,7 @@ const defaultCrop = (size: Size) => ({
 });
 
 // calculate a region from a Rectangle that lies inside the original image (round to pixels)
-export const limitedRegion = (rect: Rectangle, max: Size): Region => {
+export const limitedRegion = (rect: Rectangle, max: Size): sharp.Region => {
     const left = Math.max(0, Math.round(rect.x));
     const top = Math.max(0, Math.round(rect.y));
     return {
