@@ -333,17 +333,17 @@ Resources:
         Origins:
           - Id: original-images-bucket
             DomainName: !GetAtt OriginalImagesBucket.DomainName
-            # Phase 2 of the OAI -> OAC migration. OriginAccessIdentity must stay
-            # present but empty: that is how CloudFront is told this S3 origin is
-            # signed by the OAC below instead of by an identity.
+            # OriginAccessIdentity must stay present but empty: that is how
+            # CloudFront is told this S3 origin is signed by the OAC below.
+            # Removing the empty value reintroduces a legacy OAI origin.
             S3OriginConfig:
               OriginAccessIdentity: ''
             OriginAccessControlId: !GetAtt OriginalImagesOriginAccessControl.Id
           - Id: derived-images-bucket
             DomainName: !GetAtt DerivedImagesBucket.DomainName
-            # Phase 2 of the OAI -> OAC migration. OriginAccessIdentity must stay
-            # present but empty: that is how CloudFront is told this S3 origin is
-            # signed by the OAC below instead of by an identity.
+            # OriginAccessIdentity must stay present but empty: that is how
+            # CloudFront is told this S3 origin is signed by the OAC below.
+            # Removing the empty value reintroduces a legacy OAI origin.
             S3OriginConfig:
               OriginAccessIdentity: ''
             OriginAccessControlId: !GetAtt DerivedImagesOriginAccessControl.Id
@@ -603,31 +603,15 @@ Resources:
             Effect: Allow
             Resource: !Sub arn:aws:s3:::${OriginalImagesBucket}/*
             Principal:
-              CanonicalUser: !GetAtt OriginalImagesCloudFrontOriginAccessIdentity.S3CanonicalUserId
-          # Both principals stay granted until phase 3 of the OAI -> OAC
-          # migration. The origin now signs with the OAC, but the OAI grant
-          # above has to outlive the distribution's propagation -- and a
-          # rollback of phase 2 -- or in-flight requests 403. Phase 3 drops it.
-          - Action: s3:GetObject
-            Effect: Allow
-            Resource: !Sub arn:aws:s3:::${OriginalImagesBucket}/*
-            Principal:
               Service: cloudfront.amazonaws.com
             Condition:
               StringEquals:
                 AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${ImageDistribution}
 
-  # CloudFront identity of the original image bucket
-  OriginalImagesCloudFrontOriginAccessIdentity:
-    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
-    Properties:
-      CloudFrontOriginAccessIdentityConfig:
-        Comment: !Ref OriginalImagesBucket
-
-  # Signs CloudFront's requests to the OriginalImages bucket. Attached to the origin
-  # inside ImageDistribution. Supersedes
-  # OriginalImagesCloudFrontOriginAccessIdentity, which phase 3 of the
-  # OAI -> OAC migration deletes along with its bucket policy grant.
+  # CloudFront signs its requests to the OriginalImages bucket with SigV4 so the
+  # bucket policy can name the service principal and this distribution rather
+  # than a public or legacy-identity grant. Attached to the origin inside
+  # ImageDistribution.
   OriginalImagesOriginAccessControl:
     Type: AWS::CloudFront::OriginAccessControl
     Properties:
@@ -650,31 +634,15 @@ Resources:
             Effect: Allow
             Resource: !Sub arn:aws:s3:::${DerivedImagesBucket}/*
             Principal:
-              CanonicalUser: !GetAtt DerivedImagesCloudFrontOriginAccessIdentity.S3CanonicalUserId
-          # Both principals stay granted until phase 3 of the OAI -> OAC
-          # migration. The origin now signs with the OAC, but the OAI grant
-          # above has to outlive the distribution's propagation -- and a
-          # rollback of phase 2 -- or in-flight requests 403. Phase 3 drops it.
-          - Action: s3:GetObject
-            Effect: Allow
-            Resource: !Sub arn:aws:s3:::${DerivedImagesBucket}/*
-            Principal:
               Service: cloudfront.amazonaws.com
             Condition:
               StringEquals:
                 AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${ImageDistribution}
 
-  # CloudFront identity of the derived image bucket
-  DerivedImagesCloudFrontOriginAccessIdentity:
-    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
-    Properties:
-      CloudFrontOriginAccessIdentityConfig:
-        Comment: !Ref DerivedImagesBucket
-
-  # Signs CloudFront's requests to the DerivedImages bucket. Attached to the origin
-  # inside ImageDistribution. Supersedes
-  # DerivedImagesCloudFrontOriginAccessIdentity, which phase 3 of the
-  # OAI -> OAC migration deletes along with its bucket policy grant.
+  # CloudFront signs its requests to the DerivedImages bucket with SigV4 so the
+  # bucket policy can name the service principal and this distribution rather
+  # than a public or legacy-identity grant. Attached to the origin inside
+  # ImageDistribution.
   DerivedImagesOriginAccessControl:
     Type: AWS::CloudFront::OriginAccessControl
     Properties:
