@@ -54,6 +54,8 @@ aws logs tail tacocat-gallery-sam/dev --since 1h   # Same log group via the AWS 
 npm run agent-docs    # Regenerate CLAUDE.md and AGENTS.md from docs/AGENTS.src.md
 ```
 
+For monitoring, alarms, alerts and querying logs beyond `sam logs`, see [Observability](https://github.com/deanmoses/tacocat-gallery-sveltekit/blob/main/docs/Observability.md).
+
 ### esbuild
 
 `sam build` shells out to esbuild on the host. It is pinned as an `app/` devDependency, but SAM resolves `node_modules` relative to each `CodeUri`, so the pinned binary is found only via PATH -- a global esbuild (Homebrew, `npm i -g`) silently shadows it and builds with a different version. To use the pinned one:
@@ -72,7 +74,7 @@ The project can create three environments. Each environment is a separate AWS in
 | test        | tacocat-gallery-sam-test | test-pix.tacocat.com    | Integration tests (CI)     |
 | prod        | tacocat-gallery-sam-prod | pix.tacocat.com         | Production                 |
 
-The web app is not in this project; it's built and hosted in other projects.
+The web app is not in this project; it's built and hosted in other projects. For how all the Tacocat repos, domains and environments fit together, see [Ecosystem](https://github.com/deanmoses/tacocat-gallery-sveltekit/blob/main/docs/Ecosystem.md).
 
 ### Deploying to specific environments
 
