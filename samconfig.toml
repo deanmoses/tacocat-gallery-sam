@@ -30,6 +30,7 @@ stack_name = "tacocat-gallery-sam-prod"
 #
 
 [default.deploy.parameters]
+role_arn = "arn:aws:iam::010410881828:role/tacocat-gallery-cicd-cloudformation" # CloudFormation service role that creates the resources, see infra/github-oidc.yaml
 s3_prefix = "tacocat-gallery-sam/dev" # Prefix (folder name) added to the names of artifacts uploaded to S3
 parameter_overrides = [
     "Env=dev",
@@ -51,6 +52,7 @@ image_repositories = []
 capabilities = "CAPABILITY_NAMED_IAM"
 
 [test.deploy.parameters]
+role_arn = "arn:aws:iam::010410881828:role/tacocat-gallery-cicd-cloudformation" # CloudFormation service role that creates the resources, see infra/github-oidc.yaml
 s3_prefix = "tacocat-gallery-sam/test" # Prefix (folder name) added to the names of artifacts uploaded to S3
 parameter_overrides = [
     "Env=test",
@@ -72,6 +74,7 @@ image_repositories = []
 capabilities = "CAPABILITY_NAMED_IAM"
 
 [prod.deploy.parameters]
+role_arn = "arn:aws:iam::010410881828:role/tacocat-gallery-cicd-cloudformation" # CloudFormation service role that creates the resources, see infra/github-oidc.yaml
 s3_prefix = "tacocat-gallery-sam/prod" # Prefix (folder name) added to the names of artifacts uploaded to S3
 parameter_overrides = [
     "Env=prod",
@@ -139,12 +142,15 @@ resolve_s3 = true
 #
 
 [default.sync.parameters]
+role_arn = "arn:aws:iam::010410881828:role/tacocat-gallery-cicd-cloudformation"
 watch = true
 
 [test.sync.parameters]
+role_arn = "arn:aws:iam::010410881828:role/tacocat-gallery-cicd-cloudformation"
 watch = true
 
 [prod.sync.parameters]
+role_arn = "arn:aws:iam::010410881828:role/tacocat-gallery-cicd-cloudformation"
 watch = false
 
 #

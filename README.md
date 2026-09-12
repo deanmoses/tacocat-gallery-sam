@@ -103,9 +103,12 @@ When a PR is merged into `main`, the CI/CD system (GitHub Actions) automatically
 3. Click "Run workflow" and select the `main` branch
 4. The workflow:
     1. Runs tests
-    2. Deploys to prod (the `tacocat-gallery-sam-prod` AWS stack)
+    2. Waits for you to approve the deploy: the `prod` GitHub environment requires a reviewer, so open the run and click _Review deployments_
+    3. Deploys to prod (the `tacocat-gallery-sam-prod` AWS stack)
         1. The live web app <https://pix.tacocat.com/> is attached to the prod stack
-    3. Creates a GitHub release (like 2027v2) with auto-generated release notes
+    4. Creates a GitHub release (like 2027v2) with auto-generated release notes
+
+CI never holds AWS keys. Each workflow job exchanges its GitHub OIDC token for a short-lived AWS role scoped to what that job does; see [infra/README.md](infra/README.md).
 
 ### Working with remote logs
 
