@@ -818,16 +818,8 @@ Resources:
         # I tried setting this as a parameter, but it didn't update when I changed it
         - arn:aws:lambda:us-east-1:010410881828:layer:sharp-heic:2
       FunctionUrlConfig:
-        # Phase 1 of 2 in locking this URL down to CloudFront. CloudFront already
-        # signs its origin requests (DerivedImageLambdaOriginAccessControl) and the
-        # two permissions below let that signature through; a signed request to a
-        # NONE URL is accepted. Phase 2 flips this to AWS_IAM in its own deploy.
-        # Not in one deploy because CloudFormation flips the URL first, then spends
-        # minutes propagating the distribution that turns signing on, and creates
-        # the permissions last. In that window a derived-image cache miss fails
-        # over to this URL, gets 403, and the Lambda is the origin group's last
-        # member so the 403 reaches the viewer.
-        AuthType: NONE
+        # Only CloudFront may call this URL
+        AuthType: AWS_IAM
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
