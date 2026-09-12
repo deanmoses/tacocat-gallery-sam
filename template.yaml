@@ -835,8 +835,12 @@ Resources:
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
+        # No Sourcemap, unlike the other stream- and event-triggered functions: a browser
+        # waits on this one, and Sourcemap also makes SAM set --enable-source-maps, so
+        # every cold start pays to install Node's source-map hook. Most requests here are
+        # cold, because an album view asks for many images at once and Lambda needs an
+        # execution environment per concurrent request.
         Minify: true
-        Sourcemap: true
         Target: node24
         EntryPoints:
           - generateDerivedImageLambda.ts
