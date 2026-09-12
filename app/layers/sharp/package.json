@@ -1,0 +1,9 @@
+{
+    "name": "sharp-layer",
+    "version": "1.0.0",
+    "description": "Sharp and its Linux arm64 native binaries, packaged as a Lambda layer because esbuild cannot bundle a native module. Keep the version in sync with app/package.json.",
+    "private": true,
+    "dependencies": {
+        "sharp": "0.35.1"
+    }
+}

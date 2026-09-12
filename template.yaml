@@ -91,11 +91,14 @@ Conditions:
 Globals:
   Function:
     Runtime: nodejs24.x
-    # 256MB gives only ~0.15 vCPU, which throttled both init and request handling.
-    # Lambda bills GB-seconds, so faster-at-more-memory is roughly cost neutral.
+    # MemorySize is how Lambda sells vCPU -- 1769MB is one full vCPU, and it scales
+    # linearly below that. The 128MB default is ~0.07 vCPU, which throttles init and
+    # request handling alike. 1024MB (~0.6 vCPU) is the floor for anything doing real
+    # work. Billing is GB-seconds, so raising memory is close to free where duration
+    # falls proportionally -- but that stops holding once a function saturates its
+    # cores, so measure before raising it.
     MemorySize: 1024
     # Graviton: ~20% cheaper per GB-second and typically faster for Node.
-    # The two Sharp functions override this back to x86_64 (see below).
     Architectures:
       - arm64
     Timeout: 100 # TODO decrease this; the default is 3!
@@ -767,6 +770,32 @@ Resources:
         }
 
   # ---------------------------------------------------------------------------
+  # Supplies Sharp, without HEIC support, to any arm64 function that needs it.
+  #
+  # Sharp is a native module, so esbuild has to leave it external, which means something
+  # has to supply the binary at runtime. Building the layer here rather than publishing
+  # one by hand keeps the Sharp version in the repo, versioned with the code that uses it,
+  # and removes the manual Code Builder step the HEIC layer still needs.
+  #
+  # The .npmrc in app/layers/sharp is what makes the build install linux-arm64 binaries
+  # instead of the build machine's own.
+  # ---------------------------------------------------------------------------
+  SharpLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub ${AWS::StackName}-sharp
+      Description: !Sub Sharp with linux-arm64 binaries, without HEIC support, for ${AWS::StackName}
+      ContentUri: app/layers/sharp/
+      CompatibleRuntimes:
+        - nodejs24.x
+      CompatibleArchitectures:
+        - arm64
+      RetentionPolicy: Delete
+    Metadata:
+      BuildMethod: nodejs24.x
+      BuildArchitecture: arm64
+
+  # ---------------------------------------------------------------------------
   # Lambda to generate derived images
   # ---------------------------------------------------------------------------
   GenerateDerivedImageFunction:
@@ -775,12 +804,13 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-GenerateDerivedImage
       CodeUri: app/src/lambdas/generateDerivedImage/
       Handler: generateDerivedImageLambda.handler
-      # Pinned to x86_64: the sharp-heic layer is a native x86_64 build.
-      # Rebuild that layer for arm64 to let this inherit the global arm64 setting.
-      Architectures:
-        - x86_64
       Description: Generates derived images
-      MemorySize: 1024 # Sharp is CPU-bound; at the inherited 256MB (~0.14 vCPU) this averaged 3.7s
+      # Sharp is CPU-bound, and on Lambda MemorySize is how you buy vCPU. Benchmarked on
+      # this workload, arm64 at 3008MB is 2.3x faster than the x86_64 1024MB it replaces.
+      # 3008MB is a peak, not a plateau: above it Lambda allocates more vCPUs at a lower
+      # per-core clock, and Sharp only ever uses one core, so 4096MB and up measured ~47%
+      # SLOWER for 2-5x the GB-seconds. Do not raise this without re-benchmarking.
+      MemorySize: 3008
       Environment:
         Variables:
           ORIGINAL_IMAGES_BUCKET: !Ref OriginalImagesBucket
@@ -795,8 +825,10 @@ Resources:
             BucketName: !Ref DerivedImagesBucket
         - DynamoDBReadPolicy:
             TableName: !Ref GalleryItemDDBTable
+      # Stock Sharp, not the libheif layer: parsePath.ts only ever routes jpg/jpeg/png/gif
+      # here, so this function never decodes HEIC. Only ProcessMediaUpload needs that.
       Layers:
-        - !FindInMap [SharpHeicLayer, !Ref 'AWS::Region', Arn]
+        - !Ref SharpLayer
       FunctionUrlConfig:
         # Only CloudFront may call this URL
         AuthType: AWS_IAM
