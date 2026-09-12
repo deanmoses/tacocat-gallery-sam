@@ -266,6 +266,11 @@ Resources:
                                 - dynamodb:DeleteItem
                                 - dynamodb:BatchWriteItem
                                 - dynamodb:ConditionCheckItem
+                                # The gallery library issues some reads and writes as PartiQL statements
+                                - dynamodb:PartiQLSelect
+                                - dynamodb:PartiQLInsert
+                                - dynamodb:PartiQLUpdate
+                                - dynamodb:PartiQLDelete
                                 - dynamodb:TransactGetItems
                                 - dynamodb:TransactWriteItems
                             Resource:
