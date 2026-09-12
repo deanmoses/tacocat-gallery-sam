@@ -36,6 +36,10 @@ else
     echo "Warning: actionlint not installed, skipping GitHub Actions lint"
 fi
 
+# Syntax-check the inline CloudFront Function JS in template.yaml. Nothing
+# else parses it before a real deploy.
+./scripts/lint-cloudfront-functions.sh
+
 # Format and lint staged files only
 lint-staged
 

@@ -40,6 +40,12 @@ export function respondHttp(_event: APIGatewayProxyEvent, body: object, statusCo
             // zeroes those out for cross-origin responses. Separate from CORS above:
             // that governs reading the body, this governs reading the timings.
             'Timing-Allow-Origin': `https://${getGalleryAppDomain()}`,
+            // Keep API responses out of search results. robots.txt and
+            // X-Robots-Tag are per host, so the gallery app's noindex says
+            // nothing about api.*; this is the API's own opt-out.
+            'X-Robots-Tag': 'noindex',
+            // Never let a browser sniff a JSON body into something executable.
+            'X-Content-Type-Options': 'nosniff',
         },
     };
 }

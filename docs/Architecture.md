@@ -218,7 +218,7 @@ All media files are delivered to browsers via the AWS CloudFront CDN.
 
 1. **Originals bucket** — Direct S3 access (default route)
 2. **Derived bucket** — S3 with Origin Access Identity
-3. **Lambda** — Failover for cache misses on derived images
+3. **Lambda** — Failover for cache misses on derived images. CloudFront signs its requests to the function URL via Origin Access Control.
 
 **URL routing:**
 
@@ -270,3 +270,7 @@ Thumbnails and detail page images are generated **on-demand** the first time the
         5. If the image is over 5MB, it returns a 503 Service Unavailable with retry-after: 1 header
 
 This "lazy generation" approach means thumbnails are only created when actually needed, and the Lambda is only invoked once per unique thumbnail.
+
+### Crawler control and response headers
+
+The gallery is meant to stay out of search results. robots.txt and `X-Robots-Tag` are per host, so the gallery app's own `noindex` (in `tacocat-gallery-hosting-aws`) says nothing about `img.*` or `api.*`; each host opts out for itself. The CloudFront response headers policies and the robots.txt function in `template.yaml` explain each header; the API's headers are set in `respondHttp()`.

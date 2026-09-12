@@ -1,6 +1,5 @@
 import { deleteMedia } from '../../lib/gallery/deleteMedia/deleteMedia';
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
-import { getDerivedImageGeneratorDomain } from '../../lib/lambda_utils/Env';
 import { assertDynamoDBItemDoesNotExist, cleanUpAlbumAndParents } from './helpers/albumHelpers';
 import {
     assertDerivedImageDoesNotExist,
@@ -12,7 +11,10 @@ import {
 const yearPath = '/1707/'; // unique to this suite to prevent pollution
 const albumPath = `${yearPath}02-18/`;
 const imagePath = `${albumPath}image1.jpg`;
-const derivedImageSuffix = `jpeg/45x45`;
+const derivedImageSize = `45x45`;
+const galleryAppDomain = process.env.GALLERY_APP_DOMAIN;
+if (!galleryAppDomain) throw new Error('GALLERY_APP_DOMAIN environment variable is not set');
+let imageVersionId: string;
 let derivedImagePath: string;
 
 beforeAll(async () => {
@@ -24,8 +26,8 @@ beforeAll(async () => {
         assertOriginalImageDoesNotExist(imagePath),
         assertDerivedImageDoesNotExist(imagePath),
     ]);
-    const imageVersionId = await uploadImage('image.jpg', imagePath);
-    derivedImagePath = `${imagePath}/${imageVersionId}/${derivedImageSuffix}`;
+    imageVersionId = await uploadImage('image.jpg', imagePath);
+    derivedImagePath = `${imagePath}/${imageVersionId}/${derivedImageSize}`;
     await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
 }, 10000 /* increases Jest's timeout */);
 
@@ -34,7 +36,8 @@ afterAll(async () => {
 }, 10000 /* increases Jest's timeout */);
 
 test('Generate derived image should not fail', async () => {
-    const derivedImageGeneratorUrl = `https://${getDerivedImageGeneratorDomain()}/i${derivedImagePath}`;
+    // Through the CDN, so this keeps working once the Lambda URL requires IAM auth
+    const derivedImageGeneratorUrl = `https://img.${galleryAppDomain}/i${imagePath}?version=${imageVersionId}&size=${derivedImageSize}`;
     const response = await fetch(derivedImageGeneratorUrl, { cache: 'no-store' });
     if (response.status !== 200) {
         throw new Error(
