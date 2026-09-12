@@ -32,57 +32,26 @@ Parameters:
       - prod
     ConstraintDescription: Must be either 'dev', 'test' or 'prod'
   GalleryAppDomain:
-    Description: Domain of the Tacocat photo gallery web app 
+    Description: Domain of the Tacocat photo gallery web app
     Type: String
-    AllowedValues:
-      - staging-pix.tacocat.com
-      - test-pix.tacocat.com
-      - pix.tacocat.com
-    ConstraintDescription: Must be either 'staging-pix.tacocat.com', 'test-pix.tacocat.com' or 'pix.tacocat.com'
   DomainCertificateArn:
     Description: ARN of the ACM certificate for the GalleryAppDomain domain
     Type: String
-    AllowedValues:
-      - arn:aws:acm:us-east-1:010410881828:certificate/092ab57c-f87d-4c44-a72c-63cfbbb55800 # staging-pix.tacocat.com
-      - arn:aws:acm:us-east-1:010410881828:certificate/9fbd8ee9-f1d1-42a5-b97c-9713ce6e076d # test-pix.tacocat.com
-      - arn:aws:acm:us-east-1:010410881828:certificate/e142cda0-96db-4651-92fd-35dd9a52e9a2 # pix.tacocat.com
   RedisHost:
     Description: Hostname and port of the Redis search instance
     Type: String
-    AllowedValues:
-      - redis-16860.c321.us-east-1-2.ec2.cloud.redislabs.com:16860 # test
-      - redis-14907.c321.us-east-1-2.ec2.cloud.redislabs.com:14907 # dev
-      - redis-13894.c321.us-east-1-2.ec2.cloud.redislabs.com:13894 # prod
   RedisSearchUsername:
     Description: Name of user permitted to execute a search on Redis
     Type: String
-    AllowedValues:
-      - testsearcher
-      - devsearcher
-      - prodsearcher
-    ConstraintDescription: Must be testsearcher, devsearcher or prodsearcher
   RedisWriteUsername:
     Description: Name of user permitted to write to Redis
     Type: String
-    AllowedValues:
-      - testwriter
-      - devwriter
-      - prodwriter
-    ConstraintDescription: Must be testwriter, devwriter or prodwriter
   RedisSearchPasswordSecret:
     Description: AWS Secrets Manager reference for Redis search password
     Type: String
-    AllowedValues:
-      - Tacocat/Gallery/Authentication:SecretString:RedisSearchPasswordTest
-      - Tacocat/Gallery/Authentication:SecretString:RedisSearchPasswordDev
-      - Tacocat/Gallery/Authentication:SecretString:RedisSearchPasswordProd
   RedisWritePasswordSecret:
     Description: AWS Secrets Manager reference for Redis write password
     Type: String
-    AllowedValues:
-      - Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordTest
-      - Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordDev
-      - Tacocat/Gallery/Authentication:SecretString:RedisWritePasswordProd
   CognitoUserPoolID:
     Description: Cognito User Pool ID for authentication
     Type: String
@@ -92,6 +61,20 @@ Parameters:
   AlertEmail:
     Description: Email address that receives CloudWatch alarm (prod and dev) and AWS Budget (prod) notifications
     Type: String
+
+# -----------------------------------------------------------------------------
+# Mappings are static lookup tables. Unlike Parameters, their values are baked
+# into the template at deploy time, so editing one actually takes effect --
+# a Parameter absent from samconfig.toml's parameter_overrides is sent as
+# UsePreviousValue=true, which silently ignores a changed Default.
+# -----------------------------------------------------------------------------
+Mappings:
+  # Sharp layer with HEIC support via libheif/libde265.
+  # I build this in an AWS Code Builder project: sharp-heic-lambda-layer.
+  # Keyed by region because Lambda layer ARNs are region-scoped.
+  SharpHeicLayer:
+    us-east-1:
+      Arn: arn:aws:lambda:us-east-1:010410881828:layer:sharp-heic:2
 
 # -----------------------------------------------------------------------------
 # Conditions are boolean conditions that can be used to control resources
@@ -813,10 +796,7 @@ Resources:
         - DynamoDBReadPolicy:
             TableName: !Ref GalleryItemDDBTable
       Layers:
-        # Sharp layer with HEIC support via libheif/libde265
-        # I build this in an AWS Code Builder project: sharp-heic-lambda-layer
-        # I tried setting this as a parameter, but it didn't update when I changed it
-        - arn:aws:lambda:us-east-1:010410881828:layer:sharp-heic:2
+        - !FindInMap [SharpHeicLayer, !Ref 'AWS::Region', Arn]
       FunctionUrlConfig:
         # Only CloudFront may call this URL
         AuthType: AWS_IAM
@@ -1505,10 +1485,7 @@ Resources:
                 - iam:PassRole
               Resource: !GetAtt MediaConvertRole.Arn
       Layers:
-        # Sharp layer with HEIC support via libheif/libde265
-        # I build this in an AWS Code Builder project: sharp-heic-lambda-layer
-        # I tried setting this as a parameter, but it didn't update when I changed it
-        - arn:aws:lambda:us-east-1:010410881828:layer:sharp-heic:2
+        - !FindInMap [SharpHeicLayer, !Ref 'AWS::Region', Arn]
       Events:
         FileUploadEvent:
           Type: S3
@@ -1777,13 +1754,9 @@ Resources:
 # Outputs
 # -----------------------------------------------------------------------------
 Outputs:
-  AwsApi:
-    Description: AWS API URL (not used)
-    Value: !Sub https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Stage/
-
   Api:
-      Description: API URL (use this)
-      Value: !Sub "https://api.${GalleryAppDomain}"
+    Description: API URL
+    Value: !Sub "https://api.${GalleryAppDomain}"
 
   ImageDomain:
     Description: CloudFront image distribution
