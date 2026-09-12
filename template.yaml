@@ -370,6 +370,11 @@ Resources:
               ]
             CustomOriginConfig:
               OriginProtocolPolicy: https-only
+            # CloudFront signs each request with SigV4 so the function URL can require
+            # IAM auth (see GenerateDerivedImageFunction). Without this the URL is public
+            # and anyone who finds it bypasses the CDN: no cache, no logs, no headers,
+            # and a Sharp invocation per hit.
+            OriginAccessControlId: !GetAtt DerivedImageLambdaOriginAccessControl.Id
         CacheBehaviors:
           - PathPattern: /i/*
             TargetOriginId: derived-images-group
@@ -394,6 +399,10 @@ Resources:
           Compress: true
           ViewerProtocolPolicy: redirect-to-https
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized managed policy
+          ResponseHeadersPolicyId: !Ref DefaultResponseHeadersPolicy
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt RobotsTxtFunction.FunctionMetadata.FunctionARN
         OriginGroups:
           Quantity: 1
           Items:
@@ -437,16 +446,127 @@ Resources:
       DeliverySourceName: !Sub ${AWS::StackName}-image-cdn # must equal ImageLogDeliverySource.Name
       DeliveryDestinationArn: !GetAtt ImageLogDeliveryDestination.Arn
       S3SuffixPath: image/{yyyy}/{MM}/{dd}/
+      # Naming RecordFields at all means listing every field wanted; there is no
+      # add-to-the-default form. This is CloudFront's default minus cs(Cookie),
+      # x-forwarded-for, fle-* and sc-range-*, which this distribution cannot
+      # populate, plus asn and c-country. asn is what separates real visitors
+      # from automated traffic; user agents don't. Order sets the column order.
+      # Same list as the SPA distribution in tacocat-gallery-hosting-aws.
+      RecordFields:
+        - date
+        - time
+        - x-edge-location
+        - sc-bytes
+        - c-ip
+        - cs-method
+        - cs(Host)
+        - cs-uri-stem
+        - sc-status
+        - cs(Referer)
+        - cs(User-Agent)
+        - cs-uri-query
+        - x-edge-result-type
+        - x-edge-request-id
+        - x-host-header
+        - cs-protocol
+        - cs-bytes
+        - time-taken
+        - ssl-protocol
+        - ssl-cipher
+        - x-edge-response-result-type
+        - cs-protocol-version
+        - c-port
+        - time-to-first-byte
+        - x-edge-detailed-result-type
+        - sc-content-type
+        - sc-content-len
+        - asn
+        - c-country
 
-  # Set Cache-Control header to cache forever
+  # ---------------------------------------------------------------------------
+  # Response headers policies. A behavior gets exactly one policy, so the
+  # crawler opt-out and security headers are repeated in both policies below.
+  # Keep the two blocks identical; the integration tests fail if they drift.
+  #
+  # Crawler opt-out: X-Robots-Tag is Google's documented control for indexing
+  # a non-HTML file such as an image or video. robots.txt and X-Robots-Tag are
+  # per host, so the SPA's noindex on pix.tacocat.com says nothing about this
+  # host. The SPA's noimageindex covers photos discovered through its pages;
+  # this covers the files themselves.
+  #   noindex, noimageindex: the file (image, video, or 400 error) never appears
+  #     in web or image results. No nosnippet/notranslate/max-image-preview: those
+  #     only mean something on an HTML page.
+  #   noai, noimageai: a DeviantArt-origin convention, absent from Google's
+  #     documented directives. Kept because they cost nothing.
+  #   tdm-reservation: W3C TDMRep, 1 = rights reserved. Legal rather than
+  #     technical: EU DSM Article 4 permits commercial text/data mining unless
+  #     reserved "by machine-readable means". This is that reservation.
+  #
+  # Security: HSTS matches the SPA's (1 year, includeSubDomains, no preload);
+  # nosniff stops a browser second-guessing the content type. Frame, referrer
+  # and permissions policies are per-document and would say nothing on media.
+  #
+  # Cross-Origin-Resource-Policy: same-site stops other websites embedding the
+  # photos with <img> or <video>; the gallery app is the same site (tacocat.com)
+  # so it is unaffected. Prod only: the gallery's local dev server (localhost)
+  # loads images straight from img.staging-pix.tacocat.com, and localhost is
+  # not same-site with anything. cross-origin is the header's no-op value.
+  # ---------------------------------------------------------------------------
+
+  # Default behavior: original files and the function-generated robots.txt
+  DefaultResponseHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub DefaultResponseHeadersPolicy-${AWS::StackName}
+        Comment: !Sub Crawler opt-out and security headers for ${AWS::StackName}
+        SecurityHeadersConfig:
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 31536000 # 1 year
+            IncludeSubdomains: true
+            Preload: false
+            Override: true
+          ContentTypeOptions: # emits X-Content-Type-Options: nosniff
+            Override: true
+        CustomHeadersConfig:
+          Items:
+            - Header: X-Robots-Tag
+              Value: noindex, noimageindex, noai, noimageai
+              Override: true
+            - Header: tdm-reservation
+              Value: "1"
+              Override: true
+            - Header: Cross-Origin-Resource-Policy
+              Value: !If [IsProd, same-site, cross-origin]
+              Override: true
+
+  # /i/* and /v/*: derived images and transcoded video. Cache forever, plus the
+  # same crawler and security block as DefaultResponseHeadersPolicy.
   ImmutableResponseHeadersPolicy:
     Type: AWS::CloudFront::ResponseHeadersPolicy
     Properties: 
       ResponseHeadersPolicyConfig: 
         Name: !Sub ImmutableResponseHeadersPolicy-${AWS::StackName}
         Comment: !Sub Immutable response headers policy for ${AWS::StackName}
+        SecurityHeadersConfig:
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 31536000 # 1 year
+            IncludeSubdomains: true
+            Preload: false
+            Override: true
+          ContentTypeOptions: # emits X-Content-Type-Options: nosniff
+            Override: true
         CustomHeadersConfig:
           Items:
+            - Header: X-Robots-Tag
+              Value: noindex, noimageindex, noai, noimageai
+              Override: true
+            - Header: tdm-reservation
+              Value: "1"
+              Override: true
+            - Header: Cross-Origin-Resource-Policy
+              Value: !If [IsProd, same-site, cross-origin]
+              Override: true
             - Header: Cache-Control
               Value: public, max-age=31536000, immutable
               Override: true
@@ -516,6 +636,83 @@ Resources:
     Properties:
       CloudFrontOriginAccessIdentityConfig:
         Comment: !Ref DerivedImagesBucket
+
+  # Serves /robots.txt on the default behavior. From a function, not an S3
+  # file, so it can't be deleted or overwritten by a media upload.
+  # Same list and rationale as the SPA's robots.txt in tacocat-gallery-hosting-aws;
+  # duplicated because CloudFormation requires the function code inline. Keep
+  # the two in sync.
+  RobotsTxtFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub RobotsTxt-${AWS::StackName}
+      AutoPublish: true
+      FunctionConfig:
+        Comment: !Sub Serves robots.txt; crawling allowed so X-Robots-Tag is seen, for ${AWS::StackName}
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |+2
+        // Blocked by name because they only train, so there's no listing to
+        // lose. Google-Extended and Applebot-Extended govern training alone --
+        // Googlebot and Applebot still crawl, and indexing is unaffected.
+        // Sorted, so a duplicate is visible on sight. Curated rather than
+        // exhaustive: published lists run to 60+ but carry dead operators and
+        // library UAs like Scrapy, which no one sets honestly.
+        // The -User and -SearchBot agents are retrieval, not training. Blocking
+        // them contradicts the allow-so-noindex-is-seen logic below, and it is
+        // deliberate: unlike Google these have no de-indexing pathway to
+        // preserve, so there is no listing to protect by letting them in.
+        const AI_TRAINING_BOTS = [
+            'AI2Bot',
+            'Amazonbot',
+            'anthropic-ai',
+            'Applebot-Extended',
+            'Bytespider',
+            'CCBot',
+            'ChatGPT-User',
+            'Claude-SearchBot',
+            'Claude-User',
+            'Claude-Web',
+            'ClaudeBot',
+            'cohere-ai',
+            'Diffbot',
+            'DuckAssistBot',
+            'FacebookBot',
+            'Google-CloudVertexBot',
+            'Google-Extended',
+            'GPTBot',
+            'ImagesiftBot',
+            'img2dataset',
+            'Meta-ExternalAgent',
+            'meta-externalfetcher',
+            'MistralAI-User',
+            'OAI-SearchBot',
+            'omgili',
+            'omgilibot',
+            'PanguBot',
+            'Perplexity-User',
+            'PerplexityBot',
+            'SemrushBot-OCOB',
+            'Timpibot',
+            'Webzio-Extended',
+            'YouBot',
+        ];
+        function handler(event) {
+            const r = event.request;
+            if (r.uri !== '/robots.txt') return r;
+            // Crawling is allowed in order to stay OUT of search results: a
+            // crawler must fetch a file to see its X-Robots-Tag. A Disallow here
+            // would hide the noindex and leave bare URLs listed instead.
+            let body = 'User-agent: *\nAllow: /\n\n';
+            // Index loop: cloudfront-js-2.0 rejects for...of at publish time
+            for (let i = 0; i < AI_TRAINING_BOTS.length; i++) body += 'User-agent: ' + AI_TRAINING_BOTS[i] + '\n';
+            body += 'Disallow: /\n';
+            return {
+                statusCode: 200,
+                statusDescription: 'OK',
+                headers: { 'content-type': { value: 'text/plain; charset=utf-8' } },
+                body: { encoding: 'text', data: body },
+            };
+        }
 
   # CloudFront Function to rewrite video playback URL
   # Input: /v/2024/06-15/video.mp4?version=<versionId>
@@ -621,7 +818,16 @@ Resources:
         # I tried setting this as a parameter, but it didn't update when I changed it
         - arn:aws:lambda:us-east-1:010410881828:layer:sharp-heic:2
       FunctionUrlConfig:
-        AuthType: NONE #TODO: authentication
+        # Phase 1 of 2 in locking this URL down to CloudFront. CloudFront already
+        # signs its origin requests (DerivedImageLambdaOriginAccessControl) and the
+        # two permissions below let that signature through; a signed request to a
+        # NONE URL is accepted. Phase 2 flips this to AWS_IAM in its own deploy.
+        # Not in one deploy because CloudFormation flips the URL first, then spends
+        # minutes propagating the distribution that turns signing on, and creates
+        # the permissions last. In that window a derived-image cache miss fails
+        # over to this URL, gets 403, and the Lambda is the origin group's last
+        # member so the 403 reaches the viewer.
+        AuthType: NONE
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -632,6 +838,36 @@ Resources:
           - generateDerivedImageLambda.ts
         External:
           - sharp
+
+  # CloudFront signs requests to the derived-image Lambda URL with SigV4.
+  # Attached to the origin inside ImageDistribution.
+  DerivedImageLambdaOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub DerivedImageLambda-${AWS::StackName}
+        Description: !Sub Signs CloudFront requests to the derived-image Lambda URL for ${AWS::StackName}
+        OriginAccessControlOriginType: lambda
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # The two grants AWS documents for OAC on a function URL, scoped to this
+  # distribution so no other distribution (or account) can invoke it.
+  GenerateDerivedImageCloudFrontUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunctionUrl
+      FunctionName: !Ref GenerateDerivedImageFunction
+      Principal: cloudfront.amazonaws.com
+      SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${ImageDistribution}
+
+  GenerateDerivedImageCloudFrontInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GenerateDerivedImageFunction
+      Principal: cloudfront.amazonaws.com
+      SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${ImageDistribution}
 
   # ---------------------------------------------------------------------------
   # Lambda to shlep DynamoDB data to Redis

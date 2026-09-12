@@ -75,6 +75,9 @@ jobs:
             - name: Lint CloudFormation template
               run: sam validate --lint
 
+            - name: Lint inline CloudFront Function code
+              run: scripts/lint-cloudfront-functions.sh
+
             - name: SAM build
               run: sam build
 

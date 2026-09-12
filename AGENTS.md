@@ -35,6 +35,7 @@ npm run format:check  # Prettier, check only
 npm run format        # Prettier with auto-fix
 npm run lint:md       # markdownlint
 npm run lint:cfn      # cfn-lint on template.yaml (via SAM CLI)
+npm run lint:cf       # syntax-check the inline CloudFront Function JS in template.yaml
 npm run lint:shell    # shellcheck on shell scripts (requires shellcheck)
 npm run lint:actions  # actionlint on GitHub workflows (requires actionlint)
 
@@ -163,17 +164,14 @@ Never hard-wrap prose in Markdown. Write each paragraph and list item as one lon
 
 ## Logging
 
-Use structured logging for CloudWatch queryability. Pass a plain object as the single argument to the console method:
+Structured, so Logs Insights can query it:
 
 ```typescript
 console.info({ event: 'transcoding_complete', videoPath, videoId });
 console.error({ event: 'transcoding_failed', videoPath, error: errorMessage });
 ```
 
-- Always include an `event` field (snake_case) describing what happened
-- Include relevant context (IDs, paths, etc.) as additional fields
-- Use `console.info` for success/progress, `console.error` for failures, `console.warn` for warnings
-- Never `JSON.stringify` the object or pass extra arguments. The Lambda functions use the JSON log format, so the runtime already wraps each record in JSON with `timestamp`, `level` and `requestId` and nests a single object argument under `message` as real JSON. A pre-stringified string gets escaped into `message`, and Logs Insights can't then query its fields without a `parse` step.
+Pass one plain object with a snake_case `event` field plus whatever context is relevant. Don't `JSON.stringify` it or pass extra arguments; the Lambda JSON log format nests a single object argument as real JSON, but a string gets escaped into `message` and can't be queried without `parse`.
 
 ## Key Configuration Files
 
@@ -192,9 +190,9 @@ console.error({ event: 'transcoding_failed', videoPath, error: errorMessage });
 
 - **gh CLI**: Use the `gh` CLI tool for GitHub operations.
 - **Branch protection**: The `main` branch is protected. All changes require a pull request.
-- **Pre-commit hooks**: Husky runs gitleaks (secret scanning), shellcheck, actionlint, markdownlint, lint-staged, type checking, and unit tests on commit. gitleaks, shellcheck, and actionlint are skipped with a warning if not installed locally; CI enforces them regardless.
-- **CI workflow**: On PR and push to main, runs lint, format check, markdownlint, shellcheck, actionlint, cfn-lint, type check, unit tests, and SAM build. On push to main, also deploys to staging.
-- **Production deploy**: Manual workflow dispatch from GitHub Actions. Runs tests, deploys to prod, creates a release tag (YYYYvN format), and generates release notes.
+- **Pre-commit hooks**: Husky runs the same checks as CI (see `.husky/pre-commit`). Tools not installed locally are skipped with a warning; CI enforces them regardless.
+- **CI workflow**: On PR and push to main, runs all lint and test checks plus a SAM build (see `.github/workflows/`). On push to main, also deploys to staging.
+- **Production deploy**: Manual workflow dispatch from GitHub Actions. Runs tests, deploys to prod, creates a release tag and generates release notes.
 
 ## Git Amend
 

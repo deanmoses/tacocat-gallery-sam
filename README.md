@@ -139,6 +139,7 @@ npm run format:check  # Prettier, check only
 npm run format        # Prettier with auto-fix
 npm run lint:md       # markdownlint
 npm run lint:cfn      # cfn-lint on template.yaml (via SAM CLI)
+npm run lint:cf       # syntax-check the inline CloudFront Function JS in template.yaml
 npm run lint:shell    # shellcheck on shell scripts (requires shellcheck)
 npm run lint:actions  # actionlint on GitHub workflows (requires actionlint)
 
