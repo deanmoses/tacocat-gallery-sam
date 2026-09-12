@@ -1,3 +1,8 @@
 {
-    "recommendations": ["orta.vscode-jest", "anthropic.claude-code", "amazonwebservices.aws-toolkit-vscode"]
+    "recommendations": [
+        "orta.vscode-jest",
+        "anthropic.claude-code",
+        "amazonwebservices.aws-toolkit-vscode",
+        "redhat.vscode-yaml"
+    ]
 }

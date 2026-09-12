@@ -3,5 +3,63 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "jest.rootPath": "app",
     "jest.autoRun": { "watch": false },
-    "jest.showCoverageOnLoad": false
+    "jest.showCoverageOnLoad": false,
+
+    // SchemaStore maps the filename template.yaml to the official SAM JSON schema,
+    // which types Conditions as objects and DeletionPolicy as a string. Short-form
+    // intrinsics parse as sequences, so !Equals and !If land as arrays and the schema
+    // reports 10 type errors it can't be right about -- JSON Schema can't model the
+    // short forms. cfn-lint understands them, so it does the validating.
+    // The workflow globs are carried over from user settings: VS Code replaces
+    // arrays rather than merging them, so listing one here drops the rest.
+    "yaml.disableSchemaDetection": [
+        "**/template.yaml",
+        "**/.github/workflows/*.yml",
+        "**/.github/workflows/*.yaml",
+        "**/.gitea/workflows/*.yml",
+        "**/.gitea/workflows/*.yaml",
+        "**/.forgejo/workflows/*.yml",
+        "**/.forgejo/workflows/*.yaml"
+    ],
+
+    // CloudFormation intrinsics are custom YAML tags. Without this list the YAML
+    // language server reports "Unknown tag" on all 221 of them in template.yaml
+    // and buries any real error. Correctness is still cfn-lint's job, live via the
+    // AWS Toolkit's built-in CloudFormation diagnostics and in CI via
+    // `npm run lint:cfn`. Point aws.cloudformation.diagnostics.cfnLint.path at a
+    // current cfn-lint in your user settings: the Toolkit's bundled copy carries an
+    // old aws-sam-translator that concatenates Globals lists, so it reports a bogus
+    // E3032 on the two functions that override Architectures. Full tag set, not just
+    // the tags used today, so adding one later doesn't bring the red back.
+    "yaml.customTags": [
+        "!And",
+        "!And sequence",
+        "!Base64",
+        "!Cidr",
+        "!Condition",
+        "!Equals",
+        "!Equals sequence",
+        "!FindInMap",
+        "!FindInMap sequence",
+        "!GetAZs",
+        "!GetAtt",
+        "!If",
+        "!If sequence",
+        "!ImportValue",
+        "!ImportValue sequence",
+        "!Join",
+        "!Join sequence",
+        "!Not",
+        "!Not sequence",
+        "!Or",
+        "!Or sequence",
+        "!Ref",
+        "!Select",
+        "!Select sequence",
+        "!Split",
+        "!Split sequence",
+        "!Sub",
+        "!Sub sequence",
+        "!Transform"
+    ]
 }
