@@ -6,7 +6,7 @@ import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils
 import { cleanUpAlbumAndParents } from './helpers/albumHelpers';
 import { assertDerivedImageDoesNotExist, assertOriginalImageDoesNotExist, uploadImage } from './helpers/s3ImageHelper';
 
-const yearPath = '/1709/'; // unique to this suite to prevent pollution
+const yearPath = '/1713/'; // unique to this suite: cleanup deletes the whole year from S3 (see integrationTestYears.spec.ts)
 const albumPath = `${yearPath}02-20/`;
 const imagePath = `${albumPath}image1.jpg`;
 const galleryAppDomain = process.env.GALLERY_APP_DOMAIN;
