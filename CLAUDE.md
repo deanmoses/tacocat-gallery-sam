@@ -158,6 +158,17 @@ For detailed architecture documentation (S3 storage patterns, CDN routing, desig
 
 Prettier (see `.prettierrc.js`): 4-space indent, single quotes, 120 char width, trailing commas.
 
+### Comments
+
+Comments exist ONLY to explain what the code cannot. Never restate the code.
+
+- **No planning ephemera.** Never reference plan docs (`/docs/plans/`, `~/.claude/plans/`) or phase/step labels like "PRE3", "REF1", "phase 2". Future readers have no access to these and no idea what they meant. Describe the actual rationale instead.
+- **No opposition to prior state.** Don't write "This does NOT do X" or "Deliberately not derived from Y" - no future reader knows about X. Exceptions, where prior state is load-bearing: regression tests, and changes a naive reader would plausibly revert.
+- **Don't name consumers.** "Used by Z" is instant doc rot.
+- **Don't restate the signature.** In strict-mode TypeScript, `/** Returns true if the path is a valid album path */` above `isValidAlbumPath(path: string): boolean` adds nothing.
+- **Don't repeat project-wide conventions in every file.** The Lambda handler pattern and structured logging format are documented here; they do not belong as a banner comment in each handler.
+- **Don't justify verbosity by ratio.** "It matches the doc-to-code ratio of the rest of the project" is not a defense. Write tight, just-enough comments.
+
 ### Don't wrap Markdown
 
 Never hard-wrap prose in Markdown. Write each paragraph and list item as one long line and let the viewer soft-wrap it to its own width; wrapping at ~80 columns turns into choppy short lines on a narrow screen. Tables, code blocks and YAML frontmatter keep their own line structure.
