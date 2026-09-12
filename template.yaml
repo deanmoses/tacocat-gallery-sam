@@ -835,8 +835,12 @@ Resources:
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
+        # No Sourcemap, unlike the other stream- and event-triggered functions: a browser
+        # waits on this one, and Sourcemap also makes SAM set --enable-source-maps, so
+        # every cold start pays to install Node's source-map hook. Most requests here are
+        # cold, because an album view asks for many images at once and Lambda needs an
+        # execution environment per concurrent request.
         Minify: true
-        Sourcemap: true
         Target: node24
         EntryPoints:
           - generateDerivedImageLambda.ts
@@ -1498,7 +1502,12 @@ Resources:
       Architectures:
         - x86_64
       Description: Lambda that processes media uploaded to S3 - images get metadata extracted, videos get sent to MediaConvert
-      MemorySize: 1024 # HEIC conversion needs ~400-600MB for 48MP photos
+      # Sharp is CPU-bound, and on Lambda MemorySize is how you buy vCPU. HEIC decode
+      # keeps scaling with memory well past the point a libvips resize stops: libde265
+      # threads internally, so the extra cores get used even though sharp.concurrency()
+      # reports 1. Benchmarked on real Lambda against a tiled iPhone HEIC, this is the
+      # knee of the curve -- larger sizes buy ~3% for nearly double the GB-seconds.
+      MemorySize: 5308
       Policies:
         - S3CrudPolicy: # CRUD needed to write converted JPEG and delete original HEIC
             BucketName: !Sub "${AWS::StackName}-original-images"

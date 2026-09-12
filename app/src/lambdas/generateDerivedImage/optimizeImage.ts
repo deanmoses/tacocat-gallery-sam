@@ -84,7 +84,6 @@ const transformImage = async (image: Uint8Array, params: TransformParams) => {
     sharpImage.rotate(); // normalize rotation
     sharpImage.extract(source);
     sharpImage.resize(finalSize);
-    sharpImage.withExif({ IFD0: { Copyright: `Copyright Dean and Lucie Moses. All rights reserved` } });
     sharpImage[format]({ quality, mozjpeg: true }); // convert image format
     return { buffer: await sharpImage.toBuffer(), format };
 };
