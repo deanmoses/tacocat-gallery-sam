@@ -10,6 +10,9 @@ concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
 
+permissions:
+    contents: read
+
 env:
     HUSKY: 0 # Skip git hooks in CI
 
@@ -42,7 +45,9 @@ jobs:
         needs: detect-code-changes
         if: ${{ needs.detect-code-changes.outputs.code_changed == 'true' }}
         uses: ./.github/workflows/build-and-unit-test.yml
-        secrets: inherit
+        permissions:
+            contents: read
+            id-token: write # a called workflow can hold at most the permissions the caller grants
 
     # Branch protection rules will require this job to pass before merging
     # Passes if: (1) no code changes (skip is OK), or (2) build-and-unit-test succeeded
@@ -74,6 +79,9 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         runs-on: ubuntu-latest
         timeout-minutes: 20
+        permissions:
+            contents: read
+            id-token: write # lets the job request a GitHub OIDC token to assume an AWS role
         steps:
             - name: Checkout
               uses: actions/checkout@v7
@@ -104,10 +112,12 @@ jobs:
               run: sam build
 
             - name: Configure AWS credentials
+              # No stored keys: the job trades its GitHub OIDC token for a short-lived AWS role.
+              # Roles are defined in infra/github-oidc.yaml.
               uses: aws-actions/configure-aws-credentials@v6
               with:
-                  aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                  aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                  role-to-assume: arn:aws:iam::010410881828:role/tacocat-gallery-cicd-github-main
+                  role-session-name: github-${{ github.run_id }}
                   aws-region: us-east-1
 
             - name: Deploy to staging
@@ -120,4 +130,7 @@ jobs:
         needs: build-and-unit-test
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: ./.github/workflows/integration-tests.yml
-        secrets: inherit
+        permissions:
+            contents: read
+            id-token: write # a called workflow can hold at most the permissions the caller grants
+        secrets: inherit # Redis credentials for the tests themselves

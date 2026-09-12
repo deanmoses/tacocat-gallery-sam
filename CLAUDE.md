@@ -214,7 +214,8 @@ Pass one plain object with a snake_case `event` field plus whatever context is r
 - **Branch protection**: The `main` branch is protected. All changes require a pull request.
 - **Pre-commit hooks**: Husky runs the same checks as CI (see `.husky/pre-commit`). Tools not installed locally are skipped with a warning; CI enforces them regardless.
 - **CI workflow**: On PR and push to main, runs all lint and test checks plus a SAM build (see `.github/workflows/`). On push to main, also deploys to staging.
-- **Production deploy**: Manual workflow dispatch from GitHub Actions. Runs tests, deploys to prod, creates a release tag and generates release notes.
+- **Production deploy**: Manual workflow dispatch from GitHub Actions. Runs tests, waits for approval in the `prod` GitHub environment, deploys to prod, creates a release tag and generates release notes.
+- **CI credentials**: jobs assume IAM roles via GitHub OIDC, see `infra/README.md`.
 
 ## Custom Skills
 
