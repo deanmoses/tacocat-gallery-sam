@@ -42,7 +42,7 @@ This two-trigger approach is cleaner than trying to do everything in one pass:
 
 Sharp with HEIC support is provided via a custom Lambda layer built outside of this project from [zoellner/sharp-heic-lambda-layer](https://github.com/zoellner/sharp-heic-lambda-layer).
 
-**Layer ARN:** `arn:aws:lambda:us-east-1:010410881828:layer:sharp-heic:1`
+The layer ARN lives in the `SharpHeicLayer` mapping in `template.yaml`; that is the single place it is defined.
 
 This layer compiles libheif, libde265, and Sharp from source to enable HEIC decoding.
 
