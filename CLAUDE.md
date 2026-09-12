@@ -49,10 +49,19 @@ sam sync --watch      # Deploy to dev/staging and watch mode for rapid dev itera
 sam logs --include-traces --tail         # All function logs (one shared log group per stack)
 sam logs -n FunctionName --tail          # Specific function logs
 aws logs tail tacocat-gallery-sam/dev --since 1h   # Same log group via the AWS CLI
+aws logs tail tacocat-gallery-sam/dev --since 1h --filter-pattern '{ $.event = "server_exception" }'   # Filter on the structured event field
 
 # Documentation
 npm run agent-docs    # Regenerate CLAUDE.md and AGENTS.md from docs/AGENTS.src.md
 ```
+
+### Logs and alarms
+
+Logs are kept 90 days in prod and 30 in dev and test.
+
+CloudWatch alarms email the `AlertEmail` address in prod and dev. Together they use all ten alarm metrics in CloudWatch's free tier, so any new alarm costs money.
+
+For Grafana monitoring, Discord alerts and CloudFront access logs, see [Observability](https://github.com/deanmoses/tacocat-gallery-sveltekit/blob/main/docs/Observability.md).
 
 ### esbuild
 
@@ -64,15 +73,17 @@ PATH="$PWD/app/node_modules/.bin:$PATH" sam build
 
 ## Environments
 
-The project can create three environments. Each environment is a separate AWS infrastructure stack.
+The project can create three environments. Each environment is a separate AWS infrastructure stack, all in AWS account `010410881828`, region `us-east-1`.
 
-| Environment | Stack Name               | Web App                 | Purpose                    |
-| ----------- | ------------------------ | ----------------------- | -------------------------- |
-| dev         | tacocat-gallery-sam-dev  | staging-pix.tacocat.com | Staging for manual testing |
-| test        | tacocat-gallery-sam-test | test-pix.tacocat.com    | Integration tests (CI)     |
-| prod        | tacocat-gallery-sam-prod | pix.tacocat.com         | Production                 |
+| Environment     | Stack Name               | Web App                 | Purpose                    |
+| --------------- | ------------------------ | ----------------------- | -------------------------- |
+| dev aka staging | tacocat-gallery-sam-dev  | staging-pix.tacocat.com | Staging for manual testing |
+| test            | tacocat-gallery-sam-test | none                    | Integration tests (CI)     |
+| prod            | tacocat-gallery-sam-prod | pix.tacocat.com         | Production                 |
 
-The web app is not in this project; it's built and hosted in other projects.
+Test is backend-only: `api.test-pix.tacocat.com` and `img.test-pix.tacocat.com` exist, but `test-pix.tacocat.com` itself does not. Its `GalleryAppDomain` is still `test-pix.tacocat.com` because the `api.` and `img.` hostnames and the CORS origin derive from it.
+
+The web app is not in this project; it's built and hosted in other projects. For how all the Tacocat repos, domains and environments fit together, see [Ecosystem](https://github.com/deanmoses/tacocat-gallery-sveltekit/blob/main/docs/Ecosystem.md).
 
 ### Deploying to specific environments
 
@@ -157,6 +168,17 @@ For detailed architecture documentation (S3 storage patterns, CDN routing, desig
 ## Code Style
 
 Prettier (see `.prettierrc.js`): 4-space indent, single quotes, 120 char width, trailing commas.
+
+### Comments
+
+Comments exist ONLY to explain what the code cannot. Never restate the code.
+
+- **No planning ephemera.** Never reference plan docs (`/docs/plans/`, `~/.claude/plans/`) or phase/step labels like "PRE3", "REF1", "phase 2". Future readers have no access to these and no idea what they meant. Describe the actual rationale instead.
+- **No opposition to prior state.** Don't write "This does NOT do X" or "Deliberately not derived from Y" - no future reader knows about X. Exceptions, where prior state is load-bearing: regression tests, and changes a naive reader would plausibly revert.
+- **Don't name consumers.** "Used by Z" is instant doc rot.
+- **Don't restate the signature.** In strict-mode TypeScript, `/** Returns true if the path is a valid album path */` above `isValidAlbumPath(path: string): boolean` adds nothing.
+- **Don't repeat project-wide conventions in every file.** The Lambda handler pattern and structured logging format are documented here; they do not belong as a banner comment in each handler.
+- **Don't justify verbosity by ratio.** "It matches the doc-to-code ratio of the rest of the project" is not a defense. Write tight, just-enough comments.
 
 ### Don't wrap Markdown
 

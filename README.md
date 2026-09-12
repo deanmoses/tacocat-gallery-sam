@@ -75,7 +75,7 @@ The project can create three environments. Each environment is a separate AWS in
 | Environment | Stack Name               | Web App                                                    | Purpose                    |
 | ----------- | ------------------------ | ---------------------------------------------------------- | -------------------------- |
 | dev         | tacocat-gallery-sam-dev  | [staging-pix.tacocat.com](https://staging-pix.tacocat.com) | Staging for manual testing |
-| test        | tacocat-gallery-sam-test | [test-pix.tacocat.com](https://test-pix.tacocat.com)       | Integration tests (CI)     |
+| test        | tacocat-gallery-sam-test | none                                                       | Integration tests (CI)     |
 | prod        | tacocat-gallery-sam-prod | [pix.tacocat.com](https://pix.tacocat.com)                 | Production                 |
 
 All developers use the dev/staging stack right now. Yes, this setup is geared towards a single developer.
