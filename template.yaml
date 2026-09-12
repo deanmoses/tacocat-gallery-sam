@@ -589,12 +589,26 @@ Resources:
     Properties:
       Bucket: !Ref OriginalImagesBucket
       PolicyDocument:
+        Version: '2012-10-17'
         Statement:
           - Action: s3:GetObject
             Effect: Allow
             Resource: !Sub arn:aws:s3:::${OriginalImagesBucket}/*
             Principal:
               CanonicalUser: !GetAtt OriginalImagesCloudFrontOriginAccessIdentity.S3CanonicalUserId
+          # Phase 1 of the OAI -> OAC migration: both principals are granted so
+          # the distribution can read the bucket no matter what order
+          # CloudFormation applies the origin switch and this policy, and so a
+          # rollback of either phase still serves images. Phase 2 attaches the
+          # OAC to the origin and deletes the OAI grant above.
+          - Action: s3:GetObject
+            Effect: Allow
+            Resource: !Sub arn:aws:s3:::${OriginalImagesBucket}/*
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${ImageDistribution}
 
   # CloudFront identity of the original image bucket
   OriginalImagesCloudFrontOriginAccessIdentity:
@@ -603,18 +617,45 @@ Resources:
       CloudFrontOriginAccessIdentityConfig:
         Comment: !Ref OriginalImagesBucket
 
+  # Replaces OriginalImagesCloudFrontOriginAccessIdentity in phase 2 of the
+  # OAI -> OAC migration. Created but unattached in phase 1: an OAC has no
+  # effect until an origin references it, so this is inert until then.
+  OriginalImagesOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub OriginalImages-${AWS::StackName}
+        Description: !Sub Signs CloudFront requests to the OriginalImages bucket for ${AWS::StackName}
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
   # Allow CloudFront to read from the derived images bucket
   DerivedImagesBucketCloudFrontReadPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
       Bucket: !Ref DerivedImagesBucket
       PolicyDocument:
+        Version: '2012-10-17'
         Statement:
           - Action: s3:GetObject
             Effect: Allow
             Resource: !Sub arn:aws:s3:::${DerivedImagesBucket}/*
             Principal:
               CanonicalUser: !GetAtt DerivedImagesCloudFrontOriginAccessIdentity.S3CanonicalUserId
+          # Phase 1 of the OAI -> OAC migration: both principals are granted so
+          # the distribution can read the bucket no matter what order
+          # CloudFormation applies the origin switch and this policy, and so a
+          # rollback of either phase still serves images. Phase 2 attaches the
+          # OAC to the origin and deletes the OAI grant above.
+          - Action: s3:GetObject
+            Effect: Allow
+            Resource: !Sub arn:aws:s3:::${DerivedImagesBucket}/*
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${ImageDistribution}
 
   # CloudFront identity of the derived image bucket
   DerivedImagesCloudFrontOriginAccessIdentity:
@@ -622,6 +663,19 @@ Resources:
     Properties:
       CloudFrontOriginAccessIdentityConfig:
         Comment: !Ref DerivedImagesBucket
+
+  # Replaces DerivedImagesCloudFrontOriginAccessIdentity in phase 2 of the
+  # OAI -> OAC migration. Created but unattached in phase 1: an OAC has no
+  # effect until an origin references it, so this is inert until then.
+  DerivedImagesOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub DerivedImages-${AWS::StackName}
+        Description: !Sub Signs CloudFront requests to the DerivedImages bucket for ${AWS::StackName}
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
 
   # Serves /robots.txt on the default behavior. From a function, not an S3
   # file, so it can't be deleted or overwritten by a media upload.
