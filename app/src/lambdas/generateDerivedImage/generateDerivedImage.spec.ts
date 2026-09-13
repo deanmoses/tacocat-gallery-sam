@@ -22,6 +22,8 @@ const mockSaveOptimizedImage = saveOptimizedImage as jest.MockedFunction<typeof 
 const mockOptimizeImage = optimizeImage as jest.MockedFunction<typeof optimizeImage>;
 
 describe('generateDerivedImage', () => {
+    const sourceSize = { width: 4000, height: 3000 };
+
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -125,7 +127,7 @@ describe('generateDerivedImage', () => {
 
         beforeEach(() => {
             mockLoadOriginalImage.mockResolvedValue(new Uint8Array(mockImageBuffer));
-            mockOptimizeImage.mockResolvedValue({ buffer: mockImageBuffer, format: 'jpeg' });
+            mockOptimizeImage.mockResolvedValue({ buffer: mockImageBuffer, format: 'jpeg', sourceSize });
             mockSaveOptimizedImage.mockResolvedValue(undefined);
         });
 
@@ -160,7 +162,7 @@ describe('generateDerivedImage', () => {
         });
 
         it('should use correct content type for webp format', async () => {
-            mockOptimizeImage.mockResolvedValue({ buffer: mockImageBuffer, format: 'webp' });
+            mockOptimizeImage.mockResolvedValue({ buffer: mockImageBuffer, format: 'webp', sourceSize });
 
             const result = await generateDerivedImage('GET', '/i/2001/12-31/image.jpg/VERSIONID/webp/200');
 
@@ -174,7 +176,7 @@ describe('generateDerivedImage', () => {
             const largeBuffer = Buffer.alloc(6 * 1024 * 1024, 'x');
 
             mockLoadOriginalImage.mockResolvedValue(new Uint8Array(largeBuffer));
-            mockOptimizeImage.mockResolvedValue({ buffer: largeBuffer, format: 'jpeg' });
+            mockOptimizeImage.mockResolvedValue({ buffer: largeBuffer, format: 'jpeg', sourceSize });
             mockSaveOptimizedImage.mockResolvedValue(undefined);
 
             const result = await generateDerivedImage('GET', '/i/2001/12-31/image.jpg/VERSIONID/200');
@@ -188,7 +190,7 @@ describe('generateDerivedImage', () => {
             const largeBuffer = Buffer.alloc(6 * 1024 * 1024, 'x');
 
             mockLoadOriginalImage.mockResolvedValue(new Uint8Array(largeBuffer));
-            mockOptimizeImage.mockResolvedValue({ buffer: largeBuffer, format: 'jpeg' });
+            mockOptimizeImage.mockResolvedValue({ buffer: largeBuffer, format: 'jpeg', sourceSize });
             mockSaveOptimizedImage.mockResolvedValue(undefined);
 
             const result = await generateDerivedImage('HEAD', '/i/2001/12-31/image.jpg/VERSIONID/200');

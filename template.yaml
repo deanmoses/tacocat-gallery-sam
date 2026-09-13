@@ -119,6 +119,19 @@ Globals:
     Domain:
       DomainName: !Sub api.${GalleryAppDomain}
       CertificateArn: !Ref DomainCertificateArn
+    # Needs the account-level CloudWatch role for API Gateway, deployed once from
+    # tacocat-gallery-auth's infra/. Every value is quoted: a variable API Gateway
+    # can't fill renders as "-", which is only valid JSON inside a string.
+    # The first twelve fields are the auth stack's, so one reader parses both.
+    # integrationRequestId is the Lambda request id, which joins the row to the
+    # Lambda's log lines; extendedRequestId is the id API Gateway generates,
+    # where a client can override requestId; requestTimeEpoch is milliseconds
+    # where requestTime is to the second; resourcePath is the route template,
+    # which groups by endpoint. path includes user-typed search terms; never
+    # add authorizer claims or headers.
+    AccessLogSetting:
+      DestinationArn: !GetAtt ApiAccessLogGroup.Arn
+      Format: '{"requestId":"$context.requestId","requestTime":"$context.requestTime","ip":"$context.identity.sourceIp","userAgent":"$context.identity.userAgent","httpMethod":"$context.httpMethod","path":"$context.path","status":"$context.status","responseLength":"$context.responseLength","responseLatency":"$context.responseLatency","integrationStatus":"$context.integration.status","integrationLatency":"$context.integration.latency","errorMessage":"$context.error.message","integrationRequestId":"$context.integration.requestId","extendedRequestId":"$context.extendedRequestId","requestTimeEpoch":"$context.requestTimeEpoch","resourcePath":"$context.resourcePath"}'
     Cors:
       AllowMethods: "'GET,OPTIONS,HEAD,POST,PUT,PATCH,DELETE'"
       AllowHeaders: "'Content-Type'"
@@ -138,6 +151,17 @@ Resources:
     UpdateReplacePolicy: !If [ "IsProd", "Retain", "Delete" ] # don't delete in prod
     Properties:
       LogGroupName: !Sub tacocat-gallery-sam/${Env} # Lambda refuses custom log groups that start with aws/
+      RetentionInDays: !If [ "IsProd", 90, 30 ]
+
+  # API Gateway access log, one record per request. Its own group rather than the
+  # Lambda one: API Gateway writes flat JSON, while Lambda nests records under
+  # `message`, and mixing the two shapes makes Logs Insights queries awkward.
+  ApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: !If [ "IsProd", "Retain", "Delete" ] # don't delete in prod
+    UpdateReplacePolicy: !If [ "IsProd", "Retain", "Delete" ] # don't delete in prod
+    Properties:
+      LogGroupName: !Sub tacocat-gallery-sam/${Env}/api-access
       RetentionInDays: !If [ "IsProd", 90, 30 ]
 
   # -----------------------------------------------------------------------------
@@ -458,11 +482,17 @@ Resources:
       DeliveryDestinationArn: !GetAtt ImageLogDeliveryDestination.Arn
       S3SuffixPath: image/{yyyy}/{MM}/{dd}/
       # Naming RecordFields at all means listing every field wanted; there is no
-      # add-to-the-default form. This is CloudFront's default minus cs(Cookie),
-      # x-forwarded-for, fle-* and sc-range-*, which this distribution cannot
-      # populate, plus asn and c-country. asn is what separates real visitors
-      # from automated traffic; user agents don't. Order sets the column order.
+      # add-to-the-default form. Through c-country this is CloudFront's default
+      # minus cs(Cookie), x-forwarded-for, fle-* and sc-range-*, which this
+      # distribution cannot populate, plus asn and c-country. asn is what
+      # separates real visitors from automated traffic; user agents don't.
       # Same list as the SPA distribution in tacocat-gallery-hosting-aws.
+      #
+      # Order sets the column order, and the analytics reader takes each file's
+      # #Fields header, so new fields go at the end and the earlier columns keep
+      # their positions. timestamp(ms) orders requests within a second;
+      # origin-fbl and origin-lbl split time-taken into edge and origin;
+      # cache-behavior-path-pattern says which behavior served the request.
       RecordFields:
         - date
         - time
@@ -493,6 +523,10 @@ Resources:
         - sc-content-len
         - asn
         - c-country
+        - timestamp(ms)
+        - origin-fbl
+        - origin-lbl
+        - cache-behavior-path-pattern
 
   # ---------------------------------------------------------------------------
   # Response headers policies. A behavior gets exactly one policy, so the

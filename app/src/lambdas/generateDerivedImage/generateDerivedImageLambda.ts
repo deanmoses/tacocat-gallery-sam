@@ -34,7 +34,9 @@ export const handler: LambdaFunctionUrlHandler = async (event) => {
     const method = event.requestContext.http.method;
     const path = event.rawPath;
     try {
-        console.info({ event: 'request_received', method, path });
+        // CloudFront sends x-amz-cf-id to every origin; it joins this invocation to
+        // the CloudFront access log row that caused it. Lambda URLs lowercase header names.
+        console.info({ event: 'request_received', method, path, cfRequestId: event.headers['x-amz-cf-id'] });
         return await generateDerivedImage(method, path);
     } catch (err) {
         console.error({ event: 'unhandled_error', method, path, error: String(err) });

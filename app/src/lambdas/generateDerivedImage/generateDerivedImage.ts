@@ -33,26 +33,54 @@ export async function generateDerivedImage(method: string, urlPath: string): Pro
     if (!id) return notFound;
 
     let original: Uint8Array | undefined;
+    const loadStart = performance.now();
     if (hasVideoExtension(id)) {
         // id is the S3 key (e.g., "2024/01-15/video.mp4")
         original = await loadVideoPoster(id, versionId);
     } else {
         original = await loadOriginalImage(id, versionId);
     }
+    const loadMs = performance.now() - loadStart;
     if (!original) return notFound;
 
-    const { buffer, format } = await optimizeImage(original, params);
+    const sharpStart = performance.now();
+    const { buffer, format, sourceSize } = await optimizeImage(original, params);
+    const sharpMs = performance.now() - sharpStart;
 
     const contentType = `image/${format}`;
     const headers = { 'content-type': contentType, 'cache-control': cacheControl };
+    const saveStart = performance.now();
     await saveOptimizedImage(urlPath, buffer, contentType, cacheControl);
+    const saveMs = performance.now() - saveStart;
+
+    // Sharp time scales with the original, which the request never names; this
+    // line is what ties the output the request asked for to the input it cost.
+    console.info({
+        event: 'derived_image_generated',
+        path: urlPath,
+        format,
+        bytes: buffer.length,
+        originalBytes: original.length,
+        sourceWidth: sourceSize.width,
+        sourceHeight: sourceSize.height,
+        loadMs: Math.round(loadMs),
+        sharpMs: Math.round(sharpMs),
+        saveMs: Math.round(saveMs),
+    });
 
     if (method === 'HEAD') return { statusCode: 200, headers };
 
     const body = buffer.toString('base64');
-    if (body.length > 5 * 1024 * 1024) return retryLater; // can't return large response via lambda, subsequent requests will be served from S3
+    if (body.length > lambdaResponseLimit) {
+        // A Lambda URL can't return a response this large. The 503 tells CloudFront to
+        // retry, and the retry is served from S3, where the image was just saved.
+        console.warn({ event: 'response_too_large', path: urlPath, bytes: buffer.length, base64Bytes: body.length });
+        return retryLater;
+    }
     return { statusCode: 200, headers, body, isBase64Encoded: true };
 }
+
+const lambdaResponseLimit = 5 * 1024 * 1024;
 
 const textResponse = (statusCode: number, body: string): DerivedImageResult => ({
     statusCode,

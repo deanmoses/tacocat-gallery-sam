@@ -5,6 +5,7 @@ import {
     ensureHttpMethod,
     getAlbumPath,
     getBodyAsStringArray,
+    logRequestReceived,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { ensureAuthorizedForWrites } from '../../lib/lambda_utils/AuthorizationHelpers';
 import { generateUploadUrls } from '../../lib/gallery/generateUploadUrls/generateUploadUrls';
@@ -14,6 +15,7 @@ import { generateUploadUrls } from '../../lib/gallery/generateUploadUrls/generat
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
+        logRequestReceived(event);
         ensureHttpMethod(event, HttpMethod.POST);
         await ensureAuthorizedForWrites(event);
         const albumPath = getAlbumPath(event);

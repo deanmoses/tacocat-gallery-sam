@@ -5,6 +5,7 @@ import {
     ensureHttpMethod,
     getBodyAsAttributes,
     getMediaPath,
+    logRequestReceived,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { ensureAuthorizedForWrites } from '../../lib/lambda_utils/AuthorizationHelpers';
 import { updateMedia } from '../../lib/gallery/updateMedia/updateMedia';
@@ -14,6 +15,7 @@ import { updateMedia } from '../../lib/gallery/updateMedia/updateMedia';
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
+        logRequestReceived(event);
         ensureHttpMethod(event, HttpMethod.PATCH);
         await ensureAuthorizedForWrites(event);
         const mediaPath = getMediaPath(event);

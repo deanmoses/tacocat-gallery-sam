@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
 import { handleHttpExceptions, respondHttp } from '../../lib/lambda_utils/ApiGatewayResponseHelpers';
-import { HttpMethod, ensureHttpMethod } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
+import { HttpMethod, ensureHttpMethod, logRequestReceived } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { search } from '../../lib/gallery/search/search';
 
 /**
@@ -8,6 +8,7 @@ import { search } from '../../lib/gallery/search/search';
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
+        logRequestReceived(event);
         ensureHttpMethod(event, HttpMethod.GET);
         const encodedSearchTerms = event?.pathParameters?.searchTerms;
         const searchResults = await search({

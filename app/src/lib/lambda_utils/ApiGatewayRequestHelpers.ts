@@ -1,5 +1,6 @@
 import { APIGatewayProxyEvent } from 'aws-lambda';
 import { BadRequestException } from './BadRequestException';
+import { isAuthenticatedForReads } from './AuthorizationHelpers';
 
 export enum HttpMethod {
     HEAD = 'HEAD',
@@ -8,6 +9,37 @@ export enum HttpMethod {
     PATCH = 'PATCH',
     POST = 'POST',
     DELETE = 'DELETE',
+}
+
+/**
+ * Log the one line per invocation that production analytics joins on.
+ *
+ * cfRequestId is CloudFront's x-amz-cf-id, which API Gateway's own access log
+ * cannot carry (it logs only $context values, never request headers), so this
+ * is the only place a CloudFront row can be tied to the request. It is absent
+ * until the API is served through the SPA distribution. hasToken is the same
+ * cookie-existence check the read handlers decide on, never a validated token,
+ * so an expired or forged cookie counts. Log these four things and nothing
+ * else: no headers, no cookie, no body.
+ */
+export function logRequestReceived(event: APIGatewayProxyEvent): void {
+    console.info({
+        event: 'request_received',
+        method: event.httpMethod,
+        path: event.path,
+        cfRequestId: getHeader(event, 'x-amz-cf-id'),
+        hasToken: isAuthenticatedForReads(event),
+    });
+}
+
+/**
+ * Header lookup by name, whatever case the client sent it in: REST API proxy
+ * events keep the original casing.
+ */
+function getHeader(event: APIGatewayProxyEvent, name: string): string | undefined {
+    const headers = event.headers ?? {};
+    const key = Object.keys(headers).find((k) => k.toLowerCase() === name);
+    return key === undefined ? undefined : (headers[key] ?? undefined);
 }
 
 /**

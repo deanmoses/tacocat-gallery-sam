@@ -85,7 +85,7 @@ const transformImage = async (image: Uint8Array, params: TransformParams) => {
     sharpImage.extract(source);
     sharpImage.resize(finalSize);
     sharpImage[format]({ quality, mozjpeg: true }); // convert image format
-    return { buffer: await sharpImage.toBuffer(), format };
+    return { buffer: await sharpImage.toBuffer(), format, sourceSize: size };
 };
 
 export const getQuality = (format: ImageFormat, size: Size): number => {

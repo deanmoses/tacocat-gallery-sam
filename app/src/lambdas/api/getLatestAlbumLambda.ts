@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
 import { handleHttpExceptions, respondHttp } from '../../lib/lambda_utils/ApiGatewayResponseHelpers';
-import { HttpMethod, ensureHttpMethod } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
+import { HttpMethod, ensureHttpMethod, logRequestReceived } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { getLatestAlbum } from '../../lib/gallery/getLatestAlbum/getLatestAlbum';
 
 /**
@@ -11,6 +11,7 @@ import { getLatestAlbum } from '../../lib/gallery/getLatestAlbum/getLatestAlbum'
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
+        logRequestReceived(event);
         ensureHttpMethod(event, HttpMethod.GET);
         const album = await getLatestAlbum();
         if (!album) {

@@ -6,6 +6,7 @@ import {
     getNumberField,
     getStringArrayField,
     getStringField,
+    logRequestReceived,
 } from './ApiGatewayRequestHelpers';
 import { BadRequestException } from './BadRequestException';
 
@@ -115,5 +116,40 @@ describe('getStringArrayField()', () => {
         ['an array of numbers', { paths: [1] }],
     ])('rejects a field that is %s', (_label, body) => {
         expect(() => getStringArrayField(body, 'paths')).toThrow(BadRequestException);
+    });
+});
+
+describe('logRequestReceived()', () => {
+    let info: jest.SpyInstance;
+    beforeEach(() => {
+        info = jest.spyOn(console, 'info').mockImplementation(() => undefined);
+    });
+    afterEach(() => {
+        info.mockRestore();
+    });
+
+    function eventWithHeaders(headers: Record<string, string>): APIGatewayProxyEvent {
+        return { ...eventWithBody(null), httpMethod: 'GET', path: '/album/2001/12-31', headers };
+    }
+
+    it('logs method, path, CloudFront id and whether an id_token cookie is present', () => {
+        logRequestReceived(eventWithHeaders({ 'X-Amz-Cf-Id': 'abc123', cookie: 'id_token=xyz' }));
+        expect(info).toHaveBeenCalledWith({
+            event: 'request_received',
+            method: 'GET',
+            path: '/album/2001/12-31',
+            cfRequestId: 'abc123',
+            hasToken: true,
+        });
+    });
+
+    it('finds the CloudFront id whatever case the header came in', () => {
+        logRequestReceived(eventWithHeaders({ 'x-amz-cf-id': 'lower' }));
+        expect(info).toHaveBeenCalledWith(expect.objectContaining({ cfRequestId: 'lower' }));
+    });
+
+    it('logs no CloudFront id and no token when neither header is present', () => {
+        logRequestReceived(eventWithHeaders({}));
+        expect(info).toHaveBeenCalledWith(expect.objectContaining({ cfRequestId: undefined, hasToken: false }));
     });
 });

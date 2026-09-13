@@ -5,7 +5,12 @@ import {
     respondHttp,
 } from '../../lib/lambda_utils/ApiGatewayResponseHelpers';
 import { isAuthenticatedForReads } from '../../lib/lambda_utils/AuthorizationHelpers';
-import { HttpMethod, ensureHttpMethod, getAlbumPath } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
+import {
+    HttpMethod,
+    ensureHttpMethod,
+    getAlbumPath,
+    logRequestReceived,
+} from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 
 /**
@@ -13,6 +18,7 @@ import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
+        logRequestReceived(event);
         ensureHttpMethod(event, HttpMethod.GET);
         const albumPath = getAlbumPath(event);
         const includeUnpublishedAlbums = isAuthenticatedForReads(event);

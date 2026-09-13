@@ -1,6 +1,11 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
 import { handleHttpExceptions, respondSuccessMessage } from '../../lib/lambda_utils/ApiGatewayResponseHelpers';
-import { HttpMethod, ensureHttpMethod, getMediaPath } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
+import {
+    HttpMethod,
+    ensureHttpMethod,
+    getMediaPath,
+    logRequestReceived,
+} from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { ensureAuthorizedForWrites } from '../../lib/lambda_utils/AuthorizationHelpers';
 import { deleteMedia } from '../../lib/gallery/deleteMedia/deleteMedia';
 
@@ -9,6 +14,7 @@ import { deleteMedia } from '../../lib/gallery/deleteMedia/deleteMedia';
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
+        logRequestReceived(event);
         ensureHttpMethod(event, HttpMethod.DELETE);
         await ensureAuthorizedForWrites(event);
         const mediaPath = getMediaPath(event);
