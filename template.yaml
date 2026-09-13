@@ -168,6 +168,11 @@ Resources:
     UpdateReplacePolicy: !If [ "IsProd", "Retain", "Delete" ] # don't delete in prod
     Properties:
       BucketName: !Sub ${AWS::StackName}-cloudfront-logs
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
       LifecycleConfiguration:
         Rules:
           - Id: Expire Old Logs
@@ -203,6 +208,11 @@ Resources:
     UpdateReplacePolicy: !If [ "IsProd", "Retain", "Delete" ] # don't delete in prod
     Properties:
       BucketName: !Sub ${AWS::StackName}-original-images
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
       VersioningConfiguration:
         Status: Enabled
       LifecycleConfiguration:
@@ -233,6 +243,11 @@ Resources:
     UpdateReplacePolicy: !If [ "IsProd", "Retain", "Delete" ] # don't delete in prod
     Properties:
       BucketName: !Sub ${AWS::StackName}-derived-images
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
 
   # -----------------------------------------------------------------------------
   # DynamoDB table containing the album and image metadata
@@ -258,6 +273,8 @@ Resources:
         WriteCapacityUnits: 3
       StreamSpecification:
         StreamViewType: NEW_IMAGE
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [ IsProd, true, false ] # dev and test data is disposable; not worth the backup cost
 
   # -----------------------------------------------------------------------------
   # Table for errors the client needs to know about - media processing etc
