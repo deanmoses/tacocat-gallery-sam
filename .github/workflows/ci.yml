@@ -49,9 +49,10 @@ jobs:
             contents: read
             id-token: write # a called workflow can hold at most the permissions the caller grants
 
-    # Branch protection rules will require this job to pass before merging
-    # Passes if: (1) no code changes (skip is OK), or (2) build-and-unit-test succeeded
-    # Fails if: code changes and build-and-unit-test failed/cancelled
+    # The check branch protection requires. Passes when the detector said
+    # there were no code changes (so the build was rightly skipped) or the
+    # build succeeded. Anything else, including a detector that answered
+    # nothing at all, fails: this must not fail open.
     merge-ok:
         needs: [detect-code-changes, build-and-unit-test]
         if: always()
@@ -63,9 +64,13 @@ jobs:
                       echo "✗ detect-code-changes failed (result: ${{ needs.detect-code-changes.result }})"
                       exit 1
                   fi
-                  if [[ "${{ needs.detect-code-changes.outputs.code_changed }}" != "true" ]]; then
+                  if [[ "${{ needs.detect-code-changes.outputs.code_changed }}" == "false" ]]; then
                       echo "✓ No code changes - build was skipped appropriately"
                       exit 0
+                  fi
+                  if [[ "${{ needs.detect-code-changes.outputs.code_changed }}" != "true" ]]; then
+                      echo "✗ Unexpected code_changed value: '${{ needs.detect-code-changes.outputs.code_changed }}'"
+                      exit 1
                   fi
                   if [[ "${{ needs.build-and-unit-test.result }}" != "success" ]]; then
                       echo "✗ Code changes detected but build did not succeed (result: ${{ needs.build-and-unit-test.result }})"

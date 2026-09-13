@@ -31,7 +31,7 @@ Description: >-
 #
 #   repo:ORG/REPO:pull_request          PR role    dry-run change set on dev
 #   repo:ORG/REPO:ref:refs/heads/main   main role  deploy dev + test, run integration tests
-#   repo:ORG/REPO:environment:prod      prod role  deploy prod (needs the environment's approval)
+#   repo:ORG/REPO:environment:prod      prod role  deploy prod (environment allows protected branches only)
 # -----------------------------------------------------------------------------
 
 Parameters:
@@ -302,13 +302,14 @@ Resources:
                                 - !Sub arn:aws:s3:::${StackPrefix}-test-derived-images/*
 
     # ---------------------------------------------------------------------------
-    # Prod role: only a job running inside the approved `prod` environment
+    # Prod role: only a job running inside the `prod` environment. That environment admits
+    # protected branches only, and main is the only one, so this trust rests on that rule alone.
     # ---------------------------------------------------------------------------
     GitHubProdRole:
         Type: AWS::IAM::Role
         Properties:
             RoleName: tacocat-gallery-cicd-github-prod
-            Description: Assumed by the production deploy job, which runs inside the GitHub environment that requires a reviewer's approval
+            Description: Assumed by the production deploy job, which runs inside the GitHub environment that only protected branches (main) may deploy from
             MaxSessionDuration: 3600
             AssumeRolePolicyDocument:
                 Version: '2012-10-17'
