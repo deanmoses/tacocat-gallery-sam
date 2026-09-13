@@ -5,6 +5,7 @@ import {
     ensureHttpMethod,
     getBodyAsObject,
     getStringArrayField,
+    logRequestReceived,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { ensureAuthorizedForWrites } from '../../lib/lambda_utils/AuthorizationHelpers';
 import { getErrors } from '../../lib/gallery/getErrors/getErrors';
@@ -15,6 +16,7 @@ import { getErrors } from '../../lib/gallery/getErrors/getErrors';
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
+        logRequestReceived(event);
         ensureHttpMethod(event, HttpMethod.POST);
         await ensureAuthorizedForWrites(event);
         const paths = getStringArrayField(getBodyAsObject(event), 'paths');

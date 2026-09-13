@@ -75,6 +75,7 @@ sam logs --include-traces --tail         # All function logs (one shared log gro
 sam logs -n FunctionName --tail          # Specific function logs
 aws logs tail tacocat-gallery-sam/dev --since 1h   # Same log group via the AWS CLI
 aws logs tail tacocat-gallery-sam/dev --since 1h --filter-pattern '{ $.event = "server_exception" }'   # Filter on the structured event field
+aws logs tail tacocat-gallery-sam/dev/api-access --since 1h   # API Gateway access log, one JSON record per request
 
 # Documentation
 npm run agent-docs    # Regenerate CLAUDE.md and AGENTS.md from docs/AGENTS.src.md
@@ -87,6 +88,8 @@ Logs are kept 90 days in prod and 30 in dev and test.
 CloudWatch alarms email the `AlertEmail` address in prod and dev. Together they use all ten alarm metrics in CloudWatch's free tier, so any new alarm costs money.
 
 For Grafana monitoring, Discord alerts and CloudFront access logs, see [Observability](https://github.com/deanmoses/tacocat-gallery-sveltekit/blob/main/docs/Observability.md).
+
+The CloudFront, API Gateway and Lambda logs are pulled into a DuckDB analytics system for incident, behavior and performance questions, see [production_logs](https://github.com/deanmoses/tacocat-gallery-sveltekit/blob/main/production_logs/README.md).
 
 ### esbuild
 

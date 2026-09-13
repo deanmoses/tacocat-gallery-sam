@@ -4,8 +4,9 @@ import {
     HttpMethod,
     ensureHttpMethod,
     getBodyAsObject,
-    getNumberField,
     getMediaPath,
+    getNumberField,
+    logRequestReceived,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { ensureAuthorizedForWrites } from '../../lib/lambda_utils/AuthorizationHelpers';
 import { recutThumbnail } from '../../lib/gallery/recutThumbnail/recutThumbnail';
@@ -16,6 +17,7 @@ import { Rectangle } from '../generateDerivedImage/focusCrop';
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
+        logRequestReceived(event);
         ensureHttpMethod(event, HttpMethod.PATCH);
         await ensureAuthorizedForWrites(event);
         const mediaPath = getMediaPath(event);

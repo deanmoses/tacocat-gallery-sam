@@ -4,7 +4,12 @@ import {
     respond404NotFound,
     respondSuccessMessage,
 } from '../../lib/lambda_utils/ApiGatewayResponseHelpers';
-import { HttpMethod, ensureHttpMethod, getMediaPath } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
+import {
+    HttpMethod,
+    ensureHttpMethod,
+    getMediaPath,
+    logRequestReceived,
+} from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { mediaExists } from '../../lib/gallery/itemExists/itemExists';
 import { isAuthenticatedForReads } from '../../lib/lambda_utils/AuthorizationHelpers';
 
@@ -13,6 +18,7 @@ import { isAuthenticatedForReads } from '../../lib/lambda_utils/AuthorizationHel
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
+        logRequestReceived(event);
         ensureHttpMethod(event, HttpMethod.HEAD);
         const mediaPath = getMediaPath(event);
         const includeUnpublishedAlbums = isAuthenticatedForReads(event);

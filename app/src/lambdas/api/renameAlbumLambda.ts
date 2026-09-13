@@ -6,6 +6,7 @@ import {
     getAlbumPath,
     getBodyAsObject,
     getStringField,
+    logRequestReceived,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { ensureAuthorizedForWrites } from '../../lib/lambda_utils/AuthorizationHelpers';
 import { renameAlbum } from '../../lib/gallery/renameAlbum/renameAlbum';
@@ -15,6 +16,7 @@ import { renameAlbum } from '../../lib/gallery/renameAlbum/renameAlbum';
  */
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
+        logRequestReceived(event);
         ensureHttpMethod(event, HttpMethod.POST);
         await ensureAuthorizedForWrites(event);
         const albumPath = getAlbumPath(event);
