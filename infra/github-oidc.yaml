@@ -1,14 +1,16 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >-
-    IAM roles that the tacocat-gallery-sam GitHub Actions workflows assume, and
-    the CloudFormation service role that deploys the stacks. Deployed by hand,
-    never by CI: CI cannot be the thing that creates its own credentials.
+    IAM roles that the tacocat-gallery-sam GitHub Actions workflows assume, the
+    CloudFormation service role that deploys the stacks, and the user a Claude
+    Code on the web session deploys dev and test as. Deployed by hand, never by
+    CI: CI cannot be the thing that creates its own credentials.
     See infra/README.md.
 
 # -----------------------------------------------------------------------------
 # How the pieces fit together
 #
-#   GitHub Actions job ──(OIDC token)──▶ tacocat-gallery-cicd-github-{pr,main,prod}
+#   GitHub Actions job ─────(OIDC token)──▶ tacocat-gallery-cicd-github-{pr,main,prod}
+#   Claude Code on the web ─(access key)──▶ tacocat-gallery-claude-code-cloud
 #                                              │
 #                                              │ iam:PassRole + cloudformation:*ChangeSet
 #                                              ▼
@@ -32,6 +34,11 @@ Description: >-
 #   repo:ORG/REPO:pull_request          PR role    dry-run change set on dev
 #   repo:ORG/REPO:ref:refs/heads/main   main role  deploy dev + test, run integration tests
 #   repo:ORG/REPO:environment:prod      prod role  deploy prod (environment allows protected branches only)
+#
+# The Claude Code user is the one principal here that carries a long-lived access
+# key, because a cloud session has no OIDC token to trade and IAM Identity Center
+# needs a browser sign-in that cannot run in one. It reaches as far as the main
+# role does, minus prod, which an explicit Deny puts out of reach for good.
 # -----------------------------------------------------------------------------
 
 Parameters:
@@ -164,6 +171,97 @@ Resources:
                       Resource: !Sub arn:aws:cloudformation:${AWS::Region}:aws:transform/Serverless-2016-10-31
 
     # ---------------------------------------------------------------------------
+    # Deploying dev and test, and exercising what a deploy produced. Managed
+    # policies rather than inline ones because two principals hold them: the main
+    # branch's CI role and the Claude Code user.
+    # ---------------------------------------------------------------------------
+    DeployDevAndTestPolicy:
+        Type: AWS::IAM::ManagedPolicy
+        Properties:
+            ManagedPolicyName: tacocat-gallery-cicd-deploy-dev-and-test
+            Description: Create and execute change sets on the dev and test stacks
+            PolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Effect: Allow
+                      Action:
+                          - cloudformation:CreateChangeSet
+                          - cloudformation:DescribeChangeSet
+                          - cloudformation:ExecuteChangeSet
+                          - cloudformation:DeleteChangeSet
+                          - cloudformation:DescribeStacks
+                          - cloudformation:DescribeStackEvents
+                          - cloudformation:DescribeStackResources
+                          - cloudformation:GetTemplate
+                          - cloudformation:ListStackResources
+                      Resource:
+                          - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${StackPrefix}-dev/*
+                          - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${StackPrefix}-test/*
+
+    IntegrationTestsPolicy:
+        Type: AWS::IAM::ManagedPolicy
+        Metadata:
+            cfn-lint:
+                config:
+                    ignore_checks:
+                        - W3037 # cfn-lint's DynamoDB action list is missing the (real) TransactGetItems and TransactWriteItems
+        Properties:
+            ManagedPolicyName: tacocat-gallery-cicd-integration-tests
+            Description: Read and write the test stack's table and media buckets
+            # The integration tests call the gallery library directly, so whoever
+            # runs them reads and writes the test stack's table and buckets
+            PolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Sid: TestTable
+                      Effect: Allow
+                      Action:
+                          - dynamodb:DescribeTable
+                          - dynamodb:GetItem
+                          - dynamodb:BatchGetItem
+                          - dynamodb:Query
+                          - dynamodb:Scan
+                          - dynamodb:PutItem
+                          - dynamodb:UpdateItem
+                          - dynamodb:DeleteItem
+                          - dynamodb:BatchWriteItem
+                          - dynamodb:ConditionCheckItem
+                          # The gallery library issues some reads and writes as PartiQL statements
+                          - dynamodb:PartiQLSelect
+                          - dynamodb:PartiQLInsert
+                          - dynamodb:PartiQLUpdate
+                          - dynamodb:PartiQLDelete
+                          - dynamodb:TransactGetItems
+                          - dynamodb:TransactWriteItems
+                      Resource:
+                          - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StackPrefix}-test-items
+                          - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StackPrefix}-test-items/index/*
+                    - Sid: TestBuckets
+                      Effect: Allow
+                      Action:
+                          - s3:ListBucket
+                          - s3:ListBucketVersions
+                          - s3:GetBucketLocation
+                      Resource:
+                          - !Sub arn:aws:s3:::${StackPrefix}-test-original-images
+                          - !Sub arn:aws:s3:::${StackPrefix}-test-derived-images
+                    - Sid: TestObjects
+                      Effect: Allow
+                      Action:
+                          - s3:GetObject
+                          - s3:GetObjectVersion
+                          - s3:GetObjectAttributes
+                          - s3:GetObjectTagging
+                          - s3:PutObject
+                          - s3:PutObjectTagging
+                          - s3:DeleteObject
+                          - s3:DeleteObjectVersion
+                          - s3:AbortMultipartUpload
+                      Resource:
+                          - !Sub arn:aws:s3:::${StackPrefix}-test-original-images/*
+                          - !Sub arn:aws:s3:::${StackPrefix}-test-derived-images/*
+
+    # ---------------------------------------------------------------------------
     # PR role: pull requests dry-run a change set against the dev stack
     # ---------------------------------------------------------------------------
     GitHubPullRequestRole:
@@ -206,11 +304,6 @@ Resources:
     # ---------------------------------------------------------------------------
     GitHubMainRole:
         Type: AWS::IAM::Role
-        Metadata:
-            cfn-lint:
-                config:
-                    ignore_checks:
-                        - W3037 # cfn-lint's DynamoDB action list is missing the (real) TransactGetItems and TransactWriteItems
         Properties:
             RoleName: tacocat-gallery-cicd-github-main
             Description: Assumed by workflow runs on the main branch to deploy the dev and test stacks and run the integration tests
@@ -228,78 +321,8 @@ Resources:
                               token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/main
             ManagedPolicyArns:
                 - !Ref SamDeployPlumbingPolicy
-            Policies:
-                - PolicyName: DeployDevAndTest
-                  PolicyDocument:
-                      Version: '2012-10-17'
-                      Statement:
-                          - Effect: Allow
-                            Action:
-                                - cloudformation:CreateChangeSet
-                                - cloudformation:DescribeChangeSet
-                                - cloudformation:ExecuteChangeSet
-                                - cloudformation:DeleteChangeSet
-                                - cloudformation:DescribeStacks
-                                - cloudformation:DescribeStackEvents
-                                - cloudformation:DescribeStackResources
-                                - cloudformation:GetTemplate
-                                - cloudformation:ListStackResources
-                            Resource:
-                                - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${StackPrefix}-dev/*
-                                - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${StackPrefix}-test/*
-                - PolicyName: IntegrationTestsAgainstTest
-                  # The integration tests call the gallery library directly, so the
-                  # runner itself reads and writes the test stack's table and buckets
-                  PolicyDocument:
-                      Version: '2012-10-17'
-                      Statement:
-                          - Sid: TestTable
-                            Effect: Allow
-                            Action:
-                                - dynamodb:DescribeTable
-                                - dynamodb:GetItem
-                                - dynamodb:BatchGetItem
-                                - dynamodb:Query
-                                - dynamodb:Scan
-                                - dynamodb:PutItem
-                                - dynamodb:UpdateItem
-                                - dynamodb:DeleteItem
-                                - dynamodb:BatchWriteItem
-                                - dynamodb:ConditionCheckItem
-                                # The gallery library issues some reads and writes as PartiQL statements
-                                - dynamodb:PartiQLSelect
-                                - dynamodb:PartiQLInsert
-                                - dynamodb:PartiQLUpdate
-                                - dynamodb:PartiQLDelete
-                                - dynamodb:TransactGetItems
-                                - dynamodb:TransactWriteItems
-                            Resource:
-                                - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StackPrefix}-test-items
-                                - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StackPrefix}-test-items/index/*
-                          - Sid: TestBuckets
-                            Effect: Allow
-                            Action:
-                                - s3:ListBucket
-                                - s3:ListBucketVersions
-                                - s3:GetBucketLocation
-                            Resource:
-                                - !Sub arn:aws:s3:::${StackPrefix}-test-original-images
-                                - !Sub arn:aws:s3:::${StackPrefix}-test-derived-images
-                          - Sid: TestObjects
-                            Effect: Allow
-                            Action:
-                                - s3:GetObject
-                                - s3:GetObjectVersion
-                                - s3:GetObjectAttributes
-                                - s3:GetObjectTagging
-                                - s3:PutObject
-                                - s3:PutObjectTagging
-                                - s3:DeleteObject
-                                - s3:DeleteObjectVersion
-                                - s3:AbortMultipartUpload
-                            Resource:
-                                - !Sub arn:aws:s3:::${StackPrefix}-test-original-images/*
-                                - !Sub arn:aws:s3:::${StackPrefix}-test-derived-images/*
+                - !Ref DeployDevAndTestPolicy
+                - !Ref IntegrationTestsPolicy
 
     # ---------------------------------------------------------------------------
     # Prod role: only a job running inside the `prod` environment. That environment admits
@@ -342,6 +365,106 @@ Resources:
                                 - cloudformation:ListStackResources
                             Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${StackPrefix}-prod/*
 
+    # ---------------------------------------------------------------------------
+    # Reading the application's own logs, which no CI job does but a person
+    # debugging from a Claude Code session does constantly (`sam logs`,
+    # `aws logs tail`, Logs Insights).
+    # ---------------------------------------------------------------------------
+    ReadDevAndTestLogsPolicy:
+        Type: AWS::IAM::ManagedPolicy
+        Properties:
+            ManagedPolicyName: tacocat-gallery-read-dev-and-test-logs
+            Description: Read the dev and test Lambda and API Gateway log groups, and the X-Ray traces sam logs --include-traces fetches
+            PolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Sid: ReadTheLogs
+                      Effect: Allow
+                      Action:
+                          - logs:DescribeLogStreams
+                          - logs:GetLogEvents
+                          - logs:FilterLogEvents
+                          - logs:StartLiveTail
+                          - logs:StartQuery
+                          - logs:StopQuery
+                      # The log group names are fixed strings in template.yaml rather
+                      # than derived from the stack name, and prod is left out so a
+                      # session cannot read production data.
+                      Resource:
+                          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${StackPrefix}/dev:*
+                          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${StackPrefix}/dev/api-access:*
+                          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${StackPrefix}/test:*
+                          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${StackPrefix}/test/api-access:*
+                    - Sid: FindTheLogGroups
+                      # `sam logs` lists log groups before reading one, and
+                      # GetQueryResults takes a query id rather than a group. Neither
+                      # returns log content, so the wildcard costs nothing.
+                      Effect: Allow
+                      Action:
+                          - logs:DescribeLogGroups
+                          - logs:GetQueryResults
+                          - logs:DescribeQueries
+                      Resource: '*'
+                    - Sid: Traces
+                      # X-Ray has no resource-level permissions, so `sam logs
+                      # --include-traces` can only be granted account-wide
+                      Effect: Allow
+                      Action:
+                          - xray:BatchGetTraces
+                          - xray:GetTraceSummaries
+                      Resource: '*'
+
+    # ---------------------------------------------------------------------------
+    # Claude Code on the web: a cloud session has no OIDC token to trade for a
+    # role, so this is the one principal with a long-lived access key. The key
+    # itself is created by hand and lives in the cloud environment, never in this
+    # template -- see infra/README.md.
+    # ---------------------------------------------------------------------------
+    ClaudeCodeCloudUser:
+        Type: AWS::IAM::User
+        Properties:
+            UserName: tacocat-gallery-claude-code-cloud
+            ManagedPolicyArns:
+                - !Ref SamDeployPlumbingPolicy
+                - !Ref DeployDevAndTestPolicy
+                - !Ref IntegrationTestsPolicy
+                - !Ref ReadDevAndTestLogsPolicy
+            Policies:
+                - PolicyName: NeverProd
+                  # Nothing above grants prod, so this changes nothing today. It is
+                  # here so that a later widening of a shared policy cannot quietly
+                  # hand production to a credential that sits in a cloud environment.
+                  PolicyDocument:
+                      Version: '2012-10-17'
+                      Statement:
+                          - Sid: NoProdStack
+                            Effect: Deny
+                            Action: cloudformation:*
+                            Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${StackPrefix}-prod/*
+                          - Sid: NoProdData
+                            Effect: Deny
+                            Action:
+                                - dynamodb:*
+                                - s3:*
+                                # Named individually rather than logs:*, because the
+                                # allow above needs logs:DescribeLogGroups on '*' to
+                                # find a log group at all, and a Deny broad enough to
+                                # cover that would fail every `sam logs` run
+                                - logs:GetLogEvents
+                                - logs:FilterLogEvents
+                                - logs:StartLiveTail
+                                - logs:StartQuery
+                                - logs:DescribeLogStreams
+                            Resource:
+                                - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StackPrefix}-prod-items
+                                - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StackPrefix}-prod-items/index/*
+                                - !Sub arn:aws:s3:::${StackPrefix}-prod-original-images
+                                - !Sub arn:aws:s3:::${StackPrefix}-prod-original-images/*
+                                - !Sub arn:aws:s3:::${StackPrefix}-prod-derived-images
+                                - !Sub arn:aws:s3:::${StackPrefix}-prod-derived-images/*
+                                - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${StackPrefix}/prod:*
+                                - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${StackPrefix}/prod/api-access:*
+
 Outputs:
     CloudFormationDeployRoleArn:
         Description: Pass as --role-arn to sam deploy (set as role_arn in samconfig.toml)
@@ -355,3 +478,6 @@ Outputs:
     GitHubProdRoleArn:
         Description: role-to-assume for the prod deploy job
         Value: !GetAtt GitHubProdRole.Arn
+    ClaudeCodeCloudUserName:
+        Description: Create the access key for the Claude Code cloud environment against this user
+        Value: !Ref ClaudeCodeCloudUser
