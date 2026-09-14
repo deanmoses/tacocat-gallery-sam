@@ -25,7 +25,7 @@ fi
 # Shell and GitHub Actions linting. Both are enforced in CI; these are just an
 # early warning for devs who have the tools installed.
 if command -v shellcheck >/dev/null 2>&1; then
-    shellcheck scripts/*.sh .husky/pre-commit
+    shellcheck scripts/*.sh .claude/hooks/*.sh .husky/pre-commit
 else
     echo "Warning: shellcheck not installed, skipping shell lint"
 fi
