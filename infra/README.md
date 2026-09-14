@@ -22,7 +22,7 @@ A cloud session can run `sam build`, `sam deploy`, `sam logs` and the integratio
 
 ### The IAM user
 
-`tacocat-gallery-claude-code-cloud`, in [github-oidc.yaml](github-oidc.yaml), holds what the `main` CI role holds (deploy dev and test, run the integration tests against the test stack) plus read access to the dev and test log groups, which no CI job needs. An explicit `Deny` keeps prod out of reach.
+`tacocat-gallery-claude-code-cloud`, in [github-oidc.yaml](github-oidc.yaml), holds what the `main` CI role holds (deploy dev and test, run the integration tests against the test stack) plus read access to every environment's log groups, which no CI job needs. Prod logs are included: an incident is when you most want them, and reading a log changes nothing. Deploying to prod and touching prod's table or buckets stay out of reach, under an explicit `Deny`.
 
 It carries a long-lived access key, the only principal here that does. A cloud session has no GitHub OIDC token to trade for a role, and IAM Identity Center needs a browser sign-in that cannot happen inside a session, so there is nothing shorter-lived to use. CloudFormation does not create the key, because a key created that way is readable from the stack forever. Create it by hand after deploying the stack, and rotate it the same way:
 

@@ -38,7 +38,8 @@ Description: >-
 # The Claude Code user is the one principal here that carries a long-lived access
 # key, because a cloud session has no OIDC token to trade and IAM Identity Center
 # needs a browser sign-in that cannot run in one. It reaches as far as the main
-# role does, minus prod, which an explicit Deny puts out of reach for good.
+# role does, plus read-only access to every environment's logs. Changing prod is
+# what an explicit Deny puts out of reach for good.
 # -----------------------------------------------------------------------------
 
 Parameters:
@@ -366,15 +367,15 @@ Resources:
                             Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${StackPrefix}-prod/*
 
     # ---------------------------------------------------------------------------
-    # Reading the application's own logs, which no CI job does but a person
-    # debugging from a Claude Code session does constantly (`sam logs`,
-    # `aws logs tail`, Logs Insights).
+    # Reading the application's own logs in every environment, which no CI job
+    # does but a person debugging from a Claude Code session does constantly
+    # (`sam logs`, `aws logs tail`, Logs Insights).
     # ---------------------------------------------------------------------------
-    ReadDevAndTestLogsPolicy:
+    ReadApplicationLogsPolicy:
         Type: AWS::IAM::ManagedPolicy
         Properties:
-            ManagedPolicyName: tacocat-gallery-read-dev-and-test-logs
-            Description: Read the dev and test Lambda and API Gateway log groups, and the X-Ray traces sam logs --include-traces fetches
+            ManagedPolicyName: tacocat-gallery-read-application-logs
+            Description: Read every environment's Lambda and API Gateway log groups, and the X-Ray traces sam logs --include-traces fetches
             PolicyDocument:
                 Version: '2012-10-17'
                 Statement:
@@ -387,14 +388,17 @@ Resources:
                           - logs:StartLiveTail
                           - logs:StartQuery
                           - logs:StopQuery
-                      # The log group names are fixed strings in template.yaml rather
-                      # than derived from the stack name, and prod is left out so a
-                      # session cannot read production data.
+                      # Reading prod is the point: an incident is the moment you most
+                      # want the logs, and reading them cannot change anything. The
+                      # group names are fixed strings in template.yaml rather than
+                      # derived from the stack name.
                       Resource:
                           - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${StackPrefix}/dev:*
                           - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${StackPrefix}/dev/api-access:*
                           - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${StackPrefix}/test:*
                           - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${StackPrefix}/test/api-access:*
+                          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${StackPrefix}/prod:*
+                          - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${StackPrefix}/prod/api-access:*
                     - Sid: FindTheLogGroups
                       # `sam logs` lists log groups before reading one, and
                       # GetQueryResults takes a query id rather than a group. Neither
@@ -428,12 +432,13 @@ Resources:
                 - !Ref SamDeployPlumbingPolicy
                 - !Ref DeployDevAndTestPolicy
                 - !Ref IntegrationTestsPolicy
-                - !Ref ReadDevAndTestLogsPolicy
+                - !Ref ReadApplicationLogsPolicy
             Policies:
                 - PolicyName: NeverProd
-                  # Nothing above grants prod, so this changes nothing today. It is
-                  # here so that a later widening of a shared policy cannot quietly
-                  # hand production to a credential that sits in a cloud environment.
+                  # Reading prod logs is granted; changing prod is not, and nothing
+                  # above grants it either. This is here so that a later widening of a
+                  # shared policy cannot quietly hand production to a credential that
+                  # sits in a cloud environment.
                   PolicyDocument:
                       Version: '2012-10-17'
                       Statement:
@@ -442,19 +447,12 @@ Resources:
                             Action: cloudformation:*
                             Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${StackPrefix}-prod/*
                           - Sid: NoProdData
+                            # The prod log groups are deliberately absent: they are
+                            # granted above, and an explicit Deny here would win.
                             Effect: Deny
                             Action:
                                 - dynamodb:*
                                 - s3:*
-                                # Named individually rather than logs:*, because the
-                                # allow above needs logs:DescribeLogGroups on '*' to
-                                # find a log group at all, and a Deny broad enough to
-                                # cover that would fail every `sam logs` run
-                                - logs:GetLogEvents
-                                - logs:FilterLogEvents
-                                - logs:StartLiveTail
-                                - logs:StartQuery
-                                - logs:DescribeLogStreams
                             Resource:
                                 - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StackPrefix}-prod-items
                                 - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StackPrefix}-prod-items/index/*
@@ -462,8 +460,6 @@ Resources:
                                 - !Sub arn:aws:s3:::${StackPrefix}-prod-original-images/*
                                 - !Sub arn:aws:s3:::${StackPrefix}-prod-derived-images
                                 - !Sub arn:aws:s3:::${StackPrefix}-prod-derived-images/*
-                                - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${StackPrefix}/prod:*
-                                - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${StackPrefix}/prod/api-access:*
 
 Outputs:
     CloudFormationDeployRoleArn:
