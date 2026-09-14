@@ -2,6 +2,7 @@ import { APIGatewayProxyEvent } from 'aws-lambda';
 import { CognitoJwtVerifier } from 'aws-jwt-verify';
 import type { CognitoIdTokenPayload } from 'aws-jwt-verify/jwt-model';
 import { UnauthorizedException } from './UnauthorizedException';
+import { getHeader } from './HttpHeaders';
 
 // --- Pure function (easily testable) ---
 
@@ -79,7 +80,7 @@ async function validateIdToken(token: string): Promise<CognitoIdTokenPayload | u
  * Fast path: ~0ms since it just checks cookie existence.
  */
 export function isAuthenticatedForReads(event: APIGatewayProxyEvent): boolean {
-    const cookies = event.headers?.cookie;
+    const cookies = getHeader(event, 'cookie');
     const idToken = getIdTokenFromCookies(cookies);
     return !!idToken;
 }
@@ -89,7 +90,7 @@ export function isAuthenticatedForReads(event: APIGatewayProxyEvent): boolean {
  * Performs full JWT validation for write operations.
  */
 export async function ensureAuthorizedForWrites(event: APIGatewayProxyEvent): Promise<void> {
-    const cookies = event.headers?.cookie;
+    const cookies = getHeader(event, 'cookie');
     const idToken = getIdTokenFromCookies(cookies);
 
     if (!idToken) {

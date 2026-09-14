@@ -1,6 +1,7 @@
 import { APIGatewayProxyEvent } from 'aws-lambda';
 import { BadRequestException } from './BadRequestException';
 import { isAuthenticatedForReads } from './AuthorizationHelpers';
+import { getHeader } from './HttpHeaders';
 
 export enum HttpMethod {
     HEAD = 'HEAD',
@@ -30,16 +31,6 @@ export function logRequestReceived(event: APIGatewayProxyEvent): void {
         cfRequestId: getHeader(event, 'x-amz-cf-id'),
         hasToken: isAuthenticatedForReads(event),
     });
-}
-
-/**
- * Header lookup by name, whatever case the client sent it in: REST API proxy
- * events keep the original casing.
- */
-function getHeader(event: APIGatewayProxyEvent, name: string): string | undefined {
-    const headers = event.headers ?? {};
-    const key = Object.keys(headers).find((k) => k.toLowerCase() === name);
-    return key === undefined ? undefined : (headers[key] ?? undefined);
 }
 
 /**

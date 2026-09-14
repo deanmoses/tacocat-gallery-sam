@@ -84,6 +84,9 @@ Conditions:
   # Alarms that mean "something threw" also run in dev, where bugs surface during manual
   # testing. Prod 6 + dev 4 = 10 alarm metrics, exactly the CloudWatch always-free tier.
   SendAlerts: !Or [ !Condition IsProd, !Equals [ !Ref Env, "dev" ] ]
+  # The API edge cache is a prototype: staging and test only until it has been
+  # measured. Dropping this condition is the whole of promoting it.
+  EdgeCacheEnabled: !Not [ !Condition IsProd ]
 
 # -----------------------------------------------------------------------------
 # Configuration properties inherited by all resources, such as Lambda functions
@@ -849,6 +852,335 @@ Resources:
                 body: JSON.stringify({ errorMessage: errorMessage }),
             };
         }
+
+  # ---------------------------------------------------------------------------
+  # API edge cache: a CloudFront distribution in front of API Gateway that
+  # caches album responses at the edge.
+  #
+  # An album's cache entry is keyed on its version, which the viewer-request
+  # function below reads from the KeyValueStore. UpdateAlbumVersions keeps the
+  # store current from the DynamoDB stream, so an edit moves the key and the
+  # next request misses; nothing is ever invalidated, old entries just stop
+  # being asked for. See docs/Architecture.md.
+  #
+  # Prototype: no custom domain yet. The gallery app reaches the API through
+  # api.<domain> on API Gateway directly; this distribution is on its own
+  # CloudFront hostname (see the ApiEdgeDomain output) for measurement.
+  # ---------------------------------------------------------------------------
+
+  # One key per album, `content:<path>`, and one per parent, `nav:<path>`.
+  # Written only by UpdateAlbumVersions and SyncAlbumVersions.
+  AlbumVersionStore:
+    Type: AWS::CloudFront::KeyValueStore
+    Condition: EdgeCacheEnabled
+    Properties:
+      Name: !Sub ${AWS::StackName}-album-versions
+      Comment: !Sub Album versions the API edge cache keys on, for ${AWS::StackName}
+
+  # Turns GET /album[/...] into a cache key: the album's version from the store
+  # and whether the viewer carries an auth cookie. The origin decides on the
+  # cookie itself (forwarded by ApiAlbumOriginRequestPolicy); x-has-token only
+  # keeps the two answers in separate cache entries. Both headers are set here
+  # on every request, so nothing a viewer sends can choose the cache key.
+  #
+  # An album with no version is served uncached: with no x-album-version the
+  # origin answers no-store (see respondCacheable in ApiGatewayResponseHelpers).
+  # `?fresh` gets a one-off version, so the request bypasses the cache; the
+  # gallery app uses it after a save, when the store is still catching up.
+  AlbumVersionFunction:
+    Type: AWS::CloudFront::Function
+    Condition: EdgeCacheEnabled
+    Properties:
+      Name: !Sub AlbumVersion-${AWS::StackName}
+      AutoPublish: true
+      FunctionConfig:
+        Comment: !Sub Keys album requests on their version for ${AWS::StackName}
+        Runtime: cloudfront-js-2.0
+        KeyValueStoreAssociations:
+          - KeyValueStoreARN: !GetAtt AlbumVersionStore.Arn
+      FunctionCode: |+2
+        import cf from 'cloudfront';
+        const kvs = cf.kvs();
+        // Same shape as isValidAlbumPath() in galleryPathUtils.ts
+        const ALBUM_PATH = /^(\/\d\d\d\d(\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))?)?\/$/;
+        async function handler(event) {
+            const r = event.request;
+            delete r.headers['x-album-version'];
+            delete r.headers['x-has-token'];
+            if (r.method !== 'GET' && r.method !== 'HEAD') return r;
+            // r.uri is /album or /album/2001/12-31
+            const albumPath = r.uri.substring('/album'.length) + '/';
+            if (!ALBUM_PATH.test(albumPath)) return r;
+            const fresh = r.querystring['fresh'] !== undefined;
+            r.querystring = {};
+            const token = r.cookies['id_token'];
+            r.headers['x-has-token'] = { value: token && token.value ? '1' : '0' };
+            const version = fresh ? 'fresh-' + event.context.requestId : await albumVersion(albumPath);
+            if (version) r.headers['x-album-version'] = { value: version };
+            return r;
+        }
+        // The album's content version joined with its parent's nav version,
+        // or undefined when either is missing from the store.
+        async function albumVersion(albumPath) {
+            try {
+                const content = await kvs.get('content:' + albumPath);
+                if (albumPath === '/') return content;
+                const parentPath = albumPath.substring(0, albumPath.lastIndexOf('/', albumPath.length - 2) + 1);
+                return content + '.' + (await kvs.get('nav:' + parentPath));
+            } catch (e) {
+                return undefined;
+            }
+        }
+
+  # Cache key: the two headers the function sets, plus the compression variant.
+  # No cookies and no query strings; the origin request policy decides what of
+  # those the origin sees. The TTLs are a backstop for a version the stream
+  # Lambda failed to move; the origin's s-maxage is what normally applies.
+  ApiAlbumCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Condition: EdgeCacheEnabled
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub ApiAlbumCachePolicy-${AWS::StackName}
+        Comment: !Sub Key album responses on their version for ${AWS::StackName}
+        MinTTL: 0
+        DefaultTTL: 86400 # 1 day
+        MaxTTL: 31536000 # 1 year
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingBrotli: true
+          EnableAcceptEncodingGzip: true
+          CookiesConfig:
+            CookieBehavior: none
+          HeadersConfig:
+            HeaderBehavior: whitelist
+            Headers:
+              - x-album-version
+              - x-has-token
+          QueryStringsConfig:
+            QueryStringBehavior: none
+
+  # What reaches API Gateway on the album behaviors beyond the cache key: the
+  # auth cookie, and what CORS and the write methods sharing these paths need.
+  # Never Accept-Encoding, which the cache policy above already handles.
+  ApiAlbumOriginRequestPolicy:
+    Type: AWS::CloudFront::OriginRequestPolicy
+    Condition: EdgeCacheEnabled
+    Properties:
+      OriginRequestPolicyConfig:
+        Name: !Sub ApiAlbumOriginRequestPolicy-${AWS::StackName}
+        Comment: !Sub Forward the auth cookie and CORS headers to the API for ${AWS::StackName}
+        CookiesConfig:
+          CookieBehavior: whitelist
+          Cookies:
+            - id_token
+        HeadersConfig:
+          HeaderBehavior: whitelist
+          Headers:
+            - origin
+            - content-type
+            - access-control-request-method
+            - access-control-request-headers
+            - user-agent
+            - referer
+        QueryStringsConfig:
+          QueryStringBehavior: none
+
+  ApiDistribution:
+    Type: AWS::CloudFront::Distribution
+    Condition: EdgeCacheEnabled
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub API for ${AWS::StackName}
+        HttpVersion: http2and3
+        Origins:
+          - Id: api-gateway
+            DomainName: !Sub ${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com
+            OriginPath: /Prod # the implicit SAM API's one stage, which api.<domain> maps to as well
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols:
+                - TLSv1.2
+              # The ceiling without a limit increase. At this traffic level the
+              # edge's connection to the region has usually lapsed by the next
+              # miss, and that cold handshake is the cost of every miss.
+              OriginKeepaliveTimeout: 60
+        # Two behaviors, one per path form; keep them identical.
+        CacheBehaviors:
+          - PathPattern: /album # root album
+            TargetOriginId: api-gateway
+            Compress: true
+            ViewerProtocolPolicy: redirect-to-https
+            # Every method, so the write endpoints sharing /album/* keep
+            # working; CloudFront only ever caches the GETs (and HEADs).
+            AllowedMethods: [ GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE ]
+            CachedMethods: [ GET, HEAD ]
+            CachePolicyId: !Ref ApiAlbumCachePolicy
+            OriginRequestPolicyId: !Ref ApiAlbumOriginRequestPolicy
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt AlbumVersionFunction.FunctionMetadata.FunctionARN
+          - PathPattern: /album/*
+            TargetOriginId: api-gateway
+            Compress: true
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [ GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE ]
+            CachedMethods: [ GET, HEAD ]
+            CachePolicyId: !Ref ApiAlbumCachePolicy
+            OriginRequestPolicyId: !Ref ApiAlbumOriginRequestPolicy
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt AlbumVersionFunction.FunctionMetadata.FunctionARN
+        # Everything else passes straight through, uncached, with every viewer
+        # header but Host (which must be the API Gateway hostname).
+        DefaultCacheBehavior:
+          TargetOriginId: api-gateway
+          Compress: true
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [ GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE ]
+          CachedMethods: [ GET, HEAD ]
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad # CachingDisabled managed policy
+          OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac # AllViewerExceptHostHeader managed policy
+
+  # Access logs, the same shape and bucket as the image distribution's, under
+  # api/ instead of image/. x-edge-result-type is the hit rate.
+  ApiLogDeliverySource:
+    Type: AWS::Logs::DeliverySource
+    Condition: EdgeCacheEnabled
+    Properties:
+      Name: !Sub ${AWS::StackName}-api-cdn
+      LogType: ACCESS_LOGS
+      ResourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${ApiDistribution}
+
+  ApiLogDelivery:
+    Type: AWS::Logs::Delivery
+    Condition: EdgeCacheEnabled
+    DependsOn:
+      - ApiLogDeliverySource
+      - CloudFrontLogsBucketPolicy
+    Properties:
+      DeliverySourceName: !Sub ${AWS::StackName}-api-cdn # must equal ApiLogDeliverySource.Name
+      DeliveryDestinationArn: !GetAtt ImageLogDeliveryDestination.Arn
+      S3SuffixPath: api/{yyyy}/{MM}/{dd}/
+      # Keep identical to ImageLogDelivery.RecordFields: one reader parses both.
+      RecordFields:
+        - date
+        - time
+        - x-edge-location
+        - sc-bytes
+        - c-ip
+        - cs-method
+        - cs(Host)
+        - cs-uri-stem
+        - sc-status
+        - cs(Referer)
+        - cs(User-Agent)
+        - cs-uri-query
+        - x-edge-result-type
+        - x-edge-request-id
+        - x-host-header
+        - cs-protocol
+        - cs-bytes
+        - time-taken
+        - ssl-protocol
+        - ssl-cipher
+        - x-edge-response-result-type
+        - cs-protocol-version
+        - c-port
+        - time-to-first-byte
+        - x-edge-detailed-result-type
+        - sc-content-type
+        - sc-content-len
+        - asn
+        - c-country
+        - timestamp(ms)
+        - origin-fbl
+        - origin-lbl
+        - cache-behavior-path-pattern
+
+  # ---------------------------------------------------------------------------
+  # Lambda that keeps the album versions in the KeyValueStore current
+  # ---------------------------------------------------------------------------
+  UpdateAlbumVersionsFunction:
+    Type: AWS::Serverless::Function
+    Condition: EdgeCacheEnabled
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-UpdateAlbumVersions
+      CodeUri: app/src/lambdas/updateAlbumVersions/
+      Handler: updateAlbumVersionsLambda.handler
+      Description: Recompute the edge cache versions of the albums a DynamoDB change touched
+      Events:
+        DynamoDBEvent:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt GalleryItemDDBTable.StreamArn # second consumer of the stream, after DynamoToRedis
+            StartingPosition: LATEST
+            BatchSize: 100
+            # Let an upload's burst of records land in one batch: each album
+            # is recomputed once per batch, however many records touched it.
+            MaximumBatchingWindowInSeconds: 5
+            BisectBatchOnFunctionError: true
+            # A dropped batch leaves a version stale until the cache entry
+            # expires or SyncAlbumVersions runs, so don't block the shard for it.
+            MaximumRetryAttempts: 3
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+          ALBUM_VERSION_STORE_ARN: !GetAtt AlbumVersionStore.Arn
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref GalleryItemDDBTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cloudfront-keyvaluestore:DescribeKeyValueStore
+                - cloudfront-keyvaluestore:UpdateKeys
+              Resource: !GetAtt AlbumVersionStore.Arn
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Sourcemap: true
+        Target: node24
+        EntryPoints:
+          - updateAlbumVersionsLambda.ts
+
+  # ---------------------------------------------------------------------------
+  # Lambda to recompute every album version (direct invoke only): bootstraps
+  # an empty store and repairs one after a dropped stream batch
+  # ---------------------------------------------------------------------------
+  SyncAlbumVersionsFunction:
+    Type: AWS::Serverless::Function
+    Condition: EdgeCacheEnabled
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-SyncAlbumVersions
+      CodeUri: app/src/lambdas/syncAlbumVersions/
+      Handler: syncAlbumVersionsLambda.handler
+      Description: Recompute every album's edge cache version from DynamoDB
+      Timeout: 900 # 15 minutes
+      MemorySize: 256 # I/O bound
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+          ALBUM_VERSION_STORE_ARN: !GetAtt AlbumVersionStore.Arn
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref GalleryItemDDBTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cloudfront-keyvaluestore:DescribeKeyValueStore
+                - cloudfront-keyvaluestore:ListKeys
+                - cloudfront-keyvaluestore:UpdateKeys
+              Resource: !GetAtt AlbumVersionStore.Arn
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Sourcemap: true
+        Target: node24
+        EntryPoints:
+          - syncAlbumVersionsLambda.ts
 
   # ---------------------------------------------------------------------------
   # Supplies Sharp, without HEIC support, to any arm64 function that needs it.
@@ -1883,6 +2215,11 @@ Outputs:
   ImageDomain:
     Description: CloudFront image distribution
     Value: !Sub https://${ImageDistribution.DomainName}/
+
+  ApiEdgeDomain:
+    Condition: EdgeCacheEnabled
+    Description: CloudFront distribution in front of the API, caching album responses
+    Value: !GetAtt ApiDistribution.DomainName
 
   GenerateDerivedImageUrl:
     Description: URL of lambda that generates derived images

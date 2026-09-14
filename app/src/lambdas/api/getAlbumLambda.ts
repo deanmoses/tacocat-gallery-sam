@@ -2,7 +2,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } f
 import {
     handleHttpExceptions,
     respond404NotFound,
-    respondHttp,
+    respondCacheable,
 } from '../../lib/lambda_utils/ApiGatewayResponseHelpers';
 import { isAuthenticatedForReads } from '../../lib/lambda_utils/AuthorizationHelpers';
 import {
@@ -26,7 +26,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         if (!album) {
             return respond404NotFound(event, 'Album Not Found');
         } else {
-            return respondHttp(event, album);
+            return respondCacheable(event, album);
         }
     } catch (e) {
         return handleHttpExceptions(event, e);

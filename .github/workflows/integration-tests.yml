@@ -73,6 +73,15 @@ jobs:
                   fi
                   DOMAIN=$(echo "$LAMBDA_URL" | sed 's|https://||' | sed 's|/$||')
                   echo "derived_image_domain=$DOMAIN" >> "$GITHUB_OUTPUT"
+                  API_EDGE_DOMAIN=$(aws cloudformation describe-stacks \
+                    --stack-name tacocat-gallery-sam-test \
+                    --query "Stacks[0].Outputs[?OutputKey=='ApiEdgeDomain'].OutputValue" \
+                    --output text)
+                  if [ -z "$API_EDGE_DOMAIN" ] || [ "$API_EDGE_DOMAIN" = "None" ]; then
+                    echo "::error::Failed to retrieve ApiEdgeDomain from stack outputs"
+                    exit 1
+                  fi
+                  echo "api_edge_domain=$API_EDGE_DOMAIN" >> "$GITHUB_OUTPUT"
 
             - name: Run integration tests
               working-directory: app
@@ -81,6 +90,7 @@ jobs:
                   ORIGINAL_IMAGES_BUCKET: tacocat-gallery-sam-test-original-images
                   DERIVED_IMAGES_BUCKET: tacocat-gallery-sam-test-derived-images
                   DERIVED_IMAGE_GENERATOR_DOMAIN: ${{ steps.stack-outputs.outputs.derived_image_domain }}
+                  API_EDGE_DOMAIN: ${{ steps.stack-outputs.outputs.api_edge_domain }}
                   GALLERY_APP_DOMAIN: test-pix.tacocat.com
                   REDIS_HOST: ${{ secrets.REDIS_TEST_HOST }}
                   REDIS_WRITE_USERNAME: ${{ secrets.REDIS_TEST_WRITE_USERNAME }}

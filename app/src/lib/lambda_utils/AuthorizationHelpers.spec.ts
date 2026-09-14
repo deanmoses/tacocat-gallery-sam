@@ -111,6 +111,12 @@ describe('isAuthenticatedForReads', () => {
             });
         });
     });
+
+    test('reads the Cookie header however it is capitalized (CloudFront sends it as Cookie)', () => {
+        const event = createMockEvent();
+        event.headers = { Cookie: 'id_token=abc' };
+        expect(isAuthenticatedForReads(event)).toBe(true);
+    });
 });
 
 describe('ensureAuthorizedForWrites', () => {

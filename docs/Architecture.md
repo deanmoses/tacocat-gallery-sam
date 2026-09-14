@@ -9,7 +9,7 @@
 | **AWS Lambda**       | API fulfillment, EXIF extraction, image resizing                                       |
 | **AWS MediaConvert** | Video transcoding                                                                      |
 | **AWS API Gateway**  | REST API for the front end website                                                     |
-| **AWS CloudFront**   | CDN delivery of media (image and video files)                                          |
+| **AWS CloudFront**   | CDN delivery of media (image and video files); edge cache for album API responses      |
 | **Redis Labs**       | Search - _not_ an AWS service!                                                         |
 
 ## Domain Model
@@ -170,6 +170,27 @@ All API calls from the front end go through the AWS API Gateway.
     - _Write operations:_ Full JWT validation required
 - **CORS:** Enabled for gallery app domain with credentials support.
 
+### API edge cache
+
+A staging-only prototype, gated on the `EdgeCacheEnabled` condition in `template.yaml`: a second CloudFront distribution (`ApiDistribution`) sits in front of API Gateway and caches `GET /album` and `GET /album/*` at the edge. Every other path and method passes through uncached. It has no custom domain yet; the gallery app still calls `api.<domain>` on API Gateway directly, and the distribution's own hostname is the `ApiEdgeDomain` stack output. The design rationale and the open questions are in [docs/plans/EdgeCachedAlbums.md](plans/EdgeCachedAlbums.md).
+
+**Cache key = album version + auth flag.** Nothing is ever invalidated. Each album has a version in a CloudFront KeyValueStore (`AlbumVersionStore`); an edit moves the version, the next request misses and fetches fresh, and the old cache entry is never asked for again and ages out. The store holds two kinds of key:
+
+| Key                    | Value                                                                                                                |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `content:<album path>` | Hash of the album's `getAlbum` response (admin's view, unpublished children included), minus `prev`/`next`           |
+| `nav:<parent path>`    | Hash of what the parent's children compute `prev`/`next` from: their names and `published` flags. One key per parent |
+
+A day album's cache key is `content:/2001/12-31/` joined with `nav:/2001/`; a year's is `content:/2001/` with `nav:/`; the root's is `content:/` alone. Keeping nav separate is what lets an edit to one day album leave its siblings' cache entries hitting: their `prev`/`next` only move when a sibling is published, created or deleted, which moves the one `nav:` key.
+
+**Viewer-request function.** `AlbumVersionFunction` (inline in `template.yaml`, unit-tested from there) reads the version from the store and sets two request headers that the cache policy keys on: `x-album-version`, and `x-has-token` (`1` if an `id_token` cookie with a value is present, else `0`, the same test `isAuthenticatedForReads()` makes). It sets both on every request, so a viewer cannot pick a cache key; it drops the query string; and it leaves non-GET requests alone. `?fresh` on a request gets a one-off version, which is a guaranteed miss: the gallery app uses it to re-read an album right after saving it, before the store has caught up.
+
+**The origin defends itself.** `respondCacheable()` sets an `ETag` (a hash of the body) on every album response, answers a matching `If-None-Match` with a 304, and sets `Cache-Control: public, max-age=0, s-maxage=86400` only when the request carries `x-album-version`; otherwise `no-store`. So reached directly, or through any behavior that does not key on the version, the response is not cached by anything shared. An album with no version in the store (never edited since the store was created, or its stream batch was dropped) is served uncached until it is versioned.
+
+**Keeping the store current.** `UpdateAlbumVersions` is a second consumer of the DynamoDB stream. From the records in a batch it works out which albums' responses can have changed, recomputes those versions with the same `getAlbumAndChildren()` the API uses, and writes them. A media item changes its day album, its year only if it is that day album's thumbnail, and the root only if it is the year's too; an album changes itself, its parent, and its parent's `nav:` key. Propagation is the stream lag plus a batching window of a few seconds plus the store's own global propagation of a few seconds. `SyncAlbumVersions` (direct invoke) recomputes every album: run it once after the store is created, and again if the stream Lambda ever drops a batch. Each album costs the same DynamoDB reads as a `getAlbum` call, so on a large table it stops before the Lambda timeout and returns a `nextStartAfter` to resume from.
+
+**Access logs** land in the same bucket as the image distribution's, under `api/`; `x-edge-result-type` is the hit rate.
+
 ## Compute (AWS Lambda)
 
 There's no persistent server; all processing is done via Lambdas. There's a few different types of Lambdas, triggered by different things:
@@ -181,6 +202,7 @@ There's no persistent server; all processing is done via Lambdas. There's a few 
 | **Transcoding completion**  | Writes DynamoDB record or error                      | EventBridge (MediaConvert)                |
 | **Thumbnail generation**    | Generates derived images (resizes via Sharp)         | Lambda Function URL (CloudFront failover) |
 | **Search index population** | Sync a DynamoDB item to Redis                        | DynamoDB Streams                          |
+| **Album versions**          | Keep the API edge cache's album versions current     | DynamoDB Streams                          |
 
 ### Custom Lambda Layer for HEIC
 
