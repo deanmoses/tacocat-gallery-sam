@@ -19,11 +19,11 @@ describe('respondCacheable', () => {
     test('is no-store unless the request came through the versioned edge behavior', () => {
         expect(respondCacheable(event(), body).headers?.['Cache-Control']).toBe('no-store');
         expect(respondCacheable(event({ [ALBUM_VERSION_HEADER]: 'abc' }), body).headers?.['Cache-Control']).toBe(
-            'public, max-age=0, s-maxage=86400, stale-while-revalidate=2592000, stale-if-error=2592000',
+            'public, max-age=0, s-maxage=86400, stale-while-revalidate=31536000, stale-if-error=31536000',
         );
         // CloudFront sends header names capitalized
         expect(respondCacheable(event({ 'X-Album-Version': 'abc' }), body).headers?.['Cache-Control']).toBe(
-            'public, max-age=0, s-maxage=86400, stale-while-revalidate=2592000, stale-if-error=2592000',
+            'public, max-age=0, s-maxage=86400, stale-while-revalidate=31536000, stale-if-error=31536000',
         );
     });
 

@@ -20,13 +20,14 @@ const EDGE_MAX_AGE_SECONDS = 86400;
 
 /**
  * How long past that the CDN may keep serving the entry while it refreshes
- * in the background, or while the origin is failing. The version in the
- * cache key is what keeps an entry current, so a stale one is only wrong
- * after a version update was dropped, and its first request past
- * EDGE_MAX_AGE_SECONDS still triggers the refresh; this just takes the
- * origin round trip off that request's critical path.
+ * in the background, or while the origin is failing: a year, as long as the
+ * cache policy allows. The version in the cache key is what keeps an entry
+ * current, so a stale one is only wrong after a version update was dropped,
+ * and its first request past EDGE_MAX_AGE_SECONDS still triggers the
+ * refresh whatever this is set to; a shorter window would only put the
+ * origin round trip back on some visitor's critical path.
  */
-const EDGE_STALE_SECONDS = 30 * 86400;
+const EDGE_STALE_SECONDS = 365 * 86400;
 
 const EDGE_CACHE_CONTROL =
     `public, max-age=0, s-maxage=${EDGE_MAX_AGE_SECONDS}, ` +
@@ -71,7 +72,7 @@ export function respondHttp(_event: APIGatewayProxyEvent, body: object, statusCo
  *
  * Cache-Control depends on who is asking. Behind the edge cache's versioned
  * behavior (see ALBUM_VERSION_HEADER) the response may be held by shared
- * caches for a day and served stale for a month after that while it is
+ * caches for a day and served stale for a year after that while it is
  * refreshed; the version in the cache key, not these TTLs, is what keeps it
  * current. Reached any other way the response is no-store, because the body
  * depends on the auth cookie and nothing else in the path knows that.
