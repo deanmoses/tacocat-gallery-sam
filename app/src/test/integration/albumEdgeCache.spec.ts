@@ -51,7 +51,9 @@ test('reached through the edge, a versioned album is served from cache with the 
     const second = await fetch(edge, { cache: 'no-store' });
     expect(second.status).toBe(200);
     expect(second.headers.get('x-cache')).toBe('Hit from cloudfront');
-    expect(second.headers.get('cache-control')).toBe('public, max-age=0, s-maxage=86400');
+    expect(second.headers.get('cache-control')).toBe(
+        'public, max-age=0, s-maxage=86400, stale-while-revalidate=2592000, stale-if-error=2592000',
+    );
     expect(second.headers.get('etag')).toBe(first.headers.get('etag'));
     expect(second.headers.get('access-control-allow-origin')).toBe(`https://${galleryAppDomain}`);
     expect(second.headers.get('x-content-type-options')).toBe('nosniff');
@@ -61,7 +63,9 @@ test('reached through the edge, a versioned album is served from cache with the 
 test('the root album is versioned too', async () => {
     const response = await fetch(`https://${edgeDomain}/album`, { cache: 'no-store' });
     expect(response.status).toBe(200);
-    expect(response.headers.get('cache-control')).toBe('public, max-age=0, s-maxage=86400');
+    expect(response.headers.get('cache-control')).toBe(
+        'public, max-age=0, s-maxage=86400, stale-while-revalidate=2592000, stale-if-error=2592000',
+    );
 });
 
 test('the edge answers a matching If-None-Match with 304', async () => {
