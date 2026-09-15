@@ -16,9 +16,11 @@ Versions live in a CloudFront KeyValueStore and are read by a viewer-request Clo
 
 The version is a hash of the album's response body. A counter or timestamp bumped on every change under an album would be cheaper to compute (no DynamoDB reads) but would move the root's version on every edit anywhere, and the root is the most viewed album. With a content hash, editing a day album's description recomputes the root's hash and finds it unchanged, so the root keeps hitting. The cost is three `getAlbum`-sized reads per stream batch, deduped across the batch.
 
-### Why prev/next get their own key
+### Why prev/next get their own key, for now
 
 An album's `prev`/`next` depend on its siblings' `published` flags, so publishing one album changes every sibling's response. Recomputing every sibling's hash on each edit would be some fifty `getAlbum` reads against a 3 RCU table. Instead the sibling-dependent part is hashed once per parent (`nav:<parent>`) and joined into the cache key, so one key moves on a publish and the day-to-day edits (description, thumbnail, uploads) touch only the album and its parent.
+
+This is transitional. The decision is to drop `prev`/`next` from the album response and have the gallery app compute them from the parent album's children, which it can fetch in parallel and which is the hottest cache entry after the root. That removes the only place where a resource's cacheability depends on its siblings: the `nav:` keys, the peer query in `getAlbum`, and the join in the edge function all go with it, and the cache key becomes the album's own content version. The gallery app has to change first, since `getAlbum` is not behind the staging condition and removing the fields would break the production app; the backend follow-up removes the fields and the nav machinery together.
 
 ### Admin and guest responses
 
@@ -60,6 +62,7 @@ Everything but `GET /album*` passes through the same distribution uncached, beca
 ## Still to do
 
 1. Measure: the Grafana probe against `ApiEdgeDomain`, hit rate from the logs, and a cold-miss cost for the uncached endpoints.
-2. Gallery app: `?fresh` on post-save re-reads; `If-None-Match` from IndexedDB; point staging at `ApiEdgeDomain` to try it end to end.
-3. Promote: an `api.<domain>` alias and certificate on the distribution, the API Gateway custom domain moved to a non-custom domain, `MinimumCompressionSize` dropped, the `EdgeCacheEnabled` condition removed.
-4. Maybe: rate-limiting bots at the edge (AWS WAF, from about five dollars a month), caching search and `latest-album`, Origin Shield.
+2. Gallery app: compute album `prev`/`next` from the parent album's children; `?fresh` on post-save re-reads; `If-None-Match` from IndexedDB; point staging at `ApiEdgeDomain` to try it end to end.
+3. Backend follow-up, after the app change ships: remove `prev`/`next` from the album response, the peer query, the `nav:` keys and the join in the edge function.
+4. Promote: an `api.<domain>` alias and certificate on the distribution, the API Gateway custom domain moved to a non-custom domain, `MinimumCompressionSize` dropped, the `EdgeCacheEnabled` condition removed.
+5. Maybe: rate-limiting bots at the edge (AWS WAF, from about five dollars a month), caching search and `latest-album`, Origin Shield.
