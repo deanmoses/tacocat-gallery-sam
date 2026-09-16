@@ -375,7 +375,10 @@ Resources:
         Type: AWS::IAM::ManagedPolicy
         Properties:
             ManagedPolicyName: tacocat-gallery-read-application-logs
-            Description: Read this project's Lambda, API Gateway and CloudFront access logs in every environment, and the X-Ray traces sam logs --include-traces fetches
+            # A changed Description replaces the policy, and a replacement cannot
+            # reuse the name, so bump the name whenever the text changes. Adding
+            # statements below is free; editing this line is not.
+            Description: Read every environment's Lambda and API Gateway log groups, and the X-Ray traces sam logs --include-traces fetches
             PolicyDocument:
                 Version: '2012-10-17'
                 Statement:
