@@ -375,7 +375,7 @@ Resources:
         Type: AWS::IAM::ManagedPolicy
         Properties:
             ManagedPolicyName: tacocat-gallery-read-application-logs
-            Description: Read every environment's Lambda and API Gateway log groups, and the X-Ray traces sam logs --include-traces fetches
+            Description: Read this project's Lambda, API Gateway and CloudFront access logs in every environment, and the X-Ray traces sam logs --include-traces fetches
             PolicyDocument:
                 Version: '2012-10-17'
                 Statement:
@@ -408,7 +408,26 @@ Resources:
                           - logs:DescribeLogGroups
                           - logs:GetQueryResults
                           - logs:DescribeQueries
+                          # A distribution configured through delivery resources reports
+                          # logging disabled in get-distribution-config and the console,
+                          # so these are the only way to see whether logs are flowing.
+                          - logs:DescribeDeliverySources
+                          - logs:DescribeDeliveryDestinations
+                          - logs:DescribeDeliveries
                       Resource: '*'
+                    - Sid: ReadCloudFrontAccessLogs
+                      # The image distribution delivers to S3 rather than a log group,
+                      # one gzipped file per batch. The SPA distribution's own logs are
+                      # granted by the hosting project, which owns that bucket.
+                      Effect: Allow
+                      Action:
+                          - s3:GetObject
+                          - s3:ListBucket
+                      Resource:
+                          - !Sub arn:aws:s3:::${StackPrefix}-dev-cloudfront-logs
+                          - !Sub arn:aws:s3:::${StackPrefix}-dev-cloudfront-logs/*
+                          - !Sub arn:aws:s3:::${StackPrefix}-prod-cloudfront-logs
+                          - !Sub arn:aws:s3:::${StackPrefix}-prod-cloudfront-logs/*
                     - Sid: Traces
                       # X-Ray has no resource-level permissions, so `sam logs
                       # --include-traces` can only be granted account-wide
