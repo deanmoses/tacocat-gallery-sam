@@ -2,7 +2,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } f
 import {
     handleHttpExceptions,
     respond404NotFound,
-    respondSuccessMessage,
+    respondHttp,
 } from '../../lib/lambda_utils/ApiGatewayResponseHelpers';
 import {
     HttpMethod,
@@ -11,7 +11,7 @@ import {
     logRequestReceived,
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { albumExists } from '../../lib/gallery/itemExists/itemExists';
-import { isAuthenticatedForReads } from '../../lib/lambda_utils/AuthorizationHelpers';
+import { AUTH_STATUS_HEADER, getReadAuthStatus } from '../../lib/lambda_utils/AuthorizationHelpers';
 
 /**
  * A Lambda function that responds whether an album exists or not
@@ -21,9 +21,12 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         logRequestReceived(event);
         ensureHttpMethod(event, HttpMethod.HEAD);
         const albumPath = getAlbumPath(event);
-        const includeUnpublishedAlbums = isAuthenticatedForReads(event);
-        const exists = await albumExists(albumPath, includeUnpublishedAlbums);
-        return exists ? respondSuccessMessage(event, 'Album Found') : respond404NotFound(event, 'Album Not Found');
+        const authStatus = await getReadAuthStatus(event);
+        const exists = await albumExists(albumPath, authStatus === 'valid');
+        const headers = { [AUTH_STATUS_HEADER]: authStatus };
+        return exists
+            ? respondHttp(event, { success: true, message: 'Album Found' }, 200, headers)
+            : respond404NotFound(event, 'Album Not Found', headers);
     } catch (e) {
         return handleHttpExceptions(event, e);
     }

@@ -14,23 +14,25 @@ import { augmentAlbumThumbnailsWithImageInfo } from '../../dynamo_utils/albumThu
  * Retrieve an album and its children (images or subalbums) from DynamoDB.
  *
  * @param albumPath Path of album, like /2001/12-31/
+ * @param includeUnpublishedAlbums May be a promise: the DynamoDB reads start at once and only the filtering waits on it
  */
 export async function getAlbumAndChildren(
     albumPath: string,
-    includeUnpublishedAlbums: boolean = false,
+    includeUnpublishedAlbums: boolean | Promise<boolean> = false,
 ): Promise<Album | undefined> {
     if (!isValidAlbumPath(albumPath)) throw new BadRequestException(`Malformed album path: [${albumPath}]`);
 
-    const [album, children, peers] = await Promise.all([
+    const [album, children, peers, includeUnpublished] = await Promise.all([
         getAlbum(albumPath, includeUnpublishedAlbums),
         getChildren(albumPath, includeUnpublishedAlbums),
         getPeers(albumPath, includeUnpublishedAlbums),
+        includeUnpublishedAlbums,
     ]);
 
     if (!album) return;
     album.children = children;
     if (!!peers) {
-        const nav = getPrevAndNext(albumPath, peers, includeUnpublishedAlbums);
+        const nav = getPrevAndNext(albumPath, peers, includeUnpublished);
         album.next = nav.next;
         album.prev = nav.prev;
     }
@@ -45,7 +47,7 @@ export async function getAlbumAndChildren(
  */
 export async function getAlbum(
     albumPath: string,
-    includeUnpublishedAlbums: boolean = false,
+    includeUnpublishedAlbums: boolean | Promise<boolean> = false,
 ): Promise<Album | undefined> {
     if (!isValidAlbumPath(albumPath)) {
         throw new BadRequestException(`Malformed album path: [${albumPath}]`);
@@ -59,18 +61,21 @@ export async function getAlbum(
             itemType: 'album',
         };
     } else {
-        const album = await getItem<AlbumItem>(albumPath, [
-            'parentPath',
-            'itemName',
-            'itemType',
-            'updatedOn',
-            'description',
-            'summary',
-            'thumbnail',
-            'published',
+        const [album, includeUnpublished] = await Promise.all([
+            getItem<AlbumItem>(albumPath, [
+                'parentPath',
+                'itemName',
+                'itemType',
+                'updatedOn',
+                'description',
+                'summary',
+                'thumbnail',
+                'published',
+            ]),
+            includeUnpublishedAlbums,
         ]);
         if (!album) return;
-        if (!album.published && !includeUnpublishedAlbums) return;
+        if (!album.published && !includeUnpublished) return;
         album.path = toPathFromItem(album);
         return album;
     }
@@ -84,7 +89,7 @@ export async function getAlbum(
  */
 async function getChildren(
     albumPath: string,
-    includeUnpublishedAlbums: boolean,
+    includeUnpublishedAlbums: boolean | Promise<boolean>,
 ): Promise<Array<GalleryItem> | undefined> {
     let children = await getChildItems(albumPath, [
         'parentPath',
@@ -110,7 +115,7 @@ async function getChildren(
         });
         // If the children are albums not images (meaning it's a root or year album, not a day album)
         if (!isValidDayAlbumPath(albumPath)) {
-            if (!includeUnpublishedAlbums) {
+            if (!(await includeUnpublishedAlbums)) {
                 // Filter out unpublished albums
                 children = (children as AlbumItem[]).filter((child) => child.published);
             }
@@ -124,12 +129,15 @@ async function getChildren(
 /**
  * Get the peers of this album, so as to do prev/next
  */
-async function getPeers(albumPath: string, includeUnpublishedAlbums: boolean): Promise<Array<GalleryItem> | undefined> {
+async function getPeers(
+    albumPath: string,
+    includeUnpublishedAlbums: boolean | Promise<boolean>,
+): Promise<Array<GalleryItem> | undefined> {
     if (albumPath === '/') return; // root album is peerless
     const parentAlbumPath = getParentFromPath(albumPath);
     let peers = await getChildItems(parentAlbumPath, ['parentPath', 'itemName', 'itemType', 'published', 'title']);
     // If we're only including published albums, and the album contains child albums (meaning it's a root or year album, not a day album)
-    if (peers && !includeUnpublishedAlbums && !isValidDayAlbumPath(albumPath)) {
+    if (peers && !(await includeUnpublishedAlbums) && !isValidDayAlbumPath(albumPath)) {
         peers = (peers as AlbumItem[])?.filter((peer) => peer.published);
     }
     return peers;
