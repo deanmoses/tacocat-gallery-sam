@@ -48,6 +48,16 @@ export function getRedisSearchPassword(): string {
     return getEnv('REDIS_SEARCH_PASSWORD');
 }
 
+/** ARN of the CloudFront KeyValueStore holding album versions for the API edge cache */
+export function getAlbumVersionStoreArn(): string {
+    return getEnv('ALBUM_VERSION_STORE_ARN');
+}
+
+/** Same, or undefined where no edge cache is deployed */
+export function getOptionalAlbumVersionStoreArn(): string | undefined {
+    return process.env['ALBUM_VERSION_STORE_ARN'] || undefined;
+}
+
 /** ARN of the IAM role for MediaConvert to access S3 */
 export function getMediaConvertRoleArn(): string {
     return getEnv('MEDIA_CONVERT_ROLE_ARN');

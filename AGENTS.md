@@ -14,7 +14,7 @@ AWS Serverless (SAM) backend for a photo and video gallery. Uses:
 - S3 for media files: originals, derived images (resizes/thumbnails), transcoded videos
 - Lambda for processing (EXIF extraction, image resizing, video transcoding via MediaConvert)
 - API Gateway for the front end website to access the lambdas
-- CloudFront for CDN delivery
+- CloudFront for CDN delivery. The site's distribution (the hosting project) also serves this API as `/api/*` and caches album responses at the edge, keyed on versions this project keeps
 - Redis Labs for search indexing
 
 This project does NOT contain the front end, the gallery website. That's in another project.
@@ -140,6 +140,7 @@ Composite key structure:
 - **videoTranscodingComplete/**: EventBridge-triggered, handles MediaConvert job completion
 - **generateDerivedImage/**: Lambda URL, generates resized images via Sharp
 - **dynamoToRedis/**: DynamoDB Streams-triggered, syncs data to Redis for search
+- **updateAlbumVersions/**: DynamoDB Streams-triggered, keeps the album versions the API edge cache keys on in a CloudFront KeyValueStore
 
 ### Shared Libraries (`app/src/lib/`)
 
@@ -147,6 +148,7 @@ Composite key structure:
 - **lambda_utils/**: Exception types, API Gateway helpers, response formatting
 - **dynamo_utils/**: DynamoDB query patterns
 - **redis_utils/**: Redis client, search operations
+- **cloudfront_utils/**: CloudFront KeyValueStore writes
 - **s3_utils/**: S3 operations (copy, list, delete)
 - **gallery_path_utils/**: Path validation and parsing
 

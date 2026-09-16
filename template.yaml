@@ -114,6 +114,8 @@ Globals:
           COGNITO_CLIENT_ID: !Ref CognitoClientID
   Api:
     Name: !Sub Tacocat Gallery API - ${Env}
+    # Compress here rather than at the edge: CloudFront only compresses what it
+    # caches, and most of the API passes through it uncached.
     MinimumCompressionSize: 1000 # Gzip/brotli responses over 1KB
     OpenApiVersion: '3.0.1' # Stops SAM creating unused "Stage" stage
     Domain:
@@ -132,11 +134,6 @@ Globals:
     AccessLogSetting:
       DestinationArn: !GetAtt ApiAccessLogGroup.Arn
       Format: '{"requestId":"$context.requestId","requestTime":"$context.requestTime","ip":"$context.identity.sourceIp","userAgent":"$context.identity.userAgent","httpMethod":"$context.httpMethod","path":"$context.path","status":"$context.status","responseLength":"$context.responseLength","responseLatency":"$context.responseLatency","integrationStatus":"$context.integration.status","integrationLatency":"$context.integration.latency","errorMessage":"$context.error.message","integrationRequestId":"$context.integration.requestId","extendedRequestId":"$context.extendedRequestId","requestTimeEpoch":"$context.requestTimeEpoch","resourcePath":"$context.resourcePath"}'
-    Cors:
-      AllowMethods: "'GET,OPTIONS,HEAD,POST,PUT,PATCH,DELETE'"
-      AllowHeaders: "'Content-Type'"
-      AllowOrigin: !Sub "'https://${GalleryAppDomain}'"
-      AllowCredentials: true
 
 # -----------------------------------------------------------------------------
 # Resources are the actual AWS assets to be provisioned
@@ -850,6 +847,195 @@ Resources:
             };
         }
 
+  # The gallery app reaches the API as /api/* on its own domain, through the
+  # site's CloudFront distribution (the hosting project), whose origin is the
+  # api.<domain> custom domain above. This second mapping is what lets that
+  # distribution pass the viewer's path through unchanged; the bare mapping
+  # SAM generates stays, for the integration tests and for reaching the API
+  # directly. Declared by hand rather than through the Domain shorthand's
+  # BasePath list, which rewrites the existing bare mapping and collides with
+  # itself on update.
+  ApiBasePathMappingForSite:
+    Type: AWS::ApiGateway::BasePathMapping
+    DependsOn: ServerlessRestApiBasePathMapping # the domain exists once SAM's own mapping does
+    Properties:
+      DomainName: !Sub api.${GalleryAppDomain}
+      BasePath: api
+      RestApiId: !Ref ServerlessRestApi
+      Stage: !Ref ServerlessRestApiProdStage
+
+  # ---------------------------------------------------------------------------
+  # API edge cache: album responses cached at the edge, on the site's CloudFront
+  # distribution (the hosting project), which attaches the function and the
+  # two policies below to its /api/album* behaviors via this stack's exports.
+  #
+  # An album's cache entry is keyed on its version, which the viewer-request
+  # function below reads from the KeyValueStore. UpdateAlbumVersions keeps the
+  # store current from the DynamoDB stream, so an edit moves the key and the
+  # next request misses; nothing is ever invalidated, old entries just stop
+  # being asked for. See docs/Architecture.md.
+  # ---------------------------------------------------------------------------
+
+  # One key per album, `content:<path>`. UpdateAlbumVersions moves a version
+  # on every change; GetAlbum writes an album's first one, on the first request
+  # the edge finds no version for, so an empty store fills itself from traffic.
+  AlbumVersionStore:
+    Type: AWS::CloudFront::KeyValueStore
+    Properties:
+      Name: !Sub ${AWS::StackName}-album-versions
+      Comment: !Sub Album versions the API edge cache keys on, for ${AWS::StackName}
+
+  # Turns GET /api/album[/...] into a cache key: the album's version from the
+  # store and whether the viewer carries an auth cookie. The origin decides on the
+  # cookie itself (forwarded by ApiAlbumOriginRequestPolicy); x-has-token only
+  # keeps the two answers in separate cache entries. Both headers are set here
+  # on every request, so nothing a viewer sends can choose the cache key.
+  #
+  # An album with no version is served uncached: with no x-album-version the
+  # origin answers no-store (see respondCacheable in ApiGatewayResponseHelpers).
+  # `?fresh` gets a one-off version, so the request bypasses the cache; the
+  # gallery app uses it after a save, when the store is still catching up.
+  # Only a viewer with an auth cookie gets that, since only an admin has a
+  # reason to; for anyone else the cache is what stands between them and the
+  # origin.
+  AlbumVersionFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub AlbumVersion-${AWS::StackName}
+      AutoPublish: true
+      FunctionConfig:
+        Comment: !Sub Keys album requests on their version for ${AWS::StackName}
+        Runtime: cloudfront-js-2.0
+        KeyValueStoreAssociations:
+          - KeyValueStoreARN: !GetAtt AlbumVersionStore.Arn
+      FunctionCode: |+2
+        import cf from 'cloudfront';
+        const kvs = cf.kvs();
+        // Same shape as isValidAlbumPath() in galleryPathUtils.ts
+        const ALBUM_PATH = /^(\/\d\d\d\d(\/(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))?)?\/$/;
+        async function handler(event) {
+            const r = event.request;
+            delete r.headers['x-album-version'];
+            delete r.headers['x-has-token'];
+            if (r.method !== 'GET' && r.method !== 'HEAD') return r;
+            // r.uri is /api/album or /api/album/2001/12-31, with or without a
+            // trailing slash (the gallery app sends one). One form, one entry.
+            const albumPath = r.uri.substring('/api/album'.length).replace(/\/$/, '') + '/';
+            if (!ALBUM_PATH.test(albumPath)) return r;
+            r.uri = '/api/album' + albumPath.slice(0, -1);
+            const token = r.cookies['id_token'];
+            const hasToken = !!(token && token.value);
+            const fresh = hasToken && r.querystring['fresh'] !== undefined;
+            r.querystring = {};
+            r.headers['x-has-token'] = { value: hasToken ? '1' : '0' };
+            const version = fresh ? 'fresh-' + event.context.requestId : await albumVersion(albumPath);
+            if (version) r.headers['x-album-version'] = { value: version };
+            return r;
+        }
+        // Undefined when the album has no version in the store
+        async function albumVersion(albumPath) {
+            try {
+                return await kvs.get('content:' + albumPath);
+            } catch (e) {
+                return undefined;
+            }
+        }
+
+  # Cache key: the two headers the function sets, plus the compression variant.
+  # No cookies and no query strings; the origin request policy decides what of
+  # those the origin sees. The TTLs are a backstop for a version the stream
+  # Lambda failed to move; the origin's s-maxage is what normally applies.
+  ApiAlbumCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub ApiAlbumCachePolicy-${AWS::StackName}
+        Comment: !Sub Key album responses on their version for ${AWS::StackName}
+        MinTTL: 0
+        DefaultTTL: 86400 # 1 day
+        MaxTTL: 31536000 # 1 year
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingBrotli: true
+          EnableAcceptEncodingGzip: true
+          CookiesConfig:
+            CookieBehavior: none
+          HeadersConfig:
+            HeaderBehavior: whitelist
+            Headers:
+              - x-album-version
+              - x-has-token
+          QueryStringsConfig:
+            QueryStringBehavior: none
+
+  # What reaches API Gateway on the album behaviors beyond the cache key: the
+  # auth cookie, what the write methods sharing these paths need, and what the
+  # access log records. Never Accept-Encoding, which the cache policy above
+  # already handles.
+  ApiAlbumOriginRequestPolicy:
+    Type: AWS::CloudFront::OriginRequestPolicy
+    Properties:
+      OriginRequestPolicyConfig:
+        Name: !Sub ApiAlbumOriginRequestPolicy-${AWS::StackName}
+        Comment: !Sub Forward the auth cookie to the API for ${AWS::StackName}
+        CookiesConfig:
+          CookieBehavior: whitelist
+          Cookies:
+            - id_token
+        HeadersConfig:
+          HeaderBehavior: whitelist
+          Headers:
+            - content-type
+            - user-agent
+            - referer
+        QueryStringsConfig:
+          QueryStringBehavior: none
+
+  # ---------------------------------------------------------------------------
+  # Lambda that keeps the album versions in the KeyValueStore current
+  # ---------------------------------------------------------------------------
+  UpdateAlbumVersionsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-UpdateAlbumVersions
+      CodeUri: app/src/lambdas/updateAlbumVersions/
+      Handler: updateAlbumVersionsLambda.handler
+      Description: Recompute the edge cache versions of the albums a DynamoDB change touched
+      Events:
+        DynamoDBEvent:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt GalleryItemDDBTable.StreamArn # second consumer of the stream, after DynamoToRedis
+            StartingPosition: LATEST
+            BatchSize: 100
+            # Let an upload's burst of records land in one batch: each album
+            # is recomputed once per batch, however many records touched it.
+            MaximumBatchingWindowInSeconds: 5
+            BisectBatchOnFunctionError: true
+            # A dropped batch leaves a version stale until the cache entry
+            # expires, so don't block the shard for it.
+            MaximumRetryAttempts: 3
+      Environment:
+        Variables:
+          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+          ALBUM_VERSION_STORE_ARN: !GetAtt AlbumVersionStore.Arn
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref GalleryItemDDBTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cloudfront-keyvaluestore:DescribeKeyValueStore
+                - cloudfront-keyvaluestore:UpdateKeys
+              Resource: !GetAtt AlbumVersionStore.Arn
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Sourcemap: true
+        Target: node24
+        EntryPoints:
+          - updateAlbumVersionsLambda.ts
+
   # ---------------------------------------------------------------------------
   # Supplies Sharp, without HEIC support, to any arm64 function that needs it.
   #
@@ -1059,36 +1245,6 @@ Resources:
           - searchLambda.ts
 
   # ---------------------------------------------------------------------------
-  # API Gateway lambda to get latest album
-  # ---------------------------------------------------------------------------
-  GetLatestAlbumFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: !Sub ${AWS::StackName}-GetLatestAlbum
-      CodeUri: app/src/lambdas/api/
-      Handler: getLatestAlbumLambda.handler
-      Description: Get latest album from DynamoDB
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /latest-album
-            Method: GET
-      Environment:
-        Variables:
-          GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
-      Policies:
-        - DynamoDBReadPolicy:
-            TableName: !Ref GalleryItemDDBTable
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: node24
-        EntryPoints:
-          - getLatestAlbumLambda.ts
-
-  # ---------------------------------------------------------------------------
   # API Gateway lambda to determine whether album exists
   # ---------------------------------------------------------------------------
   AlbumExistsFunction:
@@ -1177,9 +1333,17 @@ Resources:
       Environment:
         Variables:
           GALLERY_ITEM_DDB_TABLE: !Ref GalleryItemDDBTable
+          ALBUM_VERSION_STORE_ARN: !GetAtt AlbumVersionStore.Arn
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref GalleryItemDDBTable
+        - Statement: # writes an album's first version, see albumVersion.ts
+            - Effect: Allow
+              Action:
+                - cloudfront-keyvaluestore:DescribeKeyValueStore
+                - cloudfront-keyvaluestore:GetKey
+                - cloudfront-keyvaluestore:UpdateKeys
+              Resource: !GetAtt AlbumVersionStore.Arn
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -1883,6 +2047,25 @@ Outputs:
   ImageDomain:
     Description: CloudFront image distribution
     Value: !Sub https://${ImageDistribution.DomainName}/
+
+  # What a CloudFront distribution needs in order to cache this API's album responses
+  AlbumVersionFunctionArn:
+    Description: CloudFront Function that keys album requests on their version
+    Value: !GetAtt AlbumVersionFunction.FunctionMetadata.FunctionARN
+    Export:
+      Name: !Sub ${AWS::StackName}-AlbumVersionFunctionArn
+
+  ApiAlbumCachePolicyId:
+    Description: Cache policy for album responses
+    Value: !Ref ApiAlbumCachePolicy
+    Export:
+      Name: !Sub ${AWS::StackName}-ApiAlbumCachePolicyId
+
+  ApiAlbumOriginRequestPolicyId:
+    Description: Origin request policy for album requests
+    Value: !Ref ApiAlbumOriginRequestPolicy
+    Export:
+      Name: !Sub ${AWS::StackName}-ApiAlbumOriginRequestPolicyId
 
   GenerateDerivedImageUrl:
     Description: URL of lambda that generates derived images

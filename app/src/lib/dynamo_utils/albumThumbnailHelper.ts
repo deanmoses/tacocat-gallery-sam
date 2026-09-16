@@ -1,5 +1,6 @@
 import { BatchGetCommand } from '@aws-sdk/lib-dynamodb';
 import { GalleryItem, ImageItem } from '../gallery/galleryTypes';
+import type { ItemOverlay } from '../gallery/getAlbum/getAlbum';
 import { getParentAndNameFromPath, toMediaPath } from '../gallery_path_utils/galleryPathUtils';
 import { getDynamoDbTableName } from '../lambda_utils/Env';
 import { ddbDocClient } from './ddbClient';
@@ -15,7 +16,10 @@ type ImageInfo = Partial<Pick<ImageItem, 'parentPath' | 'itemName' | 'thumbnail'
  * such as versionId and crop info.
  * Ignores any image entries in the passed-in array.
  */
-export async function augmentAlbumThumbnailsWithImageInfo(galleryItems: GalleryItem[]): Promise<void> {
+export async function augmentAlbumThumbnailsWithImageInfo(
+    galleryItems: GalleryItem[],
+    overlay?: ItemOverlay,
+): Promise<void> {
     if (!galleryItems || galleryItems.length === 0) return;
     // Collect all the images paths in a Set to de-dupe them.
     // Dupes will happen if the search returns both an album and its parent album,
@@ -58,6 +62,10 @@ export async function augmentAlbumThumbnailsWithImageInfo(galleryItems: GalleryI
         const mediaPath = toMediaPath(item.parentPath, item.itemName);
         imgInfos.set(mediaPath, item);
     });
+    for (const mediaPath of mediaPaths) {
+        const fresh = overlay?.items.get(mediaPath);
+        if (fresh && 'versionId' in fresh) imgInfos.set(mediaPath, fresh);
+    }
     for (const galleryItem of galleryItems) {
         if ('image' === galleryItem.itemType) continue;
         const album = galleryItem;
