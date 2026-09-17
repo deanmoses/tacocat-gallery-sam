@@ -16,6 +16,7 @@ import {
     albumPathToDate,
     pathToDate,
     toPathFromItem,
+    toPathFromKey,
     toAlbumPath,
     toMediaPath,
     hasHeicExtension,
@@ -1259,5 +1260,21 @@ describe('toMediaPath', () => {
 
     it('Should throw for undefined itemName', () => {
         expect(() => toMediaPath('/2001/12-31/', undefined)).toThrow(/undefined/i);
+    });
+});
+
+describe('toPathFromKey', () => {
+    test('a name with an extension is a media item', () => {
+        expect(toPathFromKey('/2001/12-31/', 'image.jpg')).toBe('/2001/12-31/image.jpg');
+    });
+
+    test('a name without one is an album', () => {
+        expect(toPathFromKey('/2001/', '12-31')).toBe('/2001/12-31/');
+        expect(toPathFromKey('/', '2001')).toBe('/2001/');
+    });
+
+    test('a missing part throws', () => {
+        expect(() => toPathFromKey(undefined, '12-31')).toThrow();
+        expect(() => toPathFromKey('/2001/', undefined)).toThrow();
     });
 });

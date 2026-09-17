@@ -4,7 +4,7 @@ import { AttributeValue } from '@aws-sdk/client-dynamodb';
 import { toRedisItem } from '../../lib/redis_utils/toRedisFromDynamo';
 import { RedisGalleryItem } from '../../lib/redis_utils/redisTypes';
 import { saveToRedis } from '../../lib/redis_utils/redisMset';
-import { isValidMediaPath } from '../../lib/gallery_path_utils/galleryPathUtils';
+import { toPathFromKey } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { createRedisWriteClient } from '../../lib/redis_utils/redisClientUtils';
 import { GalleryItem } from '../../lib/gallery/galleryTypes';
 
@@ -36,7 +36,7 @@ function toRedisItems(event: DynamoDBStreamEvent): { itemsToSave: RedisGalleryIt
         } else if ('REMOVE' === record.eventName) {
             const parentPath = record.dynamodb?.Keys?.['parentPath']?.S;
             const itemName = record.dynamodb?.Keys?.['itemName']?.S;
-            const path = toPath(parentPath, itemName);
+            const path = toPathFromKey(parentPath, itemName);
             pathsToDelete.push(path);
             console.info({ event: 'redis_item_delete', dynamoEvent: record.eventName, path });
         } else {
@@ -57,12 +57,4 @@ async function syncToRedis(itemsToSave: RedisGalleryItem[], pathsToDelete: strin
             await redisClient.close();
         }
     }
-}
-
-/** Make album/image path from item */
-function toPath(parentPath: string | undefined, itemName: string | undefined): string {
-    if (!parentPath) throw new Error(`Missing parentPath`);
-    if (!itemName) throw new Error(`Missing itemName`);
-    const path = `${parentPath}${itemName}`;
-    return isValidMediaPath(path) ? path : path + '/';
 }
