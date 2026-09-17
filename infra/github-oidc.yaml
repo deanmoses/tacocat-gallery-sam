@@ -38,8 +38,8 @@ Description: >-
 # The Claude Code user is the one principal here that carries a long-lived access
 # key, because a cloud session has no OIDC token to trade and IAM Identity Center
 # needs a browser sign-in that cannot run in one. It reaches as far as the main
-# role does, plus read-only access to every environment's logs. Changing prod is
-# what an explicit Deny puts out of reach for good.
+# role does, plus read-only access to every environment: logs, metrics, data,
+# configuration. Changing prod is what an explicit Deny puts out of reach for good.
 # -----------------------------------------------------------------------------
 
 Parameters:
@@ -367,18 +367,25 @@ Resources:
                             Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${StackPrefix}-prod/*
 
     # ---------------------------------------------------------------------------
-    # Reading the application's own logs in every environment, which no CI job
-    # does but a person debugging from a Claude Code session does constantly
-    # (`sam logs`, `aws logs tail`, Logs Insights).
+    # Reading every environment, prod included, which no CI job does but a person
+    # debugging from a Claude Code session does constantly: an incident is when
+    # you most want to look, and looking changes nothing. The prod resources are
+    # read-only under the Claude Code user's NeverProd deny below, which is what
+    # keeps this policy from ever needing to be careful about prod.
     # ---------------------------------------------------------------------------
-    ReadApplicationLogsPolicy:
+    ReadAllEnvironmentsPolicy:
         Type: AWS::IAM::ManagedPolicy
+        Metadata:
+            cfn-lint:
+                config:
+                    ignore_checks:
+                        - W3037 # cfn-lint's DynamoDB action list is missing the (real) TransactGetItems
         Properties:
-            ManagedPolicyName: tacocat-gallery-read-application-logs
+            ManagedPolicyName: tacocat-gallery-read-all-environments
             # A changed Description replaces the policy, and a replacement cannot
             # reuse the name, so bump the name whenever the text changes. Adding
             # statements below is free; editing this line is not.
-            Description: Read every environment's Lambda and API Gateway log groups, and the X-Ray traces sam logs --include-traces fetches
+            Description: Read every environment's logs, traces, metrics, alarms, table, buckets, stacks, Lambdas, edge resources and costs
             PolicyDocument:
                 Version: '2012-10-17'
                 Statement:
@@ -439,6 +446,142 @@ Resources:
                           - xray:BatchGetTraces
                           - xray:GetTraceSummaries
                       Resource: '*'
+                    - Sid: ReadTheTables
+                      Effect: Allow
+                      Action:
+                          - dynamodb:DescribeTable
+                          - dynamodb:DescribeTimeToLive
+                          - dynamodb:DescribeContinuousBackups
+                          - dynamodb:DescribeStream
+                          - dynamodb:GetItem
+                          - dynamodb:BatchGetItem
+                          - dynamodb:Query
+                          - dynamodb:Scan
+                          - dynamodb:PartiQLSelect
+                          - dynamodb:TransactGetItems
+                      Resource:
+                          - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StackPrefix}-*
+                          - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StackPrefix}-*/index/*
+                          - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StackPrefix}-*/stream/*
+                    - Sid: ReadTheBuckets
+                      Effect: Allow
+                      Action:
+                          - s3:ListBucket
+                          - s3:ListBucketVersions
+                          - s3:GetBucketLocation
+                          - s3:GetBucketVersioning
+                          - s3:GetLifecycleConfiguration
+                          - s3:GetBucketPolicy
+                          - s3:GetBucketPublicAccessBlock
+                      Resource: !Sub arn:aws:s3:::${StackPrefix}-*
+                    - Sid: ReadTheObjects
+                      Effect: Allow
+                      Action:
+                          - s3:GetObject
+                          - s3:GetObjectVersion
+                          - s3:GetObjectAttributes
+                          - s3:GetObjectTagging
+                      Resource: !Sub arn:aws:s3:::${StackPrefix}-*/*
+                    - Sid: ReadTheStacks
+                      # The prefix takes in this stack too, so a session can tell
+                      # whether a by-hand deploy of it took.
+                      Effect: Allow
+                      Action:
+                          - cloudformation:DescribeStacks
+                          - cloudformation:DescribeStackEvents
+                          - cloudformation:DescribeStackResource
+                          - cloudformation:DescribeStackResources
+                          - cloudformation:ListStackResources
+                          - cloudformation:GetTemplate
+                          - cloudformation:DescribeChangeSet
+                          - cloudformation:ListChangeSets
+                      Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${StackPrefix}-*/*
+                    - Sid: ReadTheFunctions
+                      Effect: Allow
+                      Action:
+                          - lambda:GetFunction
+                          - lambda:GetFunctionConfiguration
+                          - lambda:GetFunctionUrlConfig
+                          - lambda:GetFunctionConcurrency
+                          - lambda:GetPolicy
+                          - lambda:ListVersionsByFunction
+                          - lambda:ListAliases
+                          - lambda:ListFunctionUrlConfigs
+                      Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${StackPrefix}-*
+                    - Sid: ReadTheApi
+                      # apigateway:GET is every read of a REST API: stages, custom
+                      # domains, base path mappings, integrations
+                      Effect: Allow
+                      Action: apigateway:GET
+                      Resource: !Sub arn:aws:apigateway:${AWS::Region}::/*
+                    - Sid: ReadOwnPermissions
+                      # So a denial can be diagnosed from inside a session. The user's
+                      # name is spelled out because !GetAtt on the user would make this
+                      # policy depend on the user that attaches it.
+                      Effect: Allow
+                      Action:
+                          - iam:GetUser
+                          - iam:ListAttachedUserPolicies
+                          - iam:ListUserPolicies
+                          - iam:GetUserPolicy
+                          - iam:ListAccessKeys
+                          - iam:SimulatePrincipalPolicy
+                      Resource: !Sub arn:aws:iam::${AWS::AccountId}:user/tacocat-gallery-claude-code-cloud
+                    - Sid: ReadOwnPolicies
+                      Effect: Allow
+                      Action:
+                          - iam:GetPolicy
+                          - iam:GetPolicyVersion
+                          - iam:ListPolicyVersions
+                      Resource: !Sub arn:aws:iam::${AWS::AccountId}:policy/tacocat-gallery-*
+                    - Sid: ReadWhatHasNoArn
+                      # Listings, metrics and alarms carry no resource ARN. CloudFront
+                      # names functions, policies and key value stores by opaque id, so
+                      # they cannot be scoped to the gallery's own either. All read-only.
+                      Effect: Allow
+                      Action:
+                          - dynamodb:ListTables
+                          - dynamodb:ListStreams
+                          - s3:ListAllMyBuckets
+                          - cloudformation:ListStacks
+                          - cloudformation:ListExports
+                          - cloudformation:ListImports
+                          - lambda:ListFunctions
+                          - lambda:ListEventSourceMappings
+                          - lambda:GetEventSourceMapping
+                          - cloudwatch:GetMetricStatistics
+                          - cloudwatch:GetMetricData
+                          - cloudwatch:ListMetrics
+                          - cloudwatch:DescribeAlarms
+                          - cloudwatch:DescribeAlarmsForMetric
+                          - cloudwatch:DescribeAlarmHistory
+                          - cloudfront:DescribeFunction
+                          - cloudfront:GetFunction
+                          - cloudfront:ListFunctions
+                          - cloudfront:DescribeKeyValueStore
+                          - cloudfront:ListKeyValueStores
+                          - cloudfront-keyvaluestore:DescribeKeyValueStore
+                          - cloudfront-keyvaluestore:ListKeys
+                          - cloudfront-keyvaluestore:GetKey
+                          - cloudfront:GetCachePolicy
+                          - cloudfront:ListCachePolicies
+                          - cloudfront:GetOriginRequestPolicy
+                          - cloudfront:ListOriginRequestPolicies
+                          - cloudfront:GetDistribution
+                          - cloudfront:GetDistributionConfig
+                          - cloudfront:ListDistributions
+                      Resource: '*'
+                    - Sid: ReadTheBill
+                      # Whether the free tier holds. Cost Explorer answers only once
+                      # "IAM user and role access to Billing information" is activated
+                      # in the account settings.
+                      Effect: Allow
+                      Action:
+                          - ce:GetCostAndUsage
+                          - ce:GetCostForecast
+                          - budgets:ViewBudget
+                          - freetier:GetFreeTierUsage
+                      Resource: '*'
 
     # ---------------------------------------------------------------------------
     # Claude Code on the web: a cloud session has no OIDC token to trade for a
@@ -448,40 +591,60 @@ Resources:
     # ---------------------------------------------------------------------------
     ClaudeCodeCloudUser:
         Type: AWS::IAM::User
+        Metadata:
+            cfn-lint:
+                config:
+                    ignore_checks:
+                        - W3037 # cfn-lint's DynamoDB action list is missing the (real) TransactGetItems
         Properties:
             UserName: tacocat-gallery-claude-code-cloud
             ManagedPolicyArns:
                 - !Ref SamDeployPlumbingPolicy
                 - !Ref DeployDevAndTestPolicy
                 - !Ref IntegrationTestsPolicy
-                - !Ref ReadApplicationLogsPolicy
+                - !Ref ReadAllEnvironmentsPolicy
             Policies:
                 - PolicyName: NeverProd
-                  # Reading prod logs is granted; changing prod is not, and nothing
-                  # above grants it either. This is here so that a later widening of a
-                  # shared policy cannot quietly hand production to a credential that
-                  # sits in a cloud environment.
+                  # Prod is read-only: every action on its stack, data and functions is
+                  # denied except the reads listed, and a Deny wins over any Allow. This
+                  # is here so that a later widening of a shared policy cannot quietly
+                  # hand production to a credential that sits in a cloud environment.
+                  # Nothing grants a write to any key value store, and prod's is
+                  # addressed by an opaque id, so it cannot be listed here.
                   PolicyDocument:
                       Version: '2012-10-17'
                       Statement:
-                          - Sid: NoProdStack
+                          - Sid: ProdStackReadOnly
                             Effect: Deny
-                            Action: cloudformation:*
+                            NotAction:
+                                - cloudformation:Describe*
+                                - cloudformation:Get*
+                                - cloudformation:List*
                             Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${StackPrefix}-prod/*
-                          - Sid: NoProdData
-                            # The prod log groups are deliberately absent: they are
-                            # granted above, and an explicit Deny here would win.
+                          - Sid: ProdDataReadOnly
                             Effect: Deny
-                            Action:
-                                - dynamodb:*
-                                - s3:*
+                            NotAction:
+                                - dynamodb:Describe*
+                                - dynamodb:Get*
+                                - dynamodb:List*
+                                - dynamodb:BatchGetItem
+                                - dynamodb:Query
+                                - dynamodb:Scan
+                                - dynamodb:PartiQLSelect
+                                - dynamodb:TransactGetItems
+                                - s3:Get*
+                                - s3:List*
                             Resource:
-                                - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StackPrefix}-prod-items
-                                - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StackPrefix}-prod-items/index/*
-                                - !Sub arn:aws:s3:::${StackPrefix}-prod-original-images
-                                - !Sub arn:aws:s3:::${StackPrefix}-prod-original-images/*
-                                - !Sub arn:aws:s3:::${StackPrefix}-prod-derived-images
-                                - !Sub arn:aws:s3:::${StackPrefix}-prod-derived-images/*
+                                - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StackPrefix}-prod-*
+                                - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StackPrefix}-prod-*/*
+                                - !Sub arn:aws:s3:::${StackPrefix}-prod-*
+                                - !Sub arn:aws:s3:::${StackPrefix}-prod-*/*
+                          - Sid: ProdFunctionsReadOnly
+                            Effect: Deny
+                            NotAction:
+                                - lambda:Get*
+                                - lambda:List*
+                            Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${StackPrefix}-prod-*
 
 Outputs:
     CloudFormationDeployRoleArn:
