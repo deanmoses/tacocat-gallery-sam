@@ -371,6 +371,17 @@ export function toPathFromItem(item: BaseGalleryRecord): string {
 }
 
 /**
+ * Build a gallery path from a DynamoDB key alone, with no itemType to go on:
+ * album names never carry an extension, so a name with one is a media item.
+ */
+export function toPathFromKey(parentPath: string | undefined, itemName: string | undefined): string {
+    if (!parentPath) throw new Error(`Missing parentPath`);
+    if (!itemName) throw new Error(`Missing itemName`);
+    const path = `${parentPath}${itemName}`;
+    return isValidMediaPath(path) ? path : path + '/';
+}
+
+/**
  * Build an album path from its parent path and name.
  *
  * For example:
