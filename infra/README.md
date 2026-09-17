@@ -22,11 +22,11 @@ A cloud session can run `sam build`, `sam deploy`, `sam logs` and the integratio
 
 ### The IAM user
 
-`tacocat-gallery-claude-code-cloud`, in [github-oidc.yaml](github-oidc.yaml), holds what the `main` CI role holds (deploy dev and test, run the integration tests against the test stack) plus read access to logs, which no CI job needs. Prod logs are included: an incident is when you most want them, and reading a log changes nothing. Deploying to prod and touching prod's table or buckets stay out of reach, under an explicit `Deny`.
+`tacocat-gallery-claude-code-cloud`, in [github-oidc.yaml](github-oidc.yaml), holds what the `main` CI role holds (deploy dev and test, run the integration tests against the test stack) plus read access to every environment, which no CI job needs: logs, metrics and alarms, table rows and bucket contents, stack, Lambda and API Gateway configuration, the edge cache's version stores, and the bill. Prod is included: an incident is when you most want to look, and looking changes nothing. Deploying to prod and writing to prod's table, buckets or functions stay out of reach, under an explicit `Deny` that lists the reads and denies the rest.
 
 The user is defined here, but what it may reach in each of the other Tacocat projects is granted there. Each of those repos attaches its own managed policy to this user from its own `infra/` stack, so a project's permissions live with the project rather than accumulating in this template. That makes this stack a prerequisite for theirs: the user has to exist before a policy can name it.
 
-What this repo grants is its own: the gallery stacks' log groups in all three environments, and the image distribution's CloudFront access log bucket.
+What this repo grants is its own: the gallery stacks and what they contain, in all three environments, and the image distribution's CloudFront access log bucket.
 
 It carries a long-lived access key, the only principal here that does. A cloud session has no GitHub OIDC token to trade for a role, and IAM Identity Center needs a browser sign-in that cannot happen inside a session, so there is nothing shorter-lived to use. CloudFormation does not create the key, because a key created that way is readable from the stack forever. Create it by hand after deploying the stack, and rotate it the same way:
 
