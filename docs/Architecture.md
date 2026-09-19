@@ -165,9 +165,9 @@ Tracks async failures that the frontend needs to display.
 All API calls from the front end go through the AWS API Gateway.
 
 - **Authentication:** AWS Cognito User Pool; ID tokens delivered via HTTP-only cookies.
-- **Authorization:**
-    - _Read operations:_ Token existence check only (fast path for public content)
-    - _Write operations:_ Full JWT validation required
+- **Authorization:** every request carrying an `id_token` cookie has it verified against the Cognito user pool. The signing keys are fetched once per Lambda container, started at cold start so the first verification rarely waits on the network.
+    - _Read operations:_ never rejected. A verified token includes unpublished content; a missing or invalid (usually expired) token gets the public view. `getAlbum`, `albumExists` and `mediaExists` report which in an `X-Auth-Status` response header (`none`, `valid` or `invalid`), so the gallery app can refresh its session and ask again rather than show an admin the guest view. Verification runs alongside the DynamoDB reads; only the filtering of what came back waits on it.
+    - _Write operations:_ rejected with 401 unless the token verifies
 - **CORS:** Enabled for gallery app domain with credentials support.
 
 ## Compute (AWS Lambda)

@@ -4,7 +4,7 @@ import {
     respond404NotFound,
     respondHttp,
 } from '../../lib/lambda_utils/ApiGatewayResponseHelpers';
-import { isAuthenticatedForReads } from '../../lib/lambda_utils/AuthorizationHelpers';
+import { AUTH_STATUS_HEADER, getReadAuthStatus } from '../../lib/lambda_utils/AuthorizationHelpers';
 import {
     HttpMethod,
     ensureHttpMethod,
@@ -21,12 +21,18 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         logRequestReceived(event);
         ensureHttpMethod(event, HttpMethod.GET);
         const albumPath = getAlbumPath(event);
-        const includeUnpublishedAlbums = isAuthenticatedForReads(event);
-        const album = await getAlbumAndChildren(albumPath, includeUnpublishedAlbums);
+        // Token verification runs alongside the DynamoDB reads; only the
+        // filtering of what came back waits on it
+        const authStatus = getReadAuthStatus(event);
+        const album = await getAlbumAndChildren(
+            albumPath,
+            authStatus.then((status) => status === 'valid'),
+        );
+        const headers = { [AUTH_STATUS_HEADER]: await authStatus };
         if (!album) {
-            return respond404NotFound(event, 'Album Not Found');
+            return respond404NotFound(event, 'Album Not Found', headers);
         } else {
-            return respondHttp(event, album);
+            return respondHttp(event, album, 200, headers);
         }
     } catch (e) {
         return handleHttpExceptions(event, e);

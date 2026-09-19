@@ -34,7 +34,10 @@ describe('getAlbum()', () => {
         expect(result.published).toBe(true);
     });
 
-    test("Guest shouldn't be able to retrieve unpublished day album", async () => {
+    test.each([
+        { name: 'Guest', includeUnpublishedAlbums: false },
+        { name: 'Guest, decided asynchronously', includeUnpublishedAlbums: Promise.resolve(false) },
+    ])("$name shouldn't be able to retrieve unpublished day album", async ({ includeUnpublishedAlbums }) => {
         const albumPath = '/2001/01-01/';
         const uploadTimeStamp = new Date().toISOString();
         // Mock out AWS method to get album
@@ -46,7 +49,7 @@ describe('getAlbum()', () => {
                 updatedOn: uploadTimeStamp,
             } satisfies AlbumItem,
         });
-        const result = await getAlbum(albumPath);
+        const result = await getAlbum(albumPath, includeUnpublishedAlbums);
         if (result) throw new Error('Expected to not retrieve album');
     });
 
@@ -93,14 +96,19 @@ describe('getAlbumAndChildren()', () => {
         expect(result).toBeUndefined();
     });
 
-    test("Guest shouldn't be able to get unpublished child albums", async () => {
+    // The handler passes the outcome of token verification as a promise so it
+    // can overlap the DynamoDB reads; the filtering must wait on it.
+    test.each([
+        { name: 'Guest', includeUnpublishedAlbums: false },
+        { name: 'Guest, decided asynchronously', includeUnpublishedAlbums: Promise.resolve(false) },
+    ])("$name shouldn't be able to get unpublished child albums", async ({ includeUnpublishedAlbums }) => {
         // Mock out AWS method to get album
         mockDocClient.on(GetCommand).resolves({ Item: mockYearAlbum });
         // Mock out AWS method to get children
         mockDocClient
             .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2001/' } })
             .resolves({ Items: mockDayAlbums, Count: mockDayAlbums.length });
-        const album = await getAlbumAndChildren('/2001/');
+        const album = await getAlbumAndChildren('/2001/', includeUnpublishedAlbums);
         if (!album) throw new Error('Did not receive album');
         if (!findChild(album.children, '01-01')) throw new Error('Expected child 01-01');
         if (!findChild(album.children, '01-02')) throw new Error('Expected child 01-02');
@@ -108,14 +116,16 @@ describe('getAlbumAndChildren()', () => {
         if (!findChild(album.children, '01-04')) throw new Error('Expected child 01-04');
     });
 
-    test('Admin should be able to get unpublished child albums', async () => {
+    test.each([
+        { name: 'Admin', includeUnpublishedAlbums: true },
+        { name: 'Admin, decided asynchronously', includeUnpublishedAlbums: Promise.resolve(true) },
+    ])('$name should be able to get unpublished child albums', async ({ includeUnpublishedAlbums }) => {
         // Mock out AWS method to get album
         mockDocClient.on(GetCommand).resolves({ Item: mockYearAlbum });
         // Mock out AWS method to get children
         mockDocClient
             .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2001/' } })
             .resolves({ Items: mockDayAlbums, Count: mockDayAlbums.length });
-        const includeUnpublishedAlbums = true;
         const album = await getAlbumAndChildren('/2001/', includeUnpublishedAlbums);
         if (!album) throw new Error('Did not receive album');
         if (!findChild(album.children, '01-01')) throw new Error('Expected child 01-01');
@@ -267,7 +277,10 @@ describe('getAlbumAndChildren()', () => {
             expect(album?.next?.path).toBe('/2001/01-02/');
         });
 
-        test('Guest - Next Skips Unpublished', async () => {
+        test.each([
+            { name: 'Guest', includeUnpublishedAlbums: false },
+            { name: 'Guest, decided asynchronously', includeUnpublishedAlbums: Promise.resolve(false) },
+        ])('$name - Next Skips Unpublished', async ({ includeUnpublishedAlbums }) => {
             const albumName = '01-02';
             // Mock out AWS method to get album
             mockDocClient.on(GetCommand).resolves({ Item: mockDayAlbum });
@@ -275,7 +288,7 @@ describe('getAlbumAndChildren()', () => {
             mockDocClient
                 .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2001/' } })
                 .resolves({ Items: mockDayAlbums });
-            const album = await getAlbumAndChildren(`/2001/${albumName}/`);
+            const album = await getAlbumAndChildren(`/2001/${albumName}/`, includeUnpublishedAlbums);
             expect(album?.prev?.path).toBe('/2001/01-01/');
             expect(album?.next?.path).toBe('/2001/01-04/');
         });

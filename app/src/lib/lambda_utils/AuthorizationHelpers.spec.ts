@@ -1,6 +1,8 @@
 import { APIGatewayProxyEvent } from 'aws-lambda';
 import {
     getIdTokenFromCookies,
+    getReadAuthStatus,
+    hasIdToken,
     isAuthenticatedForReads,
     ensureAuthorizedForWrites,
     setVerifierForTesting,
@@ -85,37 +87,83 @@ describe('getIdTokenFromCookies', () => {
     });
 });
 
+/** A verifier that accepts or rejects every token */
+function mockVerifier(verify: jest.Mock) {
+    return { verify, hydrate: jest.fn().mockResolvedValue(undefined) };
+}
+
+describe('hasIdToken', () => {
+    it.each([
+        { name: 'no headers', event: createMockEvent(), expected: false },
+        { name: 'empty cookie', event: createMockEvent(''), expected: false },
+        { name: 'other cookies only', event: createMockEvent('refresh_token=abc'), expected: false },
+        { name: 'any token value', event: createMockEvent('id_token=literally-any-value'), expected: true },
+        { name: 'with other cookies', event: createMockEvent('other=value; id_token=abc123'), expected: true },
+    ])('is $expected for: $name', ({ event, expected }) => {
+        expect(hasIdToken(event)).toBe(expected);
+    });
+
+    it('finds the cookie whatever case the header came in', () => {
+        const event = { ...createMockEvent(), headers: { Cookie: 'id_token=abc123' } };
+        expect(hasIdToken(event)).toBe(true);
+    });
+});
+
+describe('getReadAuthStatus', () => {
+    afterEach(() => {
+        setVerifierForTesting(undefined);
+    });
+
+    it.each([
+        { name: 'no headers', event: createMockEvent() },
+        { name: 'empty cookie', event: createMockEvent('') },
+        { name: 'other cookies only', event: createMockEvent('refresh_token=abc') },
+    ])('is none, without consulting the verifier, for: $name', async ({ event }) => {
+        const verify = jest.fn().mockResolvedValue(mockPayload);
+        setVerifierForTesting(mockVerifier(verify));
+
+        await expect(getReadAuthStatus(event)).resolves.toBe('none');
+        expect(verify).not.toHaveBeenCalled();
+    });
+
+    it('is invalid when the verifier rejects the token', async () => {
+        setVerifierForTesting(mockVerifier(jest.fn().mockRejectedValue(new Error('Token expired'))));
+
+        await expect(getReadAuthStatus(createMockEvent('id_token=expired-token'))).resolves.toBe('invalid');
+    });
+
+    it('is valid when the verifier accepts the token', async () => {
+        const verify = jest.fn().mockResolvedValue(mockPayload);
+        setVerifierForTesting(mockVerifier(verify));
+
+        await expect(getReadAuthStatus(createMockEvent('other=value; id_token=my-token'))).resolves.toBe('valid');
+        expect(verify).toHaveBeenCalledWith('my-token');
+    });
+});
+
 describe('isAuthenticatedForReads', () => {
-    describe('returns false when no token present', () => {
-        const testCases = [
-            { name: 'no headers', event: createMockEvent() },
-            { name: 'empty cookie', event: createMockEvent('') },
-            { name: 'other cookies only', event: createMockEvent('refresh_token=abc') },
-        ];
-        testCases.forEach(({ name, event }) => {
-            it(`should return false for: ${name}`, () => {
-                expect(isAuthenticatedForReads(event)).toBe(false);
-            });
-        });
+    afterEach(() => {
+        setVerifierForTesting(undefined);
     });
 
-    describe('returns true when token present (no validation)', () => {
-        const testCases = [
-            { name: 'valid-looking token', event: createMockEvent('id_token=test-jwt-token-value') },
-            { name: 'any token value', event: createMockEvent('id_token=literally-any-value') },
-            { name: 'with other cookies', event: createMockEvent('other=value; id_token=abc123') },
-        ];
-        testCases.forEach(({ name, event }) => {
-            it(`should return true for: ${name}`, () => {
-                expect(isAuthenticatedForReads(event)).toBe(true);
-            });
-        });
+    it.each([
+        { name: 'no token', cookie: undefined, verifies: true, expected: false },
+        { name: 'a token the verifier rejects', cookie: 'id_token=expired', verifies: false, expected: false },
+        { name: 'a token the verifier accepts', cookie: 'id_token=good', verifies: true, expected: true },
+    ])('is $expected for $name', async ({ cookie, verifies, expected }) => {
+        const verify = verifies
+            ? jest.fn().mockResolvedValue(mockPayload)
+            : jest.fn().mockRejectedValue(new Error('Invalid signature'));
+        setVerifierForTesting(mockVerifier(verify));
+
+        await expect(isAuthenticatedForReads(createMockEvent(cookie))).resolves.toBe(expected);
     });
 
-    test('reads the Cookie header however it is capitalized (CloudFront sends it as Cookie)', () => {
+    test('reads the Cookie header however it is capitalized (CloudFront sends it as Cookie)', async () => {
+        setVerifierForTesting(mockVerifier(jest.fn().mockResolvedValue(mockPayload)));
         const event = createMockEvent();
         event.headers = { Cookie: 'id_token=abc' };
-        expect(isAuthenticatedForReads(event)).toBe(true);
+        await expect(isAuthenticatedForReads(event)).resolves.toBe(true);
     });
 });
 
@@ -146,18 +194,14 @@ describe('ensureAuthorizedForWrites', () => {
     describe('throws UnauthorizedException when token validation fails', () => {
         it('should throw when verifier rejects token', async () => {
             // Mock verifier that always rejects
-            setVerifierForTesting({
-                verify: jest.fn().mockRejectedValue(new Error('Token expired')),
-            });
+            setVerifierForTesting(mockVerifier(jest.fn().mockRejectedValue(new Error('Token expired'))));
 
             const event = createMockEvent('id_token=expired-token');
             await expect(ensureAuthorizedForWrites(event)).rejects.toThrow(UnauthorizedException);
         });
 
         it('should throw when verifier returns invalid signature', async () => {
-            setVerifierForTesting({
-                verify: jest.fn().mockRejectedValue(new Error('Invalid signature')),
-            });
+            setVerifierForTesting(mockVerifier(jest.fn().mockRejectedValue(new Error('Invalid signature'))));
 
             const event = createMockEvent('id_token=invalid-signature-token');
             await expect(ensureAuthorizedForWrites(event)).rejects.toThrow(UnauthorizedException);
@@ -167,9 +211,7 @@ describe('ensureAuthorizedForWrites', () => {
     describe('succeeds when token is valid', () => {
         it('should not throw when verifier accepts token', async () => {
             // Mock verifier that accepts the token
-            setVerifierForTesting({
-                verify: jest.fn().mockResolvedValue(mockPayload),
-            });
+            setVerifierForTesting(mockVerifier(jest.fn().mockResolvedValue(mockPayload)));
 
             const event = createMockEvent('id_token=valid-token');
             await expect(ensureAuthorizedForWrites(event)).resolves.toBeUndefined();
@@ -177,7 +219,7 @@ describe('ensureAuthorizedForWrites', () => {
 
         it('should call verifier with the token from cookies', async () => {
             const mockVerify = jest.fn().mockResolvedValue(mockPayload);
-            setVerifierForTesting({ verify: mockVerify });
+            setVerifierForTesting(mockVerifier(mockVerify));
 
             const event = createMockEvent('id_token=my-test-token');
             await ensureAuthorizedForWrites(event);

@@ -4,6 +4,7 @@ import { BadRequestException } from './BadRequestException';
 import { UnauthorizedException } from './UnauthorizedException';
 import { ServerException } from './ServerException';
 import { getGalleryAppDomain } from './Env';
+import { AUTH_STATUS_HEADER } from './AuthorizationHelpers';
 
 /**
  * Create a 200 OK API Gateway lambda function response
@@ -18,23 +19,36 @@ export function respondSuccessMessage(event: APIGatewayProxyEvent, successMessag
 /**
  * Create a 404 Not Found API Gateway lambda function response
  */
-export function respond404NotFound(event: APIGatewayProxyEvent, message: string): APIGatewayProxyResult {
-    return respondHttp(event, { message: !message ? 'Not Found' : message }, 404);
+export function respond404NotFound(
+    event: APIGatewayProxyEvent,
+    message: string,
+    extraHeaders: Record<string, string> = {},
+): APIGatewayProxyResult {
+    return respondHttp(event, { message: !message ? 'Not Found' : message }, 404, extraHeaders);
 }
 
 /**
  * Create an API Gateway lambda function response
  */
-export function respondHttp(_event: APIGatewayProxyEvent, body: object, statusCode = 200): APIGatewayProxyResult {
+export function respondHttp(
+    _event: APIGatewayProxyEvent,
+    body: object,
+    statusCode = 200,
+    extraHeaders: Record<string, string> = {},
+): APIGatewayProxyResult {
     return {
         isBase64Encoded: false,
         statusCode: statusCode,
         body: JSON.stringify(body),
         headers: {
+            ...extraHeaders,
             'Access-Control-Allow-Headers': 'Content-Type',
             'Access-Control-Allow-Methods': 'HEAD, GET, OPTIONS, POST, PUT, PATCH, DELETE',
             'Access-Control-Allow-Credentials': 'true',
             'Access-Control-Allow-Origin': `https://${getGalleryAppDomain()}`,
+            // Without this the browser hides the header from the gallery app's
+            // cross-origin fetch, whatever the server set it to.
+            'Access-Control-Expose-Headers': AUTH_STATUS_HEADER,
             // Lets the gallery app read this response's full Resource Timing entry
             // (DNS/TCP/TLS, nextHopProtocol, transferSize). Without it the browser
             // zeroes those out for cross-origin responses. Separate from CORS above:

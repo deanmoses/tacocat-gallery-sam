@@ -4,6 +4,16 @@ import type { CognitoIdTokenPayload } from 'aws-jwt-verify/jwt-model';
 import { UnauthorizedException } from './UnauthorizedException';
 import { getHeader } from './HttpHeaders';
 
+/**
+ * Response header on which the read endpoints report what they made of the
+ * request's auth cookie, so the gallery app can tell a guest view it asked for
+ * from one it got because its token had expired.
+ */
+export const AUTH_STATUS_HEADER = 'X-Auth-Status';
+
+/** `none`: no auth cookie. `valid`: a verified token. `invalid`: a cookie that failed verification, usually expired. */
+export type ReadAuthStatus = 'none' | 'valid' | 'invalid';
+
 // --- Pure function (easily testable) ---
 
 /**
@@ -24,6 +34,7 @@ export function getIdTokenFromCookies(cookieHeader: string | undefined): string 
 
 interface TokenVerifier {
     verify(token: string): Promise<CognitoIdTokenPayload>;
+    hydrate(): Promise<void>;
 }
 
 let verifier: TokenVerifier | undefined;
@@ -57,6 +68,25 @@ export function setVerifierForTesting(mockVerifier: TokenVerifier | undefined): 
     verifier = mockVerifier;
 }
 
+/**
+ * Fetch Cognito's signing keys during cold start rather than on the first
+ * verification. Concurrent verifications join the fetch already in flight, so
+ * the network round trip is paid once per container and off the request path.
+ * A failure here costs nothing: the next verification fetches again.
+ */
+function prefetchSigningKeys(): void {
+    try {
+        getVerifier()
+            .hydrate()
+            .catch((e: unknown) => {
+                console.warn({ event: 'jwks_prefetch_failed', error: e instanceof Error ? e.message : String(e) });
+            });
+    } catch {
+        // No Cognito configuration, as in unit tests: nothing to prefetch
+    }
+}
+prefetchSigningKeys();
+
 // --- Internal helper (not exported) ---
 
 /**
@@ -75,14 +105,31 @@ async function validateIdToken(token: string): Promise<CognitoIdTokenPayload | u
 // --- Main entry points ---
 
 /**
- * Returns true if request has a token (existence check only, no validation).
- * Used for read operations to decide whether to include unpublished content.
- * Fast path: ~0ms since it just checks cookie existence.
+ * Whether the request carries an id_token cookie at all. Existence only, never
+ * validity: for logging and cache keys, not for deciding what to serve.
  */
-export function isAuthenticatedForReads(event: APIGatewayProxyEvent): boolean {
-    const cookies = getHeader(event, 'cookie');
-    const idToken = getIdTokenFromCookies(cookies);
-    return !!idToken;
+export function hasIdToken(event: APIGatewayProxyEvent): boolean {
+    return !!getIdTokenFromCookies(getHeader(event, 'cookie'));
+}
+
+/**
+ * What the read endpoints should make of the request's auth cookie.
+ *
+ * Reads never reject a request: an invalid token gets the public view, as a
+ * missing one does. The distinction is reported so the client can refresh
+ * its session and ask again.
+ */
+export async function getReadAuthStatus(event: APIGatewayProxyEvent): Promise<ReadAuthStatus> {
+    const idToken = getIdTokenFromCookies(getHeader(event, 'cookie'));
+    if (!idToken) return 'none';
+    return (await validateIdToken(idToken)) ? 'valid' : 'invalid';
+}
+
+/**
+ * True if the request carries a verified token, so unpublished content may be included.
+ */
+export async function isAuthenticatedForReads(event: APIGatewayProxyEvent): Promise<boolean> {
+    return (await getReadAuthStatus(event)) === 'valid';
 }
 
 /**
@@ -90,8 +137,7 @@ export function isAuthenticatedForReads(event: APIGatewayProxyEvent): boolean {
  * Performs full JWT validation for write operations.
  */
 export async function ensureAuthorizedForWrites(event: APIGatewayProxyEvent): Promise<void> {
-    const cookies = getHeader(event, 'cookie');
-    const idToken = getIdTokenFromCookies(cookies);
+    const idToken = getIdTokenFromCookies(getHeader(event, 'cookie'));
 
     if (!idToken) {
         throw new UnauthorizedException('Unauthorized');
