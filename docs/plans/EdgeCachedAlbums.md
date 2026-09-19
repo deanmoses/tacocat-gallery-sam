@@ -38,9 +38,9 @@ Now `GetAlbum` writes that. A request the edge handled but found no version for 
 
 ### Admin and guest responses
 
-Admins see unpublished albums, so the two responses differ and are cached separately: the function sets `x-has-token` from the same cookie-existence test the origin makes, and the cache policy keys on it. The origin still decides on the forwarded cookie; the header only separates the entries. The one hash covers both variants: it is computed from the admin's view, and every change a guest could see is a change an admin sees, so the guest key moves whenever it must, and occasionally when it needn't (an edit to an unpublished child), which costs one miss.
+Admins see unpublished albums, so the two responses differ and are cached separately: the function sets `x-has-token` from whether an `id_token` cookie is present, and the cache policy keys on it. The origin decides on the forwarded cookie, and it verifies the token; the header only separates the entries. The one hash covers both variants: it is computed from the admin's view, and every change a guest could see is a change an admin sees, so the guest key moves whenever it must, and occasionally when it needn't (an edit to an unpublished child), which costs one miss.
 
-Note that `x-has-token` inherits the existing weakness of `isAuthenticatedForReads()`: any `id_token` cookie, valid or not, gets the admin response. That is what the API does today and the cache does not widen it, but it is worth knowing that the admin cache entries are reachable with a forged cookie.
+The edge cannot verify a Cognito token (no RSA in CloudFront Functions), so its test and the origin's disagree whenever the cookie is present but invalid, usually expired: the edge says admin, the origin answers with the guest view and reports `X-Auth-Status: invalid`. Cached as is, that guest body would sit under the admin key until the version moved. So the origin must answer `no-store` whenever its verdict disagrees with the `x-has-token` it was sent, which is not yet in `respondCacheable()`. The alternative is not to cache the admin variant at all: the function gives a cookie-bearing request a one-off version, the origin answers `no-store` for a verified token, and the `x-has-token` key dimension goes away.
 
 ### ETag and 304
 
