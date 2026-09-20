@@ -15,6 +15,12 @@ jobs:
     integration-test:
         runs-on: ubuntu-latest
         timeout-minutes: 20
+        # There is one test stack, and every run deploys to it and then works in
+        # fixed test years, so runs from different branches must take turns.
+        # Never cancel: the run holding the stack may be a deploy in progress.
+        concurrency:
+            group: test-stack
+            cancel-in-progress: false
         permissions:
             contents: read
             id-token: write # lets the job request a GitHub OIDC token to assume an AWS role
@@ -49,11 +55,12 @@ jobs:
 
             - name: Configure AWS credentials
               # No stored keys: the job trades its GitHub OIDC token for a short-lived AWS role.
-              # The role only trusts runs on main, so a manual dispatch from another branch
-              # fails here. Roles are defined in infra/github-oidc.yaml.
+              # Which role depends on what the token says about the run: the PR role trusts
+              # pull request runs and the main role trusts runs on main, so a manual dispatch
+              # from another branch fails here. Roles are defined in infra/github-oidc.yaml.
               uses: aws-actions/configure-aws-credentials@v6
               with:
-                  role-to-assume: arn:aws:iam::010410881828:role/tacocat-gallery-cicd-github-main
+                  role-to-assume: ${{ github.event_name == 'pull_request' && 'arn:aws:iam::010410881828:role/tacocat-gallery-cicd-github-pr' || 'arn:aws:iam::010410881828:role/tacocat-gallery-cicd-github-main' }}
                   role-session-name: github-${{ github.run_id }}
                   aws-region: us-east-1
 
