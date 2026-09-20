@@ -1,143 +1,125 @@
+import assert from 'node:assert/strict';
 import { createAlbum, createAlbumNoThrow } from '../../lib/gallery/createAlbum/createAlbum';
 import { Album, AlbumUpdateRequest } from '../../lib/gallery/galleryTypes';
 import { getAlbum } from '../../lib/gallery/getAlbum/getAlbum';
-import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
-import { getParentAndNameFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
-import {
-    assertDynamoDBItemDoesNotExist,
-    assertDynamoDBItemExists,
-    cleanUpAlbumAndParents,
-} from './helpers/albumHelpers';
+import { cleanUpYear, getAlbumOrFail } from './helpers/fixtures';
+import { TEST_YEARS } from './helpers/testYears';
 
-const yearAlbumPath = '/1700/'; // unique to this suite to prevent pollution
-const albumPath = `${yearAlbumPath}04-26/`;
-let description: string;
-let summary: string;
-let album_updatedOn: string | undefined;
+const yearPath = TEST_YEARS.albumUpdating;
+const albumPath = `${yearPath}04-26/`;
+const description = `Description [${Date.now()}]`;
+const summary = `Summary [${Date.now()}]`;
+let createdOn: string;
+
+/** The album as it appears in its year's child listing */
+async function albumInYearListing(includeUnpublished = false): Promise<Album> {
+    const year = await getAlbumOrFail(yearPath, includeUnpublished);
+    const album = year.children?.find((child) => child.itemName === '04-26');
+    assert(album?.itemType === 'album', `Year [${yearPath}] does not list album [${albumPath}]`);
+    return album;
+}
 
 beforeAll(async () => {
-    description = `Description [${Date.now()}]`;
-    summary = `Summary [${Date.now()}]`;
-    // Independent reads, so genuinely concurrent. The inner awaits this used to
-    // have made Promise.all a no-op: each promise was already settled.
-    await Promise.all([assertDynamoDBItemDoesNotExist(yearAlbumPath), assertDynamoDBItemDoesNotExist(albumPath)]);
-    // Sequential on purpose: albumPath is a child of yearAlbumPath, so the year
-    // album has to exist first. This was already the effective order.
-    await createAlbum(yearAlbumPath);
+    await cleanUpYear(yearPath);
+    await createAlbum(yearPath);
     await createAlbum(albumPath);
-    await assertDynamoDBItemExists(albumPath);
 });
 
-afterAll(async () => {
-    await cleanUpAlbumAndParents(albumPath);
-});
+afterAll(() => cleanUpYear(yearPath));
 
-test('fail on unknown attribute', async () => {
+test('rejects an unknown attribute', async () => {
     await expect(updateAlbum(albumPath, { unknownAttr: '' } as AlbumUpdateRequest)).rejects.toThrow(/unknown/i);
 });
 
-test('get empty album', async () => {
-    const album = await getAlbumAndChildren(albumPath, true /* include unpublished albums */);
-    if (!album) throw new Error(`No album`);
-    if (album.children && album.children.length > 0) throw new Error(`Album has children, that's not expected`);
-    const albumPathParts = getParentAndNameFromPath(albumPath);
-    expect(album?.itemName).toBe(albumPathParts.name);
-    expect(album?.parentPath).toBe(albumPathParts.parent);
-    expect(album?.description).toBeUndefined();
-    expect(album?.published).toBeUndefined();
-    expect(album?.thumbnail?.path).toBeUndefined();
-    if (!album?.updatedOn) throw new Error(`Album has no updatedOn`);
-    album_updatedOn = album.updatedOn;
+describe('a freshly created album', () => {
+    test('has no attributes set', async () => {
+        const album = await getAlbumOrFail(albumPath, true);
+        expect(album.children).toEqual([]);
+        expect(album.description).toBeUndefined();
+        expect(album.summary).toBeUndefined();
+        expect(album.published).toBeUndefined();
+        expect(album.thumbnail).toBeUndefined();
+        assert(album.updatedOn, 'Album has no updatedOn');
+        createdOn = album.updatedOn;
+    });
+
+    test('cannot be published while its year is unpublished', async () => {
+        await expect(updateAlbum(albumPath, { published: true })).rejects.toThrow(/parent/i);
+    });
 });
 
-test('fail to publish if parent is not published', async () => {
-    await expect(updateAlbum(albumPath, { published: true })).rejects.toThrow(/parent/i);
+describe('after publishing the year and then the album', () => {
+    beforeAll(async () => {
+        await updateAlbum(yearPath, { published: true });
+        await updateAlbum(albumPath, { published: true });
+    });
+
+    test('the album is published', async () => {
+        const album = await getAlbum(albumPath);
+        expect(album?.published).toBe(true);
+    });
 });
 
-test('publish parent should succeeed', async () => {
-    await expect(updateAlbum(yearAlbumPath, { published: true })).resolves.not.toThrow();
+describe('after setting the description and then the summary', () => {
+    beforeAll(async () => {
+        await updateAlbum(albumPath, { description });
+        await updateAlbum(albumPath, { summary });
+    });
+
+    test('both are set and nothing else changed', async () => {
+        const album = await getAlbum(albumPath);
+        expect(album?.description).toBe(description);
+        expect(album?.summary).toBe(summary);
+        expect(album?.published).toBe(true);
+        expect(album?.updatedOn).not.toBe(createdOn);
+    });
+
+    test('the year listing reflects them', async () => {
+        const album = await albumInYearListing();
+        expect(album.description).toBe(description);
+        expect(album.summary).toBe(summary);
+        expect(album.published).toBe(true);
+    });
 });
 
-test('publish suceeds after parent is published', async () => {
-    await expect(updateAlbum(albumPath, { published: true })).resolves.not.toThrow();
+describe('after clearing the description and summary and unpublishing', () => {
+    beforeAll(async () => {
+        await updateAlbum(albumPath, { description: '' });
+        await updateAlbum(albumPath, { summary: '' });
+        await updateAlbum(albumPath, { published: false });
+    });
+
+    test('all three took effect', async () => {
+        const album = await getAlbum(albumPath, true);
+        expect(album?.description).toBe('');
+        expect(album?.summary).toBe('');
+        expect(album?.published).toBe(false);
+    });
+
+    test('the year listing reflects them', async () => {
+        const album = await albumInYearListing(true);
+        expect(album.description).toBe('');
+        expect(album.summary).toBe('');
+        expect(album.published).toBe(false);
+    });
 });
 
-test('set description', async () => {
-    await updateAlbum(albumPath, { description: description });
-    const album = await getAlbum(albumPath);
-    expect(album?.description).toBe(description);
-    expect(album?.published).toBe(true);
-    if (!album?.updatedOn) throw new Error(`Album has no updatedOn`);
-    expect(album.updatedOn).not.toBe(album_updatedOn);
-});
+describe('after setting summary, description and published in one update', () => {
+    beforeAll(() => updateAlbum(albumPath, { summary, description, published: true }));
 
-test('set summary', async () => {
-    await updateAlbum(albumPath, { summary: summary });
-    const album = await getAlbum(albumPath);
-    expect(album?.summary).toBe(summary);
-});
+    test('all three took effect', async () => {
+        const album = await getAlbum(albumPath);
+        expect(album?.summary).toBe(summary);
+        expect(album?.description).toBe(description);
+        expect(album?.published).toBe(true);
+    });
 
-test('publish', async () => {
-    await updateAlbum(albumPath, { published: true });
-    const album = await getAlbum(albumPath);
-    expect(album?.description).toBe(description);
-    expect(album?.published).toBe(true);
-});
-
-test('getChildren should reflect changes', async () => {
-    const yearAlbum = await getAlbumAndChildren(yearAlbumPath);
-    if (!yearAlbum) throw new Error(`No year album [${yearAlbumPath}]`);
-    const album = yearAlbum?.children?.[0] as Album;
-    if (!album) throw new Error(`Year album [${yearAlbumPath}] did not have any children`);
-    expect(album?.description).toBe(description);
-    expect(album?.published).toBe(true);
-});
-
-test('unset description', async () => {
-    await updateAlbum(albumPath, { description: '' });
-    const album = await getAlbum(albumPath);
-    expect(album?.description).toBe('');
-    expect(album?.published).toBe(true);
-});
-
-test('unset summary', async () => {
-    await updateAlbum(albumPath, { summary: '' });
-    const album = await getAlbum(albumPath);
-    expect(album?.summary).toBe('');
-});
-
-test('unpublish', async () => {
-    await updateAlbum(albumPath, { published: false });
-    const album = await getAlbum(albumPath, true /* include unpublished albums */);
-    expect(album?.description).toBe('');
-    expect(album?.published).toBe(false);
-    expect(album?.summary).toBe('');
-});
-
-test('getChildren should reflect the unsettings', async () => {
-    const yearAlbum = await getAlbumAndChildren(yearAlbumPath, true /* include unpublished albums */);
-    if (!yearAlbum) throw new Error(`No year album [${yearAlbumPath}]`);
-    const album = yearAlbum?.children?.[0] as Album;
-    if (!album) throw new Error(`Year album [${yearAlbumPath}] did not have any children`);
-    expect(album?.summary).toBe('');
-    expect(album?.description).toBe('');
-    expect(album?.published).toBe(false);
-});
-
-test('set summary & description & published', async () => {
-    await updateAlbum(albumPath, { summary: summary, description: description, published: true });
-    const album = await getAlbum(albumPath);
-    expect(album?.summary).toBe(summary);
-    expect(album?.description).toBe(description);
-    expect(album?.published).toBe(true);
-});
-
-test("attempting to create an album that already exists doesn't blow attributes away", async () => {
-    await expect(createAlbumNoThrow(albumPath)).resolves.not.toThrow();
-
-    const album = await getAlbum(albumPath);
-    expect(album?.summary).toBe(summary);
-    expect(album?.description).toBe(description);
-    expect(album?.published).toBe(true);
+    test('creating the album again without throwing leaves them alone', async () => {
+        await expect(createAlbumNoThrow(albumPath)).resolves.toBe(false);
+        const album = await getAlbum(albumPath);
+        expect(album?.summary).toBe(summary);
+        expect(album?.description).toBe(description);
+        expect(album?.published).toBe(true);
+    });
 });

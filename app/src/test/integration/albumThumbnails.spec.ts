@@ -1,152 +1,97 @@
+import assert from 'node:assert/strict';
 import { deleteMedia } from '../../lib/gallery/deleteMedia/deleteMedia';
-import { getAlbum, getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
+import { AlbumThumbnailEntry } from '../../lib/gallery/galleryTypes';
+import { getAlbum } from '../../lib/gallery/getAlbum/getAlbum';
 import { recutThumbnail } from '../../lib/gallery/recutThumbnail/recutThumbnail';
 import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
-import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
 import { findSubAlbum } from '../../lib/gallery_client/AlbumObject';
-import {
-    getNameFromPath,
-    getParentFromPath,
-    isValidAlbumPath,
-    isValidImagePath,
-} from '../../lib/gallery_path_utils/galleryPathUtils';
-import { assertDynamoDBItemExists, cleanUpAlbum, waitForMediaItem } from './helpers/albumHelpers';
-import { assertOriginalImageExists, uploadImage } from './helpers/s3ImageHelper';
+import { getNameFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
+import { cleanUpYear, getAlbumOrFail, setUpAlbumWithImages } from './helpers/fixtures';
+import { TEST_YEARS } from './helpers/testYears';
 
-const albumPath = '/1702/10-04/'; // unique to this suite to prevent pollution
-const imagePath1 = `${albumPath}image1.jpg`;
-const imagePath2 = `${albumPath}image2.jpg`;
+const yearPath = TEST_YEARS.albumThumbnails;
+const albumPath = `${yearPath}10-04/`;
+const imagePath = `${albumPath}image2.jpg`;
 const cropInPct = { x: 0, y: 0, width: 100, height: 100 };
 const cropInPx = { x: 0, y: 0, width: 220, height: 212 };
 
+/** The thumbnail of the named child album as its parent's listing shows it */
+async function thumbnailInListing(parentPath: string, childAlbumPath: string): Promise<AlbumThumbnailEntry> {
+    const parent = await getAlbumOrFail(parentPath);
+    const child = findSubAlbum(parent, getNameFromPath(childAlbumPath));
+    assert(child, `Album [${parentPath}] does not list [${childAlbumPath}]`);
+    assert(child.thumbnail, `Album [${childAlbumPath}] has no thumbnail in the listing of [${parentPath}]`);
+    return child.thumbnail;
+}
+
 beforeAll(async () => {
-    expect(isValidAlbumPath(albumPath)).toBe(true);
-    expect(isValidImagePath(imagePath1)).toBe(true);
-    expect(isValidImagePath(imagePath2)).toBe(true);
+    await cleanUpYear(yearPath);
+    await setUpAlbumWithImages(albumPath, { 'image1.jpg': 'images/image.jpg', 'image2.jpg': 'images/image.jpg' });
+});
 
-    await Promise.all([uploadImage('image.jpg', imagePath1), uploadImage('image.jpg', imagePath2)]);
+afterAll(() => cleanUpYear(yearPath));
 
-    await Promise.all([imagePath1, imagePath2].map((path) => waitForMediaItem(path)));
-
-    await Promise.all([
-        assertDynamoDBItemExists(albumPath),
-        assertDynamoDBItemExists(getParentFromPath(albumPath)),
-        assertDynamoDBItemExists(imagePath1),
-        assertDynamoDBItemExists(imagePath2),
-        assertOriginalImageExists(imagePath1),
-        assertOriginalImageExists(imagePath2),
-    ]);
-
-    await updateAlbum(getParentFromPath(albumPath), { published: true }); // must publish parent first
-    await updateAlbum(albumPath, { published: true }); // cannot publish child before parent
-}, 60000 /* increase Jest's timeout */);
-
-afterAll(async () => {
-    await cleanUpAlbum(albumPath);
-    await cleanUpAlbum(getParentFromPath(albumPath));
-}, 10000 /* increase Jest's timeout */);
-
-test('Should fail to set thumb to nonexistent image', async () => {
+test('rejects an image that does not exist', async () => {
     await expect(setAlbumThumbnail(albumPath, '/1949/10-04/no_such_image.jpg')).rejects.toThrow(/found/i);
 });
 
-test('Set thumb on day album', async () => {
-    await expect(setAlbumThumbnail(albumPath, imagePath2)).resolves.not.toThrow();
+describe('after setting the day album thumbnail', () => {
+    beforeAll(() => setAlbumThumbnail(albumPath, imagePath));
+
+    test('the year listing shows it on the day album, with a version and no crop', async () => {
+        const thumbnail = await thumbnailInListing(yearPath, albumPath);
+        expect(thumbnail.path).toBe(imagePath);
+        expect(thumbnail.versionId).toBeDefined();
+        expect(thumbnail.crop).toBeUndefined();
+    });
 });
 
-test('Year album shows day thumb', async () => {
-    const yearPath = getParentFromPath(albumPath);
-    const yearAlbum = await getAlbumAndChildren(yearPath);
-    if (!yearAlbum) throw new Error(`No album [${yearPath}]}]`);
-    const albumName = getNameFromPath(albumPath);
-    if (!albumName) throw new Error(`No album name in path [${albumPath}]`);
-    const album = findSubAlbum(yearAlbum, albumName);
-    if (!album) throw new Error(`No album [${albumPath}] in year [${yearPath}]`);
-    if (!album?.thumbnail) throw new Error(`Album [${albumPath}] has no thumbnail`);
-    if (!album.thumbnail.versionId) throw new Error(`Album [${albumPath}] has no thumbnail versionId`);
-    expect(album.thumbnail.path).toBe(imagePath2);
-    expect(album.thumbnail.crop).toBeUndefined();
+describe('after setting the year album thumbnail', () => {
+    beforeAll(() => setAlbumThumbnail(yearPath, imagePath));
+
+    test('the year album has it', async () => {
+        const year = await getAlbum(yearPath);
+        expect(year?.thumbnail?.path).toBe(imagePath);
+        expect(year?.thumbnail?.crop).toBeUndefined();
+    });
+
+    test('the root listing shows it on the year', async () => {
+        const thumbnail = await thumbnailInListing('/', yearPath);
+        expect(thumbnail.path).toBe(imagePath);
+        expect(thumbnail.crop).toBeUndefined();
+    });
 });
 
-test('Set thumb on year', async () => {
-    const grandparentPath = getParentFromPath(albumPath);
-    await expect(setAlbumThumbnail(grandparentPath, imagePath2)).resolves.not.toThrow();
-    const album = await getAlbum(grandparentPath);
-    if (!album?.thumbnail) throw new Error('Expected album to have thumbnail');
-    expect(album.thumbnail.path).toBe(imagePath2);
-    expect(album.thumbnail.crop).toBeUndefined();
+describe('after recutting the thumbnail', () => {
+    beforeAll(() => recutThumbnail(imagePath, cropInPct));
+
+    test('the year listing shows the crop on the day album', async () => {
+        const thumbnail = await thumbnailInListing(yearPath, albumPath);
+        expect(thumbnail.path).toBe(imagePath);
+        expect(thumbnail.crop).toEqual(cropInPx);
+    });
+
+    test('the root listing shows the crop on the year', async () => {
+        const thumbnail = await thumbnailInListing('/', yearPath);
+        expect(thumbnail.path).toBe(imagePath);
+        expect(thumbnail.crop).toEqual(cropInPx);
+    });
+
+    // Known gap: a recut is stored on the image, and only child listings look it up.
+    // Reading the album itself returns the thumbnail entry as it was when it was set.
+    // This flips to a failure when the gap is closed, which is the cue to drop `.failing`.
+    test.failing('the year album read directly shows the crop', async () => {
+        const year = await getAlbum(yearPath);
+        expect(year?.thumbnail?.crop).toEqual(cropInPx);
+    });
 });
 
-test('Root album shows year thumb', async () => {
-    const rootAlbum = await getAlbumAndChildren('/');
-    if (!rootAlbum) throw new Error('No root album');
-    const yearPath = getParentFromPath(albumPath);
-    const yearName = getNameFromPath(yearPath);
-    if (!yearName) throw new Error(`Could not find year name in path [${yearPath}]`);
-    const album = findSubAlbum(rootAlbum, yearName);
-    if (!album) throw new Error(`No album on root with path [${yearPath}]`);
-    if (!album.thumbnail) throw new Error('Expected album to have thumbnail');
-    expect(album.thumbnail.path).toBe(imagePath2);
-    expect(album.thumbnail.crop).toBeUndefined();
-});
+describe('after deleting the image', () => {
+    beforeAll(() => deleteMedia(imagePath));
 
-test('Recut thumb', async () => {
-    await expect(recutThumbnail(imagePath2, cropInPct)).resolves.not.toThrow();
-});
-
-test.skip('Thumb on grandparent honors recut [THIS FAIL IS VALID]', async () => {
-    const grandparentPath = getParentFromPath(albumPath);
-    const album = await getAlbumAndChildren(grandparentPath);
-    if (!album) throw new Error(`No grandparent album [${grandparentPath}]}]`);
-    if (!album?.thumbnail) throw new Error(`Expected album [${grandparentPath}] to have thumbnail`);
-    if (!album.thumbnail.path) throw new Error(`Expected album [${grandparentPath}] to have thumbnail path`);
-    expect(album.thumbnail.path).toBe(imagePath2);
-    if (!album.thumbnail.crop) throw new Error(`Expected album [${grandparentPath}] to have thumbnail crop`);
-    expect(album.thumbnail.crop).toEqual(cropInPx);
-});
-
-test('Thumb on year displaying days honors recut', async () => {
-    const grandparentPath = getParentFromPath(albumPath);
-    const grandParentAlbum = await getAlbumAndChildren(grandparentPath);
-    if (!grandParentAlbum) throw new Error(`No grandparent album [${grandparentPath}]}]`);
-    const albumName = getNameFromPath(albumPath);
-    if (!albumName) throw new Error(`No album name in path [${albumPath}]`);
-    const album = findSubAlbum(grandParentAlbum, albumName);
-    if (!album) throw new Error(`No album [${albumPath}] in year [${grandparentPath}]`);
-    if (!album?.thumbnail) throw new Error(`Expected album [${albumPath}] to have thumbnail`);
-    expect(album.thumbnail.path).toBe(imagePath2);
-    expect(album.thumbnail.crop).toEqual(cropInPx);
-});
-
-test('Thumb on root displaying years honors recut', async () => {
-    const rootAlbum = await getAlbumAndChildren('/');
-    if (!rootAlbum) throw new Error('No root album');
-    const yearPath = getParentFromPath(albumPath);
-    const yearName = getNameFromPath(yearPath);
-    if (!yearName) throw new Error(`Could not find year name in path [${yearPath}]`);
-    const album = findSubAlbum(rootAlbum, yearName);
-    if (!album) throw new Error(`No album on root with path [${yearPath}]`);
-    if (!album.thumbnail) throw new Error('Expected album to have thumbnail');
-    expect(album.thumbnail.path).toBe(imagePath2);
-    expect(album.thumbnail.crop).toEqual(cropInPx);
-});
-
-test('Delete image', async () => {
-    await expect(deleteMedia(imagePath2)).resolves.not.toThrow();
-});
-
-test('Should no longer be thumb of parent', async () => {
-    const album = await getAlbum(albumPath);
-    expect(album?.thumbnail).toBeUndefined();
-    const grandparentPath = getParentFromPath(albumPath);
-    const grandparentAlbum = await getAlbum(grandparentPath);
-    expect(grandparentAlbum?.thumbnail).toBeUndefined();
-});
-
-test('Should no longer be thumb of grandparent', async () => {
-    const album = await getAlbum(albumPath);
-    expect(album?.thumbnail).toBeUndefined();
-    const grandparentPath = getParentFromPath(albumPath);
-    const grandparentAlbum = await getAlbum(grandparentPath);
-    expect(grandparentAlbum?.thumbnail).toBeUndefined();
+    test('the day and year albums no longer have a thumbnail', async () => {
+        const [album, year] = await Promise.all([getAlbum(albumPath), getAlbum(yearPath)]);
+        expect(album?.thumbnail).toBeUndefined();
+        expect(year?.thumbnail).toBeUndefined();
+    });
 });

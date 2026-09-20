@@ -1,7 +1,6 @@
-import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
+import { getAlbumOrFail } from './helpers/fixtures';
 
-test('should be able to retrieve root album', async () => {
-    const album = await getAlbumAndChildren('/');
-    if (!album) throw new Error('Root album not found');
+test('the root album is readable', async () => {
+    const album = await getAlbumOrFail('/');
     expect(album.path).toBe('/');
 });

@@ -110,7 +110,7 @@ sam deploy --config-env test     # Deploy to test environment
 cd app && npm run test:integration
 ```
 
-Note: Integration tests require AWS credentials and hit actual AWS resources in the test stack.
+Note: Integration tests require AWS credentials and hit actual AWS resources in the test stack. How the suites are structured (step style, test years, polling) is described in `app/src/test/integration/README.md`.
 
 ## Architecture
 

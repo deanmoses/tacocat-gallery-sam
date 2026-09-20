@@ -1,194 +1,96 @@
 import ExifReader from 'exifreader';
-import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
+import { ImageItem, VideoItem } from '../../lib/gallery/galleryTypes';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
-import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
-import { findMedia } from '../../lib/gallery_client/AlbumObject';
-import { getParentFromPath, isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
-import { cleanUpAlbum, waitForMediaItem } from './helpers/albumHelpers';
-import { reallyGetNameFromPath } from './helpers/pathHelpers';
-import {
-    downloadOriginalImage,
-    originalImageExists,
-    uploadImage,
-    waitForOriginalImageDeleted,
-} from './helpers/s3ImageHelper';
+import { cleanUpYear, getMediaOrFail, publishAlbumAndYear, waitForMediaItem } from './helpers/fixtures';
+import { downloadOriginal, originalExists, uploadMedia, waitForOriginalDeleted } from './helpers/s3';
+import { TEST_YEARS } from './helpers/testYears';
 
-const yearPath = '/1712/'; // unique to this suite to prevent pollution
+const yearPath = TEST_YEARS.heicConversion;
 const albumPath = `${yearPath}09-03/`;
-const heicImagePath = `${albumPath}heictest.heic`;
-const jpegImagePath = `${albumPath}heictest.jpg`; // HEIC converts to this
+const heicPath = `${albumPath}heictest.heic`;
+const jpegPath = `${albumPath}heictest.jpg`;
+let image: ImageItem | VideoItem;
 
 beforeAll(async () => {
-    expect(isValidAlbumPath(yearPath)).toBe(true);
-    expect(isValidAlbumPath(albumPath)).toBe(true);
-
-    // Clean up leftover data from previous failed runs
-    await cleanUpAlbum(albumPath);
-    await cleanUpAlbum(yearPath);
-
-    await uploadImage('FullMetadataHeic.heic', heicImagePath);
+    await cleanUpYear(yearPath);
+    await uploadMedia('images/FullMetadataHeic.heic', heicPath);
     // Two Lambda hops: the HEIC upload converts and uploads a JPEG, and that upload writes the item
-    await waitForMediaItem(jpegImagePath, 40000);
-    await waitForOriginalImageDeleted(heicImagePath);
-
-    await updateAlbum(getParentFromPath(albumPath), { published: true });
-    await updateAlbum(albumPath, { published: true });
-}, 60000);
-
-afterAll(async () => {
-    await cleanUpAlbum(albumPath);
-    await cleanUpAlbum(yearPath);
+    await waitForMediaItem(jpegPath, 40_000);
+    await waitForOriginalDeleted(heicPath);
+    await publishAlbumAndYear(albumPath);
+    image = await getMediaOrFail(jpegPath);
 });
 
-test('Parent album was created', async () => {
-    if (!(await itemExists(albumPath))) throw new Error(`Album [${albumPath}] does not exist`);
-});
+afterAll(() => cleanUpYear(yearPath));
 
-test('Original HEIC was deleted from S3', async () => {
-    if (await originalImageExists(heicImagePath)) {
-        throw new Error(`HEIC [${heicImagePath}] should have been deleted after conversion`);
-    }
-});
+describe('after uploading a HEIC', () => {
+    test('the album was created', async () => {
+        await expect(itemExists(albumPath)).resolves.toBe(true);
+    });
 
-test('Converted JPEG exists in S3', async () => {
-    if (!(await originalImageExists(jpegImagePath))) {
-        throw new Error(`Converted JPEG [${jpegImagePath}] should exist in S3`);
-    }
-});
+    test('the originals bucket holds the converted JPEG', async () => {
+        await expect(originalExists(jpegPath)).resolves.toBe(true);
+    });
 
-test('DynamoDB entry exists with correct path', async () => {
-    expect(isValidImagePath(jpegImagePath)).toBe(true);
-    const album = await getAlbumAndChildren(albumPath);
-    if (!album) throw new Error('Album not found');
-    const imageName = reallyGetNameFromPath(jpegImagePath);
-    const image = findMedia(album, imageName);
-    if (!image) throw new Error(`Image [${imageName}] not found in album`);
-    expect(image.parentPath).toBe(albumPath);
-    expect(image.itemName).toBe(imageName);
-});
+    test('the item is stored under the JPEG path with the JPEG version', () => {
+        expect(image.parentPath).toBe(albumPath);
+        expect(image.itemName).toBe('heictest.jpg');
+        expect(image.versionId).toBeTruthy();
+    });
 
-test('Dimensions were preserved through conversion', async () => {
-    const album = await getAlbumAndChildren(albumPath);
-    if (!album) throw new Error('Album not found');
-    const imageName = reallyGetNameFromPath(jpegImagePath);
-    const image = findMedia(album, imageName);
-    if (!image) throw new Error(`Image [${imageName}] not found in album`);
+    test('the dimensions survived conversion', () => {
+        expect(image.dimensions).toEqual({ width: 4032, height: 3024 });
+    });
 
-    // FullMetadataHeic.heic is 4032x3024
-    expect(image.dimensions).toEqual({ width: 4032, height: 3024 });
-});
+    test('the XMP metadata survived conversion', () => {
+        expect(image.title).toBe('Test Image Title');
+        expect(image.description).toBe('Test description');
+        expect(image.tags?.sort()).toEqual(['test1', 'test2', 'test3']);
+    });
 
-test('XMP metadata was preserved through conversion', async () => {
-    const album = await getAlbumAndChildren(albumPath);
-    if (!album) throw new Error('Album not found');
-    const imageName = reallyGetNameFromPath(jpegImagePath);
-    const image = findMedia(album, imageName);
-    if (!image) throw new Error(`Image [${imageName}] not found in album`);
+    test('the JPEG file itself carries all the metadata of the HEIC', async () => {
+        // The JPEG stands in for the original in Google Photos, Apple Photos and the like,
+        // so everything Adobe Bridge wrote to the HEIC has to be in the file, not just in DynamoDB
+        const tags = await ExifReader.load(await downloadOriginal(jpegPath), { expanded: true, async: true });
 
-    // These values are from FullMetadataHeic.heic's XMP metadata
-    expect(image.title).toBe('Test Image Title');
-    expect(image.description).toBe('Test description');
-    expect(image.tags?.sort()).toEqual(['test1', 'test2', 'test3'].sort());
-});
+        // IPTC Core
+        expect(tags.xmp?.Headline?.description ?? tags.iptc?.Headline?.description).toBe('Test Image Headline');
+        expect(tags.xmp?.title?.description ?? tags.iptc?.['Object Name']?.description).toBe('Test Image Title');
+        expect(
+            tags.xmp?.description?.description ??
+                tags.iptc?.['Caption/Abstract']?.description ??
+                tags.exif?.ImageDescription?.description,
+        ).toBe('Test description');
+        const xmpSubject = tags.xmp?.subject?.value;
+        const iptcKeywords = tags.iptc?.Keywords;
+        const keywords = Array.isArray(xmpSubject)
+            ? xmpSubject.map((item: { description: string }) => item.description)
+            : Array.isArray(iptcKeywords)
+              ? iptcKeywords.map((item) => item.description)
+              : [];
+        expect(keywords.sort()).toEqual(['test1', 'test2', 'test3']);
+        expect(tags.xmp?.DateCreated?.description).toMatch(/^2026-01-08/);
+        expect(tags.xmp?.City?.description).toBe('Anytown');
+        expect(tags.xmp?.State?.description).toBe('NY');
+        expect(tags.xmp?.Country?.description).toBe('USA');
+        expect(tags.xmp?.CountryCode?.description).toBe('USA');
+        expect(tags.xmp?.rights?.description ?? tags.exif?.Copyright?.description).toContain(
+            '© 2026 Dean and Lucie Moses, all rights reserved',
+        );
+        expect(tags.xmp?.Marked?.description).toBe('True');
+        expect(tags.xmp?.UsageTerms?.description).toContain('All rights reserved');
 
-test('Image has versionId from converted JPEG', async () => {
-    const album = await getAlbumAndChildren(albumPath);
-    if (!album) throw new Error('Album not found');
-    const imageName = reallyGetNameFromPath(jpegImagePath);
-    const image = findMedia(album, imageName);
-    if (!image) throw new Error(`Image [${imageName}] not found in album`);
-    expect(image.versionId).toBeDefined();
-    expect(image.versionId).not.toBe('');
-});
+        // EXIF camera data
+        expect(tags.exif?.DateTimeOriginal?.description).toMatch(/^2026:01:08/);
+        expect(tags.exif?.Make?.description).toBe('Apple');
+        expect(tags.exif?.Model?.description).toBe('iPhone 17 Pro');
 
-test('Converted JPEG file contains all metadata from original HEIC', async () => {
-    // Download the converted JPEG from S3 and verify ALL metadata is preserved.
-    // This ensures the JPEG can act as an archival "original" with full metadata
-    // for use in Google Photos, Apple Photos, etc.
-    const jpegBuffer = await downloadOriginalImage(jpegImagePath);
-    const tags = await ExifReader.load(jpegBuffer, { expanded: true, async: true });
+        // GPS
+        expect(tags.gps?.Latitude).toBeCloseTo(37.872, 2);
+        expect(tags.gps?.Longitude).toBeCloseTo(-122.272, 2);
 
-    // === IPTC Core fields (from Adobe Bridge) ===
-
-    // Headline (XMP Headline or IPTC Headline)
-    const headline = tags.xmp?.Headline?.description || tags.iptc?.Headline?.description;
-    expect(headline).toBe('Test Image Headline');
-
-    // Title (XMP title or IPTC Object Name)
-    const title = tags.xmp?.title?.description || tags.iptc?.['Object Name']?.description;
-    expect(title).toBe('Test Image Title');
-
-    // Description (XMP description or IPTC Caption/Abstract or EXIF ImageDescription)
-    const description =
-        tags.xmp?.description?.description ||
-        tags.iptc?.['Caption/Abstract']?.description ||
-        tags.exif?.ImageDescription?.description;
-    expect(description).toBe('Test description');
-
-    // Keywords (XMP subject or IPTC Keywords)
-    const xmpSubject = tags.xmp?.subject?.value;
-    const iptcKeywords = tags.iptc?.Keywords;
-    let keywords: string[];
-    if (Array.isArray(xmpSubject) && xmpSubject.length > 0) {
-        keywords = xmpSubject.map((item: { description: string }) => item.description);
-    } else if (Array.isArray(iptcKeywords) && iptcKeywords.length > 0) {
-        keywords = iptcKeywords.map((item) => item.description);
-    } else {
-        throw new Error('No keywords found in XMP subject or IPTC Keywords');
-    }
-    expect(keywords.sort()).toEqual(['test1', 'test2', 'test3'].sort());
-
-    // Date Created (XMP DateCreated)
-    const dateCreated = tags.xmp?.DateCreated?.description;
-    expect(dateCreated).toMatch(/^2026-01-08/); // 1/8/26
-
-    // City (XMP City)
-    const city = tags.xmp?.City?.description;
-    expect(city).toBe('Anytown');
-
-    // State/Province (XMP State)
-    const state = tags.xmp?.State?.description;
-    expect(state).toBe('NY');
-
-    // Country (XMP Country)
-    const country = tags.xmp?.Country?.description;
-    expect(country).toBe('USA');
-
-    // ISO Country Code (XMP CountryCode)
-    const countryCode = tags.xmp?.CountryCode?.description;
-    expect(countryCode).toBe('USA');
-
-    // Copyright Notice (XMP rights or EXIF Copyright)
-    const copyright = tags.xmp?.rights?.description || tags.exif?.Copyright?.description;
-    expect(copyright).toContain('© 2026 Dean and Lucie Moses, all rights reserved');
-
-    // Copyright Status (XMP Marked - true means copyrighted)
-    const copyrightStatus = tags.xmp?.Marked?.description;
-    expect(copyrightStatus).toBe('True');
-
-    // Rights Usage Terms (XMP UsageTerms)
-    const usageTerms = tags.xmp?.UsageTerms?.description;
-    expect(usageTerms).toContain('All rights reserved');
-
-    // === Camera Data (EXIF) ===
-
-    // Date Time Original
-    expect(tags.exif?.DateTimeOriginal?.description).toMatch(/^2026:01:08/);
-
-    // Make
-    expect(tags.exif?.Make?.description).toBe('Apple');
-
-    // Model
-    expect(tags.exif?.Model?.description).toBe('iPhone 17 Pro');
-
-    // === GPS ===
-    expect(tags.gps).toBeDefined();
-    expect(tags.gps?.Latitude).toBeCloseTo(37.872, 2);
-    expect(tags.gps?.Longitude).toBeCloseTo(-122.272, 2);
-
-    // === Dimensions ===
-    const width = tags.exif?.PixelXDimension?.value || tags.file?.['Image Width']?.value;
-    const height = tags.exif?.PixelYDimension?.value || tags.file?.['Image Height']?.value;
-    expect(width).toBe(4032);
-    expect(height).toBe(3024);
+        // Dimensions
+        expect(tags.exif?.PixelXDimension?.value ?? tags.file?.['Image Width']?.value).toBe(4032);
+        expect(tags.exif?.PixelYDimension?.value ?? tags.file?.['Image Height']?.value).toBe(3024);
+    });
 });

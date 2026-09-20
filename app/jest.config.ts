@@ -32,7 +32,8 @@ const config: Config = {
             ...baseConfig,
             displayName: 'integration',
             testMatch: ['<rootDir>/src/test/integration/**/*.spec.ts'],
-            setupFiles: ['<rootDir>/jest.setup.integration.ts'],
+            // After env, so the file can register the afterAll that closes the Redis connection
+            setupFilesAfterEnv: ['<rootDir>/jest.setup.integration.ts'],
         },
     ],
 };

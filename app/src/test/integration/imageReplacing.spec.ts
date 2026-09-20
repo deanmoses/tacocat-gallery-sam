@@ -1,105 +1,72 @@
-import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
-import {
-    assertDynamoDBItemDoesNotExist,
-    assertDynamoDBItemExists,
-    cleanUpAlbum,
-    getMediaOrThrow,
-    waitForMediaItem,
-    waitForMediaVersion,
-} from './helpers/albumHelpers';
-import { assertOriginalImageDoesNotExist, assertOriginalImageExists, uploadImage } from './helpers/s3ImageHelper';
+import assert from 'node:assert/strict';
+import { cleanUpYear, getMediaOrFail, setUpAlbumWithImages, waitForMediaVersion } from './helpers/fixtures';
+import { uploadMedia } from './helpers/s3';
+import { TEST_YEARS } from './helpers/testYears';
 
-const yearPath = '/1706/'; // unique to this suite to prevent pollution
+const yearPath = TEST_YEARS.imageReplacing;
 const albumPath = `${yearPath}07-12/`;
-
-const imageName_noreplace = 'noreplace.jpg';
-const imagePath_noreplace = `${albumPath}${imageName_noreplace}`;
-const imageName_noreplace_v1 = 'replaceImage/noreplace_metadata_v1.jpg';
-const imageName_noreplace_v2 = 'replaceImage/noreplace_metadata_v2.jpg';
-
-const imageName_replace = 'replace.jpg';
-const imagePath_replace = `${albumPath}${imageName_replace}`;
-const imageName_replace_v1 = 'replaceImage/replace_metadata_v1.jpg';
-const imageName_replace_v2 = 'replaceImage/replace_metadata_v2.jpg';
-
-let image_noreplace_versionId1: string;
-let image_noreplace_updatedOn1: string | undefined;
-let image_replace_versionId1: string;
+/** Uploaded with full metadata, then replaced by a version with different metadata */
+const fullPath = `${albumPath}full.jpg`;
+/** Uploaded with no metadata, then replaced by a version that has some */
+const barePath = `${albumPath}bare.jpg`;
+let fullVersion1: string | undefined;
+let fullUpdatedOn1: string | undefined;
+let bareVersion1: string | undefined;
 
 beforeAll(async () => {
-    expect(isValidAlbumPath(yearPath)).toBe(true);
-    expect(isValidAlbumPath(albumPath)).toBe(true);
-    expect(isValidImagePath(imagePath_noreplace)).toBe(true);
-    expect(isValidImagePath(imagePath_replace)).toBe(true);
-
-    await assertDynamoDBItemDoesNotExist(yearPath);
-    await assertDynamoDBItemDoesNotExist(albumPath);
-    await assertOriginalImageDoesNotExist(imagePath_noreplace);
-    await assertOriginalImageDoesNotExist(imagePath_replace);
-
-    await uploadImage(imageName_noreplace_v1, imagePath_noreplace);
-    await uploadImage(imageName_replace_v1, imagePath_replace);
-
-    await Promise.all([imagePath_noreplace, imagePath_replace].map((path) => waitForMediaItem(path)));
-
-    await assertDynamoDBItemExists(albumPath);
-    await assertOriginalImageExists(imagePath_noreplace);
-    await assertOriginalImageExists(imagePath_replace);
-}, 60000 /* increases Jest's timeout */);
-
-afterAll(async () => {
-    await cleanUpAlbum(albumPath);
-    await cleanUpAlbum(yearPath);
+    await cleanUpYear(yearPath);
+    await setUpAlbumWithImages(albumPath, {
+        'full.jpg': 'images/replaceImage/noreplace_metadata_v1.jpg',
+        'bare.jpg': 'images/replaceImage/replace_metadata_v1.jpg',
+    });
 });
 
-// This is test setup but I feel queasy stuffing so much into beforeAll()
-test('Album should contain image with full metadata', async () => {
-    const image_noreplace = await getMediaOrThrow(imagePath_noreplace, true /* includeUnpublishedAlbums */);
-    expect(image_noreplace.title).toBe('Version 1');
-    expect(image_noreplace.description).toBe('Version one.');
-    expect(image_noreplace.tags?.sort()).toEqual(['animal', 'boar', 'frog', 'v1'].sort());
-    if (!image_noreplace.versionId) throw new Error(`Image [${imageName_noreplace}] has no versionId`);
-    image_noreplace_versionId1 = image_noreplace.versionId;
-    image_noreplace_updatedOn1 = image_noreplace.updatedOn;
+afterAll(() => cleanUpYear(yearPath));
+
+describe('the first uploads', () => {
+    test('the image with metadata has it', async () => {
+        const image = await getMediaOrFail(fullPath);
+        expect(image.title).toBe('Version 1');
+        expect(image.description).toBe('Version one.');
+        expect(image.tags?.sort()).toEqual(['animal', 'boar', 'frog', 'v1']);
+        assert(image.versionId, `[${fullPath}] has no versionId`);
+        fullVersion1 = image.versionId;
+        fullUpdatedOn1 = image.updatedOn;
+    });
+
+    test('the image without metadata has none', async () => {
+        const image = await getMediaOrFail(barePath);
+        expect(image.title).toBeUndefined();
+        expect(image.description).toBeUndefined();
+        expect(image.tags ?? []).toEqual([]);
+        assert(image.versionId, `[${barePath}] has no versionId`);
+        bareVersion1 = image.versionId;
+    });
 });
 
-// This is test setup but I feel queasy stuffing so much into beforeAll()
-test('Album should contain image with no metadata', async () => {
-    const image_replace = await getMediaOrThrow(imagePath_replace, true /* includeUnpublishedAlbums */);
-    if (image_replace.title) throw new Error(`Image [${imageName_replace}] has a title: [${image_replace.title}]`);
-    if (image_replace.description) throw new Error(`[${imageName_replace}] has a desc: [${image_replace.description}]`);
-    if (image_replace.tags?.length)
-        throw new Error(`[${imageName_replace}] has tags: [${image_replace.tags.join(', ')}]`);
-    if (!image_replace.versionId) throw new Error(`[${imageName_replace}] has no versionId`);
-    image_replace_versionId1 = image_replace.versionId;
-});
+describe('after uploading a second version of each', () => {
+    beforeAll(async () => {
+        const [fullVersion2, bareVersion2] = await Promise.all([
+            uploadMedia('images/replaceImage/noreplace_metadata_v2.jpg', fullPath),
+            uploadMedia('images/replaceImage/replace_metadata_v2.jpg', barePath),
+        ]);
+        await Promise.all([waitForMediaVersion(fullPath, fullVersion2), waitForMediaVersion(barePath, bareVersion2)]);
+    });
 
-test('Replace image with full metadata', async () => {
-    const versionId = await uploadImage(imageName_noreplace_v2, imagePath_noreplace);
-    await waitForMediaVersion(imagePath_noreplace, versionId);
-}, 60000 /* increases Jest's timeout */);
+    test('the image with metadata keeps its title and description and merges its tags', async () => {
+        const image = await getMediaOrFail(fullPath);
+        expect(image.title).toBe('Version 1');
+        expect(image.description).toBe('Version one.');
+        expect(image.tags?.sort()).toEqual(['animal', 'boar', 'frog', 'v1', 'v2']);
+        expect(image.versionId).not.toBe(fullVersion1);
+        expect(image.updatedOn).not.toBe(fullUpdatedOn1);
+    });
 
-test('Image with full metadata should have merged tags', async () => {
-    const image_noreplace = await getMediaOrThrow(imagePath_noreplace, true /* includeUnpublishedAlbums */);
-    expect(image_noreplace.title).toBe('Version 1');
-    expect(image_noreplace.description).toBe('Version one.');
-    // Tags merge on re-upload (PR #110): v1 tags + v2 tags
-    expect(image_noreplace.tags?.sort()).toEqual(['animal', 'boar', 'frog', 'v1', 'v2'].sort());
-    if (!image_noreplace.versionId) throw new Error(`Image [${imageName_noreplace}] has no versionId`);
-    expect(image_noreplace.versionId).not.toBe(image_noreplace_versionId1);
-    expect(image_noreplace.updatedOn).not.toBe(image_noreplace_updatedOn1);
-});
-
-test('Replace image with no metadata', async () => {
-    const versionId = await uploadImage(imageName_replace_v2, imagePath_replace);
-    await waitForMediaVersion(imagePath_replace, versionId);
-}, 60000 /* increases Jest's timeout */);
-
-test('Image with no metadata should now have some', async () => {
-    const image_replace = await getMediaOrThrow(imagePath_replace, true /* includeUnpublishedAlbums */);
-    expect(image_replace.title).toBe('Version 2');
-    expect(image_replace.description).toBe('Version two.');
-    expect(image_replace.tags?.sort()).toEqual(['forest', 'v2'].sort());
-    if (!image_replace.versionId) throw new Error(`Image [${imageName_replace}] has no versionId`);
-    expect(image_replace.versionId).not.toBe(image_replace_versionId1);
+    test('the image without metadata takes the new metadata', async () => {
+        const image = await getMediaOrFail(barePath);
+        expect(image.title).toBe('Version 2');
+        expect(image.description).toBe('Version two.');
+        expect(image.tags?.sort()).toEqual(['forest', 'v2']);
+        expect(image.versionId).not.toBe(bareVersion1);
+    });
 });

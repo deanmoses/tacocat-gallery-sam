@@ -1,82 +1,99 @@
+import assert from 'node:assert/strict';
 import { createAlbum } from '../../lib/gallery/createAlbum/createAlbum';
 import { deleteMedia } from '../../lib/gallery/deleteMedia/deleteMedia';
-import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
+import { AlbumThumbnail } from '../../lib/gallery/galleryTypes';
 import { getLatestAlbum } from '../../lib/gallery/getLatestAlbum/getLatestAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { recutThumbnail } from '../../lib/gallery/recutThumbnail/recutThumbnail';
+import { renameMedia } from '../../lib/gallery/renameMedia/renameMedia';
 import { findMedia } from '../../lib/gallery_client/AlbumObject';
-import { getParentAndNameFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
-import { assertDynamoDBItemDoesNotExist, cleanUpAlbum, waitForMediaItem } from './helpers/albumHelpers';
-import { getAlbumPathForToday, reallyGetNameFromPath } from './helpers/pathHelpers';
-import { uploadImage } from './helpers/s3ImageHelper';
+import { cleanUpAlbum, getAlbumOrFail, waitForMediaItem } from './helpers/fixtures';
+import { uploadMedia } from './helpers/s3';
 
-const imageName = 'image.jpg';
-let albumPath: string;
-let imagePath: string;
+// The latest album is looked up within the current year, so this suite works
+// in today's album rather than in a test year of its own
+const albumPath = albumPathForToday();
+const imagePath = `${albumPath}image.jpg`;
+const renamedImagePath = `${albumPath}renamed.jpg`;
 const cropInPct = { x: 0, y: 0, width: 100, height: 100 };
 const cropInPx = { x: 0, y: 0, width: 220, height: 212 };
 
+function albumPathForToday(): string {
+    const now = new Date();
+    const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(now.getUTCDate()).padStart(2, '0');
+    return `/${now.getUTCFullYear()}/${month}-${day}/`;
+}
+
+async function latestAlbum(): Promise<AlbumThumbnail> {
+    const album = await getLatestAlbum();
+    assert(album, 'No latest album');
+    return album;
+}
+
 beforeAll(async () => {
-    albumPath = getAlbumPathForToday(); // use current year so that getLatestAlbum will always return something
-    imagePath = albumPath + imageName;
-    await Promise.all([assertDynamoDBItemDoesNotExist(albumPath), assertDynamoDBItemDoesNotExist(imagePath)]);
+    await cleanUpAlbum(albumPath);
     await createAlbum(albumPath, { published: true });
 });
 
-afterAll(async () => {
-    await cleanUpAlbum(albumPath);
+afterAll(() => cleanUpAlbum(albumPath));
+
+describe("with an empty album for today's date", () => {
+    test('it is the latest album and has no thumbnail', async () => {
+        const album = await latestAlbum();
+        expect(album.path).toBe(albumPath);
+        expect(album.thumbnail).toBeUndefined();
+    });
 });
 
-test('Should get latest album', async () => {
-    const album = await getLatestAlbum();
-    if (!album) throw new Error(`No latest album`);
-    const albumPathParts = getParentAndNameFromPath(albumPath);
-    expect(album.itemName).toBe(albumPathParts.name);
-    expect(album.parentPath).toBe(albumPathParts.parent);
-    expect(album.path).toBe(albumPath);
-    if (album.thumbnail?.path)
-        throw new Error(`Was expecting album thumbnail to be undefined [${JSON.stringify(album.thumbnail)}]`);
+describe('after uploading an image', () => {
+    beforeAll(async () => {
+        await uploadMedia('images/image.jpg', imagePath);
+        await waitForMediaItem(imagePath);
+    });
+
+    test('it exists', async () => {
+        await expect(itemExists(imagePath)).resolves.toBe(true);
+    });
+
+    test("it is the latest album's thumbnail, with a version", async () => {
+        const album = await latestAlbum();
+        expect(album.path).toBe(albumPath);
+        expect(album.thumbnail?.path).toBe(imagePath);
+        expect(album.thumbnail?.versionId).toBeDefined();
+    });
 });
 
-test('Upload image', async () => {
-    await uploadImage('image.jpg', imagePath);
-    await waitForMediaItem(imagePath);
-    await expect(itemExists(imagePath)).resolves.toBe(true);
-}, 60000 /* increase Jest's timeout */);
+describe('after recutting the thumbnail', () => {
+    beforeAll(() => recutThumbnail(imagePath, cropInPct));
 
-test("Image should be latest album's thumb", async () => {
-    const album = await getLatestAlbum();
-    if (!album) throw new Error(`No latest album`);
-    const albumPathParts = getParentAndNameFromPath(albumPath);
-    expect(album.itemName).toBe(albumPathParts.name);
-    expect(album.parentPath).toBe(albumPathParts.parent);
-    expect(album.thumbnail?.path).toBe(imagePath);
-    if (!album.thumbnail?.versionId) throw new Error(`Expected album [${albumPath}] to have versionId`);
+    test('the latest album shows the crop', async () => {
+        const album = await latestAlbum();
+        expect(album.thumbnail?.path).toBe(imagePath);
+        expect(album.thumbnail?.crop).toEqual(cropInPx);
+    });
 });
 
-test('Recut image thumb', async () => {
-    await expect(recutThumbnail(imagePath, cropInPct)).resolves.not.toThrow();
+describe('after renaming the image', () => {
+    beforeAll(() => renameMedia(imagePath, 'renamed.jpg'));
+
+    test('the latest album thumbnail follows the rename', async () => {
+        const album = await latestAlbum();
+        expect(album.thumbnail?.path).toBe(renamedImagePath);
+        expect(album.thumbnail?.versionId).toBeDefined();
+    });
 });
 
-test('Latest album honors recut thumb', async () => {
-    const album = await getLatestAlbum();
-    if (!album) throw new Error(`No latest album`);
-    if (!album?.thumbnail) throw new Error('Expected latest album to have thumbnail');
-    expect(album.thumbnail.path).toBe(imagePath);
-    expect(album.thumbnail.crop).toEqual(cropInPx);
-    if (!album.thumbnail?.versionId) throw new Error(`Expected album [${albumPath}] to have versionId`);
-});
+describe('after deleting the image', () => {
+    beforeAll(() => deleteMedia(renamedImagePath));
 
-test.todo("Latest album's thumbnail entry should honor an image rename");
+    test('the album no longer lists it', async () => {
+        const album = await getAlbumOrFail(albumPath);
+        expect(findMedia(album, 'renamed.jpg')).toBeUndefined();
+    });
 
-test('Delete image', async () => {
-    await expect(deleteMedia(imagePath)).resolves.not.toThrow();
-});
-
-test('Latest album should no longer have a thumbnail', async () => {
-    const album = await getAlbumAndChildren(albumPath);
-    if (!album) throw new Error('no album');
-    const imageName = reallyGetNameFromPath(imagePath);
-    const image = findMedia(album, imageName);
-    if (!!image) throw new Error(`Image [${imageName}] should not exist in album [${albumPath}]`);
+    test('the latest album no longer has a thumbnail', async () => {
+        const album = await latestAlbum();
+        expect(album.thumbnail).toBeUndefined();
+    });
 });
