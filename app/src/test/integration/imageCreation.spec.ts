@@ -9,7 +9,7 @@ import {
     isValidAlbumPath,
     isValidImagePath,
 } from '../../lib/gallery_path_utils/galleryPathUtils';
-import { assertDynamoDBItemDoesNotExist, cleanUpAlbum } from './helpers/albumHelpers';
+import { assertDynamoDBItemDoesNotExist, cleanUpAlbum, waitForMediaItem } from './helpers/albumHelpers';
 import { reallyGetNameFromPath } from './helpers/pathHelpers';
 import { assertRedisItemDoesNotExist, assertRedisItemExists } from './helpers/redisHelper';
 import { assertOriginalImageDoesNotExist, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
@@ -30,11 +30,11 @@ beforeAll(async () => {
     ]);
 
     await uploadImage('image.jpg', imagePath);
-    await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
+    await waitForMediaItem(imagePath);
 
     await updateAlbum(getParentFromPath(albumPath), { published: true }); // must publish parent first
     await updateAlbum(albumPath, { published: true }); // cannot publish child before parent
-}, 25000 /* increase Jest's timeout */);
+}, 60000 /* increase Jest's timeout */);
 
 afterAll(async () => {
     await cleanUpAlbum(albumPath);

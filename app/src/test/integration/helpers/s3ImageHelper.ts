@@ -6,6 +6,7 @@ import { isValidImagePath, isValidImagePathForUpload } from '../../../lib/galler
 import { getDerivedImagesBucketName, getOriginalImagesBucketName } from '../../../lib/lambda_utils/Env';
 import { fromPathToS3OriginalBucketKeyForUpload } from '../../../lib/s3_utils/s3path';
 import mime from 'mime';
+import { waitFor } from './waitFor';
 
 /**
  * Upload specified image to the Original Images S3 bucket.
@@ -171,4 +172,11 @@ export async function downloadOriginalImage(imagePath: string): Promise<Buffer> 
     const response = await client.send(s3Command);
     const stream = response.Body as Readable;
     return Buffer.concat(await stream.toArray());
+}
+
+/** Wait for the upload-processing Lambda to delete an original, as it does with a HEIC it converted */
+export async function waitForOriginalImageDeleted(imagePath: string): Promise<void> {
+    await waitFor(async () => !(await originalImageExists(imagePath)), {
+        description: `[${imagePath}] to be deleted from originals bucket`,
+    });
 }

@@ -6,7 +6,7 @@ import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { recutThumbnail } from '../../lib/gallery/recutThumbnail/recutThumbnail';
 import { findMedia } from '../../lib/gallery_client/AlbumObject';
 import { getParentAndNameFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
-import { assertDynamoDBItemDoesNotExist, cleanUpAlbum } from './helpers/albumHelpers';
+import { assertDynamoDBItemDoesNotExist, cleanUpAlbum, waitForMediaItem } from './helpers/albumHelpers';
 import { getAlbumPathForToday, reallyGetNameFromPath } from './helpers/pathHelpers';
 import { uploadImage } from './helpers/s3ImageHelper';
 
@@ -40,11 +40,9 @@ test('Should get latest album', async () => {
 
 test('Upload image', async () => {
     await uploadImage('image.jpg', imagePath);
-    // wait for the image processing lambda to trigger
-    // TODO: I would love to implement push notifications so these tests become deterministic
-    await new Promise((r) => setTimeout(r, 4000));
+    await waitForMediaItem(imagePath);
     await expect(itemExists(imagePath)).resolves.toBe(true);
-}, 10000 /* increase Jest's timeout */);
+}, 60000 /* increase Jest's timeout */);
 
 test("Image should be latest album's thumb", async () => {
     const album = await getLatestAlbum();

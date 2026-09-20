@@ -1,5 +1,5 @@
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
-import { cleanUpAlbumAndParents } from './helpers/albumHelpers';
+import { cleanUpAlbumAndParents, waitForMediaItem } from './helpers/albumHelpers';
 import {
     assertDerivedImageDoesNotExist,
     assertOriginalImageDoesNotExist,
@@ -28,8 +28,8 @@ beforeAll(async () => {
     derivedImageVersionId = await uploadImage('image.jpg', imagePath);
     derivedImagePath = `${imagePath}/${derivedImageVersionId}/${derivedImageSize}`;
 
-    await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
-}, 10000 /* increases Jest's timeout */);
+    await waitForMediaItem(imagePath);
+}, 60000 /* increases Jest's timeout */);
 
 afterAll(async () => {
     await cleanUpAlbumAndParents(albumPath);

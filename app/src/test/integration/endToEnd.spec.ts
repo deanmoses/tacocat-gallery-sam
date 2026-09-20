@@ -8,7 +8,7 @@ import {
     isValidAlbumPath,
     isValidImagePath,
 } from '../../lib/gallery_path_utils/galleryPathUtils';
-import { cleanUpAlbumAndParents } from './helpers/albumHelpers';
+import { cleanUpAlbumAndParents, waitForMediaItem } from './helpers/albumHelpers';
 import { uploadImage } from './helpers/s3ImageHelper';
 
 const albumPath = '/1709/10-01/'; // unique to this suite to prevent pollution
@@ -41,12 +41,9 @@ describe('create', () => {
         });
 
         test('new image exists in DynamoDB', async () => {
-            // wait for the image processing lambda to trigger
-            // TODO: I would love to implement push notifications so these tests become deterministic
-            await new Promise((r) => setTimeout(r, 4000));
-
+            await waitForMediaItem(imagePath);
             await expect(itemExists(imagePath)).resolves.toBe(true);
-        }, 10000 /* increase Jest's timeout */);
+        }, 60000 /* increase Jest's timeout */);
 
         test('getAlbum() contains new image', async () => {
             const album = await getAlbumAndChildren(albumPath, true /* include unpublished */);

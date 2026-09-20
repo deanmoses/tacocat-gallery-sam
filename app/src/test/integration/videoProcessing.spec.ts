@@ -5,6 +5,7 @@ import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
 import { findMedia } from '../../lib/gallery_client/AlbumObject';
 import { getParentFromPath, isValidAlbumPath, isValidVideoPath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { assertDynamoDBItemDoesNotExist, cleanUpAlbum } from './helpers/albumHelpers';
+import { waitFor } from './helpers/waitFor';
 import { reallyGetNameFromPath } from './helpers/pathHelpers';
 import { uploadVideo, assertOriginalVideoDoesNotExist, originalVideoExists } from './helpers/s3VideoHelper';
 import { VideoItem } from '../../lib/gallery/galleryTypes';
@@ -18,31 +19,15 @@ const yearPath = '/1710/'; // unique to this suite to prevent pollution: afterAl
 const albumPath = `${yearPath}09-03/`;
 const videoPath = `${albumPath}testvideo.mp4`;
 
-// Helper to check if video transcoding has completed
-async function waitForVideoProcessing(videoPath: string, timeoutMs: number = 180000): Promise<VideoItem | null> {
-    const startTime = Date.now();
-    const pollInterval = 5000; // Check every 5 seconds
-
-    while (Date.now() - startTime < timeoutMs) {
-        try {
+/** MediaConvert transcodes take one to three minutes; the item is written when the job completes */
+async function waitForVideoProcessing(videoPath: string): Promise<VideoItem> {
+    return waitFor(
+        async () => {
             const item = await getFullItemFromDynamoDB<VideoItem>(videoPath);
-            // Video processing is complete when the item has versionId and mediaType is 'video'
-            // (Path-based storage: no longer uses 'id' field)
-            if (item && item.versionId && item.mediaType === 'video') {
-                console.info(`Video processing complete for [${videoPath}]`);
-                return item;
-            }
-        } catch (e) {
-            // Item doesn't exist yet, keep waiting
-            // Log unexpected errors for debugging (network issues, permissions, etc.)
-            console.debug(`Poll attempt error: ${e instanceof Error ? e.message : String(e)}`);
-        }
-        console.info(`Waiting for video processing... elapsed: ${Math.round((Date.now() - startTime) / 1000)}s`);
-        await new Promise((r) => setTimeout(r, pollInterval));
-    }
-
-    console.warn(`Video processing timed out after ${timeoutMs}ms for [${videoPath}]`);
-    return null;
+            return item?.versionId && item.mediaType === 'video' ? item : undefined;
+        },
+        { description: `video [${videoPath}] to finish processing`, timeoutMs: 180000, intervalMs: 5000 },
+    );
 }
 
 // Helper to check if video assets exist in derived bucket and get metadata
@@ -95,15 +80,10 @@ beforeAll(async () => {
 
     await uploadVideo('test_video.mp4', videoPath);
 
-    // Wait for video processing (MediaConvert + Lambda)
-    // This can take 1-3 minutes
-    videoItem = await waitForVideoProcessing(videoPath, 180000);
-
-    if (videoItem) {
-        await updateAlbum(getParentFromPath(albumPath), { published: true });
-        await updateAlbum(albumPath, { published: true });
-    }
-}, 200000); // 200 second timeout for beforeAll
+    videoItem = await waitForVideoProcessing(videoPath);
+    await updateAlbum(getParentFromPath(albumPath), { published: true });
+    await updateAlbum(albumPath, { published: true });
+}, 200000);
 
 afterAll(async () => {
     await cleanUpAlbum(albumPath);
