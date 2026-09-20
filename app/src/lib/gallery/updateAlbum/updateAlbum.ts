@@ -6,13 +6,13 @@ import {
     isValidAlbumPath,
     isValidDayAlbumPath,
 } from '../../gallery_path_utils/galleryPathUtils';
-import { buildUpdatePartiQL } from '../../dynamo_utils/DynamoUpdateBuilder';
-import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
-import { ExecuteStatementCommand } from '@aws-sdk/lib-dynamodb';
+import { ConditionalCheckFailedException, TransactionCanceledException } from '@aws-sdk/client-dynamodb';
+import { TransactWriteCommand, TransactWriteCommandInput, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { AlbumItem, AlbumUpdateRequest } from '../galleryTypes';
-import { getAlbum } from '../getAlbum/getAlbum';
 import { ddbDocClient } from '../../dynamo_utils/ddbClient';
+
+type TransactUpdate = NonNullable<NonNullable<TransactWriteCommandInput['TransactItems']>[number]['Update']>;
 
 /**
  * Update an album's attributes (like description and summary) in DynamoDB
@@ -39,52 +39,29 @@ export async function updateAlbum(albumPath: string, attributesToUpdate: AlbumUp
         throw new BadRequestException('No attributes to update');
     }
 
-    //
-    // Ensure only these attributes are in the input
-    //
-
     const validKeys = new Set(['description', 'summary', 'published']);
     for (const keyToUpdate of keysToUpdate) {
-        // Ensure we aren't trying to update an unknown attribute
         if (!validKeys.has(keyToUpdate)) {
             throw new BadRequestException('Unknown attribute: ' + keyToUpdate);
         }
-
-        // If published is being modified, ensure new value is valid
-        if (keyToUpdate === 'published') {
-            if (typeof attributesToUpdate.published !== 'boolean') {
-                throw new BadRequestException(
-                    `Invalid value: 'published' must be a boolean.  I got: [${attributesToUpdate.published}]`,
-                );
-            }
-            // Only allow day albums to be published if parent year album is already published
-            if (attributesToUpdate.published === true && isValidDayAlbumPath(albumPath)) {
-                const yearAlbumPath = getParentFromPath(albumPath);
-                if (!(await getAlbum(yearAlbumPath))?.published) {
-                    throw new BadRequestException(`Cannot publish until parent is published`);
-                }
-            }
+        if (keyToUpdate === 'published' && typeof attributesToUpdate.published !== 'boolean') {
+            throw new BadRequestException(
+                `Invalid value: 'published' must be a boolean.  I got: [${attributesToUpdate.published}]`,
+            );
         }
     }
 
-    //
-    // Construct the DynamoDB update statement
-    //
-    const attrs: Partial<AlbumItem> = attributesToUpdate;
-    attrs.updatedOn = new Date().toISOString();
+    const attrs: Partial<AlbumItem> = { ...attributesToUpdate, updatedOn: new Date().toISOString() };
     const pathParts = getParentAndNameFromPath(albumPath);
     if (!pathParts.name) throw new Error('Expecting path to have a leaf, got none');
-    const tableName = getDynamoDbTableName();
-    const partiQL = buildUpdatePartiQL(tableName, pathParts.parent, pathParts.name, attrs);
-    const ddbCommand = new ExecuteStatementCommand({
-        Statement: partiQL,
-    });
+    const update = buildUpdate(pathParts.parent, pathParts.name, attrs);
 
-    //
-    // Send update to DynamoDB
-    //
     try {
-        await ddbDocClient.send(ddbCommand);
+        if (attributesToUpdate.published === true && isValidDayAlbumPath(albumPath)) {
+            await publishDayAlbum(albumPath, update);
+        } else {
+            await ddbDocClient.send(new UpdateCommand(update));
+        }
     } catch (e) {
         if (e instanceof ConditionalCheckFailedException) {
             throw new NotFoundException(`Album not found: [${albumPath}]`);
@@ -93,4 +70,59 @@ export async function updateAlbum(albumPath: string, attributesToUpdate: AlbumUp
     }
 
     console.info({ event: 'album_updated', albumPath });
+}
+
+/** A day album may only be published while its year album is published */
+async function publishDayAlbum(albumPath: string, update: TransactUpdate): Promise<void> {
+    const yearPathParts = getParentAndNameFromPath(getParentFromPath(albumPath));
+    const ddbCommand = new TransactWriteCommand({
+        TransactItems: [
+            {
+                ConditionCheck: {
+                    TableName: getDynamoDbTableName(),
+                    Key: {
+                        parentPath: yearPathParts.parent,
+                        itemName: yearPathParts.name,
+                    },
+                    ConditionExpression: '#published = :published',
+                    ExpressionAttributeNames: { '#published': 'published' },
+                    ExpressionAttributeValues: { ':published': true },
+                },
+            },
+            { Update: update },
+        ],
+    });
+    try {
+        await ddbDocClient.send(ddbCommand);
+    } catch (e) {
+        if (e instanceof TransactionCanceledException) {
+            const [parentCheck, albumUpdate] = e.CancellationReasons ?? [];
+            if (parentCheck?.Code === 'ConditionalCheckFailed') {
+                throw new BadRequestException(`Cannot publish until parent is published`);
+            }
+            if (albumUpdate?.Code === 'ConditionalCheckFailed') {
+                throw new NotFoundException(`Album not found: [${albumPath}]`);
+            }
+        }
+        throw e;
+    }
+}
+
+function buildUpdate(parentPath: string, itemName: string, fields: Partial<AlbumItem>): TransactUpdate {
+    const sets: string[] = [];
+    const names: Record<string, string> = {};
+    const values: Record<string, unknown> = {};
+    for (const [field, value] of Object.entries(fields)) {
+        sets.push(`#${field} = :${field}`);
+        names[`#${field}`] = field;
+        values[`:${field}`] = value;
+    }
+    return {
+        TableName: getDynamoDbTableName(),
+        Key: { parentPath, itemName },
+        UpdateExpression: `SET ${sets.join(', ')}`,
+        ExpressionAttributeNames: names,
+        ExpressionAttributeValues: values,
+        ConditionExpression: 'attribute_exists (itemName)',
+    };
 }
