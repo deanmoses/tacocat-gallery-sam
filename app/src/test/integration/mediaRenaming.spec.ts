@@ -1,117 +1,70 @@
-import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
-import { renameMedia as renameImage } from '../../lib/gallery/renameMedia/renameMedia';
+import assert from 'node:assert/strict';
+import { getAlbum } from '../../lib/gallery/getAlbum/getAlbum';
+import { renameMedia } from '../../lib/gallery/renameMedia/renameMedia';
 import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';
 import { findMedia } from '../../lib/gallery_client/AlbumObject';
-import {
-    getNameFromPath,
-    getParentFromPath,
-    isValidAlbumPath,
-    isValidImagePath,
-} from '../../lib/gallery_path_utils/galleryPathUtils';
-import {
-    assertDynamoDBItemDoesNotExist,
-    assertDynamoDBItemExists,
-    cleanUpAlbumAndParents,
-    getMediaOrThrow,
-    waitForMediaItem,
-} from './helpers/albumHelpers';
-import { assertOriginalImageExists, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
+import { cleanUpYear, getAlbumOrFail, getMediaOrFail, setUpAlbumWithImages } from './helpers/fixtures';
+import { originalExists } from './helpers/s3';
+import { TEST_YEARS } from './helpers/testYears';
 
-const albumPath = '/1703/10-03/'; // unique to this suite to prevent pollution
-let imagePath1: string;
-let imagePath2: string;
-let renameImagePath1: string;
-let oldImageVersionId: string;
+const yearPath = TEST_YEARS.mediaRenaming;
+const albumPath = `${yearPath}10-03/`;
+const oldName = 'image1.jpg';
+const newName = 'image1_renamed.jpg';
+const otherName = 'image2.jpg';
+const oldPath = albumPath + oldName;
+const newPath = albumPath + newName;
+let oldVersionId: string | undefined;
 
 beforeAll(async () => {
-    imagePath1 = `${albumPath}image1_${Date.now()}.jpg`; // unique to this test run to prevent test from not being able to run again on failure to clean up properly
-    imagePath2 = `${albumPath}image2_${Date.now()}.jpg`; // unique to this test run to prevent test from not being able to run again on failure to clean up properly
-    renameImagePath1 = `${albumPath}image1_renamed_${Date.now()}.jpg`;
-    expect(isValidAlbumPath(albumPath)).toBe(true);
-    expect(isValidImagePath(imagePath1)).toBe(true);
-    expect(isValidImagePath(imagePath2)).toBe(true);
-    await assertDynamoDBItemDoesNotExist(albumPath);
-    // Sequential on purpose: both uploads land in an album that does not exist
-    // yet, and running them concurrently would race to auto-create it. This was
-    // already the effective order -- the inner awaits made Promise.all a no-op.
-    await uploadImage('image.jpg', imagePath1);
-    await uploadImage('image.jpg', imagePath2);
-    await Promise.all([imagePath1, imagePath2].map((path) => waitForMediaItem(path)));
-    await Promise.all([
-        assertDynamoDBItemExists(albumPath),
-        assertDynamoDBItemExists(imagePath1),
-        assertDynamoDBItemExists(imagePath2),
-        assertOriginalImageExists(imagePath1),
-        assertOriginalImageExists(imagePath2),
-        setAlbumThumbnail(albumPath, imagePath1),
-        setAlbumThumbnail(getParentFromPath(albumPath), imagePath1),
-    ]);
-}, 60000 /* increase Jest's timeout */);
-
-afterAll(async () => {
-    await cleanUpAlbumAndParents(albumPath);
-}, 20000 /* increase Jest's timeout */);
-
-test('Get old image version ID', async () => {
-    oldImageVersionId = (await getMediaOrThrow(imagePath1, true /* include unpublished albums */)).versionId;
-    if (!oldImageVersionId) throw new Error(`No version ID found for image [${imagePath1}]`);
+    await cleanUpYear(yearPath);
+    await setUpAlbumWithImages(
+        albumPath,
+        { [oldName]: 'images/image.jpg', [otherName]: 'images/image.jpg' },
+        { publish: false },
+    );
+    await Promise.all([setAlbumThumbnail(albumPath, oldPath), setAlbumThumbnail(yearPath, oldPath)]);
+    oldVersionId = (await getMediaOrFail(oldPath, true)).versionId;
+    assert(oldVersionId, `Image [${oldPath}] has no versionId`);
 });
 
-test('Cannot change extension', async () => {
-    await expect(renameImage(imagePath1, 'invalidExtension.png')).rejects.toThrow(/extension/i);
+afterAll(() => cleanUpYear(yearPath));
+
+describe('before renaming', () => {
+    test('changing the extension rejects', async () => {
+        await expect(renameMedia(oldPath, 'invalidExtension.png')).rejects.toThrow(/extension/i);
+    });
+
+    test('renaming an image that does not exist rejects', async () => {
+        await expect(renameMedia('/1899/01-01/noSuchImage.jpg', 'new_name.jpg')).rejects.toThrow(/not found/i);
+    });
+
+    test('renaming to the name of an existing image rejects', async () => {
+        await expect(renameMedia(oldPath, otherName)).rejects.toThrow(/exists/i);
+    });
 });
 
-test("Cannot rename an image that doesn't exist", async () => {
-    await expect(renameImage('/1899/01-01/noSuchImage.jpg', 'new_name.jpg')).rejects.toThrow(/not found/i);
-});
+describe('after renaming the image', () => {
+    beforeAll(() => renameMedia(oldPath, newName));
 
-test('Cannot rename to same name as an existing image', async () => {
-    const imageName2 = getNameFromPath(imagePath2);
-    if (!imageName2) throw new Error('no image 2');
-    await expect(renameImage(imagePath1, imageName2)).rejects.toThrow(/exists/i);
-});
+    test('the album lists it under the new name with a new version, and not the old name', async () => {
+        const album = await getAlbumOrFail(albumPath, true);
+        expect(findMedia(album, oldName)).toBeUndefined();
+        const image = findMedia(album, newName);
+        assert(image, `Album [${albumPath}] does not contain [${newName}]`);
+        expect(image.parentPath).toBe(albumPath);
+        expect(image.versionId).toBeDefined();
+        expect(image.versionId).not.toBe(oldVersionId);
+    });
 
-test('Do the rename', async () => {
-    const image1NewName = getNameFromPath(renameImagePath1);
-    if (!image1NewName) throw new Error('no image 1 new name');
-    await renameImage(imagePath1, image1NewName);
-}, 10000 /* increase Jest's timeout */);
+    test('the album and year thumbnails point at the new path', async () => {
+        const [album, year] = await Promise.all([getAlbum(albumPath, true), getAlbum(yearPath, true)]);
+        expect(album?.thumbnail?.path).toBe(newPath);
+        expect(year?.thumbnail?.path).toBe(newPath);
+    });
 
-test('GetAlbum() should reflect rename', async () => {
-    const album = await getAlbumAndChildren(albumPath, true /* include unpublished albums */);
-    if (!album) throw new Error('no album');
-    if (!album?.children) throw new Error('no children');
-
-    // Ensure album doesn't contain old image
-    const oldImageName = getNameFromPath(imagePath1);
-    if (!oldImageName) throw new Error('no old image name');
-    if (findMedia(album, oldImageName)) throw new Error(`Album still contains old image [${oldImageName}]`);
-
-    // Ensure album contains new image
-    const newImageName = getNameFromPath(renameImagePath1);
-    if (!newImageName) throw new Error('no new image name');
-    const renamedImage = findMedia(album, newImageName);
-    if (!renamedImage) throw new Error(`Album does not contain new image [${newImageName}]`);
-    expect(renamedImage.itemName).toBe(newImageName);
-    expect(renamedImage.parentPath).toBe(getParentFromPath(renameImagePath1));
-    const newVersionId = renamedImage.versionId;
-    if (!newVersionId) throw new Error(`No version ID found for image [${renameImagePath1}]`);
-    expect(newVersionId).not.toBe(oldImageVersionId);
-
-    // Ensure immediate parent album's thumbnail entry reflects rename
-    expect(album?.thumbnail?.path).toBe(renameImagePath1);
-});
-
-test("Grandparent album's thumbnail entry should reflect the image rename", async () => {
-    const album = await getAlbumAndChildren(getParentFromPath(albumPath), true /* include unpublished albums */);
-    if (!album) throw new Error('no grandparent album');
-    expect(album?.thumbnail?.path).toBe(renameImagePath1);
-});
-
-test('Originals bucket should contain new image', async () => {
-    await expect(originalImageExists(renameImagePath1)).resolves.toBe(true);
-});
-
-test('Originals bucket should not contain old image', async () => {
-    await expect(originalImageExists(imagePath1)).resolves.toBe(false);
+    test('the originals bucket holds it under the new path only', async () => {
+        await expect(originalExists(newPath)).resolves.toBe(true);
+        await expect(originalExists(oldPath)).resolves.toBe(false);
+    });
 });

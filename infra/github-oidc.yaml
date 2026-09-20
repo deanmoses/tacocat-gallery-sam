@@ -21,8 +21,9 @@ Description: >-
 #                                    tacocat-gallery-sam-{dev,test,prod} stacks
 #
 # The three GitHub roles hold only what a `sam deploy` needs from the caller's
-# side: upload artifacts, create and (except for the PR role) execute change
-# sets on their own stacks, and hand CloudFormation its service role. The broad
+# side: upload artifacts, create and execute change sets on their own stacks
+# (the PR role only creates them on dev), and hand CloudFormation its service
+# role. The broad
 # permissions needed to actually create Lambdas, buckets, tables and so on live
 # on the CloudFormation service role, which only CloudFormation can assume.
 #
@@ -31,7 +32,7 @@ Description: >-
 #
 # Which role a job may assume is decided by the GitHub token's `sub` claim:
 #
-#   repo:ORG/REPO:pull_request          PR role    dry-run change set on dev
+#   repo:ORG/REPO:pull_request          PR role    dry-run change set on dev; deploy test, run integration tests
 #   repo:ORG/REPO:ref:refs/heads/main   main role  deploy dev + test, run integration tests
 #   repo:ORG/REPO:environment:prod      prod role  deploy prod (environment allows protected branches only)
 #
@@ -173,14 +174,15 @@ Resources:
 
     # ---------------------------------------------------------------------------
     # Deploying dev and test, and exercising what a deploy produced. Managed
-    # policies rather than inline ones because two principals hold them: the main
-    # branch's CI role and the Claude Code user.
+    # policies rather than inline ones because several principals hold them: the
+    # two branch CI roles and the Claude Code user. Dev and test are separate
+    # policies because the PR role deploys test but only dry-runs dev.
     # ---------------------------------------------------------------------------
-    DeployDevAndTestPolicy:
+    DeployDevPolicy:
         Type: AWS::IAM::ManagedPolicy
         Properties:
-            ManagedPolicyName: tacocat-gallery-cicd-deploy-dev-and-test
-            Description: Create and execute change sets on the dev and test stacks
+            ManagedPolicyName: tacocat-gallery-cicd-deploy-dev
+            Description: Create and execute change sets on the dev stack
             PolicyDocument:
                 Version: '2012-10-17'
                 Statement:
@@ -195,9 +197,28 @@ Resources:
                           - cloudformation:DescribeStackResources
                           - cloudformation:GetTemplate
                           - cloudformation:ListStackResources
-                      Resource:
-                          - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${StackPrefix}-dev/*
-                          - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${StackPrefix}-test/*
+                      Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${StackPrefix}-dev/*
+
+    DeployTestPolicy:
+        Type: AWS::IAM::ManagedPolicy
+        Properties:
+            ManagedPolicyName: tacocat-gallery-cicd-deploy-test
+            Description: Create and execute change sets on the test stack
+            PolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Effect: Allow
+                      Action:
+                          - cloudformation:CreateChangeSet
+                          - cloudformation:DescribeChangeSet
+                          - cloudformation:ExecuteChangeSet
+                          - cloudformation:DeleteChangeSet
+                          - cloudformation:DescribeStacks
+                          - cloudformation:DescribeStackEvents
+                          - cloudformation:DescribeStackResources
+                          - cloudformation:GetTemplate
+                          - cloudformation:ListStackResources
+                      Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${StackPrefix}-test/*
 
     IntegrationTestsPolicy:
         Type: AWS::IAM::ManagedPolicy
@@ -263,13 +284,17 @@ Resources:
                           - !Sub arn:aws:s3:::${StackPrefix}-test-derived-images/*
 
     # ---------------------------------------------------------------------------
-    # PR role: pull requests dry-run a change set against the dev stack
+    # PR role: pull requests dry-run a change set against the dev stack, and deploy
+    # the test stack to run the integration tests against it. Only a pull request
+    # from a branch in this repository gets an OIDC token with this subject; a fork
+    # gets no token at all, so this is reachable only by someone who can already
+    # push to the repository.
     # ---------------------------------------------------------------------------
     GitHubPullRequestRole:
         Type: AWS::IAM::Role
         Properties:
             RoleName: tacocat-gallery-cicd-github-pr
-            Description: Assumed by pull request workflow runs to validate a change set against the dev stack without executing it
+            Description: Assumed by pull request workflow runs to dry-run a change set on the dev stack and to deploy and integration-test the test stack
             MaxSessionDuration: 3600
             AssumeRolePolicyDocument:
                 Version: '2012-10-17'
@@ -284,6 +309,8 @@ Resources:
                               token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOrg}/${GitHubRepo}:pull_request
             ManagedPolicyArns:
                 - !Ref SamDeployPlumbingPolicy
+                - !Ref DeployTestPolicy
+                - !Ref IntegrationTestsPolicy
             Policies:
                 - PolicyName: DryRunChangeSetOnDev
                   PolicyDocument:
@@ -322,7 +349,8 @@ Resources:
                               token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/main
             ManagedPolicyArns:
                 - !Ref SamDeployPlumbingPolicy
-                - !Ref DeployDevAndTestPolicy
+                - !Ref DeployDevPolicy
+                - !Ref DeployTestPolicy
                 - !Ref IntegrationTestsPolicy
 
     # ---------------------------------------------------------------------------
@@ -600,7 +628,8 @@ Resources:
             UserName: tacocat-gallery-claude-code-cloud
             ManagedPolicyArns:
                 - !Ref SamDeployPlumbingPolicy
-                - !Ref DeployDevAndTestPolicy
+                - !Ref DeployDevPolicy
+                - !Ref DeployTestPolicy
                 - !Ref IntegrationTestsPolicy
                 - !Ref ReadAllEnvironmentsPolicy
             Policies:

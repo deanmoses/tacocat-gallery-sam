@@ -2,19 +2,16 @@
  * The image CDN's crawler opt-out and security headers and its robots.txt.
  * See template.yaml's response headers policies.
  */
-import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
-import { getDerivedImageGeneratorDomain } from '../../lib/lambda_utils/Env';
-import { cleanUpAlbumAndParents, waitForMediaItem } from './helpers/albumHelpers';
-import { assertDerivedImageDoesNotExist, assertOriginalImageDoesNotExist, uploadImage } from './helpers/s3ImageHelper';
+import { getDerivedImageGeneratorDomain, getGalleryAppDomain } from '../../lib/lambda_utils/Env';
+import { cleanUpYear, setUpAlbumWithImages } from './helpers/fixtures';
+import { TEST_YEARS } from './helpers/testYears';
 
-const yearPath = '/1713/'; // unique to this suite: cleanup deletes the whole year from S3 (see integrationTestYears.spec.ts)
+const yearPath = TEST_YEARS.imageCdnHeaders;
 const albumPath = `${yearPath}02-20/`;
 const imagePath = `${albumPath}image1.jpg`;
-const galleryAppDomain = process.env.GALLERY_APP_DOMAIN;
-if (!galleryAppDomain) throw new Error('GALLERY_APP_DOMAIN environment variable is not set');
-const cdn = `https://img.${galleryAppDomain}`;
-const isProd = galleryAppDomain === 'pix.tacocat.com';
-let imageVersionId: string;
+const cdn = `https://img.${getGalleryAppDomain()}`;
+const isProd = getGalleryAppDomain() === 'pix.tacocat.com';
+let versionId: string;
 
 /** Headers every response from the CDN must carry, on every cache behavior */
 const SHARED_HEADERS: Record<string, string> = {
@@ -29,24 +26,16 @@ function expectSharedHeaders(response: Response): void {
         expect(response.headers.get(name)).toBe(value);
     }
     // CloudFront writes includeSubDomains in its own casing; preload must stay off
-    const hsts = response.headers.get('strict-transport-security');
-    expect(hsts).not.toBeNull();
-    expect(hsts).toMatch(/^max-age=31536000; includeSubDomains$/i);
+    expect(response.headers.get('strict-transport-security')).toMatch(/^max-age=31536000; includeSubDomains$/i);
 }
 
 beforeAll(async () => {
-    expect(isValidAlbumPath(yearPath)).toBe(true);
-    expect(isValidAlbumPath(albumPath)).toBe(true);
-    expect(isValidImagePath(imagePath)).toBe(true);
-    await assertOriginalImageDoesNotExist(imagePath);
-    await assertDerivedImageDoesNotExist(imagePath);
-    imageVersionId = await uploadImage('image.jpg', imagePath);
-    await waitForMediaItem(imagePath);
-}, 60000 /* increases Jest's timeout */);
+    await cleanUpYear(yearPath);
+    const versionIds = await setUpAlbumWithImages(albumPath, { 'image1.jpg': 'images/image.jpg' });
+    versionId = versionIds[imagePath];
+});
 
-afterAll(async () => {
-    await cleanUpAlbumAndParents(albumPath);
-}, 10000 /* increases Jest's timeout */);
+afterAll(() => cleanUpYear(yearPath));
 
 test('robots.txt allows crawling and disallows AI training bots', async () => {
     const response = await fetch(`${cdn}/robots.txt`, { cache: 'no-store' });
@@ -62,28 +51,28 @@ test('robots.txt allows crawling and disallows AI training bots', async () => {
     expectSharedHeaders(response);
 });
 
-test('Original image carries the crawler and security headers', async () => {
+test('an original image carries the crawler and security headers', async () => {
     const response = await fetch(`${cdn}${imagePath}`, { cache: 'no-store' });
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('image/jpeg');
     expectSharedHeaders(response);
 });
 
-test('Derived image carries the crawler and security headers plus immutable caching', async () => {
-    const response = await fetch(`${cdn}/i${imagePath}?version=${imageVersionId}&size=45x45`, { cache: 'no-store' });
+test('a derived image carries the crawler and security headers plus immutable caching', async () => {
+    const response = await fetch(`${cdn}/i${imagePath}?version=${versionId}&size=45x45`, { cache: 'no-store' });
     expect(response.status).toBe(200);
     expectSharedHeaders(response);
     expect(response.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
 });
 
-test('Derived image Lambda URL cannot be called directly', async () => {
+test('the derived image Lambda URL cannot be called directly', async () => {
     // AuthType AWS_IAM: only CloudFront, signing via its Origin Access Control, may invoke it
-    const url = `https://${getDerivedImageGeneratorDomain()}/i${imagePath}/${imageVersionId}/45x45`;
+    const url = `https://${getDerivedImageGeneratorDomain()}/i${imagePath}/${versionId}/45x45`;
     const response = await fetch(url, { cache: 'no-store' });
     expect(response.status).toBe(403);
 });
 
-test('Video behavior carries the headers even on a function-generated error', async () => {
+test('the video behavior carries the headers even on a function-generated error', async () => {
     // No version: the URL-rewrite CloudFront Function answers 400 itself, never reaching an origin
     const response = await fetch(`${cdn}/v${albumPath}nonexistent.mp4`, { cache: 'no-store' });
     expect(response.status).toBe(400);

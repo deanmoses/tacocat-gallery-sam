@@ -1,25 +1,32 @@
 /**
- * Every integration suite must own a distinct test year. Suite cleanup calls
- * cleanUpAlbumAndParents(), which deletes every S3 object under the parent
- * year's prefix, so two suites sharing a year and running in parallel delete
- * each other's uploads. That is a flaky failure that only shows in CI.
+ * Every integration suite must work in a test year of its own: suite cleanup
+ * wipes the whole year from DynamoDB and S3, so two suites sharing a year and
+ * running in parallel wipe each other's fixtures. That is a flaky failure that
+ * only shows in CI.
  */
 import fs from 'fs';
 import path from 'path';
+import { TEST_YEARS } from './integration/helpers/testYears';
 
 const integrationDir = path.join(__dirname, 'integration');
+const suites = fs.readdirSync(integrationDir).filter((f) => f.endsWith('.spec.ts'));
 
-test('no two integration suites use the same test year', () => {
-    const yearsByFile = new Map<string, Set<string>>();
-    for (const file of fs.readdirSync(integrationDir).filter((f) => f.endsWith('.spec.ts'))) {
-        const source = fs.readFileSync(path.join(integrationDir, file), 'utf8');
-        const years = new Set([...source.matchAll(/'\/(1[67]\d\d)\//g)].map((m) => m[1]));
-        yearsByFile.set(file, years);
+test('no two suites own the same year', () => {
+    const years = Object.values(TEST_YEARS);
+    expect(new Set(years).size).toBe(years.length);
+});
+
+test('every registered year belongs to a suite that exists', () => {
+    for (const suite of Object.keys(TEST_YEARS)) {
+        expect(suites).toContain(`${suite}.spec.ts`);
     }
-    const owners = new Map<string, string[]>();
-    for (const [file, years] of yearsByFile) {
-        for (const year of years) owners.set(year, [...(owners.get(year) ?? []), file]);
-    }
-    const shared = [...owners].filter(([, files]) => files.length > 1);
-    expect(shared).toEqual([]);
+});
+
+test.each(suites)('%s uses only its own year', (file) => {
+    const suite = file.replace(/\.spec\.ts$/, '');
+    const source = fs.readFileSync(path.join(integrationDir, file), 'utf8');
+    const registryReferences = [...source.matchAll(/TEST_YEARS\.(\w+)/g)].map((m) => m[1]);
+    expect(new Set(registryReferences)).toEqual(new Set(registryReferences.length ? [suite] : []));
+    // Test years are registered, never spelled out in a suite
+    expect(source.match(/'\/1[67]\d\d\//g)).toBeNull();
 });

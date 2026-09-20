@@ -1,101 +1,72 @@
+import assert from 'node:assert/strict';
+import { deleteAlbum } from '../../lib/gallery/deleteAlbum/deleteAlbum';
 import { deleteMedia } from '../../lib/gallery/deleteMedia/deleteMedia';
-import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
+import { getAlbum } from '../../lib/gallery/getAlbum/getAlbum';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
-import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
 import { findMedia, findSubAlbum } from '../../lib/gallery_client/AlbumObject';
-import {
-    getNameFromPath,
-    getParentFromPath,
-    isValidAlbumPath,
-    isValidImagePath,
-} from '../../lib/gallery_path_utils/galleryPathUtils';
-import { assertDynamoDBItemDoesNotExist, cleanUpAlbum, waitForMediaItem } from './helpers/albumHelpers';
-import { reallyGetNameFromPath } from './helpers/pathHelpers';
-import { assertRedisItemDoesNotExist, assertRedisItemExists } from './helpers/redisHelper';
-import { assertOriginalImageDoesNotExist, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
+import { getNameFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
+import { cleanUpYear, getAlbumOrFail, setUpAlbumWithImages } from './helpers/fixtures';
+import { waitForRedisItem, waitForRedisItemGone } from './helpers/redis';
+import { originalExists } from './helpers/s3';
+import { TEST_YEARS } from './helpers/testYears';
 
-const yearPath = '/1704/'; // unique to this suite to prevent pollution
+const yearPath = TEST_YEARS.imageCreation;
 const albumPath = `${yearPath}09-02/`;
-const imagePath = `${albumPath}image1.jpg`;
+const imageName = 'image1.jpg';
+const imagePath = albumPath + imageName;
 
 beforeAll(async () => {
-    expect(isValidAlbumPath(yearPath)).toBe(true);
-    expect(isValidAlbumPath(albumPath)).toBe(true);
-    expect(isValidImagePath(imagePath)).toBe(true);
-
-    await Promise.all([
-        assertDynamoDBItemDoesNotExist(yearPath),
-        assertDynamoDBItemDoesNotExist(albumPath),
-        assertOriginalImageDoesNotExist(imagePath),
-    ]);
-
-    await uploadImage('image.jpg', imagePath);
-    await waitForMediaItem(imagePath);
-
-    await updateAlbum(getParentFromPath(albumPath), { published: true }); // must publish parent first
-    await updateAlbum(albumPath, { published: true }); // cannot publish child before parent
-}, 60000 /* increase Jest's timeout */);
-
-afterAll(async () => {
-    await cleanUpAlbum(albumPath);
-    await cleanUpAlbum(yearPath);
+    await cleanUpYear(yearPath);
+    await setUpAlbumWithImages(albumPath, { [imageName]: 'images/image.jpg' });
 });
 
-test('Parent album was created', async () => {
-    if (!(await itemExists(albumPath))) throw new Error(`Album [${albumPath}] does not exist`);
+afterAll(() => cleanUpYear(yearPath));
+
+describe('after uploading an image into an album that did not exist', () => {
+    test('the day and year albums were created', async () => {
+        await expect(itemExists(albumPath)).resolves.toBe(true);
+        await expect(itemExists(yearPath)).resolves.toBe(true);
+    });
+
+    test('the album lists the image with its embedded metadata', async () => {
+        const image = findMedia(await getAlbumOrFail(albumPath), imageName);
+        assert(image, `Album [${albumPath}] does not contain [${imageName}]`);
+        expect(image.parentPath).toBe(albumPath);
+        expect(image.versionId).toBeDefined();
+        expect(image.title).toBe('Image Title');
+        expect(image.tags?.sort()).toEqual(['test1', 'test2', 'test3']);
+    });
+
+    test('the image became the album thumbnail', async () => {
+        const album = findSubAlbum(await getAlbumOrFail(yearPath), getNameFromPath(albumPath));
+        assert(album, `Year [${yearPath}] does not list [${albumPath}]`);
+        expect(album.thumbnail?.path).toBe(imagePath);
+        expect(album.thumbnail?.versionId).toBeDefined();
+    });
+
+    test('the image synced to Redis', () => waitForRedisItem(imagePath));
+
+    test('the album cannot be deleted while it has children', async () => {
+        await expect(deleteAlbum(albumPath)).rejects.toThrow(/child/i);
+    });
 });
 
-test('Grandparent album was created', async () => {
-    if (!(await itemExists(yearPath))) throw new Error(`Album [${yearPath}] does not exist`);
+describe('after deleting the image', () => {
+    beforeAll(() => deleteMedia(imagePath));
+
+    test('the album no longer lists it', async () => {
+        const album = await getAlbumOrFail(albumPath);
+        expect(findMedia(album, imageName)).toBeUndefined();
+    });
+
+    test('the album no longer has a thumbnail', async () => {
+        const album = await getAlbum(albumPath);
+        expect(album?.thumbnail).toBeUndefined();
+    });
+
+    test('the originals bucket no longer holds it', async () => {
+        await expect(originalExists(imagePath)).resolves.toBe(false);
+    });
+
+    test('it is removed from Redis', () => waitForRedisItemGone(imagePath));
 });
-
-test('Album contains image', async () => {
-    const album = await getAlbumAndChildren(albumPath);
-    if (!album) throw new Error('no album');
-    const imageName = reallyGetNameFromPath(imagePath);
-    const image = findMedia(album, imageName);
-    if (!image) throw new Error(`Did not find child image`);
-    if (!image.versionId) throw new Error(`Image [${imageName}] has no versionId`);
-    expect(image.parentPath).toBe(albumPath);
-    expect(image.itemName).toBe(imageName);
-    expect(image.title).toBe('Image Title');
-    expect(image.tags?.sort()).toEqual(['test1', 'test2', 'test3'].sort());
-});
-
-test("Image was set as album's thumb", async () => {
-    const parentAlbum = await getAlbumAndChildren(getParentFromPath(albumPath));
-    if (!parentAlbum) throw new Error(`Parent album [${getParentFromPath(albumPath)}] not found`);
-    const album = findSubAlbum(parentAlbum, getNameFromPath(albumPath));
-    if (!album) throw new Error(`Album [${albumPath}] not found in parent [${getParentFromPath(albumPath)}]`);
-    expect(album?.thumbnail?.path).toBe(imagePath);
-    if (!album?.thumbnail?.versionId) throw new Error(`Album [${albumPath}] thumbnail [${imagePath}] has no versionId`);
-});
-
-test('Image exists in Redis', async () => {
-    await assertRedisItemExists(imagePath, 14000);
-}, 15000);
-
-test('Delete image', async () => {
-    await expect(deleteMedia(imagePath)).resolves.not.toThrow();
-});
-
-test('Album should not contain deleted image', async () => {
-    const album = await getAlbumAndChildren(albumPath);
-    if (!album) throw new Error('no album');
-    const imageName = reallyGetNameFromPath(imagePath);
-    const image = findMedia(album, imageName);
-    if (image) throw new Error(`Image [${imageName}] should not exist in album [${albumPath}]`);
-});
-
-test('Image should no longer be album thumb', async () => {
-    const album = await getAlbumAndChildren(albumPath);
-    expect(album?.thumbnail?.path).toBeUndefined();
-});
-
-test('Original images bucket should no longer contain image', async () => {
-    if (await originalImageExists(imagePath)) throw new Error(`[${imagePath}] should not exist in originals bucket`);
-});
-
-test('Image no longer exists in Redis', async () => {
-    await assertRedisItemDoesNotExist(imagePath, 14000);
-}, 15000);

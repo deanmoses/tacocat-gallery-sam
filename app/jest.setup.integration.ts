@@ -1,12 +1,15 @@
 /**
- * Jest setup file for INTEGRATION tests.
+ * Jest setup for the integration project. Runs in each suite's environment.
  *
  * Integration tests use real AWS and Redis resources. Credentials and config
- * should be provided via environment variables (from .env.integration-test
- * locally, or CI secrets in GitHub Actions).
+ * come from environment variables: .env.integration-test locally, CI secrets
+ * in GitHub Actions.
  */
+import { closeRedis } from './src/test/integration/helpers/redis';
 
-// Increase default timeout for integration tests (AWS operations can be slow)
-jest.setTimeout(30000);
+// A backstop only: waits on asynchronous processing carry their own deadlines in waitFor()
+jest.setTimeout(60_000);
 
 process.env.AWS_REGION ??= 'us-east-1';
+
+afterAll(() => closeRedis());

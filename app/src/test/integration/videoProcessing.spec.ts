@@ -1,184 +1,83 @@
 import { deleteMedia } from '../../lib/gallery/deleteMedia/deleteMedia';
-import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
-import { itemExists } from '../../lib/gallery/itemExists/itemExists';
-import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
-import { findMedia } from '../../lib/gallery_client/AlbumObject';
-import { getParentFromPath, isValidAlbumPath, isValidVideoPath } from '../../lib/gallery_path_utils/galleryPathUtils';
-import { assertDynamoDBItemDoesNotExist, cleanUpAlbum } from './helpers/albumHelpers';
-import { waitFor } from './helpers/waitFor';
-import { reallyGetNameFromPath } from './helpers/pathHelpers';
-import { uploadVideo, assertOriginalVideoDoesNotExist, originalVideoExists } from './helpers/s3VideoHelper';
 import { VideoItem } from '../../lib/gallery/galleryTypes';
+import { itemExists } from '../../lib/gallery/itemExists/itemExists';
+import { findMedia } from '../../lib/gallery_client/AlbumObject';
 import { getFullItemFromDynamoDB } from '../../lib/dynamo_utils/ddbGet';
 import { getDerivedImagesBucketName } from '../../lib/lambda_utils/Env';
-import { HeadObjectCommand, S3Client, NotFound } from '@aws-sdk/client-s3';
 import { getTranscodedVideoS3Key, getVideoPosterS3Key } from '../../lib/s3_utils/s3path';
+import { cleanUpYear, getAlbumOrFail, publishAlbumAndYear } from './helpers/fixtures';
+import { headObject, originalExists, uploadMedia } from './helpers/s3';
+import { TEST_YEARS } from './helpers/testYears';
+import { waitFor } from './helpers/waitFor';
 
-const yearPath = '/1710/'; // unique to this suite to prevent pollution: afterAll deletes this
-// whole year album, which wipes any other suite sharing it.  /1705/ belongs to mediaUpdating.
+const yearPath = TEST_YEARS.videoProcessing;
 const albumPath = `${yearPath}09-03/`;
-const videoPath = `${albumPath}testvideo.mp4`;
+const videoName = 'testvideo.mp4';
+const videoPath = albumPath + videoName;
+let video: VideoItem;
 
-/** MediaConvert transcodes take one to three minutes; the item is written when the job completes */
-async function waitForVideoProcessing(videoPath: string): Promise<VideoItem> {
+/** MediaConvert takes one to three minutes; the item is written when the job completes */
+function waitForVideoProcessing(): Promise<VideoItem> {
     return waitFor(
         async () => {
             const item = await getFullItemFromDynamoDB<VideoItem>(videoPath);
             return item?.versionId && item.mediaType === 'video' ? item : undefined;
         },
-        { description: `video [${videoPath}] to finish processing`, timeoutMs: 180000, intervalMs: 5000 },
+        { description: `video [${videoPath}] to finish processing`, timeoutMs: 180_000, intervalMs: 5_000 },
     );
 }
 
-// Helper to check if video assets exist in derived bucket and get metadata
-// Video assets are stored at i/<path>/<versionId>/video-transcoded and i/<path>/<versionId>/video-poster
-async function getVideoAssetMetadata(
-    videoPath: string,
-    versionId: string,
-    type: 'transcoded' | 'poster',
-): Promise<{ exists: boolean; contentType?: string }> {
-    const key =
-        type === 'transcoded'
-            ? getTranscodedVideoS3Key(videoPath, versionId)
-            : getVideoPosterS3Key(videoPath, versionId);
-    const s3Command = new HeadObjectCommand({
-        Bucket: getDerivedImagesBucketName(),
-        Key: key,
-    });
-    const client = new S3Client({});
-    try {
-        const response = await client.send(s3Command);
-        return {
-            exists: response.$metadata.httpStatusCode === 200,
-            contentType: response.ContentType,
-        };
-    } catch (e) {
-        if (e instanceof NotFound) {
-            return { exists: false };
-        }
-        throw e;
-    }
+function transcodedVideo() {
+    return headObject(getDerivedImagesBucketName(), getTranscodedVideoS3Key(videoPath, video.versionId));
 }
 
-async function videoAssetExists(videoPath: string, versionId: string, type: 'transcoded' | 'poster'): Promise<boolean> {
-    const metadata = await getVideoAssetMetadata(videoPath, versionId, type);
-    return metadata.exists;
+function poster() {
+    return headObject(getDerivedImagesBucketName(), getVideoPosterS3Key(videoPath, video.versionId));
 }
-
-let videoItem: VideoItem | null = null;
 
 beforeAll(async () => {
-    expect(isValidAlbumPath(yearPath)).toBe(true);
-    expect(isValidAlbumPath(albumPath)).toBe(true);
-    expect(isValidVideoPath(videoPath)).toBe(true);
+    await cleanUpYear(yearPath);
+    await uploadMedia('videos/test_video.mp4', videoPath);
+    video = await waitForVideoProcessing();
+    await publishAlbumAndYear(albumPath);
+}, 200_000);
 
-    await Promise.all([
-        assertDynamoDBItemDoesNotExist(yearPath),
-        assertDynamoDBItemDoesNotExist(albumPath),
-        assertOriginalVideoDoesNotExist(videoPath),
-    ]);
+afterAll(() => cleanUpYear(yearPath));
 
-    await uploadVideo('test_video.mp4', videoPath);
+describe('after uploading a video into an album that did not exist', () => {
+    test('the day and year albums were created', async () => {
+        await expect(itemExists(albumPath)).resolves.toBe(true);
+        await expect(itemExists(yearPath)).resolves.toBe(true);
+    });
 
-    videoItem = await waitForVideoProcessing(videoPath);
-    await updateAlbum(getParentFromPath(albumPath), { published: true });
-    await updateAlbum(albumPath, { published: true });
-}, 200000);
+    test('the album lists the video', async () => {
+        const listed = findMedia(await getAlbumOrFail(albumPath), videoName);
+        expect(listed?.parentPath).toBe(albumPath);
+        expect(listed?.versionId).toBe(video.versionId);
+    });
 
-afterAll(async () => {
-    await cleanUpAlbum(albumPath);
-    await cleanUpAlbum(yearPath);
+    test('the derived bucket holds the transcoded video as MP4', async () => {
+        await expect(transcodedVideo()).resolves.toEqual({ contentType: 'video/mp4' });
+    });
+
+    test('the derived bucket holds the poster as JPEG', async () => {
+        await expect(poster()).resolves.toEqual({ contentType: 'image/jpeg' });
+    });
 });
 
-test('Video processing completed', () => {
-    expect(videoItem).not.toBeNull();
-    expect(videoItem?.versionId).toBeDefined();
-    expect(videoItem?.mediaType).toBe('video');
-});
+describe('after deleting the video', () => {
+    beforeAll(() => deleteMedia(videoPath));
 
-test('Parent album was created', async () => {
-    if (!(await itemExists(albumPath))) throw new Error(`Album [${albumPath}] does not exist`);
-});
+    test('the album no longer lists it', async () => {
+        expect(findMedia(await getAlbumOrFail(albumPath), videoName)).toBeUndefined();
+    });
 
-test('Grandparent album was created', async () => {
-    if (!(await itemExists(yearPath))) throw new Error(`Album [${yearPath}] does not exist`);
-});
+    test('the originals bucket no longer holds it', async () => {
+        await expect(originalExists(videoPath)).resolves.toBe(false);
+    });
 
-test('Video has required fields', () => {
-    expect(videoItem).not.toBeNull();
-    if (!videoItem) return;
-
-    // Required fields for videos (path-based storage: no 'id' field)
-    expect(videoItem.mediaType).toBe('video');
-    expect(videoItem.versionId).toBeDefined();
-
-    // Optional fields that should be set after transcoding
-    // Duration and dimensions may or may not be extracted depending on the video
-    console.info(
-        `Video item: versionId=${videoItem.versionId}, duration=${videoItem.duration}, dimensions=${JSON.stringify(videoItem.dimensions)}`,
-    );
-});
-
-test('Album contains video', async () => {
-    const album = await getAlbumAndChildren(albumPath);
-    if (!album) throw new Error('no album');
-    const videoName = reallyGetNameFromPath(videoPath);
-    const video = findMedia(album, videoName);
-    if (!video) throw new Error(`Did not find video in album`);
-    expect(video.parentPath).toBe(albumPath);
-    expect(video.itemName).toBe(videoName);
-});
-
-test('Transcoded video exists in derived bucket with correct content type', async () => {
-    if (!videoItem?.versionId) {
-        console.warn('Skipping - no video versionId');
-        return;
-    }
-    const metadata = await getVideoAssetMetadata(videoPath, videoItem.versionId, 'transcoded');
-    expect(metadata.exists).toBe(true);
-    expect(metadata.contentType).toBe('video/mp4');
-});
-
-test('Video poster exists in derived bucket with correct content type', async () => {
-    if (!videoItem?.versionId) {
-        console.warn('Skipping - no video versionId');
-        return;
-    }
-    const metadata = await getVideoAssetMetadata(videoPath, videoItem.versionId, 'poster');
-    expect(metadata.exists).toBe(true);
-    expect(metadata.contentType).toBe('image/jpeg');
-});
-
-test('Delete video', async () => {
-    await expect(deleteMedia(videoPath)).resolves.not.toThrow();
-});
-
-test('Album should not contain deleted video', async () => {
-    const album = await getAlbumAndChildren(albumPath);
-    if (!album) throw new Error('no album');
-    const videoName = reallyGetNameFromPath(videoPath);
-    const video = findMedia(album, videoName);
-    if (video) throw new Error(`Video [${videoName}] should not exist in album [${albumPath}]`);
-});
-
-test('Original video bucket should no longer contain video', async () => {
-    if (await originalVideoExists(videoPath)) throw new Error(`[${videoPath}] should not exist in originals bucket`);
-});
-
-test('Transcoded video should be deleted from derived bucket', async () => {
-    if (!videoItem?.versionId) {
-        console.warn('Skipping - no video versionId');
-        return;
-    }
-    const exists = await videoAssetExists(videoPath, videoItem.versionId, 'transcoded');
-    expect(exists).toBe(false);
-});
-
-test('Video poster should be deleted from derived bucket', async () => {
-    if (!videoItem?.versionId) {
-        console.warn('Skipping - no video versionId');
-        return;
-    }
-    const exists = await videoAssetExists(videoPath, videoItem.versionId, 'poster');
-    expect(exists).toBe(false);
+    test('the derived bucket no longer holds the transcoded video or the poster', async () => {
+        await expect(transcodedVideo()).resolves.toBeUndefined();
+        await expect(poster()).resolves.toBeUndefined();
+    });
 });

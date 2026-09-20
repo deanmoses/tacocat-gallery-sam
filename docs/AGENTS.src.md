@@ -135,7 +135,7 @@ sam deploy --config-env test     # Deploy to test environment
 cd app && npm run test:integration
 ```
 
-Note: Integration tests require AWS credentials and hit actual AWS resources in the test stack.
+Note: Integration tests require AWS credentials and hit actual AWS resources in the test stack. How the suites are structured (step style, test years, polling) is described in `app/src/test/integration/README.md`.
 
 ## Architecture
 
@@ -241,7 +241,7 @@ Pass one plain object with a snake_case `event` field plus whatever context is r
 - **gh CLI**: Use the `gh` CLI tool for GitHub operations.
 - **Branch protection**: The `main` branch is protected. All changes require a pull request.
 - **Pre-commit hooks**: Husky runs the same checks as CI (see `.husky/pre-commit`). Tools not installed locally are skipped with a warning; CI enforces them regardless.
-- **CI workflow**: On PR and push to main, runs all lint and test checks plus a SAM build (see `.github/workflows/`). On push to main, also deploys to staging.
+- **CI workflow**: On PR and push to main, runs all lint and unit test checks plus a SAM build, then deploys the test stack and runs the integration tests against it (see `.github/workflows/`). Merging is gated on all of it. On push to main, also deploys to staging.
 - **Production deploy**: Manual workflow dispatch from GitHub Actions. Runs tests, deploys to prod from the `prod` GitHub environment (which admits protected branches only), creates a release tag and generates release notes.
 - **CI credentials**: jobs assume IAM roles via GitHub OIDC, see `infra/README.md`.
 
