@@ -59,7 +59,7 @@ jobs:
     # fail open.
     merge-ok:
         needs: [detect-code-changes, build-and-unit-test, integration-test]
-        if: always()
+        if: always() && github.event_name == 'pull_request'
         runs-on: ubuntu-latest
         steps:
             - name: Check required jobs
@@ -136,12 +136,14 @@ jobs:
             - name: Deploy to staging
               run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset
 
-    # Deploy the change to the test stack and run the integration tests against it.
-    # Gates merge (via merge-ok) on pull requests and runs again on the merge to
-    # main. Runs in parallel with deploy-staging rather than ahead of it: staging
-    # is for looking at, and a red run here still blocks the next merge.
+    # Deploy the change to the test stack and run the integration tests against
+    # it, gating merge via merge-ok. Pull requests only: the run tests the merge
+    # of the branch into main, so with branch protection requiring branches to be
+    # up to date, the commit that lands on main is the one already tested. The
+    # production deploy workflow runs them again before deploying.
     integration-test:
         needs: build-and-unit-test
+        if: github.event_name == 'pull_request'
         uses: ./.github/workflows/integration-tests.yml
         permissions:
             contents: read

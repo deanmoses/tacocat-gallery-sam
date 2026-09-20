@@ -23,9 +23,9 @@ Description: >-
 # The three GitHub roles hold only what a `sam deploy` needs from the caller's
 # side: upload artifacts, create and execute change sets on their own stacks
 # (the PR role only creates them on dev), and hand CloudFormation its service
-# role. The broad
-# permissions needed to actually create Lambdas, buckets, tables and so on live
-# on the CloudFormation service role, which only CloudFormation can assume.
+# role. The broad permissions needed to actually create Lambdas, buckets, tables
+# and so on live on the CloudFormation service role, which only CloudFormation
+# can assume.
 #
 # The GitHub OIDC identity provider the roles trust is account-wide and lives
 # in https://github.com/deanmoses/aws-bootstrap.
@@ -33,7 +33,7 @@ Description: >-
 # Which role a job may assume is decided by the GitHub token's `sub` claim:
 #
 #   repo:ORG/REPO:pull_request          PR role    dry-run change set on dev; deploy test, run integration tests
-#   repo:ORG/REPO:ref:refs/heads/main   main role  deploy dev + test, run integration tests
+#   repo:ORG/REPO:ref:refs/heads/main   main role  deploy dev; deploy test and run integration tests ahead of a prod deploy
 #   repo:ORG/REPO:environment:prod      prod role  deploy prod (environment allows protected branches only)
 #
 # The Claude Code user is the one principal here that carries a long-lived access
