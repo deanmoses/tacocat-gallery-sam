@@ -11,6 +11,7 @@ import {
     cleanUpAlbum,
     getAlbumAndChildrenOrThrow,
     getMediaOrThrow,
+    waitForMediaItem,
 } from './helpers/albumHelpers';
 import { assertIsValidAlbumPath, assertIsValidImagePath, assertIsValidYearAlbumPath } from './helpers/pathHelpers';
 import { assertOriginalImageExists, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
@@ -55,7 +56,7 @@ beforeAll(async () => {
         uploadImage('image.jpg', image2Path),
         uploadImage('image.jpg', image3Path),
     ]);
-    await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
+    await Promise.all([imagePath, image2Path, image3Path].map((path) => waitForMediaItem(path)));
     await Promise.all([
         assertDynamoDBItemExists(oldAlbumPath),
         assertDynamoDBItemExists(imagePath),
@@ -70,7 +71,7 @@ beforeAll(async () => {
         setAlbumThumbnail(oldAlbumPath, imagePath),
         setAlbumThumbnail(getParentFromPath(oldAlbumPath), imagePath),
     ]);
-}, 25000 /* increase Jest's timeout */);
+}, 60000 /* increase Jest's timeout */);
 
 afterAll(async () => {
     await Promise.allSettled([cleanUpAlbum(anotherAlbumPath), cleanUpAlbum(newAlbumPath)]);

@@ -4,7 +4,7 @@
  */
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { getDerivedImageGeneratorDomain } from '../../lib/lambda_utils/Env';
-import { cleanUpAlbumAndParents } from './helpers/albumHelpers';
+import { cleanUpAlbumAndParents, waitForMediaItem } from './helpers/albumHelpers';
 import { assertDerivedImageDoesNotExist, assertOriginalImageDoesNotExist, uploadImage } from './helpers/s3ImageHelper';
 
 const yearPath = '/1713/'; // unique to this suite: cleanup deletes the whole year from S3 (see integrationTestYears.spec.ts)
@@ -41,8 +41,8 @@ beforeAll(async () => {
     await assertOriginalImageDoesNotExist(imagePath);
     await assertDerivedImageDoesNotExist(imagePath);
     imageVersionId = await uploadImage('image.jpg', imagePath);
-    await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
-}, 10000 /* increases Jest's timeout */);
+    await waitForMediaItem(imagePath);
+}, 60000 /* increases Jest's timeout */);
 
 afterAll(async () => {
     await cleanUpAlbumAndParents(albumPath);

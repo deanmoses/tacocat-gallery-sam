@@ -13,6 +13,7 @@ import {
     assertDynamoDBItemExists,
     cleanUpAlbumAndParents,
     getMediaOrThrow,
+    waitForMediaItem,
 } from './helpers/albumHelpers';
 import { assertOriginalImageExists, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
 
@@ -35,7 +36,7 @@ beforeAll(async () => {
     // already the effective order -- the inner awaits made Promise.all a no-op.
     await uploadImage('image.jpg', imagePath1);
     await uploadImage('image.jpg', imagePath2);
-    await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
+    await Promise.all([imagePath1, imagePath2].map((path) => waitForMediaItem(path)));
     await Promise.all([
         assertDynamoDBItemExists(albumPath),
         assertDynamoDBItemExists(imagePath1),
@@ -45,7 +46,7 @@ beforeAll(async () => {
         setAlbumThumbnail(albumPath, imagePath1),
         setAlbumThumbnail(getParentFromPath(albumPath), imagePath1),
     ]);
-}, 20000 /* increase Jest's timeout */);
+}, 60000 /* increase Jest's timeout */);
 
 afterAll(async () => {
     await cleanUpAlbumAndParents(albumPath);

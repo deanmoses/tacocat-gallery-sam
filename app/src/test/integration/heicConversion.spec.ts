@@ -4,9 +4,14 @@ import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
 import { findMedia } from '../../lib/gallery_client/AlbumObject';
 import { getParentFromPath, isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
-import { cleanUpAlbum } from './helpers/albumHelpers';
+import { cleanUpAlbum, waitForMediaItem } from './helpers/albumHelpers';
 import { reallyGetNameFromPath } from './helpers/pathHelpers';
-import { downloadOriginalImage, originalImageExists, uploadImage } from './helpers/s3ImageHelper';
+import {
+    downloadOriginalImage,
+    originalImageExists,
+    uploadImage,
+    waitForOriginalImageDeleted,
+} from './helpers/s3ImageHelper';
 
 const yearPath = '/1712/'; // unique to this suite to prevent pollution
 const albumPath = `${yearPath}09-03/`;
@@ -21,14 +26,14 @@ beforeAll(async () => {
     await cleanUpAlbum(albumPath);
     await cleanUpAlbum(yearPath);
 
-    // Upload HEIC file - Lambda will convert to JPEG
     await uploadImage('FullMetadataHeic.heic', heicImagePath);
-    // Wait for HEIC conversion + JPEG processing (two Lambda triggers)
-    await new Promise((r) => setTimeout(r, 8000));
+    // Two Lambda hops: the HEIC upload converts and uploads a JPEG, and that upload writes the item
+    await waitForMediaItem(jpegImagePath, 40000);
+    await waitForOriginalImageDeleted(heicImagePath);
 
     await updateAlbum(getParentFromPath(albumPath), { published: true });
     await updateAlbum(albumPath, { published: true });
-}, 30000);
+}, 60000);
 
 afterAll(async () => {
     await cleanUpAlbum(albumPath);

@@ -1,6 +1,6 @@
 import { createRedisSearchClient } from '../../../lib/redis_utils/redisClientUtils';
+import { waitFor } from './waitFor';
 
-/** Check if an item exists in Redis */
 async function redisItemExists(path: string): Promise<boolean> {
     const client = await createRedisSearchClient();
     try {
@@ -11,36 +11,15 @@ async function redisItemExists(path: string): Promise<boolean> {
     }
 }
 
-/**
- * Assert that an item exists in Redis, polling until it appears or timeout
- * @param path The gallery path to check
- * @param timeoutMs Maximum time to wait
- * @param pollIntervalMs Time between checks
- */
-export async function assertRedisItemExists(path: string, timeoutMs = 10000, pollIntervalMs = 500): Promise<void> {
-    const start = Date.now();
-    while (Date.now() - start < timeoutMs) {
-        if (await redisItemExists(path)) return;
-        await new Promise((r) => setTimeout(r, pollIntervalMs));
-    }
-    throw new Error(`Timed out after ${timeoutMs}ms waiting for Redis item [${path}] to exist`);
+/** Wait for the DynamoDB stream to sync the item into Redis */
+export async function assertRedisItemExists(path: string, timeoutMs = 10000): Promise<void> {
+    await waitFor(() => redisItemExists(path), { description: `Redis item [${path}] to exist`, timeoutMs });
 }
 
-/**
- * Assert that an item does not exist in Redis, polling until it disappears or timeout
- * @param path The gallery path to check
- * @param timeoutMs Maximum time to wait
- * @param pollIntervalMs Time between checks
- */
-export async function assertRedisItemDoesNotExist(
-    path: string,
-    timeoutMs = 10000,
-    pollIntervalMs = 500,
-): Promise<void> {
-    const start = Date.now();
-    while (Date.now() - start < timeoutMs) {
-        if (!(await redisItemExists(path))) return;
-        await new Promise((r) => setTimeout(r, pollIntervalMs));
-    }
-    throw new Error(`Timed out after ${timeoutMs}ms waiting for Redis item [${path}] to not exist`);
+/** Wait for the DynamoDB stream to remove the item from Redis */
+export async function assertRedisItemDoesNotExist(path: string, timeoutMs = 10000): Promise<void> {
+    await waitFor(async () => !(await redisItemExists(path)), {
+        description: `Redis item [${path}] to not exist`,
+        timeoutMs,
+    });
 }

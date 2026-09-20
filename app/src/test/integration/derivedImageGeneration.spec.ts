@@ -1,6 +1,6 @@
 import { deleteMedia } from '../../lib/gallery/deleteMedia/deleteMedia';
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
-import { assertDynamoDBItemDoesNotExist, cleanUpAlbumAndParents } from './helpers/albumHelpers';
+import { assertDynamoDBItemDoesNotExist, cleanUpAlbumAndParents, waitForMediaItem } from './helpers/albumHelpers';
 import {
     assertDerivedImageDoesNotExist,
     assertOriginalImageDoesNotExist,
@@ -28,8 +28,8 @@ beforeAll(async () => {
     ]);
     imageVersionId = await uploadImage('image.jpg', imagePath);
     derivedImagePath = `${imagePath}/${imageVersionId}/${derivedImageSize}`;
-    await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
-}, 10000 /* increases Jest's timeout */);
+    await waitForMediaItem(imagePath);
+}, 60000 /* increases Jest's timeout */);
 
 afterAll(async () => {
     await cleanUpAlbumAndParents(albumPath);

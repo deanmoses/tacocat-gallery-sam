@@ -11,6 +11,8 @@ import {
     isValidDayAlbumName,
 } from '../../../lib/gallery_path_utils/galleryPathUtils';
 import { deleteOriginalsAndDerivativesForAlbum } from '../../../lib/s3_utils/s3delete';
+import { getItem } from '../../../lib/dynamo_utils/ddbGet';
+import { waitFor } from './waitFor';
 
 /**
  * Delete album, its media AND its parent album from S3 and DynamoDB.
@@ -167,4 +169,16 @@ export async function getAlbumAndChildrenOrThrow(
     const album = await getAlbumAndChildren(albumPath, includeUnpublishedAlbums);
     if (!album) throw new Error(`No album [${albumPath}]`);
     return album;
+}
+
+/** Wait for the upload-processing Lambda to write the media's DynamoDB item */
+export async function waitForMediaItem(mediaPath: string, timeoutMs?: number): Promise<void> {
+    await waitFor(() => itemExists(mediaPath), { description: `DynamoDB item [${mediaPath}] to exist`, timeoutMs });
+}
+
+/** Wait for the upload-processing Lambda to record the given S3 version of the media */
+export async function waitForMediaVersion(mediaPath: string, versionId: string): Promise<void> {
+    await waitFor(async () => (await getItem<ImageItem>(mediaPath, ['versionId']))?.versionId === versionId, {
+        description: `DynamoDB item [${mediaPath}] to have version [${versionId}]`,
+    });
 }

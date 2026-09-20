@@ -10,7 +10,7 @@ import {
     isValidAlbumPath,
     isValidImagePath,
 } from '../../lib/gallery_path_utils/galleryPathUtils';
-import { assertDynamoDBItemExists, cleanUpAlbum } from './helpers/albumHelpers';
+import { assertDynamoDBItemExists, cleanUpAlbum, waitForMediaItem } from './helpers/albumHelpers';
 import { assertOriginalImageExists, uploadImage } from './helpers/s3ImageHelper';
 
 const albumPath = '/1702/10-04/'; // unique to this suite to prevent pollution
@@ -26,7 +26,7 @@ beforeAll(async () => {
 
     await Promise.all([uploadImage('image.jpg', imagePath1), uploadImage('image.jpg', imagePath2)]);
 
-    await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
+    await Promise.all([imagePath1, imagePath2].map((path) => waitForMediaItem(path)));
 
     await Promise.all([
         assertDynamoDBItemExists(albumPath),
@@ -39,7 +39,7 @@ beforeAll(async () => {
 
     await updateAlbum(getParentFromPath(albumPath), { published: true }); // must publish parent first
     await updateAlbum(albumPath, { published: true }); // cannot publish child before parent
-}, 10000 /* increase Jest's timeout */);
+}, 60000 /* increase Jest's timeout */);
 
 afterAll(async () => {
     await cleanUpAlbum(albumPath);

@@ -4,7 +4,7 @@ import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
 import { updateMedia } from '../../lib/gallery/updateMedia/updateMedia';
 import { findMedia } from '../../lib/gallery_client/AlbumObject';
 import { isValidAlbumPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
-import { assertDynamoDBItemDoesNotExist, cleanUpAlbumAndParents } from './helpers/albumHelpers';
+import { assertDynamoDBItemDoesNotExist, cleanUpAlbumAndParents, waitForMediaItem } from './helpers/albumHelpers';
 import { reallyGetNameFromPath } from './helpers/pathHelpers';
 import { assertOriginalImageDoesNotExist, assertOriginalImageExists, uploadImage } from './helpers/s3ImageHelper';
 
@@ -23,11 +23,11 @@ beforeAll(async () => {
     expect(isValidImagePath(imagePath)).toBe(true);
     await Promise.all([assertDynamoDBItemDoesNotExist(albumPath), assertOriginalImageDoesNotExist(imagePath)]);
     await uploadImage('image.jpg', imagePath);
-    await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
+    await waitForMediaItem(imagePath);
     await assertOriginalImageExists(imagePath);
     await updateAlbum(yearPath, { published: true });
     await updateAlbum(albumPath, { published: true });
-}, 25000 /* increase Jest's timeout */);
+}, 60000 /* increase Jest's timeout */);
 
 afterAll(async () => {
     await cleanUpAlbumAndParents(albumPath);

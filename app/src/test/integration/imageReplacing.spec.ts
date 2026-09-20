@@ -4,6 +4,8 @@ import {
     assertDynamoDBItemExists,
     cleanUpAlbum,
     getMediaOrThrow,
+    waitForMediaItem,
+    waitForMediaVersion,
 } from './helpers/albumHelpers';
 import { assertOriginalImageDoesNotExist, assertOriginalImageExists, uploadImage } from './helpers/s3ImageHelper';
 
@@ -38,12 +40,12 @@ beforeAll(async () => {
     await uploadImage(imageName_noreplace_v1, imagePath_noreplace);
     await uploadImage(imageName_replace_v1, imagePath_replace);
 
-    await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
+    await Promise.all([imagePath_noreplace, imagePath_replace].map((path) => waitForMediaItem(path)));
 
     await assertDynamoDBItemExists(albumPath);
     await assertOriginalImageExists(imagePath_noreplace);
     await assertOriginalImageExists(imagePath_replace);
-}, 20000 /* increases Jest's timeout */);
+}, 60000 /* increases Jest's timeout */);
 
 afterAll(async () => {
     await cleanUpAlbum(albumPath);
@@ -73,9 +75,9 @@ test('Album should contain image with no metadata', async () => {
 });
 
 test('Replace image with full metadata', async () => {
-    await expect(uploadImage(imageName_noreplace_v2, imagePath_noreplace)).resolves.not.toThrow();
-    await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
-}, 15000 /* increases Jest's timeout */);
+    const versionId = await uploadImage(imageName_noreplace_v2, imagePath_noreplace);
+    await waitForMediaVersion(imagePath_noreplace, versionId);
+}, 60000 /* increases Jest's timeout */);
 
 test('Image with full metadata should have merged tags', async () => {
     const image_noreplace = await getMediaOrThrow(imagePath_noreplace, true /* includeUnpublishedAlbums */);
@@ -89,9 +91,9 @@ test('Image with full metadata should have merged tags', async () => {
 });
 
 test('Replace image with no metadata', async () => {
-    await expect(uploadImage(imageName_replace_v2, imagePath_replace)).resolves.not.toThrow();
-    await new Promise((r) => setTimeout(r, 4000)); // wait for image processing lambda to be triggered
-}, 15000 /* increases Jest's timeout */);
+    const versionId = await uploadImage(imageName_replace_v2, imagePath_replace);
+    await waitForMediaVersion(imagePath_replace, versionId);
+}, 60000 /* increases Jest's timeout */);
 
 test('Image with no metadata should now have some', async () => {
     const image_replace = await getMediaOrThrow(imagePath_replace, true /* includeUnpublishedAlbums */);
