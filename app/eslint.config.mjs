@@ -1,21 +1,27 @@
 // @ts-check
 
+import path from 'node:path';
 import eslint from '@eslint/js';
-import { defineConfig } from 'eslint/config';
+import { defineConfig, includeIgnoreFile } from 'eslint/config';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 import eslintConfigPrettier from 'eslint-config-prettier';
 import eslintPluginPrettier from 'eslint-plugin-prettier/recommended';
 import jest from 'eslint-plugin-jest';
 
+// ESLint runs from the repo root, which is where .gitignore lives
+const gitignorePath = path.resolve(import.meta.dirname, '..', '.gitignore');
+
 export default defineConfig(
+    // Everything git ignores here is generated or private -- SAM build output,
+    // coverage, the .env files -- and none of it is in the tsconfig, so the
+    // type-aware parser fails on anything it reaches. Deriving the list from
+    // .gitignore keeps the two from drifting as new artifact directories appear.
+    includeIgnoreFile(gitignorePath),
     eslint.configs.recommended,
     tseslint.configs.recommendedTypeChecked,
     eslintConfigPrettier,
     eslintPluginPrettier,
-    {
-        ignores: ['**/node_modules/**', '**/.aws-sam/**'],
-    },
     {
         // Type-aware rules need a TypeScript program. tsconfig.json lives in app/,
         // so point the project service at it explicitly -- ESLint's working
