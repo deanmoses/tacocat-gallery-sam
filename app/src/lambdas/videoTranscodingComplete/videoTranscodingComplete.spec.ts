@@ -8,7 +8,7 @@ import {
     HeadObjectCommand,
     NotFound,
 } from '@aws-sdk/client-s3';
-import { MediaConvertClient, GetJobCommand, DescribeEndpointsCommand } from '@aws-sdk/client-mediaconvert';
+import { MediaConvertClient, GetJobCommand } from '@aws-sdk/client-mediaconvert';
 import type { MediaConvertJobStateChangeEvent } from './videoTranscodingComplete';
 import { handleVideoTranscodingComplete } from './videoTranscodingComplete';
 
@@ -54,10 +54,6 @@ beforeEach(() => {
     mockS3Client
         .on(HeadObjectCommand, { Key: `${BASE_PREFIX}/video_poster.0000000.jpg` })
         .resolves({ ContentType: 'image/jpeg' });
-
-    mockMediaConvert.on(DescribeEndpointsCommand).resolves({
-        Endpoints: [{ Url: 'https://abc123.mediaconvert.us-east-1.amazonaws.com' }],
-    });
 });
 
 function createCompleteEvent(

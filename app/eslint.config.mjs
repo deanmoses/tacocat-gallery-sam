@@ -133,17 +133,15 @@ export default defineConfig(
             '@typescript-eslint/await-thenable': 'error',
             '@typescript-eslint/no-base-to-string': 'error',
             '@typescript-eslint/no-unnecessary-type-assertion': 'error',
-
-            // Both of these are at zero, so gate CI to keep them there.
-            // restrict-template-expressions is the compile-time half of
-            // no-base-to-string above: it catches the `unknown` and `never`
-            // interpolations that only stringify badly once they run.
-            '@typescript-eslint/require-await': 'error',
+            // The compile-time half of no-base-to-string: catches the `unknown`
+            // and `never` interpolations that only stringify badly once they run
             '@typescript-eslint/restrict-template-expressions': 'error',
+            // An SDK's @deprecated tag is the only warning AWS gives before an
+            // API it still ships stops working
+            '@typescript-eslint/no-deprecated': 'error',
 
-            // `any` leaking out of the AWS SDK and JSON.parse boundaries. These
-            // are all at zero, so gate CI to keep them there: cast at the
-            // boundary to the type the projection or parse is known to produce.
+            // `any` leaking out of the AWS SDK and JSON.parse boundaries: cast at
+            // the boundary to the type the projection or parse is known to produce
             '@typescript-eslint/no-unsafe-assignment': 'error',
             '@typescript-eslint/no-unsafe-argument': 'error',
             '@typescript-eslint/no-unsafe-member-access': 'error',
@@ -152,6 +150,7 @@ export default defineConfig(
             '@typescript-eslint/no-unsafe-enum-comparison': 'error',
 
             // Async and runtime errors the checker can prove
+            '@typescript-eslint/require-await': 'error',
             '@typescript-eslint/no-misused-spread': 'error',
             '@typescript-eslint/no-mixed-enums': 'error',
             '@typescript-eslint/require-array-sort-compare': 'error',

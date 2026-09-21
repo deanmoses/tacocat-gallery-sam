@@ -1,5 +1,5 @@
 import { mockClient } from 'aws-sdk-client-mock';
-import { MediaConvertClient, CreateJobCommand, DescribeEndpointsCommand } from '@aws-sdk/client-mediaconvert';
+import { MediaConvertClient, CreateJobCommand } from '@aws-sdk/client-mediaconvert';
 import { processVideoUpload } from './processVideoUpload';
 
 const mockMediaConvert = mockClient(MediaConvertClient);
@@ -11,11 +11,6 @@ beforeEach(() => {
     process.env.ORIGINAL_IMAGES_BUCKET = 'test-original-bucket';
 
     mockMediaConvert.reset();
-
-    // Default mock for MediaConvert endpoint
-    mockMediaConvert.on(DescribeEndpointsCommand).resolves({
-        Endpoints: [{ Url: 'https://abc123.mediaconvert.us-east-1.amazonaws.com' }],
-    });
 
     // Default mock for CreateJob - resolves without needing full Job object
     mockMediaConvert.on(CreateJobCommand).resolves({});

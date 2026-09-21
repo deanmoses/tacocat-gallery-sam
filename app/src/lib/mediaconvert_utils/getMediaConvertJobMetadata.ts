@@ -13,7 +13,7 @@ export type MediaConvertJobMetadata = {
  * @returns Job metadata including duration (seconds) and dimensions
  */
 export async function getMediaConvertJobMetadata(jobId: string): Promise<MediaConvertJobMetadata> {
-    const mediaConvertClient = await getMediaConvertClient();
+    const mediaConvertClient = getMediaConvertClient();
 
     const response = await mediaConvertClient.send(new GetJobCommand({ Id: jobId }));
     const job = response.Job;
