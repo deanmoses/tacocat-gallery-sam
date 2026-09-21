@@ -46,7 +46,7 @@ export default defineConfig(
     },
     {
         // Every jest rule is on unless listed here, so a plugin upgrade turns its
-        // new rules on too. Off: the rule fights how the suites are written.
+        // new rules on too.
         files: ['**/*.spec.ts', 'app/jest.*.ts', 'app/src/test/**/*.ts'],
         extends: [jest.configs['flat/all']],
         rules: {
@@ -56,27 +56,34 @@ export default defineConfig(
             // The integration suites' waitFor* helpers poll and throw on timeout
             'jest/expect-expect': ['error', { assertFunctionNames: ['expect', 'waitFor*'] }],
 
-            // Both `it` and `test` are in use
-            'jest/consistent-test-it': 'off',
-            // Hooks reset the SDK mocks
+            // Poor fits for these suites. Titles name their input, so they
+            // start however the input does; a suite builds one input and
+            // checks every field of the result; hooks reset the SDK mocks;
+            // setup that is not a mock belongs at module level.
+            'jest/prefer-lowercase-title': 'off',
+            'jest/max-expects': 'off',
+            'jest/prefer-expect-assertions': 'off',
             'jest/no-hooks': 'off',
             'jest/require-hook': 'off',
             'jest/require-top-level-describe': 'off',
-            // Titles name the input, so many start with a capital
-            'jest/prefer-lowercase-title': 'off',
-            // Suites build one input and check every field of the result
-            'jest/max-expects': 'off',
+            'jest/prefer-importing-jest-globals': 'off',
+
+            // Matcher and style preferences the suites do not follow uniformly.
+            // Turning any of these on is a mechanical rewrite of most suites.
+            'jest/consistent-test-it': 'off',
             'jest/no-conditional-in-test': 'off',
             'jest/prefer-ending-with-an-expect': 'off',
-            'jest/prefer-expect-assertions': 'off',
-            'jest/prefer-importing-jest-globals': 'off',
             'jest/prefer-strict-equal': 'off',
             'jest/prefer-to-be': 'off',
             'jest/prefer-to-have-length': 'off',
-            // Blank-line placement: Prettier territory
+
+            // Blank-line placement is Prettier's job
             'jest/padding-around-all': 'off',
+            'jest/padding-around-after-all-blocks': 'off',
             'jest/padding-around-after-each-blocks': 'off',
+            'jest/padding-around-before-all-blocks': 'off',
             'jest/padding-around-before-each-blocks': 'off',
+            'jest/padding-around-describe-blocks': 'off',
             'jest/padding-around-expect-groups': 'off',
             'jest/padding-around-test-blocks': 'off',
         },
