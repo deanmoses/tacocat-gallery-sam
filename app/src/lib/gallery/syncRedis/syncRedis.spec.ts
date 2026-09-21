@@ -242,7 +242,9 @@ describe('syncRedis', () => {
         expect(isSyncErrorResult(result)).toBe(false);
         const successResult = result as SyncResult;
         expect(successResult.missing).toBe(1);
-        expect(mockRedis.json.mSet).toHaveBeenCalled();
+        expect(mockRedis.json.mSet).toHaveBeenCalledWith([
+            { key: '/2001/01-01/image.jpg', path: '$', value: mockRedisImage },
+        ]);
     });
 
     test('fix mode writes mismatched items to Redis', async () => {
@@ -270,7 +272,9 @@ describe('syncRedis', () => {
         expect(isSyncErrorResult(result)).toBe(false);
         const successResult = result as SyncResult;
         expect(successResult.mismatched).toBe(1);
-        expect(mockRedis.json.mSet).toHaveBeenCalled();
+        expect(mockRedis.json.mSet).toHaveBeenCalledWith([
+            { key: '/2001/01-01/image.jpg', path: '$', value: mockRedisImage },
+        ]);
     });
 
     test('fix mode throws error if index does not exist', async () => {
@@ -463,7 +467,7 @@ describe('initRedis', () => {
 
         expect(result.indexCreated).toBe(true);
         expect(result.indexAlreadyExisted).toBe(false);
-        expect(mockRedis.ft.create).toHaveBeenCalled();
+        expect(mockRedis.ft.create).toHaveBeenCalledWith('idx:gallery', expect.any(Object), { ON: 'JSON' });
         expect(result.durationMs).toBeGreaterThanOrEqual(0);
     });
 
