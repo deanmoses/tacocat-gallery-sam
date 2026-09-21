@@ -119,6 +119,7 @@ export default defineConfig(
             '@typescript-eslint/prefer-optional-chain': 'error',
             'no-new': 'error',
             '@typescript-eslint/array-type': 'error',
+            '@typescript-eslint/no-inferrable-types': 'error',
         },
     },
 );

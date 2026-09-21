@@ -14,7 +14,7 @@ import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 /**
  * Return true if the specified album exists in DynamoDB.
  */
-export async function albumExists(albumPath: string, includeUnpublishedAlbums: boolean = false): Promise<boolean> {
+export async function albumExists(albumPath: string, includeUnpublishedAlbums = false): Promise<boolean> {
     if (!isValidAlbumPath(albumPath)) {
         throw new BadRequestException(`Invalid album path [${albumPath}]`);
     }
@@ -32,7 +32,7 @@ export async function albumExists(albumPath: string, includeUnpublishedAlbums: b
 /**
  * Return true if the specified media (image or video) exists in DynamoDB.
  */
-export async function mediaExists(mediaPath: string, includeUnpublishedAlbums: boolean = false): Promise<boolean> {
+export async function mediaExists(mediaPath: string, includeUnpublishedAlbums = false): Promise<boolean> {
     if (!isValidMediaPath(mediaPath)) {
         throw new BadRequestException(`Invalid media path [${mediaPath}]`);
     }
