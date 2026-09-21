@@ -17,13 +17,9 @@ jest.mock('../../lib/gallery/createAlbum/createAlbum', () => ({
     createAlbumNoThrow: jest.fn().mockResolvedValue(false),
 }));
 
-const mockExtractImageMetadata = extractMetadata.extractImageMetadata as jest.MockedFunction<
-    typeof extractMetadata.extractImageMetadata
->;
-const mockRevertS3Version = revertS3.revertS3Version as jest.MockedFunction<typeof revertS3.revertS3Version>;
-const mockRecordError = recordError.recordMediaProcessingError as jest.MockedFunction<
-    typeof recordError.recordMediaProcessingError
->;
+const mockExtractImageMetadata = jest.mocked(extractMetadata.extractImageMetadata);
+const mockRevertS3Version = jest.mocked(revertS3.revertS3Version);
+const mockRecordError = jest.mocked(recordError.recordMediaProcessingError);
 
 beforeEach(() => {
     jest.clearAllMocks();

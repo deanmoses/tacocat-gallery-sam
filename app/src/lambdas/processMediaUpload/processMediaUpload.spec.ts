@@ -7,15 +7,9 @@ jest.mock('./processImageUpload');
 jest.mock('./processVideoUpload');
 jest.mock('./processHeicUpload');
 
-const mockProcessImageUpload = imageProcessor.processImageUpload as jest.MockedFunction<
-    typeof imageProcessor.processImageUpload
->;
-const mockProcessVideoUpload = videoProcessor.processVideoUpload as jest.MockedFunction<
-    typeof videoProcessor.processVideoUpload
->;
-const mockProcessHeicUpload = heicProcessor.processHeicUpload as jest.MockedFunction<
-    typeof heicProcessor.processHeicUpload
->;
+const mockProcessImageUpload = jest.mocked(imageProcessor.processImageUpload);
+const mockProcessVideoUpload = jest.mocked(videoProcessor.processVideoUpload);
+const mockProcessHeicUpload = jest.mocked(heicProcessor.processHeicUpload);
 
 beforeEach(() => {
     jest.clearAllMocks();

@@ -16,10 +16,10 @@ jest.mock('./optimizeImage', () => ({
 import { loadOriginalImage, loadVideoPoster, saveOptimizedImage } from './s3';
 import { optimizeImage } from './optimizeImage';
 
-const mockLoadOriginalImage = loadOriginalImage as jest.MockedFunction<typeof loadOriginalImage>;
-const mockLoadVideoPoster = loadVideoPoster as jest.MockedFunction<typeof loadVideoPoster>;
-const mockSaveOptimizedImage = saveOptimizedImage as jest.MockedFunction<typeof saveOptimizedImage>;
-const mockOptimizeImage = optimizeImage as jest.MockedFunction<typeof optimizeImage>;
+const mockLoadOriginalImage = jest.mocked(loadOriginalImage);
+const mockLoadVideoPoster = jest.mocked(loadVideoPoster);
+const mockSaveOptimizedImage = jest.mocked(saveOptimizedImage);
+const mockOptimizeImage = jest.mocked(optimizeImage);
 
 describe('generateDerivedImage', () => {
     const sourceSize = { width: 4000, height: 3000 };
