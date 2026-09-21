@@ -121,6 +121,7 @@ export default defineConfig(
             '@typescript-eslint/array-type': 'error',
             '@typescript-eslint/no-inferrable-types': 'error',
             'no-lonely-if': 'error',
+            '@typescript-eslint/prefer-string-starts-ends-with': 'error',
         },
     },
 );

@@ -26,7 +26,7 @@ export function getIdTokenFromCookies(cookieHeader: string | undefined): string 
     const match = cookieHeader
         .split(';')
         .map((c) => c.trim())
-        .find((cookie) => cookie.substring(0, nameLenPlus) === `${name}=`);
+        .find((cookie) => cookie.startsWith(`${name}=`));
     return match ? decodeURIComponent(match.substring(nameLenPlus)) : undefined;
 }
 
