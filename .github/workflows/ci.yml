@@ -40,6 +40,8 @@ jobs:
                       code:
                         - '**'
                         - '!**/*.md'
+                        - '!.markdownlint.json'
+                        - '!.markdownlint-cli2.jsonc'
                         - '!LICENSE'
                         - '!.gitignore'
                         - '!docs/**'
@@ -52,13 +54,40 @@ jobs:
         permissions:
             contents: read
 
-    # The check branch protection requires. Passes when the detector said
-    # there were no code changes (so the build and tests were rightly skipped)
-    # or the build and the integration tests both succeeded. Anything else,
-    # including a detector that answered nothing at all, fails: this must not
-    # fail open.
+    # A docs-only change skips the build, and with it the markdown lint that
+    # build-and-unit-test runs, so it gets this build-free job instead.
+    lint-docs:
+        needs: detect-code-changes
+        if: ${{ needs.detect-code-changes.outputs.code_changed == 'false' }}
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+              with:
+                  persist-credentials: false
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v7
+              with:
+                  node-version-file: '.nvmrc'
+                  cache: 'npm'
+                  cache-dependency-path: app/package-lock.json
+
+            - name: Install dependencies
+              working-directory: app
+              run: npm ci --ignore-scripts
+
+            - name: Lint markdown
+              working-directory: app
+              run: npm run lint:md
+
+    # The check branch protection requires. Passes when the job the detector
+    # chose succeeded: the build and the integration tests for code changes,
+    # the docs lint otherwise. Anything else, including a detector that
+    # answered nothing at all, fails: this must not fail open.
     merge-ok:
-        needs: [detect-code-changes, build-and-unit-test, integration-test]
+        needs: [detect-code-changes, build-and-unit-test, integration-test, lint-docs]
         if: always() && github.event_name == 'pull_request'
         runs-on: ubuntu-latest
         steps:
@@ -68,13 +97,18 @@ jobs:
                   CODE_CHANGED: ${{ needs.detect-code-changes.outputs.code_changed }}
                   BUILD_RESULT: ${{ needs.build-and-unit-test.result }}
                   INTEGRATION_RESULT: ${{ needs.integration-test.result }}
+                  LINT_DOCS_RESULT: ${{ needs.lint-docs.result }}
               run: |
                   if [[ "$DETECT_RESULT" != "success" ]]; then
                       echo "✗ detect-code-changes failed (result: $DETECT_RESULT)"
                       exit 1
                   fi
                   if [[ "$CODE_CHANGED" == "false" ]]; then
-                      echo "✓ No code changes - build was skipped appropriately"
+                      if [[ "$LINT_DOCS_RESULT" != "success" ]]; then
+                          echo "✗ No code changes but the docs lint did not succeed (result: $LINT_DOCS_RESULT)"
+                          exit 1
+                      fi
+                      echo "✓ No code changes and the docs lint passed"
                       exit 0
                   fi
                   if [[ "$CODE_CHANGED" != "true" ]]; then
