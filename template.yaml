@@ -913,6 +913,9 @@ Resources:
       FunctionUrlConfig:
         # Only CloudFront may call this URL
         AuthType: AWS_IAM
+        # The handler returns a whole response at once. Under RESPONSE_STREAM the URL
+        # sends that envelope, JSON and base64 body included, as the image bytes.
+        InvokeMode: BUFFERED
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
