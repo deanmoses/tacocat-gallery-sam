@@ -196,7 +196,7 @@ export async function migrateDimensions(input: MigrateInput, options: MigrateOpt
 
                     // Filter images if resuming within this album
                     let imagesToProcess = sortedImages;
-                    if (startFromParts && albumPath === startFromParts.albumPath) {
+                    if (albumPath === startFromParts?.albumPath) {
                         imagesToProcess = sortedImages.filter(
                             (img) => (img.itemName ?? '') >= startFromParts.imageName,
                         );
@@ -420,11 +420,7 @@ async function processImage(
         const s3Dimensions = s3Metadata.dimensions;
         if (s3Dimensions) {
             const ddbDimensions = imageItem.dimensions;
-            if (
-                !ddbDimensions ||
-                ddbDimensions.width !== s3Dimensions.width ||
-                ddbDimensions.height !== s3Dimensions.height
-            ) {
+            if (ddbDimensions?.width !== s3Dimensions.width || ddbDimensions?.height !== s3Dimensions.height) {
                 // Determine if this is an orientation issue
                 const orientation = tags.exif?.Orientation?.value;
                 const isOrientationIssue = typeof orientation === 'number' && orientation >= 5 && orientation <= 8;
