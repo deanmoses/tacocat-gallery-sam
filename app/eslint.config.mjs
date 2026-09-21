@@ -6,6 +6,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 import eslintConfigPrettier from 'eslint-config-prettier';
 import eslintPluginPrettier from 'eslint-plugin-prettier/recommended';
+import jest from 'eslint-plugin-jest';
 
 export default defineConfig(
     eslint.configs.recommended,
@@ -41,6 +42,54 @@ export default defineConfig(
         files: ['**/*.js'],
         languageOptions: {
             sourceType: 'commonjs',
+        },
+    },
+    {
+        // Every jest rule is on unless listed here, so a plugin upgrade turns its
+        // new rules on too. Off: the rule fights how the suites are written.
+        files: ['**/*.spec.ts', 'app/jest.*.ts', 'app/src/test/**/*.ts'],
+        extends: [jest.configs['flat/all']],
+        rules: {
+            // The jest rule of the same name knows `expect(obj.method)` is safe
+            '@typescript-eslint/unbound-method': 'off',
+            'jest/unbound-method': 'error',
+
+            // Both `it` and `test` are in use
+            'jest/consistent-test-it': 'off',
+            // Hooks reset the SDK mocks
+            'jest/no-hooks': 'off',
+            'jest/require-hook': 'off',
+            'jest/require-top-level-describe': 'off',
+            // Titles name the input, so many start with a capital
+            'jest/prefer-lowercase-title': 'off',
+            // Suites build one input and check every field of the result
+            'jest/max-expects': 'off',
+            'jest/no-conditional-in-test': 'off',
+            'jest/prefer-ending-with-an-expect': 'off',
+            'jest/prefer-expect-assertions': 'off',
+            'jest/prefer-importing-jest-globals': 'off',
+            'jest/prefer-strict-equal': 'off',
+            'jest/prefer-to-be': 'off',
+            'jest/prefer-to-have-length': 'off',
+            // Blank-line placement: Prettier territory
+            'jest/padding-around-all': 'off',
+            'jest/padding-around-after-each-blocks': 'off',
+            'jest/padding-around-before-each-blocks': 'off',
+            'jest/padding-around-expect-groups': 'off',
+            'jest/padding-around-test-blocks': 'off',
+
+            // Each of these is switched on by its own commit
+            'jest/expect-expect': 'off',
+            'jest/no-conditional-expect': 'off',
+            'jest/no-disabled-tests': 'off',
+            'jest/no-unnecessary-assertion': 'off',
+            'jest/no-untyped-mock-factory': 'off',
+            'jest/prefer-called-with': 'off',
+            'jest/prefer-comparison-matcher': 'off',
+            'jest/prefer-jest-mocked': 'off',
+            'jest/prefer-mock-return-shorthand': 'off',
+            'jest/require-to-throw-message': 'off',
+            'jest/valid-title': 'off',
         },
     },
     {
