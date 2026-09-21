@@ -116,9 +116,7 @@ describe('Convert from % to absolute crop', () => {
         });
     });
 
-    // TODO: implement the code to make this test pass
-    test.skip('Invalid: if height is 100% then y must be 0 THIS FAIL IS VALID', () => {
-        const crop = toPixelsFromPctCrop({ x: 0, y: 10.3, width: 100, height: 100 }, { width: 1000, height: 750 });
-        expect(crop).toEqual({ x: 0, y: 0, width: 1000, height: 1000 });
-    });
+    // toPixelsFromPctCrop({ x: 0, y: 10.3, width: 100, height: 100 }, { width: 1000, height: 750 })
+    // should give { x: 0, y: 0, width: 1000, height: 1000 }: a full-height crop cannot start below the top
+    test.todo('a 100% height crop with a nonzero y is clamped to y = 0');
 });

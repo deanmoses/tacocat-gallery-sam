@@ -81,7 +81,6 @@ export default defineConfig(
             // Each of these is switched on by its own commit
             'jest/expect-expect': 'off',
             'jest/no-conditional-expect': 'off',
-            'jest/no-disabled-tests': 'off',
             'jest/no-unnecessary-assertion': 'off',
             'jest/prefer-called-with': 'off',
             'jest/require-to-throw-message': 'off',
