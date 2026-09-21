@@ -53,7 +53,7 @@ describe('after renaming the image', () => {
         const image = findMedia(album, newName);
         assert(image, `Album [${albumPath}] does not contain [${newName}]`);
         expect(image.parentPath).toBe(albumPath);
-        expect(image.versionId).toBeDefined();
+        expect(image.versionId).toEqual(expect.any(String));
         expect(image.versionId).not.toBe(oldVersionId);
     });
 

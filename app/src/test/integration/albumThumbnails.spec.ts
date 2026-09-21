@@ -41,7 +41,7 @@ describe('after setting the day album thumbnail', () => {
     test('the year listing shows it on the day album, with a version and no crop', async () => {
         const thumbnail = await thumbnailInListing(yearPath, albumPath);
         expect(thumbnail.path).toBe(imagePath);
-        expect(thumbnail.versionId).toBeDefined();
+        expect(thumbnail.versionId).toEqual(expect.any(String));
         expect(thumbnail.crop).toBeUndefined();
     });
 });

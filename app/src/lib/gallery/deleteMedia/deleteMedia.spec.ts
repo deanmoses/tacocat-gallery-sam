@@ -40,27 +40,25 @@ describe('Invalid Paths', () => {
 });
 
 test('Delete Image That Exists', async () => {
-    expect.assertions(2);
+    expect.assertions(1);
 
     // Mock the AWS calls
     mockDocClient.on(DeleteCommand).resolves({});
     mockS3Client.on(ListObjectsV2Command).resolves(listResponseWithItems);
     mockS3Client.on(DeleteObjectsCommand).resolves(deleteObjectsResponseWithItems);
-    const result = await deleteMedia('/2001/12-31/image.jpg');
-    expect(result).toBeUndefined();
+    await deleteMedia('/2001/12-31/image.jpg');
     expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(1);
 });
 
 test('Delete Nonexistent Image', async () => {
-    expect.assertions(2);
+    expect.assertions(1);
 
     // Mock the AWS calls
     mockDocClient.on(DeleteCommand).resolves({});
     mockS3Client.on(ListObjectsV2Command).resolves({
         KeyCount: 0,
     });
-    const result = await deleteMedia('/1899/01-01/image.jpg');
-    expect(result).toBeUndefined();
+    await deleteMedia('/1899/01-01/image.jpg');
     expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(1);
 });
 
@@ -170,8 +168,7 @@ describe('Video Delete', () => {
                 // Mock the AWS calls
                 mockDocClient.on(DeleteCommand).resolves({});
                 mockS3Client.on(ListObjectsV2Command).resolves({ KeyCount: 0 });
-                const result = await deleteMedia(`/2001/12-31/video.${ext}`);
-                expect(result).toBeUndefined();
+                await deleteMedia(`/2001/12-31/video.${ext}`);
                 expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(1);
             });
         });

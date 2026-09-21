@@ -81,7 +81,6 @@ export default defineConfig(
             'jest/padding-around-test-blocks': 'off',
 
             // Each of these is switched on by its own commit
-            'jest/no-unnecessary-assertion': 'off',
         },
     },
     {

@@ -34,8 +34,8 @@ test('Delete Album', async () => {
 
     // Mock the AWS method
     mockDocClient.on(DeleteCommand).resolves({});
-    const result = await deleteAlbum('/2001/');
-    expect(result).toBeUndefined();
+    await deleteAlbum('/2001/');
+    expect(mockDocClient.commandCalls(DeleteCommand)).toHaveLength(1);
 });
 
 test('Delete Nonexistent Album', async () => {
@@ -43,6 +43,6 @@ test('Delete Nonexistent Album', async () => {
 
     // Mock the AWS method
     mockDocClient.on(DeleteCommand).resolves({});
-    const result = await deleteAlbum('/1899/01-01/');
-    expect(result).toBeUndefined();
+    await deleteAlbum('/1899/01-01/');
+    expect(mockDocClient.commandCalls(DeleteCommand)).toHaveLength(1);
 });

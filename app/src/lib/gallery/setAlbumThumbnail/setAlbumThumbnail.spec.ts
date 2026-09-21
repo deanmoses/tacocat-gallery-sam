@@ -36,7 +36,7 @@ describe('Invalid Input', () => {
 
 describe('Valid Input', () => {
     test('Basic success path', async () => {
-        expect.assertions(8);
+        expect.assertions(6);
 
         const albumPath = '/2001/12-31/';
         const imagePath = '/2001/12-31/image.jpg';
@@ -59,14 +59,12 @@ describe('Valid Input', () => {
         expect(imageGetCall.input.Key?.itemName).toEqual('image.jpg');
         const transactCalls = mockDocClient.commandCalls(UpdateCommand);
         expect(transactCalls.length).toBe(1);
-        expect(transactCalls).toBeDefined();
         const updateCommand = transactCalls[0].args[0].input;
-        expect(updateCommand).toBeDefined();
         expect(updateCommand.ConditionExpression).not.toContain('attribute_not_exists');
     });
 
     test("Don't replace thumbnail", async () => {
-        expect.assertions(8);
+        expect.assertions(6);
 
         const albumPath = '/2001/12-31/';
         const imagePath = '/2001/12-31/anotherImage.jpg';
@@ -93,10 +91,8 @@ describe('Valid Input', () => {
         expect(imageGetCall.input.Key?.parentPath).toEqual('/2001/12-31/');
         expect(imageGetCall.input.Key?.itemName).toEqual('anotherImage.jpg');
         const transactCalls = mockDocClient.commandCalls(UpdateCommand);
-        expect(transactCalls).toBeDefined();
         expect(transactCalls.length).toBe(1);
         const updateCommand = transactCalls[0].args[0].input;
-        expect(updateCommand).toBeDefined();
         expect(updateCommand.ConditionExpression).toContain('attribute_not_exists');
     });
 
@@ -113,7 +109,7 @@ describe('Valid Input', () => {
     });
 
     test('setImageAsParentAlbumThumbnailIfNoneExists()', async () => {
-        expect.assertions(8);
+        expect.assertions(6);
 
         const imagePath = '/2001/12-31/anotherImage.jpg';
 
@@ -135,10 +131,8 @@ describe('Valid Input', () => {
         expect(imageGetCall.input.Key?.parentPath).toEqual('/2001/12-31/');
         expect(imageGetCall.input.Key?.itemName).toEqual('anotherImage.jpg');
         const transactCalls = mockDocClient.commandCalls(UpdateCommand);
-        expect(transactCalls).toBeDefined();
         expect(transactCalls.length).toBe(1);
         const updateCommand = transactCalls[0].args[0].input;
-        expect(updateCommand).toBeDefined();
         expect(updateCommand.ConditionExpression).toContain('attribute_not_exists');
     });
 });
