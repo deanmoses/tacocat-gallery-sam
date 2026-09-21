@@ -34,8 +34,8 @@ function toRedisItems(event: DynamoDBStreamEvent): { itemsToSave: RedisGalleryIt
             itemsToSave.push(redisItem);
             console.info({ event: 'redis_item_upsert', dynamoEvent: record.eventName, item: redisItem });
         } else if ('REMOVE' === record.eventName) {
-            const parentPath = record.dynamodb?.Keys?.['parentPath']?.S;
-            const itemName = record.dynamodb?.Keys?.['itemName']?.S;
+            const parentPath = record.dynamodb?.Keys?.parentPath?.S;
+            const itemName = record.dynamodb?.Keys?.itemName?.S;
             const path = toPathFromKey(parentPath, itemName);
             pathsToDelete.push(path);
             console.info({ event: 'redis_item_delete', dynamoEvent: record.eventName, path });

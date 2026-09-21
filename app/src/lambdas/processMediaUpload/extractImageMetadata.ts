@@ -55,7 +55,7 @@ export function selectMetadata(tags: ExifReader.ExpandedTags): Partial<ImageCrea
     const image: Partial<ImageCreateRequest> = {
         title:
             tags.iptc?.['Object Name']?.description ||
-            tags.iptc?.['Headline']?.description ||
+            tags.iptc?.Headline?.description ||
             tags.xmp?.title?.description ||
             tags.xmp?.Headline?.description ||
             undefined,
