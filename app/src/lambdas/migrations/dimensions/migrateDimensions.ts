@@ -24,10 +24,12 @@
  * @see https://github.com/deanmoses/tacocat-gallery-sam/issues/109
  */
 
-import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import type { S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
 import ExifReader from 'exifreader';
-import { Readable } from 'stream';
+import type { Readable } from 'stream';
 import { getChildItems } from '../../../lib/dynamo_utils/ddbGet';
 import { getDynamoDbTableName, getOriginalImagesBucketName } from '../../../lib/lambda_utils/Env';
 import {
@@ -37,35 +39,35 @@ import {
     toMediaPath,
     toAlbumPath,
 } from '../../../lib/gallery_path_utils/galleryPathUtils';
-import { AlbumItem, ImageItem, Size } from '../../../lib/gallery/galleryTypes';
+import type { AlbumItem, ImageItem, Size } from '../../../lib/gallery/galleryTypes';
 import { selectMetadata } from '../../processMediaUpload/extractImageMetadata';
 import { mergeTags } from '../../../lib/gallery/upsertImage/upsertImage';
 import { ddbDocClient } from '../../../lib/dynamo_utils/ddbClient';
 import { s3Client as sharedS3Client } from '../../../lib/s3_utils/s3Client';
 
 /** Migration mode: diagnose (read-only) or fix (write corrections) */
-export type MigrateMode = 'diagnose' | 'fix';
+type MigrateMode = 'diagnose' | 'fix';
 
 /** Input for migration */
-export interface MigrateInput {
+export type MigrateInput = {
     mode: MigrateMode;
     /** Process a single image */
     image?: string;
     /** Resume from this image path (skip newer albums and earlier images) */
     startFrom?: string;
-}
+};
 
 /** Issue types that can be detected */
-export type IssueType =
+type IssueType =
     'corrupt' | 'missingFromS3' | 'dimensionsOrientation' | 'dimensionsOther' | 'tagsMismatch' | 'versionIdInvalid';
 
 /** A single issue found during migration */
-export interface Issue {
+type Issue = {
     path: string;
     type: IssueType;
     details: string;
     fixed?: boolean;
-}
+};
 
 /** Issue types that can be automatically fixed */
 const FIXABLE_ISSUE_TYPES: IssueType[] = ['dimensionsOrientation', 'tagsMismatch'];
@@ -76,7 +78,7 @@ function isFixableIssueType(type: IssueType): boolean {
 }
 
 /** Result of migration */
-export interface MigrateResult {
+export type MigrateResult = {
     albumsChecked: number;
     imagesChecked: number;
     issuesFound: number;
@@ -88,20 +90,20 @@ export interface MigrateResult {
     startFrom?: string;
     error?: string;
     issues: Issue[];
-}
+};
 
 /** Result from processing a single image */
-interface ImageProcessResult {
+type ImageProcessResult = {
     path: string;
     issues: Issue[];
     issuesFixed: number;
-}
+};
 
 /** Options for dependency injection in tests */
-export interface MigrateOptions {
+export type MigrateOptions = {
     docClient?: DynamoDBDocumentClient;
     s3Client?: S3Client;
-}
+};
 
 /** Number of images to process concurrently */
 const CHUNK_SIZE = 30;
@@ -194,7 +196,7 @@ export async function migrateDimensions(input: MigrateInput, options: MigrateOpt
 
                     // Filter images if resuming within this album
                     let imagesToProcess = sortedImages;
-                    if (startFromParts && albumPath === startFromParts.albumPath) {
+                    if (albumPath === startFromParts?.albumPath) {
                         imagesToProcess = sortedImages.filter(
                             (img) => (img.itemName ?? '') >= startFromParts.imageName,
                         );
@@ -418,11 +420,7 @@ async function processImage(
         const s3Dimensions = s3Metadata.dimensions;
         if (s3Dimensions) {
             const ddbDimensions = imageItem.dimensions;
-            if (
-                !ddbDimensions ||
-                ddbDimensions.width !== s3Dimensions.width ||
-                ddbDimensions.height !== s3Dimensions.height
-            ) {
+            if (ddbDimensions?.width !== s3Dimensions.width || ddbDimensions?.height !== s3Dimensions.height) {
                 // Determine if this is an orientation issue
                 const orientation = tags.exif?.Orientation?.value;
                 const isOrientationIssue = typeof orientation === 'number' && orientation >= 5 && orientation <= 8;

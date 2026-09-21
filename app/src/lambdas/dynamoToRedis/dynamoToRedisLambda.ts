@@ -1,12 +1,12 @@
 import { unmarshall } from '@aws-sdk/util-dynamodb';
-import { DynamoDBStreamEvent, DynamoDBStreamHandler } from 'aws-lambda';
-import { AttributeValue } from '@aws-sdk/client-dynamodb';
+import type { DynamoDBStreamEvent, DynamoDBStreamHandler } from 'aws-lambda';
+import type { AttributeValue } from '@aws-sdk/client-dynamodb';
 import { toRedisItem } from '../../lib/redis_utils/toRedisFromDynamo';
-import { RedisGalleryItem } from '../../lib/redis_utils/redisTypes';
+import type { RedisGalleryItem } from '../../lib/redis_utils/redisTypes';
 import { saveToRedis } from '../../lib/redis_utils/redisMset';
 import { toPathFromKey } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { createRedisWriteClient } from '../../lib/redis_utils/redisClientUtils';
-import { GalleryItem } from '../../lib/gallery/galleryTypes';
+import type { GalleryItem } from '../../lib/gallery/galleryTypes';
 
 /**
  * A Lambda that receives DynamoDB stream events and replicates the data to Redis
@@ -34,8 +34,8 @@ function toRedisItems(event: DynamoDBStreamEvent): { itemsToSave: RedisGalleryIt
             itemsToSave.push(redisItem);
             console.info({ event: 'redis_item_upsert', dynamoEvent: record.eventName, item: redisItem });
         } else if ('REMOVE' === record.eventName) {
-            const parentPath = record.dynamodb?.Keys?.['parentPath']?.S;
-            const itemName = record.dynamodb?.Keys?.['itemName']?.S;
+            const parentPath = record.dynamodb?.Keys?.parentPath?.S;
+            const itemName = record.dynamodb?.Keys?.itemName?.S;
             const path = toPathFromKey(parentPath, itemName);
             pathsToDelete.push(path);
             console.info({ event: 'redis_item_delete', dynamoEvent: record.eventName, path });

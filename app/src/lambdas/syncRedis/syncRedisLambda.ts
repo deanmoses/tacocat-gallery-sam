@@ -1,17 +1,11 @@
-import {
-    syncRedis,
-    initRedis,
-    SyncMode,
-    SyncResult,
-    SyncErrorResult,
-    InitResult,
-} from '../../lib/gallery/syncRedis/syncRedis';
+import type { SyncMode, SyncResult, SyncErrorResult, InitResult } from '../../lib/gallery/syncRedis/syncRedis';
+import { syncRedis, initRedis } from '../../lib/gallery/syncRedis/syncRedis';
 
 /** Event shape for direct Lambda invocation */
-export interface SyncRedisEvent {
+export type SyncRedisEvent = {
     mode: SyncMode;
     continuationToken?: string;
-}
+};
 
 /**
  * Lambda function to sync DynamoDB to Redis.

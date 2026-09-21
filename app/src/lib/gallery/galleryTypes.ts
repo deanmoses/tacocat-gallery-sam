@@ -44,7 +44,7 @@ export type VideoItem = BaseMediaItem & {
 };
 
 /** Base type with fields common to all media items (images and videos) */
-export type BaseMediaItem = BaseGalleryRecord & {
+type BaseMediaItem = BaseGalleryRecord & {
     /**
      * 'image' means 'media item' (image or video).
      * Will be renamed to 'media' in a future migration.
@@ -73,14 +73,6 @@ export type BaseGalleryRecord = {
  */
 export type GalleryItemType = 'album' | 'image';
 
-/**
- * Distinguishes between different types of media.
- * Currently there's two types of media: video and image.
- * Only videos have this field; images don't have mediaType yet,
- * because that would require a migration.
- */
-export type MediaType = 'video';
-
 export type AlbumThumbnailEntry = {
     path: string;
     versionId: string;
@@ -104,7 +96,7 @@ export type AlbumUpdateRequest = {
     published?: boolean;
 };
 
-export type ImageUpdateRequest = {
+type ImageUpdateRequest = {
     title?: string;
     description?: string;
     tags?: string[];
@@ -118,9 +110,9 @@ export type ImageCreateRequest = ImageUpdateRequest & {
 
 export type ImageThumbnailCrop = Rectangle;
 
-export type Rectangle = Point & Size;
+type Rectangle = Point & Size;
 
-export type Point = {
+type Point = {
     x: number;
     y: number;
 };

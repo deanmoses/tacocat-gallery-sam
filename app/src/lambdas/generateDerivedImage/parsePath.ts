@@ -1,4 +1,5 @@
-import { isImageFormat, OptimizingParams } from './optimizeImage';
+import type { OptimizingParams } from './optimizeImage';
+import { isImageFormat } from './optimizeImage';
 import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS } from '../../lib/gallery_path_utils/galleryPathUtils';
 
 // Matches media paths: /i/2001/12-31/media.ext/VERSIONID/...
@@ -89,4 +90,4 @@ const parseBackground = (segment: string) => {
     return { background: `#${match[1]}` };
 };
 
-const parseInt = (value: string | undefined) => Number.parseInt(value!); // parseInt(undefined) will return NaN
+const parseInt = (value: string | undefined) => (value === undefined ? NaN : Number.parseInt(value));

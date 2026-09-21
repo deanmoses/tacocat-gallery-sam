@@ -1,4 +1,4 @@
-import { OutputGroupDetail } from '@aws-sdk/client-mediaconvert';
+import type { OutputGroupDetail } from '@aws-sdk/client-mediaconvert';
 import { getParentFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { getOriginalImagesBucketName } from '../../lib/lambda_utils/Env';
 import { recordMediaProcessingError } from '../../lib/dynamo_utils/recordError';
@@ -9,7 +9,7 @@ import { getMediaConvertJobMetadata } from '../../lib/mediaconvert_utils/getMedi
 import { revertS3Version } from '../../lib/s3_utils/s3revertVersion';
 import { renameMediaConvertOutputs, deletePartialOutputs } from './s3';
 
-export interface MediaConvertJobStateChangeEvent {
+export type MediaConvertJobStateChangeEvent = {
     version: string;
     id: string;
     'detail-type': string;
@@ -28,7 +28,7 @@ export interface MediaConvertJobStateChangeEvent {
         errorMessage?: string;
         outputGroupDetails?: OutputGroupDetail[];
     };
-}
+};
 
 /**
  * Handle MediaConvert job completion event.

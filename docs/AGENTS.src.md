@@ -58,6 +58,7 @@ npm run lint          # ESLint, check only (fails on violations)
 npm run lint:fix      # ESLint with auto-fix
 npm run format:check  # Prettier, check only
 npm run format        # Prettier with auto-fix
+npm run lint:knip     # knip, reports unused files, exports and dependencies
 npm run lint:md       # markdownlint
 npm run lint:cfn      # cfn-lint on template.yaml (via SAM CLI)
 npm run lint:shell    # shellcheck on shell scripts (requires shellcheck)

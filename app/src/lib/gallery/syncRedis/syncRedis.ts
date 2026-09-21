@@ -1,28 +1,30 @@
-import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
+import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { SCHEMA_FIELD_TYPE } from 'redis';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { toRedisItem, toPath } from '../../redis_utils/toRedisFromDynamo';
-import { RedisClient, createRedisWriteClient, SEARCH_INDEX_NAME } from '../../redis_utils/redisClientUtils';
+import type { RedisClient } from '../../redis_utils/redisClientUtils';
+import { createRedisWriteClient, SEARCH_INDEX_NAME } from '../../redis_utils/redisClientUtils';
 import { saveToRedis } from '../../redis_utils/redisMset';
-import { GalleryItem } from '../galleryTypes';
-import { RedisGalleryItem } from '../../redis_utils/redisTypes';
+import type { GalleryItem } from '../galleryTypes';
+import type { RedisGalleryItem } from '../../redis_utils/redisTypes';
 import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /** Sync mode: diagnose (read-only), fix (write corrections), or init (create index) */
 export type SyncMode = 'diagnose' | 'fix' | 'init';
 
 /** Result of a successful sync operation (diagnose or fix mode) */
-export interface SyncResult {
+export type SyncResult = {
     totalInDynamoDB: number;
     totalInRedis: number;
     inSync: number;
     missing: number;
     mismatched: number;
     durationMs: number;
-}
+};
 
 /** Result of a failed sync operation */
-export interface SyncErrorResult {
+export type SyncErrorResult = {
     error: string;
     batchesSuccessfullyProcessed: number;
     totalInDynamoDBInTheseBatches: number;
@@ -31,7 +33,7 @@ export interface SyncErrorResult {
     mismatchedInTheseBatches: number;
     continuationToken?: string;
     durationMs: number;
-}
+};
 
 /** Type guard to check if result is an error result */
 export function isSyncErrorResult(result: SyncResult | SyncErrorResult): result is SyncErrorResult {
@@ -39,14 +41,14 @@ export function isSyncErrorResult(result: SyncResult | SyncErrorResult): result 
 }
 
 /** Result of an init operation */
-export interface InitResult {
+export type InitResult = {
     indexCreated: boolean;
     indexAlreadyExisted: boolean;
     durationMs: number;
-}
+};
 
 /** Options for sync operation */
-export interface SyncOptions {
+export type SyncOptions = {
     mode: SyncMode;
     /** Base64-encoded continuation token from a previous failed run */
     continuationToken?: string;
@@ -54,30 +56,30 @@ export interface SyncOptions {
     redisClient?: RedisClient;
     /** DynamoDB document client (optional, for dependency injection in tests) */
     docClient?: DynamoDBDocumentClient;
-}
+};
 
 const BATCH_SIZE = 100;
 const BATCH_DELAY_MS = 100;
 
 /** Stats accumulated during sync */
-interface SyncStats {
+type SyncStats = {
     totalInDynamoDB: number;
     inSync: number;
     missing: number;
     mismatched: number;
     /** Count of items logged (to limit verbose logging) */
     itemsLogged: number;
-}
+};
 
 const MAX_ITEMS_TO_LOG = 10;
 
 /** Result of processing a single batch */
-interface BatchResult {
+type BatchResult = {
     checked: number;
     inSync: number;
     missing: RedisGalleryItem[];
     mismatched: RedisGalleryItem[];
-}
+};
 
 /**
  * Sync DynamoDB to Redis.

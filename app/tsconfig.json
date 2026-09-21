@@ -12,13 +12,19 @@
         // tsc is the single source of truth for type errors: this lets ts-jest
         // transpile without re-checking types that `npm run compile` already checked.
         "isolatedModules": true,
+        // Type-only imports must be written `import type`, so the per-file transpilers
+        // (esbuild, ts-jest) drop exactly what tsc says they will.
+        "verbatimModuleSyntax": true,
         "types": ["node", "jest"],
         "forceConsistentCasingInFileNames": true,
         "noFallthroughCasesInSwitch": true,
         "noImplicitOverride": true,
         "noImplicitReturns": true,
         "noUnusedLocals": true,
-        "noUnusedParameters": true
+        "noUnusedParameters": true,
+        // Errors rather than editor hints
+        "allowUnreachableCode": false,
+        "allowUnusedLabels": false
     },
     "exclude": ["node_modules"]
 }

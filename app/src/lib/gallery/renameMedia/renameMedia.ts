@@ -14,7 +14,7 @@ import { itemExists } from '../itemExists/itemExists';
 import { copyOriginal, copyDerivedAssets } from '../../s3_utils/s3copy';
 import { deleteOriginalAndDerivativesForMediaItem } from '../../s3_utils/s3delete';
 import { getFullItemFromDynamoDB } from '../../dynamo_utils/ddbGet';
-import { MediaItem } from '../galleryTypes';
+import type { MediaItem } from '../galleryTypes';
 import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /**
@@ -167,7 +167,7 @@ async function moveMediaInDynamoDB(oldMediaPath: string, newMediaName: string, n
  * @param oldMediaPath Old path of media like /2001/12-31/image.jpg
  * @param newMediaPath New path of media like /2001/12-31/new_name.jpg
  */
-export async function renameAlbumThumb(albumPath: string, oldMediaPath: string, newMediaPath: string): Promise<void> {
+async function renameAlbumThumb(albumPath: string, oldMediaPath: string, newMediaPath: string): Promise<void> {
     console.info({ event: 'album_thumbnail_rename_started', albumPath, oldMediaPath, newMediaPath });
     if (!isValidAlbumPath(albumPath)) throw new Error(`Invalid album path: [${albumPath}]`);
     if (!isValidMediaPath(oldMediaPath)) throw new Error(`Invalid media path: [${oldMediaPath}]`);

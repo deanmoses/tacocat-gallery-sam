@@ -1,6 +1,6 @@
 import { BatchGetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import type { S3Client } from '@aws-sdk/client-s3';
 import {
-    S3Client,
     CopyObjectCommand,
     ListObjectsV2Command,
     DeleteObjectsCommand,
@@ -11,24 +11,24 @@ import { ddbDocClient } from '../../../lib/dynamo_utils/ddbClient';
 import { s3Client } from '../../../lib/s3_utils/s3Client';
 
 /** Event shape for direct Lambda invocation */
-export interface VideoIdToPathEvent {
+export type VideoIdToPathEvent = {
     /** Array of video paths like ["/2024/01-15/video.mp4", "/2024/02-20/another.mov"] */
     paths: string[];
-}
+};
 
-interface VideoRecord {
+type VideoRecord = {
     path: string;
     id?: string;
     versionId?: string;
-}
+};
 
-interface MigrationResult {
+type MigrationResult = {
     totalInput: number;
     migrated: number;
     skipped: number;
     failed: number;
     errors: string[];
-}
+};
 
 // Hard-coded old path patterns (not using library functions being removed)
 const getOldTranscodedKey = (id: string, versionId: string) => `d/${id}/${versionId}/video/transcoded`;

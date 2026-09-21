@@ -2,7 +2,7 @@ import { mockClient } from 'aws-sdk-client-mock';
 import { ConditionalCheckFailedException, TransactionCanceledException } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, TransactWriteCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { updateAlbum } from './updateAlbum';
-import { AlbumUpdateRequest } from '../galleryTypes';
+import type { AlbumUpdateRequest } from '../galleryTypes';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
 const albumPath = '/2001/12-31/';

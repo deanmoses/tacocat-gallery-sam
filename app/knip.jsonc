@@ -1,0 +1,13 @@
+{
+    "$schema": "https://unpkg.com/knip@6/schema.json",
+
+    // Lambda handlers are reached from template.yaml, not from an import
+    "entry": ["src/lambdas/**/*Lambda.ts"],
+    "project": ["src/**/*.ts", "*.ts", "*.mjs"],
+
+    // esbuild is run by `sam build`, lint-staged by the pre-commit hook at the repo root
+    "ignoreDependencies": ["esbuild", "lint-staged"],
+
+    // System tools, deliberately not npm dependencies; `wait` is a shell builtin
+    "ignoreBinaries": ["sam", "shellcheck", "actionlint", "wait"],
+}

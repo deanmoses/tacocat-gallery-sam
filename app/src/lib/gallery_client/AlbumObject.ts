@@ -1,4 +1,4 @@
-import { Album, AlbumItem, ImageItem, VideoItem } from '../gallery/galleryTypes';
+import type { Album, AlbumItem, ImageItem, VideoItem } from '../gallery/galleryTypes';
 
 /**
  * Find media in album by the media's name

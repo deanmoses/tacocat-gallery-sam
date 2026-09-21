@@ -1,4 +1,4 @@
-import { APIGatewayProxyEvent } from 'aws-lambda';
+import type { APIGatewayProxyEvent } from 'aws-lambda';
 import { BadRequestException } from './BadRequestException';
 import { hasIdToken } from './AuthorizationHelpers';
 import { getHeader } from './HttpHeaders';
@@ -78,7 +78,7 @@ export function getMediaPath(event: APIGatewayProxyEvent): string {
  *
  * @throws BadRequestException if there's no body, or it isn't valid JSON
  */
-export function getBodyAsJson(event: APIGatewayProxyEvent): unknown {
+function getBodyAsJson(event: APIGatewayProxyEvent): unknown {
     if (!event?.body) {
         throw new BadRequestException('No HTTP body specified');
     }

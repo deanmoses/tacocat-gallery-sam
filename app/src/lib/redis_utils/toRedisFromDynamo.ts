@@ -1,6 +1,6 @@
-import { AlbumItem, GalleryItem, GalleryItemType, ImageItem, VideoItem } from '../gallery/galleryTypes';
+import type { AlbumItem, GalleryItem, GalleryItemType, ImageItem, VideoItem } from '../gallery/galleryTypes';
 import { pathToDate } from '../gallery_path_utils/galleryPathUtils';
-import { RedisAlbumItem, RedisGalleryItem, RedisImageItem, RedisVideoItem } from './redisTypes';
+import type { RedisAlbumItem, RedisGalleryItem, RedisImageItem, RedisVideoItem } from './redisTypes';
 
 /**
  * Convert from an AWS gallery item to a Redis gallery item
@@ -104,7 +104,7 @@ export function toPath(item: GalleryItem): string {
 }
 
 /** Unix timestamp in seconds not millis */
-export function toTimestampFromPath(path: string): number {
+function toTimestampFromPath(path: string): number {
     return pathToDate(path).getTime();
 }
 

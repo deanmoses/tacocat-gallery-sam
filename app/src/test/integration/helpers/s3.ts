@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Readable } from 'stream';
+import type { Readable } from 'stream';
 import { GetObjectCommand, HeadObjectCommand, NotFound, PutObjectCommand } from '@aws-sdk/client-s3';
 import mime from 'mime';
 import { isValidMediaPathForUpload } from '../../../lib/gallery_path_utils/galleryPathUtils';
@@ -35,7 +35,7 @@ export async function uploadMedia(fixture: string, mediaPath: string): Promise<s
     return response.VersionId;
 }
 
-export async function s3ObjectExists(bucket: string, key: string): Promise<boolean> {
+async function s3ObjectExists(bucket: string, key: string): Promise<boolean> {
     return !!(await headObject(bucket, key));
 }
 

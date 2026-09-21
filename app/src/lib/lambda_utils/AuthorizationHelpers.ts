@@ -1,4 +1,4 @@
-import { APIGatewayProxyEvent } from 'aws-lambda';
+import type { APIGatewayProxyEvent } from 'aws-lambda';
 import { CognitoJwtVerifier } from 'aws-jwt-verify';
 import type { CognitoIdTokenPayload } from 'aws-jwt-verify/jwt-model';
 import { UnauthorizedException } from './UnauthorizedException';
@@ -26,16 +26,16 @@ export function getIdTokenFromCookies(cookieHeader: string | undefined): string 
     const match = cookieHeader
         .split(';')
         .map((c) => c.trim())
-        .find((cookie) => cookie.substring(0, nameLenPlus) === `${name}=`);
+        .find((cookie) => cookie.startsWith(`${name}=`));
     return match ? decodeURIComponent(match.substring(nameLenPlus)) : undefined;
 }
 
 // --- Verifier (module-level singleton, reused across invocations) ---
 
-interface TokenVerifier {
+type TokenVerifier = {
     verify(token: string): Promise<CognitoIdTokenPayload>;
     hydrate(): Promise<void>;
-}
+};
 
 let verifier: TokenVerifier | undefined;
 

@@ -5,8 +5,8 @@ import * as revertS3 from '../../lib/s3_utils/s3revertVersion';
 import * as recordError from '../../lib/dynamo_utils/recordError';
 import * as createAlbum from '../../lib/gallery/createAlbum/createAlbum';
 
-jest.mock<typeof import('./extractImageMetadata')>('./extractImageMetadata', () => {
-    const actual = jest.requireActual<typeof import('./extractImageMetadata')>('./extractImageMetadata');
+jest.mock<typeof extractMetadata>('./extractImageMetadata', () => {
+    const actual = jest.requireActual<typeof extractMetadata>('./extractImageMetadata');
     return {
         ...actual,
         extractImageMetadata: jest.fn(),

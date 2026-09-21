@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { deleteMedia } from '../../lib/gallery/deleteMedia/deleteMedia';
-import { AlbumThumbnailEntry } from '../../lib/gallery/galleryTypes';
+import type { AlbumThumbnailEntry } from '../../lib/gallery/galleryTypes';
 import { getAlbum } from '../../lib/gallery/getAlbum/getAlbum';
 import { recutThumbnail } from '../../lib/gallery/recutThumbnail/recutThumbnail';
 import { setAlbumThumbnail } from '../../lib/gallery/setAlbumThumbnail/setAlbumThumbnail';

@@ -75,8 +75,48 @@ export default defineConfig(
         },
     },
     {
+        // Stale eslint-disable comments are themselves an error, so a suppression
+        // can't outlive the problem it was added for
+        linterOptions: {
+            reportUnusedDisableDirectives: 'error',
+        },
         rules: {
             'no-extra-boolean-cast': 'off',
+
+            // Bug classes the type checker can't see
+            'array-callback-return': 'error',
+            'no-constructor-return': 'error',
+            'no-self-compare': 'error',
+            'no-template-curly-in-string': 'error',
+            'no-unmodified-loop-condition': 'error',
+            'no-unreachable-loop': 'error',
+
+            // Legacy JS constructs with better modern equivalents
+            'default-case-last': 'error',
+            'logical-assignment-operators': 'error',
+            'no-lonely-if': 'error',
+            'no-multi-assign': 'error',
+            'no-new': 'error',
+            'no-object-constructor': 'error',
+            'no-sequences': 'error',
+            'no-undef-init': 'error',
+            'no-unneeded-ternary': 'error',
+            'no-useless-concat': 'error',
+            'no-useless-rename': 'error',
+            'prefer-arrow-callback': 'error',
+            'prefer-object-spread': 'error',
+            'prefer-regex-literals': 'error',
+            'symbol-description': 'error',
+
+            // Footguns that should never appear
+            'no-caller': 'error',
+            'no-extend-native': 'error',
+            'no-labels': 'error',
+            'no-lone-blocks': 'error',
+            'no-new-func': 'error',
+            'no-new-wrappers': 'error',
+            'no-proto': 'error',
+            'no-script-url': 'error',
         },
     },
     {
@@ -110,6 +150,58 @@ export default defineConfig(
             '@typescript-eslint/no-unsafe-return': 'error',
             '@typescript-eslint/no-unsafe-call': 'error',
             '@typescript-eslint/no-unsafe-enum-comparison': 'error',
+
+            // Async and runtime errors the checker can prove
+            '@typescript-eslint/no-misused-spread': 'error',
+            '@typescript-eslint/no-mixed-enums': 'error',
+            '@typescript-eslint/require-array-sort-compare': 'error',
+            '@typescript-eslint/restrict-plus-operands': 'error',
+            // Only the try/catch half: a promise returned from inside a try block
+            // escapes the catch. Elsewhere `return await` is a matter of taste.
+            '@typescript-eslint/return-await': ['error', 'error-handling-correctness-only'],
+            // A `default` counts, so a switch that throws on the unexpected passes
+            '@typescript-eslint/switch-exhaustiveness-check': ['error', { considerDefaultExhaustiveForUnions: true }],
+
+            // Type-level dead code and consistency
+            '@typescript-eslint/adjacent-overload-signatures': 'error',
+            '@typescript-eslint/array-type': 'error',
+            '@typescript-eslint/ban-tslint-comment': 'error',
+            '@typescript-eslint/consistent-type-assertions': 'error',
+            '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
+            '@typescript-eslint/consistent-type-exports': 'error',
+            // Writes the `import type` that tsconfig's verbatimModuleSyntax demands
+            '@typescript-eslint/consistent-type-imports': 'error',
+            '@typescript-eslint/no-import-type-side-effects': 'error',
+            '@typescript-eslint/default-param-last': 'error',
+            '@typescript-eslint/no-confusing-non-null-assertion': 'error',
+            '@typescript-eslint/no-empty-function': 'error',
+            '@typescript-eslint/no-generated-empty-object-type': 'error',
+            '@typescript-eslint/no-inferrable-types': 'error',
+            '@typescript-eslint/no-invalid-void-type': 'error',
+            '@typescript-eslint/no-loop-func': 'error',
+            '@typescript-eslint/no-non-null-asserted-nullish-coalescing': 'error',
+            '@typescript-eslint/no-non-null-assertion': 'error',
+            '@typescript-eslint/no-unnecessary-boolean-literal-compare': 'error',
+            '@typescript-eslint/no-unnecessary-qualifier': 'error',
+            '@typescript-eslint/no-unnecessary-template-expression': 'error',
+            '@typescript-eslint/no-unnecessary-type-arguments': 'error',
+            '@typescript-eslint/no-unnecessary-type-parameters': 'error',
+            '@typescript-eslint/no-useless-empty-export': 'error',
+            '@typescript-eslint/prefer-enum-initializers': 'error',
+            '@typescript-eslint/prefer-function-type': 'error',
+            '@typescript-eslint/prefer-literal-enum-member': 'error',
+            '@typescript-eslint/unified-signatures': 'error',
+            // tsc's noUnusedParameters already lets a `_`-prefixed parameter through
+            '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+
+            // Modern stdlib usage
+            '@typescript-eslint/dot-notation': 'error',
+            '@typescript-eslint/prefer-find': 'error',
+            '@typescript-eslint/prefer-for-of': 'error',
+            '@typescript-eslint/prefer-includes': 'error',
+            '@typescript-eslint/prefer-optional-chain': 'error',
+            '@typescript-eslint/prefer-reduce-type-parameter': 'error',
+            '@typescript-eslint/prefer-string-starts-ends-with': 'error',
         },
     },
 );

@@ -1,5 +1,6 @@
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, BatchGetCommand, BatchGetCommandInput } from '@aws-sdk/lib-dynamodb';
+import type { BatchGetCommandInput } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, BatchGetCommand } from '@aws-sdk/lib-dynamodb';
 import { getErrors } from './getErrors';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 
@@ -94,7 +95,7 @@ describe('getErrors()', () => {
             const keys = input.RequestItems?.['test-errors']?.Keys ?? [];
 
             // Return errors only for specific paths
-            const responses: Array<{ path: string; errorType: string; errorMessage: string }> = [];
+            const responses: { path: string; errorType: string; errorMessage: string }[] = [];
             for (const key of keys) {
                 const path = (key as { path: string }).path;
                 if (path === '/2001/12-31/video0.mp4' || path === '/2001/12-31/video149.mp4') {

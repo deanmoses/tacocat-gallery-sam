@@ -7,6 +7,7 @@ import {
     isValidDayAlbumName,
     isValidYearAlbumPath,
     toAlbumPath,
+    toMediaPath,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
@@ -14,7 +15,7 @@ import { itemExists } from '../itemExists/itemExists';
 import { copyOriginals } from '../../s3_utils/s3copy';
 import { deleteOriginalsAndDerivativesForAlbum } from '../../s3_utils/s3delete';
 import { getFullChildrenFromDynamoDB, getFullItemFromDynamoDB, getItem } from '../../dynamo_utils/ddbGet';
-import { AlbumItem, ImageItem } from '../galleryTypes';
+import type { AlbumItem, ImageItem } from '../galleryTypes';
 import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /**
@@ -122,7 +123,7 @@ async function moveAlbumInDynamoDB(
     const children = await getFullChildrenFromDynamoDB(oldAlbumPath);
     if (!!children) {
         children.forEach((child) => {
-            const mediaPath = newAlbumPath + child.itemName;
+            const mediaPath = toMediaPath(newAlbumPath, child.itemName);
             const newVersionId = newVersionIds.get(mediaPath);
             if (!newVersionId) {
                 console.error({
@@ -169,7 +170,7 @@ async function moveAlbumInDynamoDB(
  * @param oldPathOfAlbumWithThumb Old path of album containing thumbnail like /2001/12-31/
  * @param newPathOfAlbumWithThumb New path of album containing thumbnail like /2001/12-29/
  */
-export async function renameAlbumThumb(
+async function renameAlbumThumb(
     albumPath: string,
     oldPathOfAlbumWithThumb: string,
     newPathOfAlbumWithThumb: string,

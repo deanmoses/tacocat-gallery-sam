@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { deleteAlbum } from '../../../lib/gallery/deleteAlbum/deleteAlbum';
 import { deleteMedia } from '../../../lib/gallery/deleteMedia/deleteMedia';
-import { Album, ImageItem, VideoItem } from '../../../lib/gallery/galleryTypes';
+import type { Album, ImageItem, VideoItem } from '../../../lib/gallery/galleryTypes';
 import { getAlbumAndChildren } from '../../../lib/gallery/getAlbum/getAlbum';
 import { itemExists } from '../../../lib/gallery/itemExists/itemExists';
 import { updateAlbum } from '../../../lib/gallery/updateAlbum/updateAlbum';

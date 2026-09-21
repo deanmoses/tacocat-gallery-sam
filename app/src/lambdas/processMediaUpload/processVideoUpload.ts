@@ -1,4 +1,5 @@
-import { CreateJobCommand, CreateJobRequest } from '@aws-sdk/client-mediaconvert';
+import type { CreateJobRequest } from '@aws-sdk/client-mediaconvert';
+import { CreateJobCommand } from '@aws-sdk/client-mediaconvert';
 import { isValidVideoPath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { getMediaConvertRoleArn, getDerivedImagesBucketName } from '../../lib/lambda_utils/Env';
 import { getMediaConvertClient } from '../../lib/mediaconvert_utils/mediaConvertClient';

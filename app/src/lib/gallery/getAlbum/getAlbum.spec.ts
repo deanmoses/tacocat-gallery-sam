@@ -1,7 +1,7 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { GetCommand, QueryCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { getAlbum, getAlbumAndChildren } from './getAlbum';
-import { AlbumItem, GalleryItem, ImageItem } from '../galleryTypes';
+import type { AlbumItem, GalleryItem, ImageItem } from '../galleryTypes';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
 

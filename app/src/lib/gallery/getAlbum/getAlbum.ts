@@ -6,7 +6,7 @@ import {
     toPathFromItem,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
-import { Album, AlbumItem, GalleryItem, NavInfo, Navigable } from '../galleryTypes';
+import type { Album, AlbumItem, GalleryItem, NavInfo, Navigable } from '../galleryTypes';
 import { getChildItems, getItem } from '../../dynamo_utils/ddbGet';
 import { augmentAlbumThumbnailsWithImageInfo } from '../../dynamo_utils/albumThumbnailHelper';
 
@@ -90,7 +90,7 @@ export async function getAlbum(
 async function getChildren(
     albumPath: string,
     includeUnpublishedAlbums: boolean | Promise<boolean>,
-): Promise<Array<GalleryItem> | undefined> {
+): Promise<GalleryItem[] | undefined> {
     let children = await getChildItems(albumPath, [
         'parentPath',
         'itemName',
@@ -132,7 +132,7 @@ async function getChildren(
 async function getPeers(
     albumPath: string,
     includeUnpublishedAlbums: boolean | Promise<boolean>,
-): Promise<Array<GalleryItem> | undefined> {
+): Promise<GalleryItem[] | undefined> {
     if (albumPath === '/') return; // root album is peerless
     const parentAlbumPath = getParentFromPath(albumPath);
     let peers = await getChildItems(parentAlbumPath, ['parentPath', 'itemName', 'itemType', 'published', 'title']);
@@ -171,11 +171,9 @@ function getPrevAndNext(path: string, peers: GalleryItem[], includeUnpublishedAl
                 }
             }
             // else we're past the current item and searching for the next published album
-            else {
-                if (peer.itemType === 'image' || includeUnpublishedAlbums || ('published' in peer && peer.published)) {
-                    nav.next = itemNav(peer);
-                    return true; // functions as a break, stops the execution of some()
-                }
+            else if (peer.itemType === 'image' || includeUnpublishedAlbums || ('published' in peer && peer.published)) {
+                nav.next = itemNav(peer);
+                return true; // functions as a break, stops the execution of some()
             }
             return false; // keep scanning
         });

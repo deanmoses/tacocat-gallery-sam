@@ -1,7 +1,7 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { mergeTags, upsertImage } from './upsertImage';
-import { ImageCreateRequest } from '../galleryTypes';
+import type { ImageCreateRequest } from '../galleryTypes';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
 

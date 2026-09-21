@@ -15,20 +15,20 @@ import vm from 'vm';
 
 const TEMPLATE_PATH = path.join(__dirname, '..', '..', '..', 'template.yaml');
 
-interface ViewerRequest {
+type ViewerRequest = {
     method: string;
     uri: string;
     querystring: Record<string, { value: string }>;
     headers: Record<string, { value: string }>;
     cookies: Record<string, { value: string }>;
-}
+};
 
-interface ViewerResponse {
+type ViewerResponse = {
     statusCode: number;
     statusDescription?: string;
     headers: Record<string, { value: string }>;
     body: string | { encoding: string; data: string };
-}
+};
 
 type Handler = (event: { request: ViewerRequest }) => ViewerRequest | ViewerResponse;
 

@@ -1,4 +1,4 @@
-import { Album } from '../gallery/galleryTypes';
+import type { Album } from '../gallery/galleryTypes';
 import { findMedia } from './AlbumObject';
 
 describe('findMedia()', () => {

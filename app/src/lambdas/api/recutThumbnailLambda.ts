@@ -1,4 +1,4 @@
-import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
+import type { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
 import { handleHttpExceptions, respondSuccessMessage } from '../../lib/lambda_utils/ApiGatewayResponseHelpers';
 import {
     HttpMethod,
@@ -10,7 +10,7 @@ import {
 } from '../../lib/lambda_utils/ApiGatewayRequestHelpers';
 import { ensureAuthorizedForWrites } from '../../lib/lambda_utils/AuthorizationHelpers';
 import { recutThumbnail } from '../../lib/gallery/recutThumbnail/recutThumbnail';
-import { Rectangle } from '../generateDerivedImage/focusCrop';
+import type { Rectangle } from '../generateDerivedImage/focusCrop';
 
 /**
  * A Lambda function that stores thumbnail re-cut info about an image in DynamoDB

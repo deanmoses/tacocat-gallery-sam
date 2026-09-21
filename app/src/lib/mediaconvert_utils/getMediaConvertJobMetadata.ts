@@ -1,10 +1,10 @@
 import { GetJobCommand } from '@aws-sdk/client-mediaconvert';
 import { getMediaConvertClient } from './mediaConvertClient';
 
-export interface MediaConvertJobMetadata {
+export type MediaConvertJobMetadata = {
     duration: number;
     dimensions: { width: number; height: number };
-}
+};
 
 /**
  * Get metadata (duration and dimensions) from a completed MediaConvert job.
