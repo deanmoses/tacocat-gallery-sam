@@ -122,6 +122,7 @@ export default defineConfig(
             '@typescript-eslint/no-inferrable-types': 'error',
             'no-lonely-if': 'error',
             '@typescript-eslint/prefer-string-starts-ends-with': 'error',
+            '@typescript-eslint/return-await': ['error', 'error-handling-correctness-only'],
         },
     },
 );

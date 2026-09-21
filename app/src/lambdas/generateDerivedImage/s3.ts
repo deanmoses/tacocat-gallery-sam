@@ -18,7 +18,7 @@ export const loadOriginalImage = async (id: string, versionId: string): Promise<
                 VersionId: versionId,
             }),
         );
-        return response.Body?.transformToByteArray();
+        return await response.Body?.transformToByteArray();
     } catch (err) {
         if (err instanceof NoSuchKey) return undefined;
         console.error({
@@ -49,7 +49,7 @@ export const loadVideoPoster = async (s3Key: string, versionId: string): Promise
                 Key: key,
             }),
         );
-        return response.Body?.transformToByteArray();
+        return await response.Body?.transformToByteArray();
     } catch (err) {
         if (err instanceof NoSuchKey) return undefined;
         console.error({
