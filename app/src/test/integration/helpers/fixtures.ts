@@ -34,14 +34,18 @@ export async function setUpAlbumWithImages(
     { publish = true } = {},
 ): Promise<Record<string, string>> {
     assert(isValidDayAlbumPath(albumPath), `Invalid day album path [${albumPath}]`);
-    const versionIds: Record<string, string> = {};
-    // Sequential: concurrent uploads into an album that does not exist yet race to create it
-    for (const [imageName, fixture] of Object.entries(images)) {
-        const imagePath = albumPath + imageName;
-        assert(isValidImagePath(imagePath), `Invalid image path [${imagePath}]`);
-        versionIds[imagePath] = await uploadMedia(fixture, imagePath);
-    }
-    await Promise.all(Object.keys(versionIds).map((imagePath) => waitForMediaItem(imagePath)));
+    // Concurrent uploads are safe, but which image the Lambda then picks as the album thumbnail is arbitrary
+    const versionIds = Object.fromEntries(
+        await Promise.all(
+            Object.entries(images).map(async ([imageName, fixture]) => {
+                const imagePath = albumPath + imageName;
+                assert(isValidImagePath(imagePath), `Invalid image path [${imagePath}]`);
+                const versionId = await uploadMedia(fixture, imagePath);
+                await waitForMediaItem(imagePath);
+                return [imagePath, versionId] as const;
+            }),
+        ),
+    );
     if (publish) await publishAlbumAndYear(albumPath);
     return versionIds;
 }

@@ -16,14 +16,14 @@ const videoName = 'testvideo.mp4';
 const videoPath = albumPath + videoName;
 let video: VideoItem;
 
-/** MediaConvert takes one to three minutes; the item is written when the job completes */
+/** MediaConvert usually takes ten seconds or so on the test video, but has no upper bound; the item is written when the job completes */
 function waitForVideoProcessing(): Promise<VideoItem> {
     return waitFor(
         async () => {
             const item = await getFullItemFromDynamoDB<VideoItem>(videoPath);
             return item?.versionId && item.mediaType === 'video' ? item : undefined;
         },
-        { description: `video [${videoPath}] to finish processing`, timeoutMs: 180_000, intervalMs: 5_000 },
+        { description: `video [${videoPath}] to finish processing`, timeoutMs: 180_000, intervalMs: 2_000 },
     );
 }
 

@@ -14,7 +14,7 @@ export type WaitOptions = {
  */
 export async function waitFor<T>(
     condition: () => Promise<T>,
-    { description, timeoutMs = 20000, intervalMs = 1000 }: WaitOptions,
+    { description, timeoutMs = 20000, intervalMs = 500 }: WaitOptions,
 ): Promise<NonNullable<T>> {
     const deadline = Date.now() + timeoutMs;
     for (;;) {

@@ -26,3 +26,9 @@ Each suite works in a year album of its own, registered in `helpers/testYears.ts
 ## Waiting on asynchronous processing
 
 S3 events, Lambda invocations and DynamoDB Streams give a test nothing to await, so tests poll for the effect with `waitFor()` and the helpers built on it. Every wait carries its own deadline; the Jest timeout in `jest.setup.integration.ts` is only a backstop.
+
+## Running
+
+The suites are I/O-bound waits on AWS, so `npm run test:integration` runs eight Jest workers whatever the core count. More does not help: on a four-core machine, loading the suites cold took 2 s with four workers, 3 s with eight and 6 s with sixteen, before any of them reached AWS.
+
+The Redis search index is part of the environment, not of a suite. `jest.globalSetup.integration.ts` creates it once per run if a wiped test Redis lost it.

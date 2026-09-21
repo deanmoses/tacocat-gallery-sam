@@ -7,7 +7,7 @@ import * as dotenv from 'dotenv';
 import path from 'path';
 
 const envFile = path.join(process.cwd(), '..', '.env.integration-test');
-dotenv.config({ path: envFile });
+dotenv.config({ path: envFile, quiet: true });
 
 const baseConfig = {
     transform: { '^.+\\.(ts|js)$': 'ts-jest' },
@@ -32,6 +32,7 @@ const config: Config = {
             ...baseConfig,
             displayName: 'integration',
             testMatch: ['<rootDir>/src/test/integration/**/*.spec.ts'],
+            globalSetup: '<rootDir>/jest.globalSetup.integration.ts',
             // After env, so the file can register the afterAll that closes the Redis connection
             setupFilesAfterEnv: ['<rootDir>/jest.setup.integration.ts'],
         },

@@ -10,7 +10,6 @@ const yearPath = TEST_YEARS.imageCdnHeaders;
 const albumPath = `${yearPath}02-20/`;
 const imagePath = `${albumPath}image1.jpg`;
 const cdn = `https://img.${getGalleryAppDomain()}`;
-const isProd = getGalleryAppDomain() === 'pix.tacocat.com';
 let versionId: string;
 
 /** Headers every response from the CDN must carry, on every cache behavior */
@@ -18,7 +17,8 @@ const SHARED_HEADERS: Record<string, string> = {
     'x-robots-tag': 'noindex, noimageindex, noai, noimageai',
     'tdm-reservation': '1',
     'x-content-type-options': 'nosniff',
-    'cross-origin-resource-policy': isProd ? 'same-site' : 'cross-origin',
+    // same-site in prod only, see the template's response headers policies
+    'cross-origin-resource-policy': 'cross-origin',
 };
 
 function expectSharedHeaders(response: Response): void {
