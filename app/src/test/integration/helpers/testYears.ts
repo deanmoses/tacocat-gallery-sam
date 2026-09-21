@@ -19,5 +19,7 @@ export const TEST_YEARS = {
     albumRenaming: '/1711/',
     heicConversion: '/1712/',
     imageCdnHeaders: '/1713/',
+    presignedUpload: '/1714/',
+    api: '/1715/',
     albumNextPrev: '/1716/',
 } as const;
