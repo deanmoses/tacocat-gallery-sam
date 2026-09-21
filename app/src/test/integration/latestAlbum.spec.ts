@@ -39,7 +39,7 @@ beforeAll(async () => {
 afterAll(() => cleanUpAlbum(albumPath));
 
 describe("with an empty album for today's date", () => {
-    test('it is the latest album and has no thumbnail', async () => {
+    it('is the latest album and has no thumbnail', async () => {
         const album = await latestAlbum();
         expect(album.path).toBe(albumPath);
         expect(album.thumbnail).toBeUndefined();
@@ -52,11 +52,11 @@ describe('after uploading an image', () => {
         await waitForMediaItem(imagePath);
     });
 
-    test('it exists', async () => {
+    it('exists', async () => {
         await expect(itemExists(imagePath)).resolves.toBe(true);
     });
 
-    test("it is the latest album's thumbnail, with a version", async () => {
+    it("is the latest album's thumbnail, with a version", async () => {
         const album = await latestAlbum();
         expect(album.path).toBe(albumPath);
         expect(album.thumbnail?.path).toBe(imagePath);
@@ -67,7 +67,7 @@ describe('after uploading an image', () => {
 describe('after recutting the thumbnail', () => {
     beforeAll(() => recutThumbnail(imagePath, cropInPct));
 
-    test('the latest album shows the crop', async () => {
+    it('the latest album shows the crop', async () => {
         const album = await latestAlbum();
         expect(album.thumbnail?.path).toBe(imagePath);
         expect(album.thumbnail?.crop).toEqual(cropInPx);
@@ -77,7 +77,7 @@ describe('after recutting the thumbnail', () => {
 describe('after renaming the image', () => {
     beforeAll(() => renameMedia(imagePath, 'renamed.jpg'));
 
-    test('the latest album thumbnail follows the rename', async () => {
+    it('the latest album thumbnail follows the rename', async () => {
         const album = await latestAlbum();
         expect(album.thumbnail?.path).toBe(renamedImagePath);
         expect(album.thumbnail?.versionId).toBeDefined();
@@ -87,12 +87,12 @@ describe('after renaming the image', () => {
 describe('after deleting the image', () => {
     beforeAll(() => deleteMedia(renamedImagePath));
 
-    test('the album no longer lists it', async () => {
+    it('the album no longer lists it', async () => {
         const album = await getAlbumOrFail(albumPath);
         expect(findMedia(album, 'renamed.jpg')).toBeUndefined();
     });
 
-    test('the latest album no longer has a thumbnail', async () => {
+    it('the latest album no longer has a thumbnail', async () => {
         const album = await latestAlbum();
         expect(album.thumbnail).toBeUndefined();
     });

@@ -43,18 +43,18 @@ beforeAll(async () => {
 afterAll(() => cleanUpYear(yearPath));
 
 describe('a malformed request', () => {
-    test('with neither version nor size is rejected at the edge', async () => {
+    it('with neither version nor size is rejected at the edge', async () => {
         const response = await fetchDerived('');
         expect(response.status).toBe(400);
     });
 
-    test('without a version is rejected at the edge', async () => {
+    it('without a version is rejected at the edge', async () => {
         const response = await fetchDerived(`?size=${size}`);
         expect(response.status).toBe(400);
         await expect(errorMessageOf(response)).resolves.toMatch(/version/i);
     });
 
-    test('without a size is rejected at the edge', async () => {
+    it('without a size is rejected at the edge', async () => {
         const response = await fetchDerived(`?version=${versionId}`);
         expect(response.status).toBe(400);
         await expect(errorMessageOf(response)).resolves.toMatch(/size/i);
@@ -67,7 +67,7 @@ describe('after requesting a derived image', () => {
         assert(response.status === 200, `Derived image request failed: ${response.status} ${await response.text()}`);
     });
 
-    test('the derived bucket holds it', async () => {
+    it('the derived bucket holds it', async () => {
         await expect(derivedExists(derivedPath)).resolves.toBe(true);
     });
 });
@@ -75,7 +75,7 @@ describe('after requesting a derived image', () => {
 describe('after deleting the image', () => {
     beforeAll(() => deleteMedia(imagePath));
 
-    test('the derived bucket no longer holds the derived image', async () => {
+    it('the derived bucket no longer holds the derived image', async () => {
         await expect(derivedExists(derivedPath)).resolves.toBe(false);
     });
 });

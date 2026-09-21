@@ -70,7 +70,7 @@ test('album not found', async () => {
 });
 
 describe('publishing a day album', () => {
-    test('is conditioned on the parent inside the write, never on a prior read', async () => {
+    it('is conditioned on the parent inside the write, never on a prior read', async () => {
         mockDocClient.on(TransactWriteCommand).resolves({});
 
         await expect(updateAlbum(albumPath, { published: true })).resolves.not.toThrow();
@@ -94,22 +94,22 @@ describe('publishing a day album', () => {
         expect(update?.ExpressionAttributeValues).toHaveProperty(':published', true);
     });
 
-    test('fails when the parent is not published', async () => {
+    it('fails when the parent is not published', async () => {
         mockDocClient.on(TransactWriteCommand).rejects(transactionCanceled('ConditionalCheckFailed', 'None'));
         await expect(updateAlbum(albumPath, { published: true })).rejects.toThrow(/parent/);
     });
 
-    test('reports a missing album as not found', async () => {
+    it('reports a missing album as not found', async () => {
         mockDocClient.on(TransactWriteCommand).rejects(transactionCanceled('None', 'ConditionalCheckFailed'));
         await expect(updateAlbum(albumPath, { published: true })).rejects.toThrow(/not found/i);
     });
 
-    test('rethrows other transaction failures', async () => {
+    it('rethrows other transaction failures', async () => {
         mockDocClient.on(TransactWriteCommand).rejects(transactionCanceled('None', 'TransactionConflict'));
         await expect(updateAlbum(albumPath, { published: true })).rejects.toThrow(TransactionCanceledException);
     });
 
-    test('all fields at once', async () => {
+    it('all fields at once', async () => {
         mockDocClient.on(TransactWriteCommand).resolves({});
         await expect(
             updateAlbum(albumPath, { description: 'Description 2', summary: 'Summary 2', published: true }),

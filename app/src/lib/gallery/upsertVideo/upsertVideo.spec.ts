@@ -14,23 +14,23 @@ afterEach(() => {
 });
 
 describe('upsertVideo validation', () => {
-    test('fail on invalid videoPath', async () => {
+    it('fail on invalid videoPath', async () => {
         await expect(upsertVideo('/invalid_path', versionId, dimensions, duration)).rejects.toThrow(/invalid.*path/i);
     });
 
-    test('fail on image path (not video)', async () => {
+    it('fail on image path (not video)', async () => {
         await expect(upsertVideo('/2001/12-31/image.jpg', versionId, dimensions, duration)).rejects.toThrow(
             /invalid.*path/i,
         );
     });
 
-    test('fail on missing versionId', async () => {
+    it('fail on missing versionId', async () => {
         await expect(upsertVideo(videoPath, '', dimensions, duration)).rejects.toThrow(/versionId/i);
     });
 });
 
 describe('upsertVideo DynamoDB write', () => {
-    test('writes correct fields to DynamoDB', async () => {
+    it('writes correct fields to DynamoDB', async () => {
         await expect(upsertVideo(videoPath, versionId, dimensions, duration)).resolves.not.toThrow();
 
         const updateInput = mockDocClient.commandCalls(UpdateCommand)?.[0]?.args[0]?.input;
@@ -51,7 +51,7 @@ describe('upsertVideo DynamoDB write', () => {
         expect(updateInput.ExpressionAttributeValues?.[':updatedOn']).toBeDefined();
     });
 
-    test('uses duration alias for reserved word', async () => {
+    it('uses duration alias for reserved word', async () => {
         await upsertVideo(videoPath, versionId, dimensions, duration);
 
         const updateInput = mockDocClient.commandCalls(UpdateCommand)?.[0]?.args[0]?.input;
@@ -61,11 +61,11 @@ describe('upsertVideo DynamoDB write', () => {
         expect(updateInput.UpdateExpression).toContain('#dur = :duration');
     });
 
-    test('accepts .mov video path', async () => {
+    it('accepts .mov video path', async () => {
         await expect(upsertVideo('/2001/12-31/video.mov', versionId, dimensions, duration)).resolves.not.toThrow();
     });
 
-    test('accepts .webm video path', async () => {
+    it('accepts .webm video path', async () => {
         await expect(upsertVideo('/2001/12-31/video.webm', versionId, dimensions, duration)).resolves.not.toThrow();
     });
 });

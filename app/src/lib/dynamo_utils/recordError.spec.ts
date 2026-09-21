@@ -11,7 +11,7 @@ beforeEach(() => {
 });
 
 describe('recordError()', () => {
-    test('Writes error to error table with correct fields', async () => {
+    it('Writes error to error table with correct fields', async () => {
         const beforeTime = Date.now();
         const result = await recordError(ErrorType.MediaProcessing, '/2024/06-15/photo.jpg', 'Test error message');
         const afterTime = Date.now();
@@ -34,7 +34,7 @@ describe('recordError()', () => {
         expect(item?.ttl).toBeLessThan(expectedTtl + 10);
     });
 
-    test('Uses correct table name from environment', async () => {
+    it('Uses correct table name from environment', async () => {
         process.env.ERROR_TABLE = 'custom-error-table';
 
         await recordError(ErrorType.MediaProcessing, '/2024/06-15/photo.jpg', 'Test error');
@@ -43,7 +43,7 @@ describe('recordError()', () => {
         expect(putCalls[0].args[0].input.TableName).toBe('custom-error-table');
     });
 
-    test('Returns false on DynamoDB error', async () => {
+    it('Returns false on DynamoDB error', async () => {
         mockDynamoDB.on(PutCommand).rejects(new Error('DynamoDB error'));
 
         const result = await recordError(ErrorType.MediaProcessing, '/2024/06-15/photo.jpg', 'Test error');
@@ -51,7 +51,7 @@ describe('recordError()', () => {
         expect(result).toBe(false);
     });
 
-    test('Does not throw on DynamoDB error', async () => {
+    it('Does not throw on DynamoDB error', async () => {
         mockDynamoDB.on(PutCommand).rejects(new Error('DynamoDB error'));
 
         await expect(recordError(ErrorType.MediaProcessing, '/2024/06-15/photo.jpg', 'Test error')).resolves.toBe(
@@ -61,7 +61,7 @@ describe('recordError()', () => {
 });
 
 describe('recordMediaProcessingError()', () => {
-    test('Writes error with errorType media_processing', async () => {
+    it('Writes error with errorType media_processing', async () => {
         const result = await recordMediaProcessingError('/2024/06-15/photo.jpg', 'Test error message');
 
         expect(result).toBe(true);

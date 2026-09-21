@@ -10,7 +10,7 @@ describe('searchable filenames', () => {
         { itemName: '1xxx01yyy1.jpg', expected: ' xxx  yyy  jpg' },
         { itemName: 'xxx_yyy.jpg', expected: 'xxx yyy jpg' },
     ];
-    test.each(tests)('%s => %s)', ({ itemName, expected }) => {
+    it.each(tests)('%s => %s)', ({ itemName, expected }) => {
         expect(toSearchableItemName(itemName)).toBe(expected);
     });
 });

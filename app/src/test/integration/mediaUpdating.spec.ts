@@ -19,7 +19,7 @@ afterAll(() => cleanUpYear(yearPath));
 describe('after setting the title', () => {
     beforeAll(() => updateMedia(imagePath, { title }));
 
-    test('it is set', async () => {
+    it('is set', async () => {
         const image = await getMediaOrFail(imagePath);
         expect(image.title).toBe(title);
         expect(image.updatedOn).toBeDefined();
@@ -30,7 +30,7 @@ describe('after setting the title', () => {
 describe('after setting the description', () => {
     beforeAll(() => updateMedia(imagePath, { description }));
 
-    test('it is set, the title is kept and updatedOn moved', async () => {
+    it('is set, the title is kept and updatedOn moved', async () => {
         const image = await getMediaOrFail(imagePath);
         expect(image.description).toBe(description);
         expect(image.title).toBe(title);
@@ -44,7 +44,7 @@ describe('after clearing the title and then the description', () => {
         await updateMedia(imagePath, { description: '' });
     });
 
-    test('both are empty', async () => {
+    it('both are empty', async () => {
         const image = await getMediaOrFail(imagePath);
         expect(image.title).toBe('');
         expect(image.description).toBe('');
@@ -54,7 +54,7 @@ describe('after clearing the title and then the description', () => {
 describe('after setting title and description in one update', () => {
     beforeAll(() => updateMedia(imagePath, { title, description }));
 
-    test('both are set', async () => {
+    it('both are set', async () => {
         const image = await getMediaOrFail(imagePath);
         expect(image.title).toBe(title);
         expect(image.description).toBe(description);

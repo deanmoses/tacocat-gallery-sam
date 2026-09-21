@@ -159,7 +159,7 @@ describe('isAuthenticatedForReads', () => {
         await expect(isAuthenticatedForReads(createMockEvent(cookie))).resolves.toBe(expected);
     });
 
-    test('reads the Cookie header however it is capitalized (CloudFront sends it as Cookie)', async () => {
+    it('reads the Cookie header however it is capitalized (CloudFront sends it as Cookie)', async () => {
         setVerifierForTesting(mockVerifier(jest.fn().mockResolvedValue(mockPayload)));
         const event = createMockEvent();
         event.headers = { Cookie: 'id_token=abc' };

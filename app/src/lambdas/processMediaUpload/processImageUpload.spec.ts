@@ -49,14 +49,14 @@ describe('processImageUpload()', () => {
         ];
 
         s3keys.forEach((s3key) => {
-            test(`S3 key should be invalid: [${s3key}]`, async () => {
+            it(`S3 key should be invalid: [${s3key}]`, async () => {
                 await expect(processImageUpload('bucket', s3key, 'FAKE_VERSION_ID')).rejects.toThrow(/invalid/i);
             });
         });
     });
 
     describe('Metadata extraction error handling', () => {
-        test('Records error and reverts S3 version on MetadataExtractionError', async () => {
+        it('Records error and reverts S3 version on MetadataExtractionError', async () => {
             const metadataError = new MetadataExtractionError('Corrupt file');
             mockExtractImageMetadata.mockRejectedValue(metadataError);
 
@@ -69,7 +69,7 @@ describe('processImageUpload()', () => {
             expect(mockRevertS3Version).toHaveBeenCalledWith('test-bucket', '2024/06-15/photo.jpg', 'version123');
         });
 
-        test('Does not throw on MetadataExtractionError (returns normally)', async () => {
+        it('Does not throw on MetadataExtractionError (returns normally)', async () => {
             const metadataError = new MetadataExtractionError('Corrupt file');
             mockExtractImageMetadata.mockRejectedValue(metadataError);
 
@@ -78,7 +78,7 @@ describe('processImageUpload()', () => {
             ).resolves.toBeUndefined();
         });
 
-        test('Propagates non-MetadataExtractionError errors for retry', async () => {
+        it('Propagates non-MetadataExtractionError errors for retry', async () => {
             const s3Error = new Error('S3 connection failed');
             mockExtractImageMetadata.mockRejectedValue(s3Error);
 

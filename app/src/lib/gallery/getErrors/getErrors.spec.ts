@@ -14,16 +14,16 @@ afterEach(() => {
 });
 
 describe('getErrors()', () => {
-    test('Throws BadRequestException for empty input array', async () => {
+    it('Throws BadRequestException for empty input array', async () => {
         await expect(getErrors([])).rejects.toThrow(BadRequestException);
     });
 
-    test('Throws BadRequestException for invalid path', async () => {
+    it('Throws BadRequestException for invalid path', async () => {
         await expect(getErrors(['invalid-path'])).rejects.toThrow(BadRequestException);
         await expect(getErrors(['/not/a/valid/path.jpg'])).rejects.toThrow(BadRequestException);
     });
 
-    test('Returns empty object when no errors found', async () => {
+    it('Returns empty object when no errors found', async () => {
         mockDocClient.on(BatchGetCommand).resolves({
             Responses: {
                 'test-errors': [],
@@ -34,7 +34,7 @@ describe('getErrors()', () => {
         expect(result).toEqual({ errors: {} });
     });
 
-    test('Returns errors for paths that have errors', async () => {
+    it('Returns errors for paths that have errors', async () => {
         mockDocClient.on(BatchGetCommand).resolves({
             Responses: {
                 'test-errors': [
@@ -54,7 +54,7 @@ describe('getErrors()', () => {
         });
     });
 
-    test('Returns only paths with errors, omits successful ones', async () => {
+    it('Returns only paths with errors, omits successful ones', async () => {
         mockDocClient.on(BatchGetCommand).resolves({
             Responses: {
                 'test-errors': [
@@ -80,7 +80,7 @@ describe('getErrors()', () => {
         });
     });
 
-    test('Handles large batches by splitting into chunks of 100', async () => {
+    it('Handles large batches by splitting into chunks of 100', async () => {
         // Create 150 paths
         const paths = Array.from({ length: 150 }, (_, i) => `/2001/12-31/video${i}.mp4`);
 

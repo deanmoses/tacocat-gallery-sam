@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 describe('deleteOriginalAndDerivativesForMediaItem', () => {
-    test('Deletes derived files with i/ prefix for images', async () => {
+    it('Deletes derived files with i/ prefix for images', async () => {
         mockS3Client.on(ListObjectsV2Command).resolves({ KeyCount: 0 });
 
         await deleteOriginalAndDerivativesForMediaItem('/2001/12-31/image.jpg');
@@ -25,7 +25,7 @@ describe('deleteOriginalAndDerivativesForMediaItem', () => {
         expect(calls[0].args[0].input.Prefix).toBe('i/2001/12-31/image.jpg');
     });
 
-    test('Deletes derived files with i/ prefix for videos', async () => {
+    it('Deletes derived files with i/ prefix for videos', async () => {
         mockS3Client.on(ListObjectsV2Command).resolves({ KeyCount: 0 });
 
         await deleteOriginalAndDerivativesForMediaItem('/2001/12-31/video.mp4');
@@ -38,7 +38,7 @@ describe('deleteOriginalAndDerivativesForMediaItem', () => {
 });
 
 describe('deleteOriginalsAndDerivativesForAlbum', () => {
-    test('Deletes album contents from both buckets', async () => {
+    it('Deletes album contents from both buckets', async () => {
         mockS3Client.on(ListObjectsV2Command).resolves({ KeyCount: 0 });
 
         await deleteOriginalsAndDerivativesForAlbum('/2001/12-31/');
@@ -50,7 +50,7 @@ describe('deleteOriginalsAndDerivativesForAlbum', () => {
 });
 
 describe('deleteDerivedFilesByPathAndVersion', () => {
-    test('Deletes derived files for specific path and version', async () => {
+    it('Deletes derived files for specific path and version', async () => {
         mockS3Client.on(ListObjectsV2Command).resolves({ KeyCount: 0 });
 
         await deleteDerivedFilesByPathAndVersion('/2001/12-31/video.mp4', 'version123');
@@ -61,7 +61,7 @@ describe('deleteDerivedFilesByPathAndVersion', () => {
         expect(derivedCall?.args[0].input.Prefix).toBe('i/2001/12-31/video.mp4/version123/');
     });
 
-    test('Throws error for invalid media path', async () => {
+    it('Throws error for invalid media path', async () => {
         await expect(deleteDerivedFilesByPathAndVersion('invalid-path', 'version123')).rejects.toThrow(
             'invalid media path',
         );

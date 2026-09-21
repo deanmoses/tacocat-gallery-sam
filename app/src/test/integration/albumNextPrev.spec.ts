@@ -21,7 +21,7 @@ beforeAll(async () => {
 afterAll(() => cleanUpYear(yearPath));
 
 describe('with no published neighbors', () => {
-    test('the album has no prev or next', async () => {
+    it('the album has no prev or next', async () => {
         const album = await getAlbumOrFail(albumPath);
         expect(album.prev).toBeUndefined();
         expect(album.next).toBeUndefined();
@@ -31,7 +31,7 @@ describe('with no published neighbors', () => {
 describe('after publishing the previous album', () => {
     beforeAll(() => updateAlbum(prevAlbumPath, { published: true }));
 
-    test('the album has a prev but no next', async () => {
+    it('the album has a prev but no next', async () => {
         const album = await getAlbumOrFail(albumPath);
         expect(album.prev?.path).toBe(prevAlbumPath);
         expect(album.next).toBeUndefined();
@@ -41,7 +41,7 @@ describe('after publishing the previous album', () => {
 describe('after publishing the next album', () => {
     beforeAll(() => updateAlbum(nextAlbumPath, { published: true }));
 
-    test('the album has both prev and next', async () => {
+    it('the album has both prev and next', async () => {
         const album = await getAlbumOrFail(albumPath);
         expect(album.prev?.path).toBe(prevAlbumPath);
         expect(album.next?.path).toBe(nextAlbumPath);

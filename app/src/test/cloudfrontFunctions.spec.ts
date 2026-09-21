@@ -129,7 +129,7 @@ test('every CloudFront Function in the template has tests here', () => {
 describe('RobotsTxtFunction', () => {
     const handler = load('RobotsTxtFunction');
 
-    test('serves robots.txt as text', () => {
+    it('serves robots.txt as text', () => {
         const response = asResponse(handler({ request: request('/robots.txt') }));
         expect(response.statusCode).toBe(200);
         expect(response.headers['content-type'].value).toBe('text/plain; charset=utf-8');
@@ -138,13 +138,13 @@ describe('RobotsTxtFunction', () => {
         expect(typeof body.data).toBe('string');
     });
 
-    test('allows crawling for everyone, then disallows the AI training bots', () => {
+    it('allows crawling for everyone, then disallows the AI training bots', () => {
         const response = asResponse(handler({ request: request('/robots.txt') }));
         const body = (response.body as { data: string }).data;
         expect(body).toMatch(/^User-agent: \*\nAllow: \/\n\n(User-agent: [^\n]+\n)+Disallow: \/\n$/);
     });
 
-    test('the bot list is sorted and free of duplicates', () => {
+    it('the bot list is sorted and free of duplicates', () => {
         const response = asResponse(handler({ request: request('/robots.txt') }));
         const body = (response.body as { data: string }).data;
         const bots = [...body.matchAll(/^User-agent: (?!\*)(.+)$/gm)].map((m) => m[1]);
@@ -153,7 +153,7 @@ describe('RobotsTxtFunction', () => {
         expect(new Set(bots).size).toBe(bots.length);
     });
 
-    test('passes any other request through untouched', () => {
+    it('passes any other request through untouched', () => {
         const original = request('/2001/12-31/');
         expect(handler({ request: original })).toBe(original);
     });
@@ -162,13 +162,13 @@ describe('RobotsTxtFunction', () => {
 describe('VideoPlaybackUrlRewriteFunction', () => {
     const handler = load('VideoPlaybackUrlRewriteFunction');
 
-    test('rewrites to the transcoded video under the derived images path', () => {
+    it('rewrites to the transcoded video under the derived images path', () => {
         const result = asRequest(handler({ request: request('/v/2024/06-15/video.mp4', { version: 'abc123' }) }));
         expect(result.uri).toBe('/i/2024/06-15/video.mp4/abc123/video-transcoded');
         expect(result.querystring).toEqual({});
     });
 
-    test('rejects a request without a version', () => {
+    it('rejects a request without a version', () => {
         const response = asResponse(handler({ request: request('/v/2024/06-15/video.mp4') }));
         expect(response.statusCode).toBe(400);
         expect(response.headers['content-type'].value).toBe('application/json');
@@ -179,7 +179,7 @@ describe('VideoPlaybackUrlRewriteFunction', () => {
 describe('DerivedImagesUrlRewriteFunction', () => {
     const handler = load('DerivedImagesUrlRewriteFunction');
 
-    test('appends version and size to the path', () => {
+    it('appends version and size to the path', () => {
         const result = asRequest(
             handler({ request: request('/i/2024/06-15/image.jpg', { version: 'abc123', size: '200x200' }) }),
         );
@@ -187,7 +187,7 @@ describe('DerivedImagesUrlRewriteFunction', () => {
         expect(result.querystring).toEqual({});
     });
 
-    test('appends the crop after the size', () => {
+    it('appends the crop after the size', () => {
         const result = asRequest(
             handler({
                 request: request('/i/2024/06-15/image.jpg', { version: 'abc123', size: '200x200', crop: '1,2,3,4' }),
@@ -196,7 +196,7 @@ describe('DerivedImagesUrlRewriteFunction', () => {
         expect(result.uri).toBe('/i/2024/06-15/image.jpg/abc123/200x200/crop=1,2,3,4');
     });
 
-    test.each<{ name: string; querystring: Record<string, string>; error: string }>([
+    it.each<{ name: string; querystring: Record<string, string>; error: string }>([
         { name: 'version', querystring: { size: '200x200' }, error: 'Missing Version' },
         { name: 'size', querystring: { version: 'abc123' }, error: 'Missing Size' },
     ])('rejects a request without a $name', ({ querystring, error }) => {

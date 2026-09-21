@@ -39,11 +39,11 @@ beforeAll(async () => {
 afterAll(() => cleanUpYear(yearPath));
 
 describe('before renaming', () => {
-    test('renaming to the same name rejects', async () => {
+    it('renaming to the same name rejects', async () => {
         await expect(renameAlbum(oldAlbumPath, oldAlbumName)).rejects.toThrow(/same/i);
     });
 
-    test('renaming to the name of an existing album rejects', async () => {
+    it('renaming to the name of an existing album rejects', async () => {
         await expect(renameAlbum(oldAlbumPath, otherAlbumName)).rejects.toThrow(/exists/i);
     });
 });
@@ -51,16 +51,16 @@ describe('before renaming', () => {
 describe('after renaming the album', () => {
     beforeAll(() => renameAlbum(oldAlbumPath, newAlbumName));
 
-    test('the originals bucket holds the image under the new path only', async () => {
+    it('the originals bucket holds the image under the new path only', async () => {
         await expect(originalExists(oldImagePath)).resolves.toBe(false);
         await expect(originalExists(newImagePath)).resolves.toBe(true);
     });
 
-    test('the old album is gone', async () => {
+    it('the old album is gone', async () => {
         await expect(getAlbumAndChildren(oldAlbumPath, true)).resolves.toBeUndefined();
     });
 
-    test('the new album holds all the images, the renamed one under a new version', async () => {
+    it('the new album holds all the images, the renamed one under a new version', async () => {
         const album = await getAlbumOrFail(newAlbumPath, true);
         expect(album.children).toHaveLength(3);
         const image = findMedia(album, imageName);
@@ -70,12 +70,12 @@ describe('after renaming the album', () => {
         expect(image.versionId).not.toBe(oldImageVersionId);
     });
 
-    test('the new album thumbnail points at the new image path', async () => {
+    it('the new album thumbnail points at the new image path', async () => {
         const album = await getAlbum(newAlbumPath, true);
         expect(album?.thumbnail?.path).toBe(newImagePath);
     });
 
-    test('the year album thumbnail points at the new image path', async () => {
+    it('the year album thumbnail points at the new image path', async () => {
         const year = await getAlbum(yearPath, true);
         expect(year?.thumbnail?.path).toBe(newImagePath);
     });

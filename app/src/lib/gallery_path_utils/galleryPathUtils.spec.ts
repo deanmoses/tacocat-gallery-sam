@@ -478,7 +478,7 @@ describe('isValidImageName', () => {
         'a b.jpg',
     ];
     invalidImageNames.forEach((imageName) => {
-        test(`Should be invalid: [${imageName}]`, () => {
+        it(`Should be invalid: [${imageName}]`, () => {
             expect(isValidImageName(imageName)).toBe(false);
         });
     });
@@ -495,7 +495,7 @@ describe('isValidImageName', () => {
         'monkey_river_15_howler_monkey_calling.jpg', // long filename regression test
     ];
     validImageNames.forEach((imageName) => {
-        test(`Should be valid: [${imageName}]`, () => {
+        it(`Should be valid: [${imageName}]`, () => {
             expect(isValidImageName(imageName)).toBe(true);
         });
     });
@@ -545,14 +545,14 @@ describe('isValidImageNameStrict', () => {
         'a___b.jpg', // multiple consecutive underscores
     ];
     invalidImageNamesStrict.forEach((imageName) => {
-        test(`Should be invalid: [${imageName}]`, () => {
+        it(`Should be invalid: [${imageName}]`, () => {
             expect(isValidImageNameStrict(imageName)).toBe(false);
         });
     });
 
     const validImageNamesStrict = ['image.jpg', 'a.jpg', 'a_b.jpg', 'image1_renamed.jpg', 'image.gif', 'image.png'];
     validImageNamesStrict.forEach((imageName) => {
-        test(`Should be valid: [${imageName}]`, () => {
+        it(`Should be valid: [${imageName}]`, () => {
             expect(isValidImageNameStrict(imageName)).toBe(true);
         });
     });
@@ -600,7 +600,7 @@ describe('isValidVideoNameStrict', () => {
         'a___b.mp4', // multiple consecutive underscores
     ];
     invalidVideoNamesStrict.forEach((videoName) => {
-        test(`Should be invalid: [${videoName}]`, () => {
+        it(`Should be invalid: [${videoName}]`, () => {
             expect(isValidVideoNameStrict(videoName)).toBe(false);
         });
     });
@@ -618,7 +618,7 @@ describe('isValidVideoNameStrict', () => {
         'video.3gp',
     ];
     validVideoNamesStrict.forEach((videoName) => {
-        test(`Should be valid: [${videoName}]`, () => {
+        it(`Should be valid: [${videoName}]`, () => {
             expect(isValidVideoNameStrict(videoName)).toBe(true);
         });
     });
@@ -643,7 +643,7 @@ describe('isValidMediaNameStrict', () => {
         'video__1.mp4', // consecutive underscores
     ];
     invalidMediaNamesStrict.forEach((mediaName) => {
-        test(`Should be invalid: [${mediaName}]`, () => {
+        it(`Should be invalid: [${mediaName}]`, () => {
             expect(isValidMediaNameStrict(mediaName)).toBe(false);
         });
     });
@@ -660,7 +660,7 @@ describe('isValidMediaNameStrict', () => {
         'movie.avi',
     ];
     validMediaNamesStrict.forEach((mediaName) => {
-        test(`Should be valid: [${mediaName}]`, () => {
+        it(`Should be valid: [${mediaName}]`, () => {
             expect(isValidMediaNameStrict(mediaName)).toBe(true);
         });
     });
@@ -668,7 +668,7 @@ describe('isValidMediaNameStrict', () => {
     // Regression test for ReDoS vulnerability: long filenames with underscores
     // must complete quickly, not hang due to catastrophic backtracking.
     // The 50ms timeout ensures the test fails if the regex causes backtracking.
-    test('Should handle long filenames with multiple underscores without hanging (ReDoS prevention)', () => {
+    it('Should handle long filenames with multiple underscores without hanging (ReDoS prevention)', () => {
         const longValidName = 'monkey_river_15_howler_monkey_calling.mov';
         const longInvalidName = 'monkey_river_15_howler_monkey_calling_.mov';
 
@@ -691,7 +691,7 @@ describe('getParentAndNameFromPath', () => {
         '/image.jpg',
     ];
     invalidInputs.forEach((invalidInput) => {
-        test(`Invalid: [${invalidInput}]`, () => {
+        it(`Invalid: [${invalidInput}]`, () => {
             expect(() => {
                 getParentAndNameFromPath(invalidInput);
             }).toThrow(/invalid/i);
@@ -705,7 +705,7 @@ describe('getParentAndNameFromPath', () => {
         { in: '/2001/12-31/image.jpg', out: { parent: '/2001/12-31/', name: 'image.jpg' } },
     ];
     validInputs.forEach((validInput) => {
-        test(`In: [${validInput.in}] Out: [${validInput.out.parent}][${validInput.out.name}]`, () => {
+        it(`In: [${validInput.in}] Out: [${validInput.out.parent}][${validInput.out.name}]`, () => {
             expect(getParentAndNameFromPath(validInput.in)).toStrictEqual(validInput.out);
         });
     });
@@ -721,7 +721,7 @@ describe('albumPathToDate', () => {
         '/2001/12-31/image.jpg', // image
     ];
     invalidInputs.forEach((invalidInput) => {
-        test(`Invalid: [${invalidInput}]`, () => {
+        it(`Invalid: [${invalidInput}]`, () => {
             expect(() => {
                 albumPathToDate(invalidInput);
             }).toThrow(/invalid/i);
@@ -737,14 +737,14 @@ describe('albumPathToDate', () => {
         { in: '/2023/12-31/', out: new Date(2023, 11, 31) },
     ];
     inputs.forEach((input) => {
-        test(`In: [${input.in}] Out: [${input.out.toDateString()}]`, () => {
+        it(`In: [${input.in}] Out: [${input.out.toDateString()}]`, () => {
             expect(albumPathToDate(input.in)).toEqual(input.out);
         });
     });
 });
 
 describe('toPathFromItem', () => {
-    test('root album', () => {
+    it('root album', () => {
         expect(
             toPathFromItem({
                 parentPath: '',
@@ -754,7 +754,7 @@ describe('toPathFromItem', () => {
         ).toBe('/');
     });
 
-    test('year album', () => {
+    it('year album', () => {
         expect(
             toPathFromItem({
                 parentPath: '/',
@@ -763,7 +763,7 @@ describe('toPathFromItem', () => {
             }),
         ).toBe('/2001/');
     });
-    test('day album', () => {
+    it('day album', () => {
         expect(
             toPathFromItem({
                 parentPath: '/2001/',
@@ -772,7 +772,7 @@ describe('toPathFromItem', () => {
             }),
         ).toBe('/2001/12-31/');
     });
-    test('image', () => {
+    it('image', () => {
         expect(
             toPathFromItem({
                 parentPath: '/2001/12-31/',
@@ -911,7 +911,7 @@ describe('isValidVideoName', () => {
         'a b.mp4',
     ];
     invalidVideoNames.forEach((videoName) => {
-        test(`Should be invalid: [${videoName}]`, () => {
+        it(`Should be invalid: [${videoName}]`, () => {
             expect(isValidVideoName(videoName)).toBe(false);
         });
     });
@@ -932,7 +932,7 @@ describe('isValidVideoName', () => {
         'monkey_river_15_howler_monkey_calling.mov', // long filename regression test
     ];
     validVideoNames.forEach((videoName) => {
-        test(`Should be valid: [${videoName}]`, () => {
+        it(`Should be valid: [${videoName}]`, () => {
             expect(isValidVideoName(videoName)).toBe(true);
         });
     });
@@ -1264,16 +1264,16 @@ describe('toMediaPath', () => {
 });
 
 describe('toPathFromKey', () => {
-    test('a name with an extension is a media item', () => {
+    it('a name with an extension is a media item', () => {
         expect(toPathFromKey('/2001/12-31/', 'image.jpg')).toBe('/2001/12-31/image.jpg');
     });
 
-    test('a name without one is an album', () => {
+    it('a name without one is an album', () => {
         expect(toPathFromKey('/2001/', '12-31')).toBe('/2001/12-31/');
         expect(toPathFromKey('/', '2001')).toBe('/2001/');
     });
 
-    test('a missing part throws', () => {
+    it('a missing part throws', () => {
         expect(() => toPathFromKey(undefined, '12-31')).toThrow(/parentPath/);
         expect(() => toPathFromKey('/2001/', undefined)).toThrow(/itemName/);
     });

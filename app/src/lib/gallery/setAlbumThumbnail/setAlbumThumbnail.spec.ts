@@ -9,25 +9,25 @@ afterEach(() => {
 });
 
 describe('Invalid Input', () => {
-    test('blank album path', async () => {
+    it('blank album path', async () => {
         const albumPath = '';
         const imagePath = '/2001/12-31/image.jpg';
         await expect(setAlbumThumbnail(albumPath, imagePath)).rejects.toThrow(/invalid.*album/i);
     });
 
-    test('root album path', async () => {
+    it('root album path', async () => {
         const albumPath = '/';
         const imagePath = '/2001/12-31/image.jpg';
         await expect(setAlbumThumbnail(albumPath, imagePath)).rejects.toThrow(/root/i);
     });
 
-    test('malformed image path', async () => {
+    it('malformed image path', async () => {
         const albumPath = '/2001/12-31/';
         const imagePath = '/2001/12-31/';
         await expect(setAlbumThumbnail(albumPath, imagePath)).rejects.toThrow(/invalid.*media/i);
     });
 
-    test('blank image path', async () => {
+    it('blank image path', async () => {
         const albumPath = '/2001/12-31/';
         const imagePath = '';
         await expect(setAlbumThumbnail(albumPath, imagePath)).rejects.toThrow(/invalid.*media/i);
@@ -35,7 +35,7 @@ describe('Invalid Input', () => {
 });
 
 describe('Valid Input', () => {
-    test('Basic success path', async () => {
+    it('Basic success path', async () => {
         expect.assertions(5);
 
         const albumPath = '/2001/12-31/';
@@ -62,7 +62,7 @@ describe('Valid Input', () => {
         });
     });
 
-    test("Don't replace thumbnail", async () => {
+    it("Don't replace thumbnail", async () => {
         expect.assertions(5);
 
         const albumPath = '/2001/12-31/';
@@ -94,7 +94,7 @@ describe('Valid Input', () => {
         });
     });
 
-    test('Album does not exist', async () => {
+    it('Album does not exist', async () => {
         expect.assertions(1);
 
         const imagePath = '/1899/12-31/anotherImage.jpg';
@@ -106,7 +106,7 @@ describe('Valid Input', () => {
         await expect(setImageAsParentAlbumThumbnailIfNoneExists(imagePath)).rejects.toThrow(/album.*not.*found/i);
     });
 
-    test('setImageAsParentAlbumThumbnailIfNoneExists()', async () => {
+    it('setImageAsParentAlbumThumbnailIfNoneExists()', async () => {
         expect.assertions(5);
 
         const imagePath = '/2001/12-31/anotherImage.jpg';

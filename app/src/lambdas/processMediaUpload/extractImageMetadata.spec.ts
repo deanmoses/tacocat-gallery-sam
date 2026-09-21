@@ -57,7 +57,7 @@ describe('selectMetadata', () => {
         },
     ];
     images.forEach((image) => {
-        test(`File [${image.fileName}]`, async () => {
+        it(`File [${image.fileName}]`, async () => {
             const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/', image.fileName);
             if (!existsSync(filePath)) throw new Error(`File [${filePath}] does not exist`);
             const tags = await ExifReader.load(filePath, { expanded: true, async: true });
@@ -71,7 +71,7 @@ describe('selectMetadata', () => {
 });
 
 describe('process png', () => {
-    test('png', async () => {
+    it('png', async () => {
         const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/pngFormat.png');
         if (!existsSync(filePath)) throw new Error(`File [${filePath}] does not exist`);
         const tags = await ExifReader.load(filePath, { expanded: true, async: true });
@@ -79,7 +79,7 @@ describe('process png', () => {
         const md = selectMetadata(tags);
         expect(md.dimensions).toEqual({ height: 212, width: 220 });
     });
-    test('windows png', async () => {
+    it('windows png', async () => {
         const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/pngWindows.png');
         if (!existsSync(filePath)) throw new Error(`File [${filePath}] does not exist`);
         const tags = await ExifReader.load(filePath, { expanded: true, async: true });
@@ -90,7 +90,7 @@ describe('process png', () => {
 });
 
 describe('process gif', () => {
-    test('gif', async () => {
+    it('gif', async () => {
         const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/gifFormat.gif');
         if (!existsSync(filePath)) throw new Error(`File [${filePath}] does not exist`);
         const tags = await ExifReader.load(filePath, { expanded: true, async: true });
@@ -101,7 +101,7 @@ describe('process gif', () => {
 });
 
 describe('EXIF orientation handling', () => {
-    test('Orientation 6 (90° CW) should swap dimensions to portrait', async () => {
+    it('Orientation 6 (90° CW) should swap dimensions to portrait', async () => {
         // This image has raw pixel dimensions 800x600 (landscape)
         // but EXIF orientation 6 means it should display as 600x800 (portrait)
         const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/orientation/PortraitOrientation6.jpg');
@@ -119,7 +119,7 @@ describe('EXIF orientation handling', () => {
         expect(md.dimensions).toEqual({ width: 600, height: 800 });
     });
 
-    test('Orientation 1 (normal) should NOT swap dimensions', async () => {
+    it('Orientation 1 (normal) should NOT swap dimensions', async () => {
         // FullMetadata.jpg has orientation 1 (normal) - dimensions should stay as-is
         const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/FullMetadata.jpg');
         if (!existsSync(filePath)) throw new Error(`File [${filePath}] does not exist`);
@@ -134,7 +134,7 @@ describe('EXIF orientation handling', () => {
         expect(md.dimensions).toEqual({ width: 300, height: 225 });
     });
 
-    test('No orientation metadata should NOT swap dimensions', async () => {
+    it('No orientation metadata should NOT swap dimensions', async () => {
         // PNG files don't have EXIF orientation - dimensions should stay as-is
         const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/pngFormat.png');
         if (!existsSync(filePath)) throw new Error(`File [${filePath}] does not exist`);
@@ -151,7 +151,7 @@ describe('EXIF orientation handling', () => {
 });
 
 describe('process heic (XMP metadata)', () => {
-    test('FullMetadataHeic.heic', async () => {
+    it('FullMetadataHeic.heic', async () => {
         const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/FullMetadataHeic.heic');
         if (!existsSync(filePath)) throw new Error(`File [${filePath}] does not exist`);
         // HEIC requires async: true for full metadata parsing
@@ -163,7 +163,7 @@ describe('process heic (XMP metadata)', () => {
         expect(md.dimensions).toEqual({ height: 3024, width: 4032 });
     });
 
-    test('NoDescriptionOrKeywordsOrCopyrightHeic.heic', async () => {
+    it('NoDescriptionOrKeywordsOrCopyrightHeic.heic', async () => {
         const filePath = path.resolve(
             __dirname,
             '..',

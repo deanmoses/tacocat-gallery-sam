@@ -31,15 +31,15 @@ beforeAll(async () => {
 afterAll(() => cleanUpYear(yearPath));
 
 describe('before renaming', () => {
-    test('changing the extension rejects', async () => {
+    it('changing the extension rejects', async () => {
         await expect(renameMedia(oldPath, 'invalidExtension.png')).rejects.toThrow(/extension/i);
     });
 
-    test('renaming an image that does not exist rejects', async () => {
+    it('renaming an image that does not exist rejects', async () => {
         await expect(renameMedia('/1899/01-01/noSuchImage.jpg', 'new_name.jpg')).rejects.toThrow(/not found/i);
     });
 
-    test('renaming to the name of an existing image rejects', async () => {
+    it('renaming to the name of an existing image rejects', async () => {
         await expect(renameMedia(oldPath, otherName)).rejects.toThrow(/exists/i);
     });
 });
@@ -47,7 +47,7 @@ describe('before renaming', () => {
 describe('after renaming the image', () => {
     beforeAll(() => renameMedia(oldPath, newName));
 
-    test('the album lists it under the new name with a new version, and not the old name', async () => {
+    it('the album lists it under the new name with a new version, and not the old name', async () => {
         const album = await getAlbumOrFail(albumPath, true);
         expect(findMedia(album, oldName)).toBeUndefined();
         const image = findMedia(album, newName);
@@ -57,13 +57,13 @@ describe('after renaming the image', () => {
         expect(image.versionId).not.toBe(oldVersionId);
     });
 
-    test('the album and year thumbnails point at the new path', async () => {
+    it('the album and year thumbnails point at the new path', async () => {
         const [album, year] = await Promise.all([getAlbum(albumPath, true), getAlbum(yearPath, true)]);
         expect(album?.thumbnail?.path).toBe(newPath);
         expect(year?.thumbnail?.path).toBe(newPath);
     });
 
-    test('the originals bucket holds it under the new path only', async () => {
+    it('the originals bucket holds it under the new path only', async () => {
         await expect(originalExists(newPath)).resolves.toBe(true);
         await expect(originalExists(oldPath)).resolves.toBe(false);
     });

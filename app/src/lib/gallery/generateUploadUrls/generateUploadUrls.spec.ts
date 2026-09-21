@@ -54,30 +54,30 @@ describe('Invalid images', () => {
     });
 });
 
-it('Should fail on mix of valid and invalid image paths', async () => {
+test('Should fail on mix of valid and invalid image paths', async () => {
     await expect(
         generateUploadUrls('/2001/12-31/', ['/2001/12-31/image.jpg', '/2001/12-31/INVALID', '/2001/12-31/image2.jpg']),
     ).rejects.toThrow(/invalid/i);
     expect(mockS3Client.calls().length).toBe(0);
 });
 
-it('Should fail if image is not in album', async () => {
+test('Should fail if image is not in album', async () => {
     await expect(generateUploadUrls('/2001/12-31/', ['/1899/01-01/image.jpg'])).rejects.toThrow(/album/i);
     expect(mockS3Client.calls().length).toBe(0);
 });
 
-it('Should fail on no media', async () => {
+test('Should fail on no media', async () => {
     await expect(generateUploadUrls('/2001/12-31/', [])).rejects.toThrow(/media/i);
     expect(mockS3Client.calls().length).toBe(0);
 });
 
-it('Should fail on nonexistent album', async () => {
+test('Should fail on nonexistent album', async () => {
     await expect(generateUploadUrls('/2001/12-31/', ['/2001/12-31/image.jpg'])).rejects.toThrow(/album/i);
     expect(mockDDBClient.calls().length).toBe(1);
     expect(mockS3Client.calls().length).toBe(0);
 });
 
-it('Should succeed for JPEG', async () => {
+test('Should succeed for JPEG', async () => {
     mockDDBClient.on(GetCommand).resolves({ Item: { itemName: '12-31' } }); // Mock DDB to get album
     const urls = await generateUploadUrls('/2001/12-31/', ['/2001/12-31/image.jpg']);
     const url = urls['/2001/12-31/image.jpg'];
@@ -87,7 +87,7 @@ it('Should succeed for JPEG', async () => {
     expect(mockS3Client.calls().length).toBe(0); // Shows that generating presigned URLs don't involve a call to S3
 });
 
-it('Should succeed for HEIC', async () => {
+test('Should succeed for HEIC', async () => {
     mockDDBClient.on(GetCommand).resolves({ Item: { itemName: '12-31' } }); // Mock DDB to get album
     const urls = await generateUploadUrls('/2001/12-31/', ['/2001/12-31/image.heic']);
     expect(() => new URL(urls['/2001/12-31/image.heic'])).not.toThrow();

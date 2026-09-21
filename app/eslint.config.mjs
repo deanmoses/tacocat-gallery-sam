@@ -70,7 +70,6 @@ export default defineConfig(
 
             // Matcher and style preferences the suites do not follow uniformly.
             // Turning any of these on is a mechanical rewrite of most suites.
-            'jest/consistent-test-it': 'off',
             'jest/no-conditional-in-test': 'off',
             'jest/prefer-ending-with-an-expect': 'off',
             'jest/prefer-strict-equal': 'off',

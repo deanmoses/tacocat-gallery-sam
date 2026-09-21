@@ -33,7 +33,7 @@ test('rejects an unknown attribute', async () => {
 });
 
 describe('a freshly created album', () => {
-    test('has no attributes set', async () => {
+    it('has no attributes set', async () => {
         const album = await getAlbumOrFail(albumPath, true);
         expect(album.children).toEqual([]);
         expect(album.description).toBeUndefined();
@@ -44,7 +44,7 @@ describe('a freshly created album', () => {
         createdOn = album.updatedOn;
     });
 
-    test('cannot be published while its year is unpublished', async () => {
+    it('cannot be published while its year is unpublished', async () => {
         await expect(updateAlbum(albumPath, { published: true })).rejects.toThrow(/parent/i);
     });
 });
@@ -55,7 +55,7 @@ describe('after publishing the year and then the album', () => {
         await updateAlbum(albumPath, { published: true });
     });
 
-    test('the album is published', async () => {
+    it('the album is published', async () => {
         const album = await getAlbum(albumPath);
         expect(album?.published).toBe(true);
     });
@@ -67,7 +67,7 @@ describe('after setting the description and then the summary', () => {
         await updateAlbum(albumPath, { summary });
     });
 
-    test('both are set and nothing else changed', async () => {
+    it('both are set and nothing else changed', async () => {
         const album = await getAlbum(albumPath);
         expect(album?.description).toBe(description);
         expect(album?.summary).toBe(summary);
@@ -75,7 +75,7 @@ describe('after setting the description and then the summary', () => {
         expect(album?.updatedOn).not.toBe(createdOn);
     });
 
-    test('the year listing reflects them', async () => {
+    it('the year listing reflects them', async () => {
         const album = await albumInYearListing();
         expect(album.description).toBe(description);
         expect(album.summary).toBe(summary);
@@ -90,14 +90,14 @@ describe('after clearing the description and summary and unpublishing', () => {
         await updateAlbum(albumPath, { published: false });
     });
 
-    test('all three took effect', async () => {
+    it('all three took effect', async () => {
         const album = await getAlbum(albumPath, true);
         expect(album?.description).toBe('');
         expect(album?.summary).toBe('');
         expect(album?.published).toBe(false);
     });
 
-    test('the year listing reflects them', async () => {
+    it('the year listing reflects them', async () => {
         const album = await albumInYearListing(true);
         expect(album.description).toBe('');
         expect(album.summary).toBe('');
@@ -108,14 +108,14 @@ describe('after clearing the description and summary and unpublishing', () => {
 describe('after setting summary, description and published in one update', () => {
     beforeAll(() => updateAlbum(albumPath, { summary, description, published: true }));
 
-    test('all three took effect', async () => {
+    it('all three took effect', async () => {
         const album = await getAlbum(albumPath);
         expect(album?.summary).toBe(summary);
         expect(album?.description).toBe(description);
         expect(album?.published).toBe(true);
     });
 
-    test('creating the album again without throwing leaves them alone', async () => {
+    it('creating the album again without throwing leaves them alone', async () => {
         await expect(createAlbumNoThrow(albumPath)).resolves.toBe(false);
         const album = await getAlbum(albumPath);
         expect(album?.summary).toBe(summary);

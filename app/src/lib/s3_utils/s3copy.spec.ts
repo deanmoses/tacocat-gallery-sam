@@ -10,7 +10,7 @@ beforeEach(() => {
 });
 
 describe('copyDerivedAssets', () => {
-    test('copies all objects from old prefix to new prefix', async () => {
+    it('copies all objects from old prefix to new prefix', async () => {
         mockS3Client.on(ListObjectsV2Command).resolves({
             Contents: [
                 { Key: 'i/2001/12-31/video.mp4/oldVersion/video-transcoded' },
@@ -33,7 +33,7 @@ describe('copyDerivedAssets', () => {
         expect(copyDestinations).toContain('i/2001/12-31/newvideo.mp4/newVersion/video-poster');
     });
 
-    test('handles image thumbnails', async () => {
+    it('handles image thumbnails', async () => {
         mockS3Client.on(ListObjectsV2Command).resolves({
             Contents: [
                 { Key: 'i/2001/12-31/image.jpg/oldVersion/200' },
@@ -54,7 +54,7 @@ describe('copyDerivedAssets', () => {
         expect(copyDestinations).toContain('i/2001/12-31/newimage.jpg/newVersion/webp/200');
     });
 
-    test('handles no derived assets gracefully', async () => {
+    it('handles no derived assets gracefully', async () => {
         mockS3Client.on(ListObjectsV2Command).resolves({
             Contents: [],
         });
@@ -67,7 +67,7 @@ describe('copyDerivedAssets', () => {
         expect(copyCalls.length).toBe(0);
     });
 
-    test('handles undefined Contents gracefully', async () => {
+    it('handles undefined Contents gracefully', async () => {
         mockS3Client.on(ListObjectsV2Command).resolves({});
 
         // Should not throw
@@ -77,7 +77,7 @@ describe('copyDerivedAssets', () => {
         expect(copyCalls.length).toBe(0);
     });
 
-    test('skips objects without Key', async () => {
+    it('skips objects without Key', async () => {
         mockS3Client.on(ListObjectsV2Command).resolves({
             Contents: [{ Key: 'i/2001/12-31/image.jpg/oldVersion/200' }, { Key: undefined }, {}],
         });

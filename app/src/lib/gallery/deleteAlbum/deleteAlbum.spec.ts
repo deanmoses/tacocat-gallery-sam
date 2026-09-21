@@ -22,7 +22,7 @@ describe('Invalid Paths', () => {
         '/2000/12-31/image.jpg',
     ];
     paths.forEach((path) => {
-        test(`Path should be invalid: [${path}]`, async () => {
+        it(`Path should be invalid: [${path}]`, async () => {
             await expect(deleteAlbum(path)).rejects.toThrow(/malformed/i);
             expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(0);
         });

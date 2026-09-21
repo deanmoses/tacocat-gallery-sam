@@ -48,34 +48,34 @@ test('description', async () => {
 
 // mergeTags helper function tests
 describe('mergeTags', () => {
-    test('both undefined returns undefined', () => {
+    it('both undefined returns undefined', () => {
         expect(mergeTags(undefined, undefined)).toBeUndefined();
     });
 
-    test('existing only returns existing', () => {
+    it('existing only returns existing', () => {
         expect(mergeTags(['A', 'B'], undefined)).toEqual(['A', 'B']);
     });
 
-    test('incoming only returns incoming', () => {
+    it('incoming only returns incoming', () => {
         expect(mergeTags(undefined, ['A', 'B'])).toEqual(['A', 'B']);
     });
 
-    test('merges and deduplicates', () => {
+    it('merges and deduplicates', () => {
         expect(mergeTags(['A'], ['A', 'B'])).toEqual(['A', 'B']);
     });
 
-    test('filters empty strings', () => {
+    it('filters empty strings', () => {
         expect(mergeTags(['', 'A', '  '], ['B', ''])).toEqual(['A', 'B']);
     });
 
-    test('empty arrays return undefined', () => {
+    it('empty arrays return undefined', () => {
         expect(mergeTags([], [])).toBeUndefined();
     });
 });
 
 // upsertImage tag behavior tests
 describe('upsertImage tags', () => {
-    test('empty array not saved', async () => {
+    it('empty array not saved', async () => {
         await upsertImage(imagePath, { versionId: '123', tags: [] });
         const updateInput = mockDocClient.commandCalls(UpdateCommand)?.[0]?.args[0]?.input;
         if (!updateInput) throw new Error('No update command');
@@ -83,7 +83,7 @@ describe('upsertImage tags', () => {
         expect(updateInput.ExpressionAttributeValues?.[':tags']).toBeUndefined();
     });
 
-    test('null not saved', async () => {
+    it('null not saved', async () => {
         await upsertImage(imagePath, { versionId: '123', tags: null as unknown as string[] });
         const updateInput = mockDocClient.commandCalls(UpdateCommand)?.[0]?.args[0]?.input;
         if (!updateInput) throw new Error('No update command');
@@ -91,7 +91,7 @@ describe('upsertImage tags', () => {
         expect(updateInput.ExpressionAttributeValues?.[':tags']).toBeUndefined();
     });
 
-    test('merges with existing', async () => {
+    it('merges with existing', async () => {
         mockDocClient.on(GetCommand).resolves({ Item: { tags: ['A'] } });
         await upsertImage(imagePath, { versionId: '123', tags: ['B'] });
         const updateInput = mockDocClient.commandCalls(UpdateCommand)?.[0]?.args[0]?.input;
@@ -100,7 +100,7 @@ describe('upsertImage tags', () => {
         expect(updateInput.ExpressionAttributeValues?.[':tags']).toEqual(['A', 'B']);
     });
 
-    test('existing preserved when incoming empty', async () => {
+    it('existing preserved when incoming empty', async () => {
         mockDocClient.on(GetCommand).resolves({ Item: { tags: ['A'] } });
         await upsertImage(imagePath, { versionId: '123', tags: [] });
         const updateInput = mockDocClient.commandCalls(UpdateCommand)?.[0]?.args[0]?.input;

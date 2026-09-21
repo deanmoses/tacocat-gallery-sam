@@ -19,7 +19,7 @@ beforeEach(() => {
 });
 
 describe('processMediaUpload()', () => {
-    test('Routes JPG image to processImageUpload', async () => {
+    it('Routes JPG image to processImageUpload', async () => {
         await processMediaUpload('bucket', '2024/06-15/photo.jpg', 'version123');
 
         expect(mockProcessImageUpload).toHaveBeenCalledWith('bucket', '2024/06-15/photo.jpg', 'version123');
@@ -27,7 +27,7 @@ describe('processMediaUpload()', () => {
         expect(mockProcessHeicUpload).not.toHaveBeenCalled();
     });
 
-    test('Routes HEIC to processHeicUpload', async () => {
+    it('Routes HEIC to processHeicUpload', async () => {
         await processMediaUpload('bucket', '2024/06-15/photo.heic', 'version123');
 
         expect(mockProcessHeicUpload).toHaveBeenCalledWith('bucket', '2024/06-15/photo.heic');
@@ -35,7 +35,7 @@ describe('processMediaUpload()', () => {
         expect(mockProcessVideoUpload).not.toHaveBeenCalled();
     });
 
-    test('Routes HEIF to processHeicUpload', async () => {
+    it('Routes HEIF to processHeicUpload', async () => {
         await processMediaUpload('bucket', '2024/06-15/photo.HEIF', 'version123');
 
         expect(mockProcessHeicUpload).toHaveBeenCalledWith('bucket', '2024/06-15/photo.HEIF');
@@ -43,7 +43,7 @@ describe('processMediaUpload()', () => {
         expect(mockProcessVideoUpload).not.toHaveBeenCalled();
     });
 
-    test('Routes MP4 video to processVideoUpload', async () => {
+    it('Routes MP4 video to processVideoUpload', async () => {
         await processMediaUpload('bucket', '2024/06-15/video.mp4', 'version123');
 
         expect(mockProcessVideoUpload).toHaveBeenCalledWith('bucket', '2024/06-15/video.mp4', 'version123');
@@ -51,7 +51,7 @@ describe('processMediaUpload()', () => {
         expect(mockProcessHeicUpload).not.toHaveBeenCalled();
     });
 
-    test('Routes MOV video to processVideoUpload', async () => {
+    it('Routes MOV video to processVideoUpload', async () => {
         await processMediaUpload('bucket', '2024/06-15/video.mov', 'version123');
 
         expect(mockProcessVideoUpload).toHaveBeenCalledWith('bucket', '2024/06-15/video.mov', 'version123');
@@ -59,7 +59,7 @@ describe('processMediaUpload()', () => {
         expect(mockProcessHeicUpload).not.toHaveBeenCalled();
     });
 
-    test('Skips album folder paths without error', async () => {
+    it('Skips album folder paths without error', async () => {
         await processMediaUpload('bucket', '2024/06-15/', 'version123');
 
         expect(mockProcessImageUpload).not.toHaveBeenCalled();
@@ -67,7 +67,7 @@ describe('processMediaUpload()', () => {
         expect(mockProcessHeicUpload).not.toHaveBeenCalled();
     });
 
-    test('Skips invalid paths without error', async () => {
+    it('Skips invalid paths without error', async () => {
         await processMediaUpload('bucket', 'invalid/path.txt', 'version123');
 
         expect(mockProcessImageUpload).not.toHaveBeenCalled();

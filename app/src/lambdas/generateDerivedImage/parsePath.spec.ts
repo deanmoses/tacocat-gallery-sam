@@ -82,7 +82,7 @@ describe('video path regex validation', () => {
     });
 });
 
-it.each([
+test.each([
     '/i/2001/12-31/image.jpg/VERSIONID',
     '/i/2001/12-31/image.jpg/VERSIONID/',
     '/i/2001/12-31/image.jpg/VERSIONID/400x300',
@@ -94,21 +94,21 @@ it.each([
     expect(r).not.toHaveProperty('error');
 });
 
-it('should return falsy image & version ids if path does not start with IMAGE_PATH', () => {
+test('should return falsy image & version ids if path does not start with IMAGE_PATH', () => {
     const r = parseUrlPath('/wrongpath/UUID');
     expect(r.id).toBeFalsy();
     expect(r.versionId).toBeFalsy();
     expect(r).toHaveProperty('error');
 });
 
-it('should return falsy image id if path does not contain an image id', () => {
+test('should return falsy image id if path does not contain an image id', () => {
     const r = parseUrlPath('/2001/12-31/image');
     expect(r.id).toBeFalsy();
     expect(r.versionId).toBeFalsy();
     expect(r).toHaveProperty('error');
 });
 
-it.each([
+test.each([
     '/i/2001/12-31/image.jpg',
     '/i/2001/12-31/image.jpg/',
     '/i/2001/12-31/image.jpg//',
@@ -119,14 +119,14 @@ it.each([
     expect(r).toHaveProperty('error');
 });
 
-it.each(['/i/2001/12-31/image.jpg/VERSIONID/webp/bla=123/fp=10,20'])(
+test.each(['/i/2001/12-31/image.jpg/VERSIONID/webp/bla=123/fp=10,20'])(
     'should return error if %p contains unparsable segments',
     (path) => {
         expect(parseUrlPath(path)).toHaveProperty('error');
     },
 );
 
-it.each([
+test.each([
     ['avif', '/i/2001/12-31/image.jpg/VERSIONID/avif'],
     ['webp', '/i/2001/12-31/image.jpg/VERSIONID/webp/'],
     ['jpeg', '/i/2001/12-31/image.jpg/VERSIONID/jpeg/400x300'],
@@ -136,7 +136,7 @@ it.each([
     expect(error).toBeUndefined();
 });
 
-it.each([
+test.each([
     [{ width: 100, height: NaN }, '/i/2001/12-31/image.jpg/VERSIONID/jpeg/100'],
     [{ width: 200, height: NaN }, '/i/2001/12-31/image.jpg/VERSIONID/jpeg/200x'],
     [{ width: NaN, height: 300 }, '/i/2001/12-31/image.jpg/VERSIONID/jpeg/x300'],
@@ -148,19 +148,19 @@ it.each([
     expect(error).toBeUndefined();
 });
 
-it('should extract focus point', () => {
+test('should extract focus point', () => {
     const { focus, error } = parseUrlPath('/i/2001/12-31/image.jpg/VERSIONID/fp=200,100');
     expect(focus).toEqual({ x: 200, y: 100 });
     expect(error).toBeUndefined();
 });
 
-it('should extract crop rectangle', () => {
+test('should extract crop rectangle', () => {
     const { crop, error } = parseUrlPath('/i/2001/12-31/image.jpg/VERSIONID/fp=200,100/crop=10,20,30,40');
     expect(crop).toEqual({ x: 10, y: 20, width: 30, height: 40 });
     expect(error).toBeUndefined();
 });
 
-it('should ignore empty segments', () => {
+test('should ignore empty segments', () => {
     const params = parseUrlPath('/i/2001/12-31/image.jpg/VERSIONID/fp=200,100///100x200/');
     expect(params).toEqual({
         id: '2001/12-31/image.jpg',
@@ -171,19 +171,19 @@ it('should ignore empty segments', () => {
     });
 });
 
-it('should ignore empty segments #2', () => {
+test('should ignore empty segments #2', () => {
     const { crop, error } = parseUrlPath('/i/2001/12-31/image.jpg/VERSIONID///crop=10,20,30,40');
     expect(crop).toEqual({ x: 10, y: 20, width: 30, height: 40 });
     expect(error).toBeUndefined();
 });
 
-it('should extract quality parameter', () => {
+test('should extract quality parameter', () => {
     const { quality, error } = parseUrlPath('/i/2001/12-31/image.jpg/VERSIONID/q=50');
     expect(quality).toEqual(50);
     expect(error).toBeUndefined();
 });
 
-it('should extract background parameter', () => {
+test('should extract background parameter', () => {
     const { background, error } = parseUrlPath('/i/2001/12-31/image.jpg/VERSIONID/bg=ff0000/q=50');
     expect(background).toEqual('#ff0000');
     expect(error).toBeUndefined();

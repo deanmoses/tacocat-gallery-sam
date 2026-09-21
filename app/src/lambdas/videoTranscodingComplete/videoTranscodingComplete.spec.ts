@@ -85,7 +85,7 @@ function createCompleteEvent(
 
 describe('handleVideoTranscodingComplete()', () => {
     describe('On COMPLETE', () => {
-        test('Writes DynamoDB record with correct fields', async () => {
+        it('Writes DynamoDB record with correct fields', async () => {
             mockMediaConvert.on(GetJobCommand).resolves({
                 Job: {
                     OutputGroupDetails: [
@@ -127,7 +127,7 @@ describe('handleVideoTranscodingComplete()', () => {
             expect(input?.ExpressionAttributeValues?.[':duration']).toBe(120);
         });
 
-        test('Extracts duration and dimensions from job metadata', async () => {
+        it('Extracts duration and dimensions from job metadata', async () => {
             mockMediaConvert.on(GetJobCommand).resolves({
                 Job: {
                     OutputGroupDetails: [
@@ -157,7 +157,7 @@ describe('handleVideoTranscodingComplete()', () => {
             expect(values?.[':duration']).toBe(300);
         });
 
-        test('Handles Lambda retry when rename already completed (idempotent)', async () => {
+        it('Handles Lambda retry when rename already completed (idempotent)', async () => {
             // Simulate retry: destination files already exist from previous invocation
             // Override the default HeadObjectCommand mocks - all files exist (destinations exist, sources may be gone)
             mockS3Client.on(HeadObjectCommand).resolves({ ContentType: 'video/mp4' }); // All files exist
@@ -196,7 +196,7 @@ describe('handleVideoTranscodingComplete()', () => {
     });
 
     describe('On ERROR', () => {
-        test('Writes to error table', async () => {
+        it('Writes to error table', async () => {
             const event = createCompleteEvent({
                 status: 'ERROR',
                 errorMessage: 'Unsupported codec',
@@ -215,7 +215,7 @@ describe('handleVideoTranscodingComplete()', () => {
             expect(item?.ttl).toBeDefined();
         });
 
-        test('Reverts original file to previous version', async () => {
+        it('Reverts original file to previous version', async () => {
             const event = createCompleteEvent({
                 status: 'ERROR',
                 errorMessage: 'Transcoding failed',
@@ -230,7 +230,7 @@ describe('handleVideoTranscodingComplete()', () => {
             expect(originalDelete?.args[0].input.VersionId).toBe(VERSION_ID); // Uses specific version
         });
 
-        test('Deletes partial outputs from derived bucket', async () => {
+        it('Deletes partial outputs from derived bucket', async () => {
             mockS3Client.on(ListObjectsV2Command).resolves({
                 Contents: [
                     { Key: `${BASE_PREFIX}/video_transcoded.mp4` },
@@ -256,7 +256,7 @@ describe('handleVideoTranscodingComplete()', () => {
     });
 
     describe('On CANCELED', () => {
-        test('Handles same as ERROR', async () => {
+        it('Handles same as ERROR', async () => {
             const event = createCompleteEvent({
                 status: 'CANCELED',
             });
@@ -272,7 +272,7 @@ describe('handleVideoTranscodingComplete()', () => {
     });
 
     describe('Edge cases', () => {
-        test('Handles missing userMetadata gracefully', async () => {
+        it('Handles missing userMetadata gracefully', async () => {
             const event = createCompleteEvent();
             event.detail.userMetadata = undefined;
 
@@ -284,7 +284,7 @@ describe('handleVideoTranscodingComplete()', () => {
             expect(putCalls.length).toBe(0);
         });
 
-        test('Handles partial userMetadata gracefully', async () => {
+        it('Handles partial userMetadata gracefully', async () => {
             const event = createCompleteEvent();
             event.detail.userMetadata = { path: VIDEO_PATH }; // missing versionId
 
@@ -298,7 +298,7 @@ describe('handleVideoTranscodingComplete()', () => {
     });
 
     describe('Content type verification', () => {
-        test('Treats wrong video content type as failure', async () => {
+        it('Treats wrong video content type as failure', async () => {
             // Override to return wrong content type for video
             mockS3Client
                 .on(HeadObjectCommand, { Key: `${BASE_PREFIX}/video_transcoded.mp4` })
@@ -321,7 +321,7 @@ describe('handleVideoTranscodingComplete()', () => {
             expect(videoUpdate).toBeUndefined();
         });
 
-        test('Treats wrong poster content type as failure', async () => {
+        it('Treats wrong poster content type as failure', async () => {
             // Override to return wrong content type for poster
             mockS3Client
                 .on(HeadObjectCommand, { Key: `${BASE_PREFIX}/video_poster.0000000.jpg` })
@@ -337,7 +337,7 @@ describe('handleVideoTranscodingComplete()', () => {
             expect(errorPut?.args[0].input.Item?.errorMessage).toContain('image/*');
         });
 
-        test('Treats missing source video as failure', async () => {
+        it('Treats missing source video as failure', async () => {
             // Override to return NotFound for video source
             mockS3Client
                 .on(HeadObjectCommand, { Key: `${BASE_PREFIX}/video_transcoded.mp4` })
@@ -352,7 +352,7 @@ describe('handleVideoTranscodingComplete()', () => {
             expect(errorPut?.args[0].input.Item?.errorMessage).toContain('not found');
         });
 
-        test('Deletes partial outputs on content type failure', async () => {
+        it('Deletes partial outputs on content type failure', async () => {
             mockS3Client.on(ListObjectsV2Command).resolves({
                 Contents: [
                     { Key: `${BASE_PREFIX}/video_transcoded.mp4` },
@@ -373,7 +373,7 @@ describe('handleVideoTranscodingComplete()', () => {
             expect(derivedDeletes.length).toBe(2);
         });
 
-        test('Reverts original file on content type failure', async () => {
+        it('Reverts original file on content type failure', async () => {
             // Wrong content type triggers failure
             mockS3Client
                 .on(HeadObjectCommand, { Key: `${BASE_PREFIX}/video_transcoded.mp4` })

@@ -23,13 +23,13 @@ describe('Should fail on invalid album path', () => {
         '/2020/01-31/image.jpg', // image
     ];
     badAlbumPaths.forEach((albumPath) => {
-        test(`invalid path: [${albumPath}]`, async () => {
+        it(`invalid path: [${albumPath}]`, async () => {
             await expect(createAlbum(albumPath)).rejects.toThrow(/path/);
         });
     });
 });
 
-it('Should fail on unknown attribute', async () => {
+test('Should fail on unknown attribute', async () => {
     await expect(createAlbum('/2001/', { unknownAttr: '' })).rejects.toThrow(/unknown/i);
 });
 

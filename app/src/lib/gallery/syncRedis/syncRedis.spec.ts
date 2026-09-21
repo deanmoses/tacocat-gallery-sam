@@ -42,50 +42,50 @@ beforeEach(() => {
 });
 
 describe('deepEqual', () => {
-    test('equal primitives', () => {
+    it('equal primitives', () => {
         expect(deepEqual(1, 1)).toBe(true);
         expect(deepEqual('a', 'a')).toBe(true);
         expect(deepEqual(true, true)).toBe(true);
         expect(deepEqual(null, null)).toBe(true);
     });
 
-    test('unequal primitives', () => {
+    it('unequal primitives', () => {
         expect(deepEqual(1, 2)).toBe(false);
         expect(deepEqual('a', 'b')).toBe(false);
         expect(deepEqual(true, false)).toBe(false);
         expect(deepEqual(null, 1)).toBe(false);
     });
 
-    test('equal arrays', () => {
+    it('equal arrays', () => {
         expect(deepEqual([1, 2, 3], [1, 2, 3])).toBe(true);
         expect(deepEqual(['a', 'b'], ['a', 'b'])).toBe(true);
         expect(deepEqual([], [])).toBe(true);
     });
 
-    test('unequal arrays', () => {
+    it('unequal arrays', () => {
         expect(deepEqual([1, 2, 3], [1, 2])).toBe(false);
         expect(deepEqual([1, 2], [1, 3])).toBe(false);
         expect(deepEqual([1], [])).toBe(false);
     });
 
-    test('equal objects', () => {
+    it('equal objects', () => {
         expect(deepEqual({ a: 1, b: 2 }, { a: 1, b: 2 })).toBe(true);
         expect(deepEqual({ a: 1, b: 2 }, { b: 2, a: 1 })).toBe(true); // key order doesn't matter
         expect(deepEqual({}, {})).toBe(true);
     });
 
-    test('unequal objects', () => {
+    it('unequal objects', () => {
         expect(deepEqual({ a: 1 }, { a: 2 })).toBe(false);
         expect(deepEqual({ a: 1 }, { b: 1 })).toBe(false);
         expect(deepEqual({ a: 1 }, { a: 1, b: 2 })).toBe(false);
     });
 
-    test('nested structures', () => {
+    it('nested structures', () => {
         expect(deepEqual({ a: { b: [1, 2] } }, { a: { b: [1, 2] } })).toBe(true);
         expect(deepEqual({ a: { b: [1, 2] } }, { a: { b: [1, 3] } })).toBe(false);
     });
 
-    test('type differences', () => {
+    it('type differences', () => {
         expect(deepEqual(1, '1')).toBe(false);
         expect(deepEqual([], {})).toBe(false);
     });
@@ -128,7 +128,7 @@ describe('syncRedis', () => {
         published: true,
     };
 
-    test('item missing from Redis is categorized as missing', async () => {
+    it('item missing from Redis is categorized as missing', async () => {
         const mockRedis = createMockRedisClient();
         // mGet returns array of results; null means key not found
         mockRedis.json.mGet.mockResolvedValue([null]);
@@ -152,7 +152,7 @@ describe('syncRedis', () => {
         expect(mockRedis.json.mSet).not.toHaveBeenCalled();
     });
 
-    test('item in both but values differ is categorized as mismatched', async () => {
+    it('item in both but values differ is categorized as mismatched', async () => {
         const mockRedis = createMockRedisClient();
         // mGet with '$' returns [[value]] for each key; return different version
         mockRedis.json.mGet.mockResolvedValue([
@@ -183,7 +183,7 @@ describe('syncRedis', () => {
         expect(mockRedis.json.mSet).not.toHaveBeenCalled();
     });
 
-    test('item in both and identical is categorized as in sync', async () => {
+    it('item in both and identical is categorized as in sync', async () => {
         const mockRedis = createMockRedisClient();
         // mGet with '$' returns [[value]] for each key
         mockRedis.json.mGet.mockResolvedValue([[mockRedisImage]]);
@@ -207,7 +207,7 @@ describe('syncRedis', () => {
         expect(mockRedis.json.mSet).not.toHaveBeenCalled();
     });
 
-    test('diagnose mode does not write to Redis', async () => {
+    it('diagnose mode does not write to Redis', async () => {
         const mockRedis = createMockRedisClient();
         mockRedis.json.mGet.mockResolvedValue([null]); // Missing
 
@@ -224,7 +224,7 @@ describe('syncRedis', () => {
         expect(mockRedis.json.mSet).not.toHaveBeenCalled();
     });
 
-    test('fix mode writes missing items to Redis', async () => {
+    it('fix mode writes missing items to Redis', async () => {
         const mockRedis = createMockRedisClient();
         mockRedis.ft._list.mockResolvedValue(['idx:gallery']); // Index exists
         mockRedis.json.mGet.mockResolvedValue([null]); // Missing
@@ -247,7 +247,7 @@ describe('syncRedis', () => {
         ]);
     });
 
-    test('fix mode writes mismatched items to Redis', async () => {
+    it('fix mode writes mismatched items to Redis', async () => {
         const mockRedis = createMockRedisClient();
         mockRedis.ft._list.mockResolvedValue(['idx:gallery']); // Index exists
         mockRedis.json.mGet.mockResolvedValue([
@@ -277,7 +277,7 @@ describe('syncRedis', () => {
         ]);
     });
 
-    test('fix mode throws error if index does not exist', async () => {
+    it('fix mode throws error if index does not exist', async () => {
         const mockRedis = createMockRedisClient();
         mockRedis.ft._list.mockResolvedValue([]); // Index does not exist
 
@@ -289,7 +289,7 @@ describe('syncRedis', () => {
         ).rejects.toThrow('Search index does not exist. Run with mode "init" first to create it.');
     });
 
-    test('handles albums correctly', async () => {
+    it('handles albums correctly', async () => {
         const mockRedis = createMockRedisClient();
         mockRedis.json.mGet.mockResolvedValue([[mockRedisAlbum]]);
 
@@ -308,7 +308,7 @@ describe('syncRedis', () => {
         expect(successResult.inSync).toBe(1);
     });
 
-    test('handles multiple items in single scan', async () => {
+    it('handles multiple items in single scan', async () => {
         const mockRedis = createMockRedisClient();
         // mGet returns array: first item in sync, second missing
         mockRedis.json.mGet.mockResolvedValue([
@@ -338,7 +338,7 @@ describe('syncRedis', () => {
         expect(successResult.missing).toBe(1);
     });
 
-    test('handles pagination across multiple scans', async () => {
+    it('handles pagination across multiple scans', async () => {
         const mockRedis = createMockRedisClient();
         // Return matching Redis items for both DynamoDB items (one mGet call per batch)
         mockRedis.json.mGet
@@ -377,7 +377,7 @@ describe('syncRedis', () => {
         expect(successResult.inSync).toBe(2);
     });
 
-    test('continuation token resumes from previous position', async () => {
+    it('continuation token resumes from previous position', async () => {
         const mockRedis = createMockRedisClient();
         mockRedis.json.mGet.mockResolvedValue([[mockRedisImage]]);
 
@@ -400,7 +400,7 @@ describe('syncRedis', () => {
         expect(calls[0].args[0].input.ExclusiveStartKey).toEqual(startKey);
     });
 
-    test('returns duration in result', async () => {
+    it('returns duration in result', async () => {
         const mockRedis = createMockRedisClient();
         mockRedis.json.mGet.mockResolvedValue([[mockRedisImage]]);
 
@@ -417,7 +417,7 @@ describe('syncRedis', () => {
         expect(result.durationMs).toBeGreaterThanOrEqual(0);
     });
 
-    test('logs only first 10 missing/mismatched items', async () => {
+    it('logs only first 10 missing/mismatched items', async () => {
         const consoleSpy = jest.spyOn(console, 'info');
         const mockRedis = createMockRedisClient();
 
@@ -456,7 +456,7 @@ describe('syncRedis', () => {
 });
 
 describe('initRedis', () => {
-    test('creates index when it does not exist', async () => {
+    it('creates index when it does not exist', async () => {
         const mockRedis = createMockRedisClient();
         mockRedis.ft._list.mockResolvedValue([]); // Index does not exist
         mockRedis.ft.create.mockResolvedValue('OK');
@@ -471,7 +471,7 @@ describe('initRedis', () => {
         expect(result.durationMs).toBeGreaterThanOrEqual(0);
     });
 
-    test('does not create index when it already exists', async () => {
+    it('does not create index when it already exists', async () => {
         const mockRedis = createMockRedisClient();
         mockRedis.ft._list.mockResolvedValue(['idx:gallery']); // Index exists
 
@@ -485,7 +485,7 @@ describe('initRedis', () => {
         expect(result.durationMs).toBeGreaterThanOrEqual(0);
     });
 
-    test('propagates errors from _list', async () => {
+    it('propagates errors from _list', async () => {
         const mockRedis = createMockRedisClient();
         mockRedis.ft._list.mockRejectedValue(new Error('Connection refused'));
 
