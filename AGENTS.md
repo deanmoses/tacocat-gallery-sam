@@ -169,6 +169,10 @@ Custom exceptions: `NotFoundException`, `BadRequestException`, `UnauthorizedExce
 
 For detailed architecture documentation (S3 storage patterns, CDN routing, design decisions), see `docs/Architecture.md`.
 
+## All production behavior changes must have tests
+
+**NEVER** change production behavior without a test that fails without the change.
+
 ## Code Style
 
 Prettier (see `.prettierrc.js`): 4-space indent, single quotes, 120 char width, trailing commas.
