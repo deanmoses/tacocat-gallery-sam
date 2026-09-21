@@ -104,7 +104,7 @@ export function toPath(item: GalleryItem): string {
 }
 
 /** Unix timestamp in seconds not millis */
-export function toTimestampFromPath(path: string): number {
+function toTimestampFromPath(path: string): number {
     return pathToDate(path).getTime();
 }
 

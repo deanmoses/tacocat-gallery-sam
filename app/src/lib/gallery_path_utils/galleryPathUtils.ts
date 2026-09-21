@@ -9,7 +9,7 @@ export const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif'];
  * Our preferred image extensions for strict validation.
  * For example, 'jpeg' is not allowed here, only 'jpg'.
  */
-export const IMAGE_EXTENSIONS_STRICT = ['jpg', 'png', 'gif'];
+const IMAGE_EXTENSIONS_STRICT = ['jpg', 'png', 'gif'];
 
 /**
  * Extensions for HEIC / HEIF files
@@ -20,7 +20,7 @@ export const HEIC_EXTENSIONS = ['heic', 'heif'];
  * Supported image extensions for upload.
  * Some get transformed into other file formats after uploaded.
  */
-export const IMAGE_EXTENSIONS_FOR_UPLOAD = [...IMAGE_EXTENSIONS, ...HEIC_EXTENSIONS];
+const IMAGE_EXTENSIONS_FOR_UPLOAD = [...IMAGE_EXTENSIONS, ...HEIC_EXTENSIONS];
 
 /**
  * Supported video extensions

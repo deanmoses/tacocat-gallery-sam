@@ -46,7 +46,7 @@ import { ddbDocClient } from '../../../lib/dynamo_utils/ddbClient';
 import { s3Client as sharedS3Client } from '../../../lib/s3_utils/s3Client';
 
 /** Migration mode: diagnose (read-only) or fix (write corrections) */
-export type MigrateMode = 'diagnose' | 'fix';
+type MigrateMode = 'diagnose' | 'fix';
 
 /** Input for migration */
 export type MigrateInput = {
@@ -58,11 +58,11 @@ export type MigrateInput = {
 };
 
 /** Issue types that can be detected */
-export type IssueType =
+type IssueType =
     'corrupt' | 'missingFromS3' | 'dimensionsOrientation' | 'dimensionsOther' | 'tagsMismatch' | 'versionIdInvalid';
 
 /** A single issue found during migration */
-export type Issue = {
+type Issue = {
     path: string;
     type: IssueType;
     details: string;

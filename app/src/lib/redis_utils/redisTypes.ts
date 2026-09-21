@@ -1,7 +1,7 @@
 import type { AlbumThumbnailEntry, GalleryItemType, ImageThumbnailCrop, Size } from '../gallery/galleryTypes';
 
 export type RedisGalleryItem = RedisAlbumItem | RedisMediaItem;
-export type RedisMediaItem = RedisImageItem | RedisVideoItem;
+type RedisMediaItem = RedisImageItem | RedisVideoItem;
 
 /** Album without children */
 export type RedisAlbumItem = RedisBaseGalleryRecord & {
@@ -38,7 +38,7 @@ export type RedisVideoItem = RedisBaseGalleryRecord & {
 };
 
 /** Base that albums and images extend */
-export type RedisBaseGalleryRecord = {
+type RedisBaseGalleryRecord = {
     parentPath: string; // TODO: could get rid of this b/c it's part of the Redis key
     itemName: string; // TODO: could get rid of this b/c it's part of the Redis key
     itemType: GalleryItemType;

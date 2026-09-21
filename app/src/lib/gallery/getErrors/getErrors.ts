@@ -6,11 +6,6 @@ import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 import type { ErrorRecord } from '../../dynamo_utils/recordError';
 
-export type GetErrorsRequest = {
-    /** Gallery item paths (album, image, or video) to check for errors */
-    paths: string[];
-};
-
 export type GetErrorsResponse = {
     errors: Record<string, string>;
 };

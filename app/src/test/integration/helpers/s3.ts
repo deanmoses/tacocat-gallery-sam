@@ -35,7 +35,7 @@ export async function uploadMedia(fixture: string, mediaPath: string): Promise<s
     return response.VersionId;
 }
 
-export async function s3ObjectExists(bucket: string, key: string): Promise<boolean> {
+async function s3ObjectExists(bucket: string, key: string): Promise<boolean> {
     return !!(await headObject(bucket, key));
 }
 

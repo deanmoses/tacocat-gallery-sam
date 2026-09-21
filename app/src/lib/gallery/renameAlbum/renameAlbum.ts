@@ -170,7 +170,7 @@ async function moveAlbumInDynamoDB(
  * @param oldPathOfAlbumWithThumb Old path of album containing thumbnail like /2001/12-31/
  * @param newPathOfAlbumWithThumb New path of album containing thumbnail like /2001/12-29/
  */
-export async function renameAlbumThumb(
+async function renameAlbumThumb(
     albumPath: string,
     oldPathOfAlbumWithThumb: string,
     newPathOfAlbumWithThumb: string,
