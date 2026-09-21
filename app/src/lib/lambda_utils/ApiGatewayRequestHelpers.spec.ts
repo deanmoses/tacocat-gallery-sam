@@ -122,7 +122,7 @@ describe('getStringArrayField()', () => {
 describe('logRequestReceived()', () => {
     let info: jest.SpyInstance;
     beforeEach(() => {
-        info = jest.spyOn(console, 'info').mockImplementation(() => undefined);
+        info = jest.spyOn(console, 'info').mockReturnValue(undefined);
     });
     afterEach(() => {
         info.mockRestore();
