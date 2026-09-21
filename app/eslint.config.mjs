@@ -79,8 +79,6 @@ export default defineConfig(
             'jest/padding-around-before-each-blocks': 'off',
             'jest/padding-around-expect-groups': 'off',
             'jest/padding-around-test-blocks': 'off',
-
-            // Each of these is switched on by its own commit
         },
     },
     {
