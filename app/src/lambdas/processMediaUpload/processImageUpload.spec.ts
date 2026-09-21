@@ -3,8 +3,9 @@ import { MetadataExtractionError } from './extractImageMetadata';
 import * as extractMetadata from './extractImageMetadata';
 import * as revertS3 from '../../lib/s3_utils/s3revertVersion';
 import * as recordError from '../../lib/dynamo_utils/recordError';
+import * as createAlbum from '../../lib/gallery/createAlbum/createAlbum';
 
-jest.mock('./extractImageMetadata', () => {
+jest.mock<typeof import('./extractImageMetadata')>('./extractImageMetadata', () => {
     const actual = jest.requireActual<typeof import('./extractImageMetadata')>('./extractImageMetadata');
     return {
         ...actual,
@@ -13,19 +14,19 @@ jest.mock('./extractImageMetadata', () => {
 });
 jest.mock('../../lib/s3_utils/s3revertVersion');
 jest.mock('../../lib/dynamo_utils/recordError');
-jest.mock('../../lib/gallery/createAlbum/createAlbum', () => ({
-    createAlbumNoThrow: jest.fn().mockResolvedValue(false),
-}));
+jest.mock('../../lib/gallery/createAlbum/createAlbum');
 
 const mockExtractImageMetadata = jest.mocked(extractMetadata.extractImageMetadata);
 const mockRevertS3Version = jest.mocked(revertS3.revertS3Version);
 const mockRecordError = jest.mocked(recordError.recordMediaProcessingError);
+const mockCreateAlbumNoThrow = jest.mocked(createAlbum.createAlbumNoThrow);
 
 beforeEach(() => {
     jest.clearAllMocks();
     mockExtractImageMetadata.mockResolvedValue({ title: 'Test', dimensions: { width: 100, height: 100 } });
     mockRevertS3Version.mockResolvedValue(true);
     mockRecordError.mockResolvedValue(true);
+    mockCreateAlbumNoThrow.mockResolvedValue(false);
 });
 
 describe('processImageUpload()', () => {

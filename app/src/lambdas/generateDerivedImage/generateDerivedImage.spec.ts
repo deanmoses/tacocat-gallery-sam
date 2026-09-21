@@ -1,14 +1,14 @@
 import { generateDerivedImage } from './generateDerivedImage';
 
 // Mock the S3 functions
-jest.mock('./s3', () => ({
+jest.mock<typeof import('./s3')>('./s3', () => ({
     loadOriginalImage: jest.fn(),
     loadVideoPoster: jest.fn(),
     saveOptimizedImage: jest.fn(),
 }));
 
 // Mock optimizeImage but preserve isImageFormat which is used by parsePath
-jest.mock('./optimizeImage', () => ({
+jest.mock<typeof import('./optimizeImage')>('./optimizeImage', () => ({
     ...jest.requireActual<typeof import('./optimizeImage')>('./optimizeImage'),
     optimizeImage: jest.fn(),
 }));
