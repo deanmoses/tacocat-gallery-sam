@@ -82,8 +82,8 @@ jobs:
                   echo "derived_image_domain=$DOMAIN" >> "$GITHUB_OUTPUT"
 
             - name: Run integration tests
-              # `npm run test:integration` also runs tsc, which the build job this
-              # one follows already did. Run Jest alone.
+              # Jest alone: `npm run test:integration` also runs tsc, and
+              # build-and-unit-test type-checks.
               working-directory: app
               env:
                   GALLERY_ITEM_DDB_TABLE: tacocat-gallery-sam-test-items

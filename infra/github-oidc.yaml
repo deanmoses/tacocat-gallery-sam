@@ -21,18 +21,17 @@ Description: >-
 #                                    tacocat-gallery-sam-{dev,test,prod} stacks
 #
 # The three GitHub roles hold only what a `sam deploy` needs from the caller's
-# side: upload artifacts, create and execute change sets on their own stacks
-# (the PR role only creates them on dev), and hand CloudFormation its service
-# role. The broad permissions needed to actually create Lambdas, buckets, tables
-# and so on live on the CloudFormation service role, which only CloudFormation
-# can assume.
+# side: upload artifacts, create and execute change sets on their own stacks,
+# and hand CloudFormation its service role. The broad permissions needed to
+# actually create Lambdas, buckets, tables and so on live on the CloudFormation
+# service role, which only CloudFormation can assume.
 #
 # The GitHub OIDC identity provider the roles trust is account-wide and lives
 # in https://github.com/deanmoses/aws-bootstrap.
 #
 # Which role a job may assume is decided by the GitHub token's `sub` claim:
 #
-#   repo:ORG/REPO:pull_request          PR role    dry-run change set on dev; deploy test, run integration tests
+#   repo:ORG/REPO:pull_request          PR role    deploy test, run integration tests
 #   repo:ORG/REPO:ref:refs/heads/main   main role  deploy dev; deploy test and run integration tests ahead of a prod deploy
 #   repo:ORG/REPO:environment:prod      prod role  deploy prod (environment allows protected branches only)
 #
@@ -176,7 +175,7 @@ Resources:
     # Deploying dev and test, and exercising what a deploy produced. Managed
     # policies rather than inline ones because several principals hold them: the
     # two branch CI roles and the Claude Code user. Dev and test are separate
-    # policies because the PR role deploys test but only dry-runs dev.
+    # policies because the PR role deploys test and never touches dev.
     # ---------------------------------------------------------------------------
     DeployDevPolicy:
         Type: AWS::IAM::ManagedPolicy
@@ -284,17 +283,16 @@ Resources:
                           - !Sub arn:aws:s3:::${StackPrefix}-test-derived-images/*
 
     # ---------------------------------------------------------------------------
-    # PR role: pull requests dry-run a change set against the dev stack, and deploy
-    # the test stack to run the integration tests against it. Only a pull request
-    # from a branch in this repository gets an OIDC token with this subject; a fork
-    # gets no token at all, so this is reachable only by someone who can already
-    # push to the repository.
+    # PR role: pull requests deploy the test stack and run the integration tests
+    # against it. Only a pull request from a branch in this repository gets an
+    # OIDC token with this subject; a fork gets no token at all, so this is
+    # reachable only by someone who can already push to the repository.
     # ---------------------------------------------------------------------------
     GitHubPullRequestRole:
         Type: AWS::IAM::Role
         Properties:
             RoleName: tacocat-gallery-cicd-github-pr
-            Description: Assumed by pull request workflow runs to dry-run a change set on the dev stack and to deploy and integration-test the test stack
+            Description: Assumed by pull request workflow runs to deploy and integration-test the test stack
             MaxSessionDuration: 3600
             AssumeRolePolicyDocument:
                 Version: '2012-10-17'
@@ -311,21 +309,6 @@ Resources:
                 - !Ref SamDeployPlumbingPolicy
                 - !Ref DeployTestPolicy
                 - !Ref IntegrationTestsPolicy
-            Policies:
-                - PolicyName: DryRunChangeSetOnDev
-                  PolicyDocument:
-                      Version: '2012-10-17'
-                      Statement:
-                          - Effect: Allow
-                            Action:
-                                - cloudformation:CreateChangeSet
-                                - cloudformation:DescribeChangeSet
-                                - cloudformation:DeleteChangeSet
-                                - cloudformation:DescribeStacks
-                                - cloudformation:DescribeStackEvents
-                                - cloudformation:GetTemplate
-                                - cloudformation:ListStackResources
-                            Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${StackPrefix}-dev/*
 
     # ---------------------------------------------------------------------------
     # Main role: pushes to main deploy dev and test, then run the integration tests

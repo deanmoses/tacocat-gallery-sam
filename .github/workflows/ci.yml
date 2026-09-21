@@ -50,7 +50,6 @@ jobs:
         uses: ./.github/workflows/build-and-unit-test.yml
         permissions:
             contents: read
-            id-token: write # a called workflow can hold at most the permissions the caller grants
 
     # The check branch protection requires. Passes when the detector said
     # there were no code changes (so the build and tests were rightly skipped)
@@ -141,9 +140,13 @@ jobs:
     # of the branch into main, so with branch protection requiring branches to be
     # up to date, the commit that lands on main is the one already tested. The
     # production deploy workflow runs them again before deploying.
+    #
+    # Independent of build-and-unit-test: this job builds for itself, the
+    # pre-commit hook has already run that job's checks on every commit, and
+    # merge-ok requires both jobs.
     integration-test:
-        needs: build-and-unit-test
-        if: github.event_name == 'pull_request'
+        needs: detect-code-changes
+        if: ${{ github.event_name == 'pull_request' && needs.detect-code-changes.outputs.code_changed == 'true' }}
         uses: ./.github/workflows/integration-tests.yml
         permissions:
             contents: read
