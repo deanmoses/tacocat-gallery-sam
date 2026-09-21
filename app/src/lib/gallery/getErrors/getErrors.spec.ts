@@ -95,7 +95,7 @@ describe('getErrors()', () => {
             const keys = input.RequestItems?.['test-errors']?.Keys ?? [];
 
             // Return errors only for specific paths
-            const responses: Array<{ path: string; errorType: string; errorMessage: string }> = [];
+            const responses: { path: string; errorType: string; errorMessage: string }[] = [];
             for (const key of keys) {
                 const path = (key as { path: string }).path;
                 if (path === '/2001/12-31/video0.mp4' || path === '/2001/12-31/video149.mp4') {

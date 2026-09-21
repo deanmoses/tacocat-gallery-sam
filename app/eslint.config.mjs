@@ -118,6 +118,7 @@ export default defineConfig(
             '@typescript-eslint/dot-notation': 'error',
             '@typescript-eslint/prefer-optional-chain': 'error',
             'no-new': 'error',
+            '@typescript-eslint/array-type': 'error',
         },
     },
 );

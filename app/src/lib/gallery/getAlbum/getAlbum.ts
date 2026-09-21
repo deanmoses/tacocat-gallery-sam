@@ -90,7 +90,7 @@ export async function getAlbum(
 async function getChildren(
     albumPath: string,
     includeUnpublishedAlbums: boolean | Promise<boolean>,
-): Promise<Array<GalleryItem> | undefined> {
+): Promise<GalleryItem[] | undefined> {
     let children = await getChildItems(albumPath, [
         'parentPath',
         'itemName',
@@ -132,7 +132,7 @@ async function getChildren(
 async function getPeers(
     albumPath: string,
     includeUnpublishedAlbums: boolean | Promise<boolean>,
-): Promise<Array<GalleryItem> | undefined> {
+): Promise<GalleryItem[] | undefined> {
     if (albumPath === '/') return; // root album is peerless
     const parentAlbumPath = getParentFromPath(albumPath);
     let peers = await getChildItems(parentAlbumPath, ['parentPath', 'itemName', 'itemType', 'published', 'title']);
