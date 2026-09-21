@@ -61,9 +61,16 @@ export function derivedExists(derivedPath: string): Promise<boolean> {
 }
 
 export async function downloadOriginal(mediaPath: string): Promise<Buffer> {
-    const response = await s3Client.send(
-        new GetObjectCommand({ Bucket: getOriginalImagesBucketName(), Key: mediaPath.substring(1) }),
-    );
+    return downloadObject(getOriginalImagesBucketName(), mediaPath.substring(1));
+}
+
+/** @param derivedPath path within the derived bucket, like /2001/12-31/image.jpg/VERSION/45x45 */
+export async function downloadDerived(derivedPath: string): Promise<Buffer> {
+    return downloadObject(getDerivedImagesBucketName(), `i${derivedPath}`);
+}
+
+async function downloadObject(bucket: string, key: string): Promise<Buffer> {
+    const response = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
     return Buffer.concat(await (response.Body as Readable).toArray());
 }
 

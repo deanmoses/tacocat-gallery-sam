@@ -4,16 +4,19 @@
  * image, and the derived bucket it writes to.
  */
 import assert from 'node:assert/strict';
+import sharp from 'sharp';
 import { deleteMedia } from '../../lib/gallery/deleteMedia/deleteMedia';
 import { getGalleryAppDomain } from '../../lib/lambda_utils/Env';
 import { cleanUpYear, setUpAlbumWithImages } from './helpers/fixtures';
-import { derivedExists } from './helpers/s3';
+import { derivedExists, downloadDerived } from './helpers/s3';
 import { TEST_YEARS } from './helpers/testYears';
 
 const yearPath = TEST_YEARS.derivedImages;
 const albumPath = `${yearPath}02-18/`;
 const imagePath = `${albumPath}image1.jpg`;
-const size = '45x45';
+/** Smaller than the fixture in both dimensions, so the Lambda has to resize rather than pass it through */
+const size = { width: 45, height: 45 };
+const sizeSegment = `${size.width}x${size.height}`;
 const cdn = `https://img.${getGalleryAppDomain()}`;
 let versionId: string;
 /** Where the CDN's Lambda writes the derived image in the derived bucket */
@@ -33,11 +36,16 @@ async function errorMessageOf(response: Response): Promise<string | undefined> {
     return body.errorMessage;
 }
 
+async function dimensionsOf(image: Buffer): Promise<{ format?: string; width?: number; height?: number }> {
+    const { format, width, height } = await sharp(image).metadata();
+    return { format, width, height };
+}
+
 beforeAll(async () => {
     await cleanUpYear(yearPath);
     const versionIds = await setUpAlbumWithImages(albumPath, { 'image1.jpg': 'images/image.jpg' });
     versionId = versionIds[imagePath];
-    derivedPath = `${imagePath}/${versionId}/${size}`;
+    derivedPath = `${imagePath}/${versionId}/${sizeSegment}`;
 });
 
 afterAll(() => cleanUpYear(yearPath));
@@ -50,7 +58,7 @@ describe('a malformed request', () => {
     });
 
     it('without a version is rejected at the edge', async () => {
-        const response = await fetchDerived(`?size=${size}`);
+        const response = await fetchDerived(`?size=${sizeSegment}`);
 
         expect(response.status).toBe(400);
         await expect(errorMessageOf(response)).resolves.toMatch(/version/i);
@@ -65,13 +73,27 @@ describe('a malformed request', () => {
 });
 
 describe('after requesting a derived image', () => {
+    let response: Response;
+    let served: Buffer;
+
     beforeAll(async () => {
-        const response = await fetchDerived(`?version=${versionId}&size=${size}`);
-        assert(response.status === 200, `Derived image request failed: ${response.status} ${await response.text()}`);
+        response = await fetchDerived(`?version=${versionId}&size=${sizeSegment}`);
+        // Read the body before asserting: a template literal evaluates whether or not the assertion fails
+        served = Buffer.from(await response.arrayBuffer());
+        assert(response.status === 200, `Derived image request failed: ${response.status} ${served.toString()}`);
     });
 
-    it('the derived bucket holds it', async () => {
+    it('the response is a JPEG', () => {
+        expect(response.headers.get('content-type')).toBe('image/jpeg');
+    });
+
+    it('the response decodes to the requested size', async () => {
+        await expect(dimensionsOf(served)).resolves.toStrictEqual({ format: 'jpeg', ...size });
+    });
+
+    it('the derived bucket holds the same bytes', async () => {
         await expect(derivedExists(derivedPath)).resolves.toBe(true);
+        await expect(downloadDerived(derivedPath)).resolves.toStrictEqual(served);
     });
 });
 
