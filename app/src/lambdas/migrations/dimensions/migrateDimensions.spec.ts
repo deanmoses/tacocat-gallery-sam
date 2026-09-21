@@ -73,6 +73,7 @@ describe('migrateDimensions input validation', () => {
         mockDocClient.on(QueryCommand).resolves({ Items: [] });
 
         const result = await migrateDimensions({ mode: 'diagnose' });
+
         expect(result.imagesChecked).toBe(0);
     });
 
@@ -80,6 +81,7 @@ describe('migrateDimensions input validation', () => {
         mockDocClient.on(QueryCommand).resolves({ Items: [] });
 
         const result = await migrateDimensions({ mode: 'fix' });
+
         expect(result.imagesChecked).toBe(0);
     });
 });
@@ -178,6 +180,7 @@ describe('migrateDimensions diagnose mode', () => {
 
         // Verify no UpdateCommand was sent
         const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+
         expect(updateCalls).toHaveLength(0);
     });
 });
@@ -219,9 +222,11 @@ describe('migrateDimensions fix mode', () => {
 
         // Verify UpdateCommand was called with correct dimensions
         const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+
         expect(updateCalls.length).toBeGreaterThan(0);
 
         const updateInput = updateCalls[0].args[0].input;
+
         expect(updateInput.ExpressionAttributeValues?.[':dimensions']).toStrictEqual({
             width: 600,
             height: 800,
@@ -258,14 +263,17 @@ describe('migrateDimensions idempotency', () => {
         const result = await migrateDimensions({ mode: 'fix' });
 
         expect(result.imagesChecked).toBe(1);
+
         // No dimension issues should be found
         const dimensionIssues = result.issues.filter(
             (i) => i.type === 'dimensionsOrientation' || i.type === 'dimensionsOther',
         );
+
         expect(dimensionIssues).toHaveLength(0);
 
         // No updates should have been made
         const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+
         expect(updateCalls).toHaveLength(0);
     });
 });
@@ -303,6 +311,7 @@ describe('migrateDimensions orientation logic', () => {
 
         // Should detect orientation issue and fix it
         const orientationIssues = result.issues.filter((i) => i.type === 'dimensionsOrientation');
+
         expect(orientationIssues.length).toBeGreaterThan(0);
         expect(orientationIssues[0].fixed).toBe(true);
     });
@@ -337,6 +346,7 @@ describe('migrateDimensions orientation logic', () => {
 
         // No orientation issues should be detected
         const orientationIssues = result.issues.filter((i) => i.type === 'dimensionsOrientation');
+
         expect(orientationIssues).toHaveLength(0);
     });
 });
@@ -368,7 +378,9 @@ describe('migrateDimensions validation checks', () => {
         const result = await migrateDimensions({ mode: 'diagnose' });
 
         expect(result.imagesChecked).toBe(1);
+
         const missingIssues = result.issues.filter((i) => i.type === 'missingFromS3');
+
         expect(missingIssues).toHaveLength(1);
     });
 
@@ -398,6 +410,7 @@ describe('migrateDimensions validation checks', () => {
         const result = await migrateDimensions({ mode: 'diagnose' });
 
         const versionIssues = result.issues.filter((i) => i.type === 'versionIdInvalid');
+
         expect(versionIssues).toHaveLength(1);
     });
 });
@@ -577,6 +590,7 @@ describe('migrateDimensions versionId handling', () => {
 
         // Should not report versionId mismatch when DynamoDB has no versionId
         const versionIssues = result.issues.filter((i) => i.type === 'versionIdInvalid');
+
         expect(versionIssues).toHaveLength(0);
     });
 });
@@ -612,13 +626,16 @@ describe('migrateDimensions tags fixing', () => {
         const result = await migrateDimensions({ mode: 'diagnose' });
 
         expect(result.imagesChecked).toBe(1);
+
         const tagIssues = result.issues.filter((i) => i.type === 'tagsMismatch');
+
         expect(tagIssues).toHaveLength(1);
         expect(tagIssues[0].details).toContain('old-tag');
         expect(tagIssues[0].details).toContain('halloween');
 
         // Should NOT have called UpdateCommand in diagnose mode
         const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+
         expect(updateCalls).toHaveLength(0);
     });
 
@@ -657,18 +674,23 @@ describe('migrateDimensions tags fixing', () => {
         expect(result.issuesFixed).toBeGreaterThanOrEqual(1);
 
         const tagIssues = result.issues.filter((i) => i.type === 'tagsMismatch');
+
         expect(tagIssues).toHaveLength(1);
         expect(tagIssues[0].fixed).toBe(true);
 
         // Verify UpdateCommand was called with merged tags (existing + S3)
         const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+
         expect(updateCalls.length).toBeGreaterThan(0);
 
         // Find the tags update call
         const tagsUpdateCall = updateCalls.find((call) => call.args[0].input.UpdateExpression?.includes('tags'));
+
         expect(tagsUpdateCall).toBeDefined();
+
         // Should contain both existing DDB tag and S3 tags
         const savedTags = tagsUpdateCall?.args[0].input.ExpressionAttributeValues?.[':tags'] as string[];
+
         expect(savedTags).toContain('existing-tag');
         expect(savedTags).toContain('halloween');
         expect(savedTags).toContain('dog');
@@ -705,11 +727,14 @@ describe('migrateDimensions tags fixing', () => {
         const result = await migrateDimensions({ mode: 'fix' });
 
         expect(result.imagesChecked).toBe(1);
+
         const tagIssues = result.issues.filter((i) => i.type === 'tagsMismatch');
+
         expect(tagIssues).toHaveLength(0);
 
         // No updates should have been made
         const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+
         expect(updateCalls).toHaveLength(0);
     });
 
@@ -745,13 +770,16 @@ describe('migrateDimensions tags fixing', () => {
         const result = await migrateDimensions({ mode: 'fix' });
 
         expect(result.imagesChecked).toBe(1);
+
         const tagIssues = result.issues.filter((i) => i.type === 'tagsMismatch');
+
         expect(tagIssues).toHaveLength(1);
         expect(tagIssues[0].fixed).toBe(true);
 
         // Verify UpdateCommand was called
         const updateCalls = mockDocClient.commandCalls(UpdateCommand);
         const tagsUpdateCall = updateCalls.find((call) => call.args[0].input.UpdateExpression?.includes('tags'));
+
         expect(tagsUpdateCall).toBeDefined();
     });
 
@@ -785,12 +813,15 @@ describe('migrateDimensions tags fixing', () => {
         const result = await migrateDimensions({ mode: 'fix' });
 
         expect(result.imagesChecked).toBe(1);
+
         // Should NOT report a tag mismatch - DDB already has all S3 tags
         const tagIssues = result.issues.filter((i) => i.type === 'tagsMismatch');
+
         expect(tagIssues).toHaveLength(0);
 
         // No updates should have been made
         const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+
         expect(updateCalls).toHaveLength(0);
     });
 });

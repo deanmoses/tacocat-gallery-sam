@@ -22,13 +22,16 @@ describe('copyDerivedAssets', () => {
         await copyDerivedAssets('/2001/12-31/video.mp4', '/2001/12-31/newvideo.mp4', 'oldVersion', 'newVersion');
 
         const listCalls = mockS3Client.commandCalls(ListObjectsV2Command);
+
         expect(listCalls).toHaveLength(1);
         expect(listCalls[0].args[0].input.Prefix).toBe('i/2001/12-31/video.mp4/oldVersion/');
 
         const copyCalls = mockS3Client.commandCalls(CopyObjectCommand);
+
         expect(copyCalls).toHaveLength(2);
 
         const copyDestinations = copyCalls.map((call) => call.args[0].input.Key);
+
         expect(copyDestinations).toContain('i/2001/12-31/newvideo.mp4/newVersion/video-transcoded');
         expect(copyDestinations).toContain('i/2001/12-31/newvideo.mp4/newVersion/video-poster');
     });
@@ -46,9 +49,11 @@ describe('copyDerivedAssets', () => {
         await copyDerivedAssets('/2001/12-31/image.jpg', '/2001/12-31/newimage.jpg', 'oldVersion', 'newVersion');
 
         const copyCalls = mockS3Client.commandCalls(CopyObjectCommand);
+
         expect(copyCalls).toHaveLength(3);
 
         const copyDestinations = copyCalls.map((call) => call.args[0].input.Key);
+
         expect(copyDestinations).toContain('i/2001/12-31/newimage.jpg/newVersion/200');
         expect(copyDestinations).toContain('i/2001/12-31/newimage.jpg/newVersion/400');
         expect(copyDestinations).toContain('i/2001/12-31/newimage.jpg/newVersion/webp/200');
@@ -64,6 +69,7 @@ describe('copyDerivedAssets', () => {
 
         // Should not have called CopyObjectCommand
         const copyCalls = mockS3Client.commandCalls(CopyObjectCommand);
+
         expect(copyCalls).toHaveLength(0);
     });
 
@@ -74,6 +80,7 @@ describe('copyDerivedAssets', () => {
         await copyDerivedAssets('/2001/12-31/image.jpg', '/2001/12-31/newimage.jpg', 'oldVersion', 'newVersion');
 
         const copyCalls = mockS3Client.commandCalls(CopyObjectCommand);
+
         expect(copyCalls).toHaveLength(0);
     });
 
@@ -87,6 +94,7 @@ describe('copyDerivedAssets', () => {
 
         // Only one copy should be made (the one with a valid Key)
         const copyCalls = mockS3Client.commandCalls(CopyObjectCommand);
+
         expect(copyCalls).toHaveLength(1);
     });
 });

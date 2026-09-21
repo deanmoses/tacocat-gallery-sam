@@ -33,6 +33,7 @@ describe('after uploading an image into an album that did not exist', () => {
     it('the album lists the image with its embedded metadata', async () => {
         const image = findMedia(await getAlbumOrFail(albumPath), imageName);
         assert(image, `Album [${albumPath}] does not contain [${imageName}]`);
+
         expect(image.parentPath).toBe(albumPath);
         expect(image.versionId).toStrictEqual(expect.any(String));
         expect(image.title).toBe('Image Title');
@@ -42,6 +43,7 @@ describe('after uploading an image into an album that did not exist', () => {
     it('the image became the album thumbnail', async () => {
         const album = findSubAlbum(await getAlbumOrFail(yearPath), getNameFromPath(albumPath));
         assert(album, `Year [${yearPath}] does not list [${albumPath}]`);
+
         expect(album.thumbnail?.path).toBe(imagePath);
         expect(album.thumbnail?.versionId).toBeDefined();
     });
@@ -70,11 +72,13 @@ describe('after deleting the image', () => {
 
     it('the album no longer lists it', async () => {
         const album = await getAlbumOrFail(albumPath);
+
         expect(findMedia(album, imageName)).toBeUndefined();
     });
 
     it('the album no longer has a thumbnail', async () => {
         const album = await getAlbum(albumPath);
+
         expect(album?.thumbnail).toBeUndefined();
     });
 

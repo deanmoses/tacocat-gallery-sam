@@ -19,17 +19,23 @@ describe('recordError()', () => {
         expect(result).toBe(true);
 
         const putCalls = mockDynamoDB.commandCalls(PutCommand);
+
         expect(putCalls).toHaveLength(1);
 
         const item = putCalls[0].args[0].input.Item;
+
         expect(item?.path).toBe('/2024/06-15/photo.jpg');
         expect(item?.errorType).toBe('media_processing');
         expect(item?.errorMessage).toBe('Test error message');
+
         const timestamp = Date.parse(item?.timestamp as string);
+
         expect(timestamp).toBeGreaterThanOrEqual(beforeTime);
         expect(timestamp).toBeLessThanOrEqual(afterTime);
+
         // TTL should be ~24 hours from now
         const expectedTtl = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
+
         expect(item?.ttl).toBeGreaterThan(expectedTtl - 10);
         expect(item?.ttl).toBeLessThan(expectedTtl + 10);
     });
@@ -40,6 +46,7 @@ describe('recordError()', () => {
         await recordError(ErrorType.MediaProcessing, '/2024/06-15/photo.jpg', 'Test error');
 
         const putCalls = mockDynamoDB.commandCalls(PutCommand);
+
         expect(putCalls[0].args[0].input.TableName).toBe('custom-error-table');
     });
 
@@ -67,9 +74,11 @@ describe('recordMediaProcessingError()', () => {
         expect(result).toBe(true);
 
         const putCalls = mockDynamoDB.commandCalls(PutCommand);
+
         expect(putCalls).toHaveLength(1);
 
         const item = putCalls[0].args[0].input.Item;
+
         expect(item?.path).toBe('/2024/06-15/photo.jpg');
         expect(item?.errorType).toBe('media_processing');
         expect(item?.errorMessage).toBe('Test error message');

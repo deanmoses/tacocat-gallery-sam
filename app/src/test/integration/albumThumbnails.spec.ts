@@ -40,6 +40,7 @@ describe('after setting the day album thumbnail', () => {
 
     it('the year listing shows it on the day album, with a version and no crop', async () => {
         const thumbnail = await thumbnailInListing(yearPath, albumPath);
+
         expect(thumbnail.path).toBe(imagePath);
         expect(thumbnail.versionId).toStrictEqual(expect.any(String));
         expect(thumbnail.crop).toBeUndefined();
@@ -51,12 +52,14 @@ describe('after setting the year album thumbnail', () => {
 
     it('the year album has it', async () => {
         const year = await getAlbum(yearPath);
+
         expect(year?.thumbnail?.path).toBe(imagePath);
         expect(year?.thumbnail?.crop).toBeUndefined();
     });
 
     it('the root listing shows it on the year', async () => {
         const thumbnail = await thumbnailInListing('/', yearPath);
+
         expect(thumbnail.path).toBe(imagePath);
         expect(thumbnail.crop).toBeUndefined();
     });
@@ -67,12 +70,14 @@ describe('after recutting the thumbnail', () => {
 
     it('the year listing shows the crop on the day album', async () => {
         const thumbnail = await thumbnailInListing(yearPath, albumPath);
+
         expect(thumbnail.path).toBe(imagePath);
         expect(thumbnail.crop).toStrictEqual(cropInPx);
     });
 
     it('the root listing shows the crop on the year', async () => {
         const thumbnail = await thumbnailInListing('/', yearPath);
+
         expect(thumbnail.path).toBe(imagePath);
         expect(thumbnail.crop).toStrictEqual(cropInPx);
     });
@@ -82,6 +87,7 @@ describe('after recutting the thumbnail', () => {
     // This flips to a failure when the gap is closed, which is the cue to drop `.failing`.
     it.failing('the year album read directly shows the crop', async () => {
         const year = await getAlbum(yearPath);
+
         expect(year?.thumbnail?.crop).toStrictEqual(cropInPx);
     });
 });
@@ -91,6 +97,7 @@ describe('after deleting the image', () => {
 
     it('the day and year albums no longer have a thumbnail', async () => {
         const [album, year] = await Promise.all([getAlbum(albumPath), getAlbum(yearPath)]);
+
         expect(album?.thumbnail).toBeUndefined();
         expect(year?.thumbnail).toBeUndefined();
     });

@@ -62,6 +62,7 @@ describe('selectMetadata', () => {
             if (!existsSync(filePath)) throw new Error(`File [${filePath}] does not exist`);
             const tags = await ExifReader.load(filePath, { expanded: true, async: true });
             const md = selectMetadata(tags);
+
             expect(md.title).toBe(image.title);
             expect(md.description).toBe(image.description);
             expect(md.tags).toStrictEqual(image.tags);
@@ -77,14 +78,17 @@ describe('process png', () => {
         const tags = await ExifReader.load(filePath, { expanded: true, async: true });
         console.dir(tags, { depth: null });
         const md = selectMetadata(tags);
+
         expect(md.dimensions).toStrictEqual({ height: 212, width: 220 });
     });
+
     it('windows png', async () => {
         const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/pngWindows.png');
         if (!existsSync(filePath)) throw new Error(`File [${filePath}] does not exist`);
         const tags = await ExifReader.load(filePath, { expanded: true, async: true });
         console.dir(tags, { depth: null });
         const md = selectMetadata(tags);
+
         expect(md.dimensions).toStrictEqual({ height: 843, width: 1500 });
     });
 });
@@ -96,6 +100,7 @@ describe('process gif', () => {
         const tags = await ExifReader.load(filePath, { expanded: true, async: true });
         console.dir(tags, { depth: null });
         const md = selectMetadata(tags);
+
         expect(md.dimensions).toStrictEqual({ height: 240, width: 360 });
     });
 });
@@ -157,6 +162,7 @@ describe('process heic (XMP metadata)', () => {
         // HEIC requires async: true for full metadata parsing
         const tags = await ExifReader.load(filePath, { expanded: true, async: true });
         const md = selectMetadata(tags);
+
         expect(md.title).toBe('Test Image Title');
         expect(md.description).toBe('Test description');
         expect(md.tags).toStrictEqual(['test1', 'test2', 'test3']);
@@ -174,6 +180,7 @@ describe('process heic (XMP metadata)', () => {
         // HEIC requires async: true for full metadata parsing
         const tags = await ExifReader.load(filePath, { expanded: true, async: true });
         const md = selectMetadata(tags);
+
         expect(md.title).toBe('Test Image Title');
         expect(md.description).toBeUndefined();
         expect(md.tags).toBeUndefined();

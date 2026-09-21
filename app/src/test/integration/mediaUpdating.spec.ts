@@ -21,8 +21,10 @@ describe('after setting the title', () => {
 
     it('is set', async () => {
         const image = await getMediaOrFail(imagePath);
+
         expect(image.title).toBe(title);
         expect(image.updatedOn).toBeDefined();
+
         titleSetOn = image.updatedOn;
     });
 });
@@ -32,6 +34,7 @@ describe('after setting the description', () => {
 
     it('is set, the title is kept and updatedOn moved', async () => {
         const image = await getMediaOrFail(imagePath);
+
         expect(image.description).toBe(description);
         expect(image.title).toBe(title);
         expect(image.updatedOn).not.toBe(titleSetOn);
@@ -46,6 +49,7 @@ describe('after clearing the title and then the description', () => {
 
     it('both are empty', async () => {
         const image = await getMediaOrFail(imagePath);
+
         expect(image.title).toBe('');
         expect(image.description).toBe('');
     });
@@ -56,6 +60,7 @@ describe('after setting title and description in one update', () => {
 
     it('both are set', async () => {
         const image = await getMediaOrFail(imagePath);
+
         expect(image.title).toBe(title);
         expect(image.description).toBe(description);
     });

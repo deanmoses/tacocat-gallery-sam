@@ -41,6 +41,7 @@ afterAll(() => cleanUpAlbum(albumPath));
 describe("with an empty album for today's date", () => {
     it('is the latest album and has no thumbnail', async () => {
         const album = await latestAlbum();
+
         expect(album.path).toBe(albumPath);
         expect(album.thumbnail).toBeUndefined();
     });
@@ -58,6 +59,7 @@ describe('after uploading an image', () => {
 
     it("is the latest album's thumbnail, with a version", async () => {
         const album = await latestAlbum();
+
         expect(album.path).toBe(albumPath);
         expect(album.thumbnail?.path).toBe(imagePath);
         expect(album.thumbnail?.versionId).toBeDefined();
@@ -69,6 +71,7 @@ describe('after recutting the thumbnail', () => {
 
     it('the latest album shows the crop', async () => {
         const album = await latestAlbum();
+
         expect(album.thumbnail?.path).toBe(imagePath);
         expect(album.thumbnail?.crop).toStrictEqual(cropInPx);
     });
@@ -79,6 +82,7 @@ describe('after renaming the image', () => {
 
     it('the latest album thumbnail follows the rename', async () => {
         const album = await latestAlbum();
+
         expect(album.thumbnail?.path).toBe(renamedImagePath);
         expect(album.thumbnail?.versionId).toBeDefined();
     });
@@ -89,11 +93,13 @@ describe('after deleting the image', () => {
 
     it('the album no longer lists it', async () => {
         const album = await getAlbumOrFail(albumPath);
+
         expect(findMedia(album, 'renamed.jpg')).toBeUndefined();
     });
 
     it('the latest album no longer has a thumbnail', async () => {
         const album = await latestAlbum();
+
         expect(album.thumbnail).toBeUndefined();
     });
 });

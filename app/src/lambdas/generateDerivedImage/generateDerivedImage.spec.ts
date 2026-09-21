@@ -31,23 +31,27 @@ describe('generateDerivedImage', () => {
     describe('HTTP method validation', () => {
         it('should return 405 for POST method', async () => {
             const result = await generateDerivedImage('POST', '/i/2001/12-31/image.jpg/VERSIONID/200');
+
             expect(result.statusCode).toBe(405);
             expect(result.body).toBe('method not allowed');
         });
 
         it('should return 405 for PUT method', async () => {
             const result = await generateDerivedImage('PUT', '/i/2001/12-31/image.jpg/VERSIONID/200');
+
             expect(result.statusCode).toBe(405);
         });
 
         it('should return 405 for DELETE method', async () => {
             const result = await generateDerivedImage('DELETE', '/i/2001/12-31/image.jpg/VERSIONID/200');
+
             expect(result.statusCode).toBe(405);
         });
 
         it('should accept GET method', async () => {
             mockLoadOriginalImage.mockResolvedValue(undefined);
             const result = await generateDerivedImage('GET', '/i/2001/12-31/image.jpg/VERSIONID/200');
+
             // Will return 404 because image not found, but method was accepted
             expect(result.statusCode).not.toBe(405);
         });
@@ -55,6 +59,7 @@ describe('generateDerivedImage', () => {
         it('should accept HEAD method', async () => {
             mockLoadOriginalImage.mockResolvedValue(undefined);
             const result = await generateDerivedImage('HEAD', '/i/2001/12-31/image.jpg/VERSIONID/200');
+
             expect(result.statusCode).not.toBe(405);
         });
     });
@@ -62,12 +67,14 @@ describe('generateDerivedImage', () => {
     describe('favicon handling', () => {
         it('should return 404 for favicon.ico', async () => {
             const result = await generateDerivedImage('GET', '/favicon.ico');
+
             expect(result.statusCode).toBe(404);
             expect(result.body).toBe('not found');
         });
 
         it('should return 404 for any path containing favico', async () => {
             const result = await generateDerivedImage('GET', '/i/2001/12-31/favico.jpg/VERSIONID');
+
             expect(result.statusCode).toBe(404);
         });
     });
@@ -75,18 +82,21 @@ describe('generateDerivedImage', () => {
     describe('path parsing errors', () => {
         it('should return 400 for invalid path format', async () => {
             const result = await generateDerivedImage('GET', '/wrongpath/UUID');
+
             expect(result.statusCode).toBe(400);
             expect(result.body).toBe('bad request');
         });
 
         it('should return 400 for path without versionId', async () => {
             const result = await generateDerivedImage('GET', '/i/2001/12-31/image.jpg');
+
             expect(result.statusCode).toBe(400);
         });
 
         it('should return 400 for path without image id', async () => {
             // parsePath returns error for malformed paths
             const result = await generateDerivedImage('GET', '/i/');
+
             expect(result.statusCode).toBe(400);
         });
     });
@@ -203,16 +213,19 @@ describe('generateDerivedImage', () => {
     describe('response headers', () => {
         it('should have correct cache-control for 400 response', async () => {
             const result = await generateDerivedImage('GET', '/wrongpath/UUID');
+
             expect(result.headers['cache-control']).toBe('public, max-age=300');
         });
 
         it('should have correct cache-control for 404 response', async () => {
             const result = await generateDerivedImage('GET', '/favicon.ico');
+
             expect(result.headers['cache-control']).toBe('public, max-age=300');
         });
 
         it('should have correct cache-control for 405 response', async () => {
             const result = await generateDerivedImage('POST', '/i/2001/12-31/image.jpg/VERSIONID');
+
             expect(result.headers['cache-control']).toBe('public, max-age=300');
         });
     });

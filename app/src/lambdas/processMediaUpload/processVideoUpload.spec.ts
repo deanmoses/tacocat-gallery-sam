@@ -26,9 +26,11 @@ describe('processVideoUpload()', () => {
         await processVideoUpload('test-bucket', '2024/06-15/video.mp4', 'version123');
 
         const createJobCalls = mockMediaConvert.commandCalls(CreateJobCommand);
+
         expect(createJobCalls).toHaveLength(1);
 
         const jobInput = createJobCalls[0].args[0].input;
+
         expect(jobInput.Role).toBe('arn:aws:iam::123456789012:role/MediaConvertRole');
         expect(jobInput.UserMetadata?.source).toBe('test-derived-bucket'); // For EventBridge filtering
         expect(jobInput.UserMetadata?.path).toBe('/2024/06-15/video.mp4');
@@ -54,6 +56,7 @@ describe('processVideoUpload()', () => {
 
         // Output should be path-based: i/<path>/<versionId>/
         const mp4OutputGroup = jobInput.Settings?.OutputGroups?.find((g) => g.Name === 'MP4 Output');
+
         expect(mp4OutputGroup?.OutputGroupSettings?.FileGroupSettings?.Destination).toBe(
             's3://test-derived-bucket/i/2024/06-15/video.mp4/version123/',
         );
@@ -82,6 +85,7 @@ describe('processVideoUpload()', () => {
         const jobInput = createJobCalls[0].args[0].input;
 
         const mp4OutputGroup = jobInput.Settings?.OutputGroups?.find((g) => g.Name === 'MP4 Output');
+
         expect(mp4OutputGroup).toBeDefined();
         expect(mp4OutputGroup?.Outputs?.[0]?.VideoDescription?.CodecSettings?.Codec).toBe('H_264');
         expect(mp4OutputGroup?.Outputs?.[0]?.ContainerSettings?.Container).toBe('MP4');
@@ -94,6 +98,7 @@ describe('processVideoUpload()', () => {
         const jobInput = createJobCalls[0].args[0].input;
 
         const thumbnailOutputGroup = jobInput.Settings?.OutputGroups?.find((g) => g.Name === 'Thumbnail Output');
+
         expect(thumbnailOutputGroup).toBeDefined();
         expect(thumbnailOutputGroup?.Outputs?.[0]?.VideoDescription?.CodecSettings?.Codec).toBe('FRAME_CAPTURE');
     });

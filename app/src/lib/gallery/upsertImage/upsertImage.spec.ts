@@ -32,15 +32,19 @@ test('fail on unknown attribute', async () => {
 
 test('no additional attrs', async () => {
     await expect(upsertImage(imagePath, { versionId: '123' })).resolves.not.toThrow();
+
     const updateInput = mockDocClient.commandCalls(UpdateCommand)?.[0]?.args[0]?.input;
     if (!updateInput) throw new Error(`No update command`);
+
     expect(updateInput.ExpressionAttributeValues?.[':versionId']).toBe('123');
 });
 
 test('description', async () => {
     await expect(upsertImage(imagePath, { versionId: '123', description: 'Desc 1' })).resolves.not.toThrow();
+
     const updateInput = mockDocClient.commandCalls(UpdateCommand)?.[0]?.args[0]?.input;
     if (!updateInput) throw new Error(`No update command`);
+
     expect(updateInput.ExpressionAttributeValues?.[':versionId']).toBe('123');
     expect(updateInput.UpdateExpression).toContain('description = if_not_exists(description, :description)');
     expect(updateInput.ExpressionAttributeValues?.[':description']).toBe('Desc 1');
@@ -79,6 +83,7 @@ describe('upsertImage tags', () => {
         await upsertImage(imagePath, { versionId: '123', tags: [] });
         const updateInput = mockDocClient.commandCalls(UpdateCommand)?.[0]?.args[0]?.input;
         if (!updateInput) throw new Error('No update command');
+
         expect(updateInput.UpdateExpression).not.toContain('tags');
         expect(updateInput.ExpressionAttributeValues?.[':tags']).toBeUndefined();
     });
@@ -87,6 +92,7 @@ describe('upsertImage tags', () => {
         await upsertImage(imagePath, { versionId: '123', tags: null as unknown as string[] });
         const updateInput = mockDocClient.commandCalls(UpdateCommand)?.[0]?.args[0]?.input;
         if (!updateInput) throw new Error('No update command');
+
         expect(updateInput.UpdateExpression).not.toContain('tags');
         expect(updateInput.ExpressionAttributeValues?.[':tags']).toBeUndefined();
     });
@@ -96,6 +102,7 @@ describe('upsertImage tags', () => {
         await upsertImage(imagePath, { versionId: '123', tags: ['B'] });
         const updateInput = mockDocClient.commandCalls(UpdateCommand)?.[0]?.args[0]?.input;
         if (!updateInput) throw new Error('No update command');
+
         expect(updateInput.UpdateExpression).toContain('tags = :tags');
         expect(updateInput.ExpressionAttributeValues?.[':tags']).toStrictEqual(['A', 'B']);
     });
@@ -105,6 +112,7 @@ describe('upsertImage tags', () => {
         await upsertImage(imagePath, { versionId: '123', tags: [] });
         const updateInput = mockDocClient.commandCalls(UpdateCommand)?.[0]?.args[0]?.input;
         if (!updateInput) throw new Error('No update command');
+
         // When incoming is empty, merged result is just existing ['A']
         // So tags SHOULD be in the update expression
         expect(updateInput.UpdateExpression).toContain('tags = :tags');

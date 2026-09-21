@@ -131,9 +131,12 @@ describe('RobotsTxtFunction', () => {
 
     it('serves robots.txt as text', () => {
         const response = asResponse(handler({ request: request('/robots.txt') }));
+
         expect(response.statusCode).toBe(200);
         expect(response.headers['content-type'].value).toBe('text/plain; charset=utf-8');
+
         const body = response.body as { encoding: string; data: string };
+
         expect(body.encoding).toBe('text');
         expect(typeof body.data).toBe('string');
     });
@@ -141,6 +144,7 @@ describe('RobotsTxtFunction', () => {
     it('allows crawling for everyone, then disallows the AI training bots', () => {
         const response = asResponse(handler({ request: request('/robots.txt') }));
         const body = (response.body as { data: string }).data;
+
         expect(body).toMatch(/^User-agent: \*\nAllow: \/\n\n(User-agent: [^\n]+\n)+Disallow: \/\n$/);
     });
 
@@ -149,12 +153,14 @@ describe('RobotsTxtFunction', () => {
         const body = (response.body as { data: string }).data;
         const bots = [...body.matchAll(/^User-agent: (?!\*)(.+)$/gm)].map((m) => m[1]);
         const sorted = [...bots].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+
         expect(bots).toStrictEqual(sorted);
         expect(new Set(bots).size).toBe(bots.length);
     });
 
     it('passes any other request through untouched', () => {
         const original = request('/2001/12-31/');
+
         expect(handler({ request: original })).toBe(original);
     });
 });
@@ -164,12 +170,14 @@ describe('VideoPlaybackUrlRewriteFunction', () => {
 
     it('rewrites to the transcoded video under the derived images path', () => {
         const result = asRequest(handler({ request: request('/v/2024/06-15/video.mp4', { version: 'abc123' }) }));
+
         expect(result.uri).toBe('/i/2024/06-15/video.mp4/abc123/video-transcoded');
         expect(result.querystring).toStrictEqual({});
     });
 
     it('rejects a request without a version', () => {
         const response = asResponse(handler({ request: request('/v/2024/06-15/video.mp4') }));
+
         expect(response.statusCode).toBe(400);
         expect(response.headers['content-type'].value).toBe('application/json');
         expect(errorMessage(response)).toBe('Missing Version');
@@ -183,6 +191,7 @@ describe('DerivedImagesUrlRewriteFunction', () => {
         const result = asRequest(
             handler({ request: request('/i/2024/06-15/image.jpg', { version: 'abc123', size: '200x200' }) }),
         );
+
         expect(result.uri).toBe('/i/2024/06-15/image.jpg/abc123/200x200');
         expect(result.querystring).toStrictEqual({});
     });
@@ -193,6 +202,7 @@ describe('DerivedImagesUrlRewriteFunction', () => {
                 request: request('/i/2024/06-15/image.jpg', { version: 'abc123', size: '200x200', crop: '1,2,3,4' }),
             }),
         );
+
         expect(result.uri).toBe('/i/2024/06-15/image.jpg/abc123/200x200/crop=1,2,3,4');
     });
 
@@ -201,6 +211,7 @@ describe('DerivedImagesUrlRewriteFunction', () => {
         { name: 'size', querystring: { version: 'abc123' }, error: 'Missing Size' },
     ])('rejects a request without a $name', ({ querystring, error }) => {
         const response = asResponse(handler({ request: request('/i/2024/06-15/image.jpg', querystring) }));
+
         expect(response.statusCode).toBe(400);
         expect(response.headers['content-type'].value).toBe('application/json');
         expect(errorMessage(response)).toBe(error);

@@ -47,6 +47,7 @@ test('Delete Image That Exists', async () => {
     mockS3Client.on(ListObjectsV2Command).resolves(listResponseWithItems);
     mockS3Client.on(DeleteObjectsCommand).resolves(deleteObjectsResponseWithItems);
     await deleteMedia('/2001/12-31/image.jpg');
+
     expect(mockDocClient.commandCalls(DeleteCommand)).toHaveLength(1);
 });
 
@@ -59,6 +60,7 @@ test('Delete Nonexistent Image', async () => {
         KeyCount: 0,
     });
     await deleteMedia('/1899/01-01/image.jpg');
+
     expect(mockDocClient.commandCalls(DeleteCommand)).toHaveLength(1);
 });
 
@@ -169,6 +171,7 @@ describe('Video Delete', () => {
                 mockDocClient.on(DeleteCommand).resolves({});
                 mockS3Client.on(ListObjectsV2Command).resolves({ KeyCount: 0 });
                 await deleteMedia(`/2001/12-31/video.${ext}`);
+
                 expect(mockDocClient.commandCalls(DeleteCommand)).toHaveLength(1);
             });
         });

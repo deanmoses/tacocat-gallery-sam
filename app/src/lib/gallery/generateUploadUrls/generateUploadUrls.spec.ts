@@ -83,6 +83,7 @@ test('Should succeed for JPEG', async () => {
     const url = urls['/2001/12-31/image.jpg'];
     if (!url) throw new Error(`No URL for /2001/12-31/image.jpg`);
     new URL(url); // Throws if invalid URL
+
     expect(mockDDBClient.calls()).toHaveLength(1);
     expect(mockS3Client.calls()).toHaveLength(0); // Shows that generating presigned URLs don't involve a call to S3
 });
@@ -90,6 +91,7 @@ test('Should succeed for JPEG', async () => {
 test('Should succeed for HEIC', async () => {
     mockDDBClient.on(GetCommand).resolves({ Item: { itemName: '12-31' } }); // Mock DDB to get album
     const urls = await generateUploadUrls('/2001/12-31/', ['/2001/12-31/image.heic']);
+
     expect(() => new URL(urls['/2001/12-31/image.heic'])).not.toThrow();
 });
 
@@ -100,6 +102,7 @@ describe('Video uploads', () => {
         it(`Should succeed for .${ext} video`, async () => {
             mockDDBClient.on(GetCommand).resolves({ Item: { itemName: '12-31' } });
             const urls = await generateUploadUrls('/2001/12-31/', [`/2001/12-31/video.${ext}`]);
+
             expect(() => new URL(urls[`/2001/12-31/video.${ext}`])).not.toThrow();
         });
     });
@@ -111,7 +114,9 @@ describe('Video uploads', () => {
             '/2001/12-31/clip.mp4',
             '/2001/12-31/movie.mov',
         ]);
+
         expect(Object.keys(urls)).toHaveLength(3);
+
         new URL(urls['/2001/12-31/photo.jpg']);
         new URL(urls['/2001/12-31/clip.mp4']);
         new URL(urls['/2001/12-31/movie.mov']);

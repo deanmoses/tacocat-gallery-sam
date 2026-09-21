@@ -50,15 +50,20 @@ test.each([
     await expect(updateAlbum(albumPath, attrs)).resolves.not.toThrow();
 
     const updates = mockDocClient.commandCalls(UpdateCommand);
+
     expect(updates).toHaveLength(1);
+
     const input = updates[0].args[0].input;
+
     expect(input.Key).toStrictEqual({ parentPath: yearAlbumPath, itemName: '12-31' });
     expect(input.ConditionExpression).toMatch(/attribute_exists/);
     expect(input.UpdateExpression).toMatch(/updatedOn/);
+
     for (const [field, value] of Object.entries(attrs)) {
         expect(input.ExpressionAttributeNames).toHaveProperty(`#${field}`, field);
         expect(input.ExpressionAttributeValues).toHaveProperty(`:${field}`, value);
     }
+
     expect(mockDocClient.commandCalls(TransactWriteCommand)).toHaveLength(0);
 });
 
@@ -66,6 +71,7 @@ test('album not found', async () => {
     mockDocClient
         .on(UpdateCommand)
         .rejects(new ConditionalCheckFailedException({ $metadata: {}, message: 'The conditional request failed' }));
+
     await expect(updateAlbum(albumPath, { description: 'x' })).rejects.toThrow(/not found/i);
 });
 
@@ -77,18 +83,24 @@ describe('publishing a day album', () => {
 
         expect(mockDocClient.commandCalls(GetCommand)).toHaveLength(0);
         expect(mockDocClient.commandCalls(UpdateCommand)).toHaveLength(0);
+
         const transactions = mockDocClient.commandCalls(TransactWriteCommand);
+
         expect(transactions).toHaveLength(1);
+
         const items = transactions[0].args[0].input.TransactItems ?? [];
+
         expect(items).toHaveLength(2);
 
         const check = items[0].ConditionCheck;
+
         expect(check?.Key).toStrictEqual({ parentPath: '/', itemName: '2001' });
         expect(check?.ConditionExpression).toMatch(/#published = :published/);
         expect(check?.ExpressionAttributeNames).toStrictEqual({ '#published': 'published' });
         expect(check?.ExpressionAttributeValues).toStrictEqual({ ':published': true });
 
         const update = items[1].Update;
+
         expect(update?.Key).toStrictEqual({ parentPath: yearAlbumPath, itemName: '12-31' });
         expect(update?.ConditionExpression).toMatch(/attribute_exists/);
         expect(update?.ExpressionAttributeValues).toHaveProperty(':published', true);
@@ -96,25 +108,31 @@ describe('publishing a day album', () => {
 
     it('fails when the parent is not published', async () => {
         mockDocClient.on(TransactWriteCommand).rejects(transactionCanceled('ConditionalCheckFailed', 'None'));
+
         await expect(updateAlbum(albumPath, { published: true })).rejects.toThrow(/parent/);
     });
 
     it('reports a missing album as not found', async () => {
         mockDocClient.on(TransactWriteCommand).rejects(transactionCanceled('None', 'ConditionalCheckFailed'));
+
         await expect(updateAlbum(albumPath, { published: true })).rejects.toThrow(/not found/i);
     });
 
     it('rethrows other transaction failures', async () => {
         mockDocClient.on(TransactWriteCommand).rejects(transactionCanceled('None', 'TransactionConflict'));
+
         await expect(updateAlbum(albumPath, { published: true })).rejects.toThrow(TransactionCanceledException);
     });
 
     it('all fields at once', async () => {
         mockDocClient.on(TransactWriteCommand).resolves({});
+
         await expect(
             updateAlbum(albumPath, { description: 'Description 2', summary: 'Summary 2', published: true }),
         ).resolves.not.toThrow();
+
         const update = mockDocClient.commandCalls(TransactWriteCommand)[0].args[0].input.TransactItems?.[1].Update;
+
         expect(update?.ExpressionAttributeValues).toStrictEqual(
             expect.objectContaining({ ':description': 'Description 2', ':summary': 'Summary 2', ':published': true }),
         );

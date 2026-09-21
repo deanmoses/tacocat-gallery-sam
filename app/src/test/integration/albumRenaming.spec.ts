@@ -62,9 +62,12 @@ describe('after renaming the album', () => {
 
     it('the new album holds all the images, the renamed one under a new version', async () => {
         const album = await getAlbumOrFail(newAlbumPath, true);
+
         expect(album.children).toHaveLength(3);
+
         const image = findMedia(album, imageName);
         assert(image, `Album [${newAlbumPath}] does not contain [${imageName}]`);
+
         expect(image.parentPath).toBe(newAlbumPath);
         expect(image.versionId).toStrictEqual(expect.any(String));
         expect(image.versionId).not.toBe(oldImageVersionId);
@@ -72,11 +75,13 @@ describe('after renaming the album', () => {
 
     it('the new album thumbnail points at the new image path', async () => {
         const album = await getAlbum(newAlbumPath, true);
+
         expect(album?.thumbnail?.path).toBe(newImagePath);
     });
 
     it('the year album thumbnail points at the new image path', async () => {
         const year = await getAlbum(yearPath, true);
+
         expect(year?.thumbnail?.path).toBe(newImagePath);
     });
 });

@@ -85,6 +85,7 @@ describe("Extensions don't match", () => {
     imageNamePairs.forEach((pair) => {
         const oldName = pair.oldName;
         const newName = pair.newName;
+
         it(`Mismatch: [${oldName}] [${newName}]`, async () => {
             await expect(renameMedia(`/2001/12-31/${oldName}`, newName)).rejects.toThrow(/match/i);
             expect(mockDDBClient.calls()).toHaveLength(0);
@@ -114,6 +115,7 @@ test('Fail if old and new are same name', async () => {
 });
 
 test.todo("Fail if old image doesn't exist");
+
 test.todo('Fail if new image has same name as an existing image');
 
 // Video rename tests

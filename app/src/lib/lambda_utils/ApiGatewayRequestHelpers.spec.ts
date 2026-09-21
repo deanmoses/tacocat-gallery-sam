@@ -123,9 +123,11 @@ describe('getStringArrayField()', () => {
 
 describe('logRequestReceived()', () => {
     let info: jest.SpyInstance;
+
     beforeEach(() => {
         info = jest.spyOn(console, 'info').mockReturnValue(undefined);
     });
+
     afterEach(() => {
         info.mockRestore();
     });
@@ -136,6 +138,7 @@ describe('logRequestReceived()', () => {
 
     it('logs method, path, CloudFront id and whether an id_token cookie is present', () => {
         logRequestReceived(eventWithHeaders({ 'X-Amz-Cf-Id': 'abc123', cookie: 'id_token=xyz' }));
+
         expect(info).toHaveBeenCalledWith({
             event: 'request_received',
             method: 'GET',
@@ -147,11 +150,13 @@ describe('logRequestReceived()', () => {
 
     it('finds the CloudFront id whatever case the header came in', () => {
         logRequestReceived(eventWithHeaders({ 'x-amz-cf-id': 'lower' }));
+
         expect(info).toHaveBeenCalledWith(expect.objectContaining({ cfRequestId: 'lower' }));
     });
 
     it('logs no CloudFront id and no token when neither header is present', () => {
         logRequestReceived(eventWithHeaders({}));
+
         expect(info).toHaveBeenCalledWith(expect.objectContaining({ cfRequestId: undefined, hasToken: false }));
     });
 });

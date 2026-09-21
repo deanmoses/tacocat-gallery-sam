@@ -32,6 +32,7 @@ describe('itemExists()', () => {
         // Mock out the AWS method
         mockDocClient.on(GetCommand).resolves({ Item: { itemName: '12-31' } });
         const result = await itemExists('/2001/12-31/');
+
         expect(result).toBe(true);
     });
 
@@ -39,6 +40,7 @@ describe('itemExists()', () => {
         // Mock out the AWS method
         mockDocClient.on(GetCommand).resolves({});
         const result = await itemExists('/2001/12-31/');
+
         expect(result).toBe(false);
     });
 });
@@ -57,6 +59,7 @@ describe('albumExists()', () => {
         // Mock out the AWS method
         mockDocClient.on(GetCommand).resolves({});
         const result = await albumExists('/2001/12-31/');
+
         expect(result).toBe(false);
     });
 
@@ -64,6 +67,7 @@ describe('albumExists()', () => {
         // Mock out the AWS method
         mockDocClient.on(GetCommand).resolves({ Item: { published: true } });
         const result = await itemExists('/2001/12-31/');
+
         expect(result).toBe(true);
     });
 
@@ -71,6 +75,7 @@ describe('albumExists()', () => {
         // Mock out the AWS method
         mockDocClient.on(GetCommand).resolves({ Item: { itemName: '2001' } });
         const result = await albumExists('/2001/12-31/');
+
         expect(result).toBe(false);
     });
 
@@ -79,6 +84,7 @@ describe('albumExists()', () => {
         mockDocClient.on(GetCommand).resolves({ Item: { itemName: '2001' } });
         const includeUnpublishedAlbums = true;
         const result = await albumExists('/2001/12-31/', includeUnpublishedAlbums);
+
         expect(result).toBe(true);
     });
 });
@@ -97,6 +103,7 @@ describe('mediaExists()', () => {
         // Mock out the AWS method
         mockDocClient.on(GetCommand).resolves({});
         const result = await mediaExists('/2001/12-31/image.jpg');
+
         expect(result).toBe(false);
     });
 
@@ -104,6 +111,7 @@ describe('mediaExists()', () => {
         // Mock out the AWS method
         mockDocClient.on(GetCommand).resolves({ Item: { published: true } });
         const result = await mediaExists('/2001/12-31/image.jpg');
+
         expect(result).toBe(true);
     });
 
@@ -111,6 +119,7 @@ describe('mediaExists()', () => {
         // Mock out the AWS method
         mockDocClient.on(GetCommand).resolves({ Item: { itemName: 'image.jpg' } });
         const result = await mediaExists('/2001/12-31/image.jpg');
+
         expect(result).toBe(false);
     });
 
@@ -119,6 +128,7 @@ describe('mediaExists()', () => {
         mockDocClient.on(GetCommand).resolves({ Item: { itemName: 'image.jpg' } });
         const includeUnpublishedAlbums = true;
         const result = await mediaExists('/2001/12-31/image.jpg', includeUnpublishedAlbums);
+
         expect(result).toBe(true);
     });
 });

@@ -68,20 +68,10 @@ export default defineConfig(
             'jest/require-top-level-describe': 'off',
             'jest/prefer-importing-jest-globals': 'off',
 
-            // Matcher and style preferences the suites do not follow uniformly.
-            // Turning any of these on is a mechanical rewrite of most suites.
+            // Suites narrow with if-and-throw and branch on their inputs;
+            // neither rule has a fixer, so each site is a hand rewrite.
             'jest/no-conditional-in-test': 'off',
             'jest/prefer-ending-with-an-expect': 'off',
-
-            // Blank-line placement is Prettier's job
-            'jest/padding-around-all': 'off',
-            'jest/padding-around-after-all-blocks': 'off',
-            'jest/padding-around-after-each-blocks': 'off',
-            'jest/padding-around-before-all-blocks': 'off',
-            'jest/padding-around-before-each-blocks': 'off',
-            'jest/padding-around-describe-blocks': 'off',
-            'jest/padding-around-expect-groups': 'off',
-            'jest/padding-around-test-blocks': 'off',
         },
     },
     {

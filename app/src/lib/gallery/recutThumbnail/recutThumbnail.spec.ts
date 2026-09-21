@@ -14,11 +14,13 @@ describe('Invalid Image Path', () => {
 
     it('blank image path', async () => {
         const imagePath = '';
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*path/i);
     });
 
     it('malformed image path', async () => {
         const imagePath = '/2001/12-31/';
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*path/i);
     });
 });
@@ -28,56 +30,67 @@ describe('Invalid Crop', () => {
 
     it('empty crop', async () => {
         const crop = {} as unknown as Rectangle;
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid/i);
     });
 
     it('missing x', async () => {
         const crop = { y: 0, width: 200, height: 200 } as unknown as Rectangle;
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*x/i);
     });
 
     it('missing y', async () => {
         const crop = { x: 0, width: 200, height: 200 } as unknown as Rectangle;
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*y/i);
     });
 
     it('missing width', async () => {
         const crop = { x: 0, y: 0, height: 200 } as unknown as Rectangle;
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*width/i);
     });
 
     it('blank x', async () => {
         const crop = { x: '', y: 0, width: 100, height: 100 } as unknown as Rectangle;
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*x/i);
     });
 
     it('negative x', async () => {
         const crop = { x: -1, y: 0, width: 100, height: 100 };
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*x/i);
     });
 
     it('height > 100%', async () => {
         const crop = { x: 1.1, y: 0, width: 100, height: 101 };
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*height/i);
     });
 
     it('width > 100%', async () => {
         const crop = { x: 1.1, y: 0, width: 200, height: 100 };
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*width/i);
     });
 
     it('non-numeric x', async () => {
         const crop = { x: 'a', y: 0, width: 100, height: 100 } as unknown as Rectangle;
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*x/i);
     });
 
     it('string integer x', async () => {
         const crop = { x: '1', y: 0, width: 100, height: 100 } as unknown as Rectangle;
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*x/i);
     });
 
     it('string zero x', async () => {
         const crop = { x: '0', y: 0, width: 100, height: 100 } as unknown as Rectangle;
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*x/i);
     });
 });
@@ -87,8 +100,11 @@ test('Save Crop', async () => {
     // Mock out the AWS method to get the image dimensions
     mockDocClient.on(GetCommand).resolves({ Item: { dimensions: { width: 1000, height: 1000 } } });
     await recutThumbnail('/2001/12-31/image.jpg', crop);
+
     expect(mockDocClient.commandCalls(UpdateCommand)).toHaveLength(1);
+
     const x = mockDocClient.commandCalls(UpdateCommand)[0].args[0].input;
+
     expect(x?.Key?.parentPath).toBe('/2001/12-31/');
     expect(x?.Key?.itemName).toBe('image.jpg');
 });

@@ -763,6 +763,7 @@ describe('toPathFromItem', () => {
             }),
         ).toBe('/2001/');
     });
+
     it('day album', () => {
         expect(
             toPathFromItem({
@@ -772,6 +773,7 @@ describe('toPathFromItem', () => {
             }),
         ).toBe('/2001/12-31/');
     });
+
     it('image', () => {
         expect(
             toPathFromItem({

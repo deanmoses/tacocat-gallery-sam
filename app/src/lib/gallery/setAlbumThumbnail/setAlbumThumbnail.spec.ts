@@ -12,24 +12,28 @@ describe('Invalid Input', () => {
     it('blank album path', async () => {
         const albumPath = '';
         const imagePath = '/2001/12-31/image.jpg';
+
         await expect(setAlbumThumbnail(albumPath, imagePath)).rejects.toThrow(/invalid.*album/i);
     });
 
     it('root album path', async () => {
         const albumPath = '/';
         const imagePath = '/2001/12-31/image.jpg';
+
         await expect(setAlbumThumbnail(albumPath, imagePath)).rejects.toThrow(/root/i);
     });
 
     it('malformed image path', async () => {
         const albumPath = '/2001/12-31/';
         const imagePath = '/2001/12-31/';
+
         await expect(setAlbumThumbnail(albumPath, imagePath)).rejects.toThrow(/invalid.*media/i);
     });
 
     it('blank image path', async () => {
         const albumPath = '/2001/12-31/';
         const imagePath = '';
+
         await expect(setAlbumThumbnail(albumPath, imagePath)).rejects.toThrow(/invalid.*media/i);
     });
 });

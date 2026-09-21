@@ -19,6 +19,7 @@ describe('deleteOriginalAndDerivativesForMediaItem', () => {
         await deleteOriginalAndDerivativesForMediaItem('/2001/12-31/image.jpg');
 
         const calls = mockS3Client.commandCalls(ListObjectsV2Command);
+
         // One ListObjectsV2Command for derived files (original uses DeleteObjectCommand directly)
         expect(calls).toHaveLength(1);
         // Derived files prefix is i/<path> without trailing slash (for media items)
@@ -32,6 +33,7 @@ describe('deleteOriginalAndDerivativesForMediaItem', () => {
 
         const calls = mockS3Client.commandCalls(ListObjectsV2Command);
         const derivedCalls = calls.filter((call) => call.args[0].input.Prefix?.startsWith('i/'));
+
         expect(derivedCalls).toHaveLength(1);
         expect(derivedCalls[0].args[0].input.Prefix).toBe('i/2001/12-31/video.mp4');
     });
@@ -44,6 +46,7 @@ describe('deleteOriginalsAndDerivativesForAlbum', () => {
         await deleteOriginalsAndDerivativesForAlbum('/2001/12-31/');
 
         const calls = mockS3Client.commandCalls(ListObjectsV2Command);
+
         // Should delete from originals and derived (both use ListObjectsV2 for folder deletion)
         expect(calls).toHaveLength(2);
     });
@@ -57,6 +60,7 @@ describe('deleteDerivedFilesByPathAndVersion', () => {
 
         const calls = mockS3Client.commandCalls(ListObjectsV2Command);
         const derivedCall = calls.find((call) => call.args[0].input.Prefix?.includes('version123'));
+
         expect(derivedCall).toBeDefined();
         expect(derivedCall?.args[0].input.Prefix).toBe('i/2001/12-31/video.mp4/version123/');
     });

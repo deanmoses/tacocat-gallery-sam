@@ -36,12 +36,14 @@ test('Should fail on unknown attribute', async () => {
 test('Success', async () => {
     // Mock the AWS command to create album
     mockDocClient.on(PutCommand).resolves(mockSuccessResponse);
+
     await expect(createAlbum('/2001/')).resolves.not.toThrow();
 });
 
 test('Set Fields', async () => {
     // Mock the AWS command to create album
     mockDocClient.on(PutCommand).resolves(mockSuccessResponse);
+
     await expect(
         createAlbum('/2001/', {
             description: 'Description 1',

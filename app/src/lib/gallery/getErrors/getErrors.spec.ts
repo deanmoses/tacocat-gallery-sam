@@ -31,6 +31,7 @@ describe('getErrors()', () => {
         });
 
         const result = await getErrors(['/2001/12-31/video.mp4']);
+
         expect(result).toStrictEqual({ errors: {} });
     });
 

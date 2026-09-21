@@ -24,31 +24,39 @@ test('fail on unknown attribute', async () => {
 
 test('title', async () => {
     await expect(updateMedia(imagePath, { title: 'Title 1' })).resolves.not.toThrow();
+
     const updateInput = mockDocClient.commandCalls(ExecuteStatementCommand)?.[0]?.args[0]?.input;
     if (!updateInput) throw new Error(`No update command`);
+
     expect(updateInput.Statement).toContain('title');
     expect(updateInput.Statement).not.toContain('description');
 });
 
 test('blank title', async () => {
     await expect(updateMedia(imagePath, { title: '' })).resolves.not.toThrow();
+
     const updateInput = mockDocClient.commandCalls(ExecuteStatementCommand)?.[0]?.args[0]?.input;
     if (!updateInput) throw new Error(`No update command`);
+
     expect(updateInput.Statement).toContain('title');
 });
 
 test('description', async () => {
     await expect(updateMedia(imagePath, { description: 'Desc 1' })).resolves.not.toThrow();
+
     const updateInput = mockDocClient.commandCalls(ExecuteStatementCommand)?.[0]?.args[0]?.input;
     if (!updateInput) throw new Error(`No update command`);
+
     expect(updateInput.Statement).toContain('description');
     expect(updateInput.Statement).not.toContain('title');
 });
 
 test('title & description', async () => {
     await expect(updateMedia(imagePath, { title: 'Title 1', description: 'Desc 1' })).resolves.not.toThrow();
+
     const updateInput = mockDocClient.commandCalls(ExecuteStatementCommand)?.[0]?.args[0]?.input;
     if (!updateInput) throw new Error(`No update command`);
+
     expect(updateInput.Statement).toContain('title');
     expect(updateInput.Statement).toContain('description');
 });

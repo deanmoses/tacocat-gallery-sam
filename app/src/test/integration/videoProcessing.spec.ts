@@ -52,6 +52,7 @@ describe('after uploading a video into an album that did not exist', () => {
 
     it('the album lists the video', async () => {
         const listed = findMedia(await getAlbumOrFail(albumPath), videoName);
+
         expect(listed?.parentPath).toBe(albumPath);
         expect(listed?.versionId).toBe(video.versionId);
     });

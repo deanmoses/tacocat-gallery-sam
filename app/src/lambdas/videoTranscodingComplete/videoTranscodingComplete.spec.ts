@@ -107,15 +107,18 @@ describe('handleVideoTranscodingComplete()', () => {
             await handleVideoTranscodingComplete(createCompleteEvent());
 
             const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+
             expect(updateCalls.length).toBeGreaterThanOrEqual(1);
 
             // Find the video record update
             const videoUpdate = updateCalls.find(
                 (call) => call.args[0].input.ExpressionAttributeValues?.[':mediaType'] === 'video',
             );
+
             expect(videoUpdate).toBeDefined();
 
             const input = videoUpdate?.args[0].input;
+
             expect(input?.Key?.parentPath).toBe('/2024/06-15/');
             expect(input?.Key?.itemName).toBe('video.mp4');
             expect(input?.ExpressionAttributeValues?.[':itemType']).toBe('image'); // itemType is 'image' for all media
@@ -153,6 +156,7 @@ describe('handleVideoTranscodingComplete()', () => {
                 (call) => call.args[0].input.ExpressionAttributeValues?.[':mediaType'] === 'video',
             );
             const values = videoUpdate?.args[0].input.ExpressionAttributeValues;
+
             expect(values?.[':dimensions']).toStrictEqual({ width: 3840, height: 2160 });
             expect(values?.[':duration']).toBe(300);
         });
@@ -182,15 +186,18 @@ describe('handleVideoTranscodingComplete()', () => {
 
             // Should NOT have called CopyObjectCommand (destinations already exist)
             const copyCalls = mockS3Client.commandCalls(CopyObjectCommand);
+
             expect(copyCalls).toHaveLength(0);
 
             // Should still call DeleteObjectCommand to clean up any remaining source files
             const deleteCalls = mockS3Client.commandCalls(DeleteObjectCommand);
             const derivedDeletes = deleteCalls.filter((call) => call.args[0].input.Bucket === 'test-derived-bucket');
+
             expect(derivedDeletes).toHaveLength(2); // video and poster source files
 
             // DynamoDB record should still be written
             const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+
             expect(updateCalls.length).toBeGreaterThanOrEqual(1);
         });
     });
@@ -206,9 +213,11 @@ describe('handleVideoTranscodingComplete()', () => {
 
             const putCalls = mockDocClient.commandCalls(PutCommand);
             const errorPut = putCalls.find((call) => call.args[0].input.TableName === 'test-error-table');
+
             expect(errorPut).toBeDefined();
 
             const item = errorPut?.args[0].input.Item;
+
             expect(item?.path).toBe(VIDEO_PATH);
             expect(item?.errorType).toBe('media_processing');
             expect(item?.errorMessage).toBe('Unsupported codec');
@@ -225,6 +234,7 @@ describe('handleVideoTranscodingComplete()', () => {
 
             const deleteCalls = mockS3Client.commandCalls(DeleteObjectCommand);
             const originalDelete = deleteCalls.find((call) => call.args[0].input.Bucket === 'test-original-bucket');
+
             expect(originalDelete).toBeDefined();
             expect(originalDelete?.args[0].input.Key).toBe('2024/06-15/video.mp4');
             expect(originalDelete?.args[0].input.VersionId).toBe(VERSION_ID); // Uses specific version
@@ -247,10 +257,12 @@ describe('handleVideoTranscodingComplete()', () => {
 
             const listCalls = mockS3Client.commandCalls(ListObjectsV2Command);
             const derivedListCall = listCalls.find((call) => call.args[0].input.Bucket === 'test-derived-bucket');
+
             expect(derivedListCall?.args[0].input.Prefix).toBe(`${BASE_PREFIX}/`);
 
             const deleteCalls = mockS3Client.commandCalls(DeleteObjectCommand);
             const derivedDeletes = deleteCalls.filter((call) => call.args[0].input.Bucket === 'test-derived-bucket');
+
             expect(derivedDeletes).toHaveLength(2);
         });
     });
@@ -266,6 +278,7 @@ describe('handleVideoTranscodingComplete()', () => {
             // Should write to error table
             const putCalls = mockDocClient.commandCalls(PutCommand);
             const errorPut = putCalls.find((call) => call.args[0].input.TableName === 'test-error-table');
+
             expect(errorPut).toBeDefined();
             expect(errorPut?.args[0].input.Item?.errorMessage).toContain('canceled');
         });
@@ -281,6 +294,7 @@ describe('handleVideoTranscodingComplete()', () => {
 
             // Should not write any records
             const putCalls = mockDocClient.commandCalls(PutCommand);
+
             expect(putCalls).toHaveLength(0);
         });
 
@@ -293,6 +307,7 @@ describe('handleVideoTranscodingComplete()', () => {
 
             // Should not write any records
             const putCalls = mockDocClient.commandCalls(PutCommand);
+
             expect(putCalls).toHaveLength(0);
         });
     });
@@ -309,6 +324,7 @@ describe('handleVideoTranscodingComplete()', () => {
             // Should write to error table
             const putCalls = mockDocClient.commandCalls(PutCommand);
             const errorPut = putCalls.find((call) => call.args[0].input.TableName === 'test-error-table');
+
             expect(errorPut).toBeDefined();
             expect(errorPut?.args[0].input.Item?.errorMessage).toContain('wrong content type');
             expect(errorPut?.args[0].input.Item?.errorMessage).toContain('video/*');
@@ -318,6 +334,7 @@ describe('handleVideoTranscodingComplete()', () => {
             const videoUpdate = updateCalls.find(
                 (call) => call.args[0].input.ExpressionAttributeValues?.[':mediaType'] === 'video',
             );
+
             expect(videoUpdate).toBeUndefined();
         });
 
@@ -332,6 +349,7 @@ describe('handleVideoTranscodingComplete()', () => {
             // Should write to error table
             const putCalls = mockDocClient.commandCalls(PutCommand);
             const errorPut = putCalls.find((call) => call.args[0].input.TableName === 'test-error-table');
+
             expect(errorPut).toBeDefined();
             expect(errorPut?.args[0].input.Item?.errorMessage).toContain('wrong content type');
             expect(errorPut?.args[0].input.Item?.errorMessage).toContain('image/*');
@@ -348,6 +366,7 @@ describe('handleVideoTranscodingComplete()', () => {
             // Should write to error table
             const putCalls = mockDocClient.commandCalls(PutCommand);
             const errorPut = putCalls.find((call) => call.args[0].input.TableName === 'test-error-table');
+
             expect(errorPut).toBeDefined();
             expect(errorPut?.args[0].input.Item?.errorMessage).toContain('not found');
         });
@@ -370,6 +389,7 @@ describe('handleVideoTranscodingComplete()', () => {
             // Should delete partial outputs
             const deleteCalls = mockS3Client.commandCalls(DeleteObjectCommand);
             const derivedDeletes = deleteCalls.filter((call) => call.args[0].input.Bucket === 'test-derived-bucket');
+
             expect(derivedDeletes).toHaveLength(2);
         });
 
@@ -384,6 +404,7 @@ describe('handleVideoTranscodingComplete()', () => {
             // Should revert original file
             const deleteCalls = mockS3Client.commandCalls(DeleteObjectCommand);
             const originalDelete = deleteCalls.find((call) => call.args[0].input.Bucket === 'test-original-bucket');
+
             expect(originalDelete).toBeDefined();
             expect(originalDelete?.args[0].input.Key).toBe('2024/06-15/video.mp4');
             expect(originalDelete?.args[0].input.VersionId).toBe(VERSION_ID);

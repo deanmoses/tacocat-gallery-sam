@@ -61,6 +61,7 @@ describe('after uploading a HEIC', () => {
                 tags.iptc?.['Caption/Abstract']?.description ??
                 tags.exif?.ImageDescription?.description,
         ).toBe('Test description');
+
         const xmpSubject = tags.xmp?.subject?.value;
         const iptcKeywords = tags.iptc?.Keywords;
         const keywords = Array.isArray(xmpSubject)
@@ -68,6 +69,7 @@ describe('after uploading a HEIC', () => {
             : Array.isArray(iptcKeywords)
               ? iptcKeywords.map((item) => item.description)
               : [];
+
         expect(keywords.sort()).toStrictEqual(['test1', 'test2', 'test3']);
         expect(tags.xmp?.DateCreated?.description).toMatch(/^2026-01-08/);
         expect(tags.xmp?.City?.description).toBe('Anytown');

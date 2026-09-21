@@ -45,17 +45,20 @@ afterAll(() => cleanUpYear(yearPath));
 describe('a malformed request', () => {
     it('with neither version nor size is rejected at the edge', async () => {
         const response = await fetchDerived('');
+
         expect(response.status).toBe(400);
     });
 
     it('without a version is rejected at the edge', async () => {
         const response = await fetchDerived(`?size=${size}`);
+
         expect(response.status).toBe(400);
         await expect(errorMessageOf(response)).resolves.toMatch(/version/i);
     });
 
     it('without a size is rejected at the edge', async () => {
         const response = await fetchDerived(`?version=${versionId}`);
+
         expect(response.status).toBe(400);
         await expect(errorMessageOf(response)).resolves.toMatch(/size/i);
     });

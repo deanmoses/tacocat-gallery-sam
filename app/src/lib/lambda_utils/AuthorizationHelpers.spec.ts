@@ -82,6 +82,7 @@ describe('getIdTokenFromCookies', () => {
     describe('handles URL-encoded tokens', () => {
         it('should decode URL-encoded token value', () => {
             const encodedToken = encodeURIComponent('token+with/special=chars');
+
             expect(getIdTokenFromCookies(`id_token=${encodedToken}`)).toBe('token+with/special=chars');
         });
     });
@@ -105,6 +106,7 @@ describe('hasIdToken', () => {
 
     it('finds the cookie whatever case the header came in', () => {
         const event = { ...createMockEvent(), headers: { Cookie: 'id_token=abc123' } };
+
         expect(hasIdToken(event)).toBe(true);
     });
 });
@@ -163,6 +165,7 @@ describe('isAuthenticatedForReads', () => {
         setVerifierForTesting(mockVerifier(jest.fn().mockResolvedValue(mockPayload)));
         const event = createMockEvent();
         event.headers = { Cookie: 'id_token=abc' };
+
         await expect(isAuthenticatedForReads(event)).resolves.toBe(true);
     });
 });
@@ -197,6 +200,7 @@ describe('ensureAuthorizedForWrites', () => {
             setVerifierForTesting(mockVerifier(jest.fn().mockRejectedValue(new Error('Token expired'))));
 
             const event = createMockEvent('id_token=expired-token');
+
             await expect(ensureAuthorizedForWrites(event)).rejects.toThrow(UnauthorizedException);
         });
 
@@ -204,6 +208,7 @@ describe('ensureAuthorizedForWrites', () => {
             setVerifierForTesting(mockVerifier(jest.fn().mockRejectedValue(new Error('Invalid signature'))));
 
             const event = createMockEvent('id_token=invalid-signature-token');
+
             await expect(ensureAuthorizedForWrites(event)).rejects.toThrow(UnauthorizedException);
         });
     });
@@ -214,6 +219,7 @@ describe('ensureAuthorizedForWrites', () => {
             setVerifierForTesting(mockVerifier(jest.fn().mockResolvedValue(mockPayload)));
 
             const event = createMockEvent('id_token=valid-token');
+
             await expect(ensureAuthorizedForWrites(event)).resolves.toBeUndefined();
         });
 

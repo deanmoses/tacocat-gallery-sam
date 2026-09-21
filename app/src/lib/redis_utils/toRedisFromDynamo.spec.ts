@@ -10,6 +10,7 @@ describe('searchable filenames', () => {
         { itemName: '1xxx01yyy1.jpg', expected: ' xxx  yyy  jpg' },
         { itemName: 'xxx_yyy.jpg', expected: 'xxx yyy jpg' },
     ];
+
     it.each(tests)('%s => %s)', ({ itemName, expected }) => {
         expect(toSearchableItemName(itemName)).toBe(expected);
     });
@@ -45,6 +46,7 @@ test('convert image', () => {
         },
         tags: ['photo', 'image', 'picture'],
     };
+
     expect(toRedisItem(awsImageItem)).toStrictEqual(redisImageItem);
 });
 
@@ -80,6 +82,7 @@ test('convert video', () => {
         title: 'Beach Day',
         tags: ['movie', 'video', 'clip'],
     };
+
     expect(toRedisItem(awsVideoItem)).toStrictEqual(redisVideoItem);
 });
 
@@ -98,6 +101,7 @@ test('convert video with zero duration', () => {
         duration: 0,
     };
     const result = toRedisItem(awsVideoItem);
+
     expect(result).toMatchObject({
         itemType: 'image',
         mediaType: 'video',
