@@ -129,6 +129,7 @@ function toImageItem(doc: RedisResult): ImageItem {
 
 function toVideoItem(doc: RedisResult): VideoItem {
     const v = doc.value;
+    if (v['$.duration'] === undefined) throw new Error(`Video ${doc.id} has no duration`);
     const item: VideoItem = {
         path: doc.id,
         parentPath: v['$.parentPath'],
@@ -137,7 +138,7 @@ function toVideoItem(doc: RedisResult): VideoItem {
         mediaType: 'video',
         versionId: v['$.versionId'],
         dimensions: JSON.parse(v['$.dimensions']) as Size,
-        duration: v['$.duration']!,
+        duration: v['$.duration'],
     };
     if (v.title) item.title = v.title;
     if (v['$.thumbnail']) item.thumbnail = JSON.parse(v['$.thumbnail']) as ImageThumbnailCrop;

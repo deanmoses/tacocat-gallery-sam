@@ -124,6 +124,7 @@ export default defineConfig(
             '@typescript-eslint/prefer-string-starts-ends-with': 'error',
             '@typescript-eslint/return-await': ['error', 'error-handling-correctness-only'],
             '@typescript-eslint/restrict-plus-operands': 'error',
+            '@typescript-eslint/no-non-null-assertion': 'error',
         },
     },
 );
