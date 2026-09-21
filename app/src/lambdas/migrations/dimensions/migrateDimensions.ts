@@ -49,25 +49,25 @@ import { s3Client as sharedS3Client } from '../../../lib/s3_utils/s3Client';
 export type MigrateMode = 'diagnose' | 'fix';
 
 /** Input for migration */
-export interface MigrateInput {
+export type MigrateInput = {
     mode: MigrateMode;
     /** Process a single image */
     image?: string;
     /** Resume from this image path (skip newer albums and earlier images) */
     startFrom?: string;
-}
+};
 
 /** Issue types that can be detected */
 export type IssueType =
     'corrupt' | 'missingFromS3' | 'dimensionsOrientation' | 'dimensionsOther' | 'tagsMismatch' | 'versionIdInvalid';
 
 /** A single issue found during migration */
-export interface Issue {
+export type Issue = {
     path: string;
     type: IssueType;
     details: string;
     fixed?: boolean;
-}
+};
 
 /** Issue types that can be automatically fixed */
 const FIXABLE_ISSUE_TYPES: IssueType[] = ['dimensionsOrientation', 'tagsMismatch'];
@@ -78,7 +78,7 @@ function isFixableIssueType(type: IssueType): boolean {
 }
 
 /** Result of migration */
-export interface MigrateResult {
+export type MigrateResult = {
     albumsChecked: number;
     imagesChecked: number;
     issuesFound: number;
@@ -90,20 +90,20 @@ export interface MigrateResult {
     startFrom?: string;
     error?: string;
     issues: Issue[];
-}
+};
 
 /** Result from processing a single image */
-interface ImageProcessResult {
+type ImageProcessResult = {
     path: string;
     issues: Issue[];
     issuesFixed: number;
-}
+};
 
 /** Options for dependency injection in tests */
-export interface MigrateOptions {
+export type MigrateOptions = {
     docClient?: DynamoDBDocumentClient;
     s3Client?: S3Client;
-}
+};
 
 /** Number of images to process concurrently */
 const CHUNK_SIZE = 30;

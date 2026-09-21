@@ -114,6 +114,7 @@ export default defineConfig(
             // Writes the `import type` that tsconfig's verbatimModuleSyntax demands
             '@typescript-eslint/consistent-type-imports': 'error',
             '@typescript-eslint/no-import-type-side-effects': 'error',
+            '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
         },
     },
 );

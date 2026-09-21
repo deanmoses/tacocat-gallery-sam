@@ -9,7 +9,7 @@ import type { RedisClient } from '../../redis_utils/redisClientUtils';
 const mockDocClient = mockClient(DynamoDBDocumentClient);
 
 /** Minimal mock of the Redis client methods used by syncRedis */
-interface MockRedisClient {
+type MockRedisClient = {
     json: {
         mGet: jest.Mock;
         mSet: jest.Mock;
@@ -21,7 +21,7 @@ interface MockRedisClient {
     };
     dbSize: jest.Mock;
     close: jest.Mock;
-}
+};
 
 const createMockRedisClient = (): MockRedisClient => ({
     json: {

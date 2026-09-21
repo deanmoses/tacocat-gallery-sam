@@ -32,10 +32,10 @@ export function getIdTokenFromCookies(cookieHeader: string | undefined): string 
 
 // --- Verifier (module-level singleton, reused across invocations) ---
 
-interface TokenVerifier {
+type TokenVerifier = {
     verify(token: string): Promise<CognitoIdTokenPayload>;
     hydrate(): Promise<void>;
-}
+};
 
 let verifier: TokenVerifier | undefined;
 
