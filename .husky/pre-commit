@@ -39,6 +39,10 @@ fi
 # Format and lint staged files only
 lint-staged
 
-# Run unit tests (includes type check)
 cd app
+
+# Unused files, exports and dependencies
+npm run lint:knip
+
+# Run unit tests (includes type check)
 npm test
