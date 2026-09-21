@@ -34,7 +34,7 @@ describe('Invalid Paths', () => {
     paths.forEach((path) => {
         it(`Path should be invalid: [${path}]`, async () => {
             await expect(deleteMedia(path)).rejects.toThrow(/malformed/i);
-            expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(0);
+            expect(mockDocClient.commandCalls(DeleteCommand)).toHaveLength(0);
         });
     });
 });
@@ -47,7 +47,7 @@ test('Delete Image That Exists', async () => {
     mockS3Client.on(ListObjectsV2Command).resolves(listResponseWithItems);
     mockS3Client.on(DeleteObjectsCommand).resolves(deleteObjectsResponseWithItems);
     await deleteMedia('/2001/12-31/image.jpg');
-    expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(1);
+    expect(mockDocClient.commandCalls(DeleteCommand)).toHaveLength(1);
 });
 
 test('Delete Nonexistent Image', async () => {
@@ -59,7 +59,7 @@ test('Delete Nonexistent Image', async () => {
         KeyCount: 0,
     });
     await deleteMedia('/1899/01-01/image.jpg');
-    expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(1);
+    expect(mockDocClient.commandCalls(DeleteCommand)).toHaveLength(1);
 });
 
 const listResponseWithItems: ListObjectsV2CommandOutput = {
@@ -156,7 +156,7 @@ describe('Video Delete', () => {
         invalidPaths.forEach((path) => {
             it(`Path should be invalid: [${path}]`, async () => {
                 await expect(deleteMedia(path)).rejects.toThrow(/malformed/i);
-                expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(0);
+                expect(mockDocClient.commandCalls(DeleteCommand)).toHaveLength(0);
             });
         });
     });
@@ -169,7 +169,7 @@ describe('Video Delete', () => {
                 mockDocClient.on(DeleteCommand).resolves({});
                 mockS3Client.on(ListObjectsV2Command).resolves({ KeyCount: 0 });
                 await deleteMedia(`/2001/12-31/video.${ext}`);
-                expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(1);
+                expect(mockDocClient.commandCalls(DeleteCommand)).toHaveLength(1);
             });
         });
     });

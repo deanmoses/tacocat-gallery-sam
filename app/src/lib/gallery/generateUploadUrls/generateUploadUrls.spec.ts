@@ -23,8 +23,8 @@ describe('Invalid album paths', () => {
     ].forEach((invalidAlbumPath) => {
         it(`Should fail on invalid album [${invalidAlbumPath}]`, async () => {
             await expect(generateUploadUrls(invalidAlbumPath, ['/2001/12-31/image.jpg'])).rejects.toThrow(/invalid/i);
-            expect(mockS3Client.calls().length).toBe(0);
-            expect(mockDDBClient.calls().length).toBe(0);
+            expect(mockS3Client.calls()).toHaveLength(0);
+            expect(mockDDBClient.calls()).toHaveLength(0);
         });
     });
 });
@@ -49,7 +49,7 @@ describe('Invalid images', () => {
     ].forEach((invalidImagePath) => {
         it(`Should fail on invalid image [${invalidImagePath}]`, async () => {
             await expect(generateUploadUrls('/2001/12-31/', [invalidImagePath])).rejects.toThrow(/invalid/i);
-            expect(mockS3Client.calls().length).toBe(0);
+            expect(mockS3Client.calls()).toHaveLength(0);
         });
     });
 });
@@ -58,23 +58,23 @@ test('Should fail on mix of valid and invalid image paths', async () => {
     await expect(
         generateUploadUrls('/2001/12-31/', ['/2001/12-31/image.jpg', '/2001/12-31/INVALID', '/2001/12-31/image2.jpg']),
     ).rejects.toThrow(/invalid/i);
-    expect(mockS3Client.calls().length).toBe(0);
+    expect(mockS3Client.calls()).toHaveLength(0);
 });
 
 test('Should fail if image is not in album', async () => {
     await expect(generateUploadUrls('/2001/12-31/', ['/1899/01-01/image.jpg'])).rejects.toThrow(/album/i);
-    expect(mockS3Client.calls().length).toBe(0);
+    expect(mockS3Client.calls()).toHaveLength(0);
 });
 
 test('Should fail on no media', async () => {
     await expect(generateUploadUrls('/2001/12-31/', [])).rejects.toThrow(/media/i);
-    expect(mockS3Client.calls().length).toBe(0);
+    expect(mockS3Client.calls()).toHaveLength(0);
 });
 
 test('Should fail on nonexistent album', async () => {
     await expect(generateUploadUrls('/2001/12-31/', ['/2001/12-31/image.jpg'])).rejects.toThrow(/album/i);
-    expect(mockDDBClient.calls().length).toBe(1);
-    expect(mockS3Client.calls().length).toBe(0);
+    expect(mockDDBClient.calls()).toHaveLength(1);
+    expect(mockS3Client.calls()).toHaveLength(0);
 });
 
 test('Should succeed for JPEG', async () => {
@@ -83,8 +83,8 @@ test('Should succeed for JPEG', async () => {
     const url = urls['/2001/12-31/image.jpg'];
     if (!url) throw new Error(`No URL for /2001/12-31/image.jpg`);
     new URL(url); // Throws if invalid URL
-    expect(mockDDBClient.calls().length).toBe(1);
-    expect(mockS3Client.calls().length).toBe(0); // Shows that generating presigned URLs don't involve a call to S3
+    expect(mockDDBClient.calls()).toHaveLength(1);
+    expect(mockS3Client.calls()).toHaveLength(0); // Shows that generating presigned URLs don't involve a call to S3
 });
 
 test('Should succeed for HEIC', async () => {
@@ -111,7 +111,7 @@ describe('Video uploads', () => {
             '/2001/12-31/clip.mp4',
             '/2001/12-31/movie.mov',
         ]);
-        expect(Object.keys(urls).length).toBe(3);
+        expect(Object.keys(urls)).toHaveLength(3);
         new URL(urls['/2001/12-31/photo.jpg']);
         new URL(urls['/2001/12-31/clip.mp4']);
         new URL(urls['/2001/12-31/movie.mov']);

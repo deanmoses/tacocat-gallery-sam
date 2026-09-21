@@ -182,12 +182,12 @@ describe('handleVideoTranscodingComplete()', () => {
 
             // Should NOT have called CopyObjectCommand (destinations already exist)
             const copyCalls = mockS3Client.commandCalls(CopyObjectCommand);
-            expect(copyCalls.length).toBe(0);
+            expect(copyCalls).toHaveLength(0);
 
             // Should still call DeleteObjectCommand to clean up any remaining source files
             const deleteCalls = mockS3Client.commandCalls(DeleteObjectCommand);
             const derivedDeletes = deleteCalls.filter((call) => call.args[0].input.Bucket === 'test-derived-bucket');
-            expect(derivedDeletes.length).toBe(2); // video and poster source files
+            expect(derivedDeletes).toHaveLength(2); // video and poster source files
 
             // DynamoDB record should still be written
             const updateCalls = mockDocClient.commandCalls(UpdateCommand);
@@ -251,7 +251,7 @@ describe('handleVideoTranscodingComplete()', () => {
 
             const deleteCalls = mockS3Client.commandCalls(DeleteObjectCommand);
             const derivedDeletes = deleteCalls.filter((call) => call.args[0].input.Bucket === 'test-derived-bucket');
-            expect(derivedDeletes.length).toBe(2);
+            expect(derivedDeletes).toHaveLength(2);
         });
     });
 
@@ -281,7 +281,7 @@ describe('handleVideoTranscodingComplete()', () => {
 
             // Should not write any records
             const putCalls = mockDocClient.commandCalls(PutCommand);
-            expect(putCalls.length).toBe(0);
+            expect(putCalls).toHaveLength(0);
         });
 
         it('Handles partial userMetadata gracefully', async () => {
@@ -293,7 +293,7 @@ describe('handleVideoTranscodingComplete()', () => {
 
             // Should not write any records
             const putCalls = mockDocClient.commandCalls(PutCommand);
-            expect(putCalls.length).toBe(0);
+            expect(putCalls).toHaveLength(0);
         });
     });
 
@@ -370,7 +370,7 @@ describe('handleVideoTranscodingComplete()', () => {
             // Should delete partial outputs
             const deleteCalls = mockS3Client.commandCalls(DeleteObjectCommand);
             const derivedDeletes = deleteCalls.filter((call) => call.args[0].input.Bucket === 'test-derived-bucket');
-            expect(derivedDeletes.length).toBe(2);
+            expect(derivedDeletes).toHaveLength(2);
         });
 
         it('Reverts original file on content type failure', async () => {

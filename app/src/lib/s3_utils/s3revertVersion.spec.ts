@@ -15,7 +15,7 @@ describe('revertS3Version()', () => {
 
         expect(result).toBe(true);
         const deleteCalls = mockS3.commandCalls(DeleteObjectCommand);
-        expect(deleteCalls.length).toBe(1);
+        expect(deleteCalls).toHaveLength(1);
         expect(deleteCalls[0].args[0].input).toEqual({
             Bucket: 'test-bucket',
             Key: '2024/06-15/photo.jpg',

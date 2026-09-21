@@ -22,7 +22,7 @@ afterEach(() => {
 
 test('cannot update root album', async () => {
     await expect(updateAlbum('/', { title: 'Title' })).rejects.toThrow(/root/i);
-    expect(mockDocClient.calls().length).toBe(0);
+    expect(mockDocClient.calls()).toHaveLength(0);
 });
 
 test('fail on unknown attribute', async () => {

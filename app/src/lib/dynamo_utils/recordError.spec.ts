@@ -19,7 +19,7 @@ describe('recordError()', () => {
         expect(result).toBe(true);
 
         const putCalls = mockDynamoDB.commandCalls(PutCommand);
-        expect(putCalls.length).toBe(1);
+        expect(putCalls).toHaveLength(1);
 
         const item = putCalls[0].args[0].input.Item;
         expect(item?.path).toBe('/2024/06-15/photo.jpg');
@@ -67,7 +67,7 @@ describe('recordMediaProcessingError()', () => {
         expect(result).toBe(true);
 
         const putCalls = mockDynamoDB.commandCalls(PutCommand);
-        expect(putCalls.length).toBe(1);
+        expect(putCalls).toHaveLength(1);
 
         const item = putCalls[0].args[0].input.Item;
         expect(item?.path).toBe('/2024/06-15/photo.jpg');

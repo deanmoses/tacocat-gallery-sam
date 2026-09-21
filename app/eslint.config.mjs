@@ -73,7 +73,6 @@ export default defineConfig(
             'jest/no-conditional-in-test': 'off',
             'jest/prefer-ending-with-an-expect': 'off',
             'jest/prefer-strict-equal': 'off',
-            'jest/prefer-to-have-length': 'off',
 
             // Blank-line placement is Prettier's job
             'jest/padding-around-all': 'off',

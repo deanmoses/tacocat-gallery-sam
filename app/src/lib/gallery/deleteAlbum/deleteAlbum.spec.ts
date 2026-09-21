@@ -24,7 +24,7 @@ describe('Invalid Paths', () => {
     paths.forEach((path) => {
         it(`Path should be invalid: [${path}]`, async () => {
             await expect(deleteAlbum(path)).rejects.toThrow(/malformed/i);
-            expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(0);
+            expect(mockDocClient.commandCalls(DeleteCommand)).toHaveLength(0);
         });
     });
 });

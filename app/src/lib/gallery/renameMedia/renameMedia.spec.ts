@@ -28,8 +28,8 @@ describe('Invalid Existing Image Paths', () => {
     paths.forEach((path) => {
         it(`Invalid: [${path}]`, async () => {
             await expect(renameMedia(path, 'image.jpg')).rejects.toThrow(/invalid|malformed/i);
-            expect(mockDDBClient.calls().length).toBe(0);
-            expect(mockS3Client.calls().length).toBe(0);
+            expect(mockDDBClient.calls()).toHaveLength(0);
+            expect(mockS3Client.calls()).toHaveLength(0);
         });
     });
 });
@@ -70,8 +70,8 @@ describe('Invalid New Image Names', () => {
     imageNames.forEach((imageName) => {
         it(`Invalid: [${imageName}]`, async () => {
             await expect(renameMedia('/2001/12-31/image.jpg', imageName)).rejects.toThrow(/invalid|malformed/i);
-            expect(mockDDBClient.calls().length).toBe(0);
-            expect(mockS3Client.calls().length).toBe(0);
+            expect(mockDDBClient.calls()).toHaveLength(0);
+            expect(mockS3Client.calls()).toHaveLength(0);
         });
     });
 });
@@ -87,8 +87,8 @@ describe("Extensions don't match", () => {
         const newName = pair.newName;
         it(`Mismatch: [${oldName}] [${newName}]`, async () => {
             await expect(renameMedia(`/2001/12-31/${oldName}`, newName)).rejects.toThrow(/match/i);
-            expect(mockDDBClient.calls().length).toBe(0);
-            expect(mockS3Client.calls().length).toBe(0);
+            expect(mockDDBClient.calls()).toHaveLength(0);
+            expect(mockS3Client.calls()).toHaveLength(0);
         });
     });
 });
@@ -127,8 +127,8 @@ describe('Video rename validation', () => {
         invalidPaths.forEach((path) => {
             it(`Invalid: [${path}]`, async () => {
                 await expect(renameMedia(path, 'newvideo.mp4')).rejects.toThrow(/invalid|malformed/i);
-                expect(mockDDBClient.calls().length).toBe(0);
-                expect(mockS3Client.calls().length).toBe(0);
+                expect(mockDDBClient.calls()).toHaveLength(0);
+                expect(mockS3Client.calls()).toHaveLength(0);
             });
         });
     });
@@ -147,8 +147,8 @@ describe('Video rename validation', () => {
         invalidNames.forEach((name) => {
             it(`Invalid: [${name}]`, async () => {
                 await expect(renameMedia('/2001/12-31/video.mp4', name)).rejects.toThrow(/invalid|malformed/i);
-                expect(mockDDBClient.calls().length).toBe(0);
-                expect(mockS3Client.calls().length).toBe(0);
+                expect(mockDDBClient.calls()).toHaveLength(0);
+                expect(mockS3Client.calls()).toHaveLength(0);
             });
         });
     });
@@ -162,8 +162,8 @@ describe('Video rename validation', () => {
         mismatchedPairs.forEach((pair) => {
             it(`Mismatch: [${pair.oldName}] -> [${pair.newName}]`, async () => {
                 await expect(renameMedia(`/2001/12-31/${pair.oldName}`, pair.newName)).rejects.toThrow(/match/i);
-                expect(mockDDBClient.calls().length).toBe(0);
-                expect(mockS3Client.calls().length).toBe(0);
+                expect(mockDDBClient.calls()).toHaveLength(0);
+                expect(mockS3Client.calls()).toHaveLength(0);
             });
         });
     });

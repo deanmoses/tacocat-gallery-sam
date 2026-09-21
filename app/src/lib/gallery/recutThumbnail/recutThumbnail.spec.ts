@@ -87,7 +87,7 @@ test('Save Crop', async () => {
     // Mock out the AWS method to get the image dimensions
     mockDocClient.on(GetCommand).resolves({ Item: { dimensions: { width: 1000, height: 1000 } } });
     await recutThumbnail('/2001/12-31/image.jpg', crop);
-    expect(mockDocClient.commandCalls(UpdateCommand).length).toBe(1);
+    expect(mockDocClient.commandCalls(UpdateCommand)).toHaveLength(1);
     const x = mockDocClient.commandCalls(UpdateCommand)[0].args[0].input;
     expect(x?.Key?.parentPath).toBe('/2001/12-31/');
     expect(x?.Key?.itemName).toBe('image.jpg');

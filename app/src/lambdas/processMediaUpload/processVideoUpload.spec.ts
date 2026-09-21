@@ -26,7 +26,7 @@ describe('processVideoUpload()', () => {
         await processVideoUpload('test-bucket', '2024/06-15/video.mp4', 'version123');
 
         const createJobCalls = mockMediaConvert.commandCalls(CreateJobCommand);
-        expect(createJobCalls.length).toBe(1);
+        expect(createJobCalls).toHaveLength(1);
 
         const jobInput = createJobCalls[0].args[0].input;
         expect(jobInput.Role).toBe('arn:aws:iam::123456789012:role/MediaConvertRole');

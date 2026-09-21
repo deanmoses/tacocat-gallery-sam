@@ -114,6 +114,6 @@ describe('getErrors()', () => {
         expect(batchCallCount).toBe(2);
         expect(result.errors['/2001/12-31/video0.mp4']).toBe('Error for /2001/12-31/video0.mp4');
         expect(result.errors['/2001/12-31/video149.mp4']).toBe('Error for /2001/12-31/video149.mp4');
-        expect(Object.keys(result.errors).length).toBe(2);
+        expect(Object.keys(result.errors)).toHaveLength(2);
     });
 });
