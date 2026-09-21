@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createAlbum, createAlbumNoThrow } from '../../lib/gallery/createAlbum/createAlbum';
-import { Album, AlbumUpdateRequest } from '../../lib/gallery/galleryTypes';
+import type { Album, AlbumUpdateRequest } from '../../lib/gallery/galleryTypes';
 import { getAlbum } from '../../lib/gallery/getAlbum/getAlbum';
 import { updateAlbum } from '../../lib/gallery/updateAlbum/updateAlbum';
 import { cleanUpYear, getAlbumOrFail } from './helpers/fixtures';

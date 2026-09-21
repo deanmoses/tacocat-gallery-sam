@@ -1,4 +1,5 @@
-import { migrateDimensions, MigrateInput, MigrateResult } from './migrateDimensions';
+import type { MigrateInput, MigrateResult } from './migrateDimensions';
+import { migrateDimensions } from './migrateDimensions';
 
 /**
  * This was a one-time migration to validate and fix image dimensions in DynamoDB.

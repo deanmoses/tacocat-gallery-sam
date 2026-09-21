@@ -1,4 +1,4 @@
-import { APIGatewayProxyEvent } from 'aws-lambda';
+import type { APIGatewayProxyEvent } from 'aws-lambda';
 import { CognitoJwtVerifier } from 'aws-jwt-verify';
 import type { CognitoIdTokenPayload } from 'aws-jwt-verify/jwt-model';
 import { UnauthorizedException } from './UnauthorizedException';

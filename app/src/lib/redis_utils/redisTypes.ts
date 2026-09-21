@@ -1,4 +1,4 @@
-import { AlbumThumbnailEntry, GalleryItemType, ImageThumbnailCrop, Size } from '../gallery/galleryTypes';
+import type { AlbumThumbnailEntry, GalleryItemType, ImageThumbnailCrop, Size } from '../gallery/galleryTypes';
 
 export type RedisGalleryItem = RedisAlbumItem | RedisMediaItem;
 export type RedisMediaItem = RedisImageItem | RedisVideoItem;

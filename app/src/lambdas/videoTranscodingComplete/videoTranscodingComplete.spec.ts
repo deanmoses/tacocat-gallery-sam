@@ -9,7 +9,8 @@ import {
     NotFound,
 } from '@aws-sdk/client-s3';
 import { MediaConvertClient, GetJobCommand, DescribeEndpointsCommand } from '@aws-sdk/client-mediaconvert';
-import { handleVideoTranscodingComplete, MediaConvertJobStateChangeEvent } from './videoTranscodingComplete';
+import type { MediaConvertJobStateChangeEvent } from './videoTranscodingComplete';
+import { handleVideoTranscodingComplete } from './videoTranscodingComplete';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
 const mockS3Client = mockClient(S3Client);

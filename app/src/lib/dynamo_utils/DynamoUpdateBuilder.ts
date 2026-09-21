@@ -1,4 +1,4 @@
-import { AlbumItem } from '../gallery/galleryTypes';
+import type { AlbumItem } from '../gallery/galleryTypes';
 
 /**
  * Generate a DynamoDB PartiSQL update string

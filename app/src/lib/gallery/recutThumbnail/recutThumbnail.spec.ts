@@ -1,7 +1,7 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { recutThumbnail, toPixelsFromPctCrop } from './recutThumbnail';
-import { Rectangle } from '../../../lambdas/generateDerivedImage/focusCrop';
+import type { Rectangle } from '../../../lambdas/generateDerivedImage/focusCrop';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
 

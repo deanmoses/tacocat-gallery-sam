@@ -2,7 +2,7 @@ import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { getParentAndNameFromPath, isValidVideoPath } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
-import { Size } from '../galleryTypes';
+import type { Size } from '../galleryTypes';
 import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /**

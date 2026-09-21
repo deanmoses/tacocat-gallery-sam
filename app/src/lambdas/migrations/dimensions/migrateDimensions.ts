@@ -24,10 +24,12 @@
  * @see https://github.com/deanmoses/tacocat-gallery-sam/issues/109
  */
 
-import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import type { S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
 import ExifReader from 'exifreader';
-import { Readable } from 'stream';
+import type { Readable } from 'stream';
 import { getChildItems } from '../../../lib/dynamo_utils/ddbGet';
 import { getDynamoDbTableName, getOriginalImagesBucketName } from '../../../lib/lambda_utils/Env';
 import {
@@ -37,7 +39,7 @@ import {
     toMediaPath,
     toAlbumPath,
 } from '../../../lib/gallery_path_utils/galleryPathUtils';
-import { AlbumItem, ImageItem, Size } from '../../../lib/gallery/galleryTypes';
+import type { AlbumItem, ImageItem, Size } from '../../../lib/gallery/galleryTypes';
 import { selectMetadata } from '../../processMediaUpload/extractImageMetadata';
 import { mergeTags } from '../../../lib/gallery/upsertImage/upsertImage';
 import { ddbDocClient } from '../../../lib/dynamo_utils/ddbClient';

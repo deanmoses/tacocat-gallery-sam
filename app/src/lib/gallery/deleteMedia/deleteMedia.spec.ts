@@ -1,13 +1,8 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { deleteMedia } from './deleteMedia';
-import {
-    DeleteObjectsCommand,
-    DeleteObjectsCommandOutput,
-    ListObjectsV2Command,
-    ListObjectsV2CommandOutput,
-    S3Client,
-} from '@aws-sdk/client-s3';
+import type { DeleteObjectsCommandOutput, ListObjectsV2CommandOutput } from '@aws-sdk/client-s3';
+import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 
 const mockS3Client = mockClient(S3Client);
 const mockDocClient = mockClient(DynamoDBDocumentClient);

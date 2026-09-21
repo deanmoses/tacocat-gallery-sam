@@ -7,9 +7,10 @@ import {
     isValidDayAlbumPath,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { ConditionalCheckFailedException, TransactionCanceledException } from '@aws-sdk/client-dynamodb';
-import { TransactWriteCommand, TransactWriteCommandInput, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import type { TransactWriteCommandInput } from '@aws-sdk/lib-dynamodb';
+import { TransactWriteCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
-import { AlbumItem, AlbumUpdateRequest } from '../galleryTypes';
+import type { AlbumItem, AlbumUpdateRequest } from '../galleryTypes';
 import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 type TransactUpdate = NonNullable<NonNullable<TransactWriteCommandInput['TransactItems']>[number]['Update']>;

@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Readable } from 'stream';
+import type { Readable } from 'stream';
 import { GetObjectCommand, HeadObjectCommand, NotFound, PutObjectCommand } from '@aws-sdk/client-s3';
 import mime from 'mime';
 import { isValidMediaPathForUpload } from '../../../lib/gallery_path_utils/galleryPathUtils';

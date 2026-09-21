@@ -1,4 +1,4 @@
-import { OutputGroupDetail } from '@aws-sdk/client-mediaconvert';
+import type { OutputGroupDetail } from '@aws-sdk/client-mediaconvert';
 import { getParentFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { getOriginalImagesBucketName } from '../../lib/lambda_utils/Env';
 import { recordMediaProcessingError } from '../../lib/dynamo_utils/recordError';

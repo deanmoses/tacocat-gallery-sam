@@ -1,4 +1,4 @@
-import { APIGatewayProxyEvent } from 'aws-lambda';
+import type { APIGatewayProxyEvent } from 'aws-lambda';
 import { BadRequestException } from './BadRequestException';
 import { hasIdToken } from './AuthorizationHelpers';
 import { getHeader } from './HttpHeaders';

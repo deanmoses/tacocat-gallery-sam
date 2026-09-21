@@ -1,4 +1,4 @@
-import { BaseGalleryRecord } from '../gallery/galleryTypes';
+import type { BaseGalleryRecord } from '../gallery/galleryTypes';
 
 /**
  * Supported image extensions for original stored images.

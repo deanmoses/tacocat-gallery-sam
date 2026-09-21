@@ -1,5 +1,5 @@
-import { FtSearchOptions } from 'redis';
-import {
+import type { FtSearchOptions } from 'redis';
+import type {
     AlbumItem,
     AlbumThumbnailEntry,
     GalleryItem,

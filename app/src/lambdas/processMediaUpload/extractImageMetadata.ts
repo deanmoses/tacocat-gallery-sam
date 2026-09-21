@@ -1,7 +1,7 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import ExifReader from 'exifreader';
-import { Readable } from 'stream';
-import { ImageCreateRequest } from '../../lib/gallery/galleryTypes';
+import type { Readable } from 'stream';
+import type { ImageCreateRequest } from '../../lib/gallery/galleryTypes';
 import { s3Client } from '../../lib/s3_utils/s3Client';
 
 /**

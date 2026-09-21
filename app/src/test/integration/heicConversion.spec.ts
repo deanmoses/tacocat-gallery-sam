@@ -1,5 +1,5 @@
 import ExifReader from 'exifreader';
-import { ImageItem, VideoItem } from '../../lib/gallery/galleryTypes';
+import type { ImageItem, VideoItem } from '../../lib/gallery/galleryTypes';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { cleanUpYear, getMediaOrFail, publishAlbumAndYear, waitForMediaItem } from './helpers/fixtures';
 import { downloadOriginal, originalExists, uploadMedia, waitForOriginalDeleted } from './helpers/s3';

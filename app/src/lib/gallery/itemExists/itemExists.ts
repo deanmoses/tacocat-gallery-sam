@@ -8,7 +8,7 @@ import {
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { getItem } from '../../dynamo_utils/ddbGet';
-import { AlbumItem } from '../galleryTypes';
+import type { AlbumItem } from '../galleryTypes';
 import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /**

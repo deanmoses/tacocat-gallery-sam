@@ -110,6 +110,10 @@ export default defineConfig(
             '@typescript-eslint/no-unsafe-return': 'error',
             '@typescript-eslint/no-unsafe-call': 'error',
             '@typescript-eslint/no-unsafe-enum-comparison': 'error',
+
+            // Writes the `import type` that tsconfig's verbatimModuleSyntax demands
+            '@typescript-eslint/consistent-type-imports': 'error',
+            '@typescript-eslint/no-import-type-side-effects': 'error',
         },
     },
 );

@@ -1,5 +1,5 @@
 import { BatchGetCommand } from '@aws-sdk/lib-dynamodb';
-import { GalleryItem, ImageItem } from '../gallery/galleryTypes';
+import type { GalleryItem, ImageItem } from '../gallery/galleryTypes';
 import { getParentAndNameFromPath, toMediaPath } from '../gallery_path_utils/galleryPathUtils';
 import { getDynamoDbTableName } from '../lambda_utils/Env';
 import { ddbDocClient } from './ddbClient';

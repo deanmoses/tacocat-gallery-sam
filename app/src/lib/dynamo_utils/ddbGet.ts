@@ -1,7 +1,7 @@
 import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { getParentAndNameFromPath, isValidAlbumPath, isValidPath } from '../gallery_path_utils/galleryPathUtils';
 import { getDynamoDbTableName } from '../lambda_utils/Env';
-import { GalleryItem, GalleryItemKey } from '../gallery/galleryTypes';
+import type { GalleryItem, GalleryItemKey } from '../gallery/galleryTypes';
 import { ddbDocClient } from './ddbClient';
 
 /** DynamoDB reserved words that need aliasing in expressions */

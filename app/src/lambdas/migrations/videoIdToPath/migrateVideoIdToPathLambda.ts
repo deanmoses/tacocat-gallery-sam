@@ -1,6 +1,6 @@
 import { BatchGetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import type { S3Client } from '@aws-sdk/client-s3';
 import {
-    S3Client,
     CopyObjectCommand,
     ListObjectsV2Command,
     DeleteObjectsCommand,

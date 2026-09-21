@@ -2,7 +2,7 @@ import { GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { getParentAndNameFromPath, isValidImagePath } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
-import { ImageCreateRequest } from '../galleryTypes';
+import type { ImageCreateRequest } from '../galleryTypes';
 import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /**

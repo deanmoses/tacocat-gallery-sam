@@ -1,9 +1,10 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
-import { syncRedis, initRedis, deepEqual, SyncResult, isSyncErrorResult } from './syncRedis';
-import { ImageItem, AlbumItem } from '../galleryTypes';
-import { RedisImageItem, RedisAlbumItem } from '../../redis_utils/redisTypes';
-import { RedisClient } from '../../redis_utils/redisClientUtils';
+import type { SyncResult } from './syncRedis';
+import { syncRedis, initRedis, deepEqual, isSyncErrorResult } from './syncRedis';
+import type { ImageItem, AlbumItem } from '../galleryTypes';
+import type { RedisImageItem, RedisAlbumItem } from '../../redis_utils/redisTypes';
+import type { RedisClient } from '../../redis_utils/redisClientUtils';
 
 const mockDocClient = mockClient(DynamoDBDocumentClient);
 

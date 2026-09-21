@@ -1,5 +1,5 @@
-import { RedisGalleryItem } from './redisTypes';
-import { RedisClient } from './redisClientUtils';
+import type { RedisGalleryItem } from './redisTypes';
+import type { RedisClient } from './redisClientUtils';
 import { isValidMediaPath } from '../gallery_path_utils/galleryPathUtils';
 
 /**

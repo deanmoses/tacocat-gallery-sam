@@ -1,5 +1,6 @@
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
-import { RedisSearchQuery, SearchResults, searchRedis } from '../../redis_utils/redisSearch';
+import type { RedisSearchQuery, SearchResults } from '../../redis_utils/redisSearch';
+import { searchRedis } from '../../redis_utils/redisSearch';
 
 export async function search(query: SearchQuery): Promise<SearchResults> {
     // Remove any undefined keys, simply to make logging cleaner

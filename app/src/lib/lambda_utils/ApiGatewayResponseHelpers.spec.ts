@@ -1,4 +1,4 @@
-import { APIGatewayProxyEvent } from 'aws-lambda';
+import type { APIGatewayProxyEvent } from 'aws-lambda';
 import { respond404NotFound, respondHttp } from './ApiGatewayResponseHelpers';
 
 const event = {} as APIGatewayProxyEvent;

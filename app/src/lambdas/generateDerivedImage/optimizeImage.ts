@@ -1,5 +1,6 @@
 import sharp from 'sharp';
-import { focusCrop, Point, Rectangle, Size } from './focusCrop';
+import type { Point, Rectangle, Size } from './focusCrop';
+import { focusCrop } from './focusCrop';
 
 /**
  * Supported output formats for derived images.

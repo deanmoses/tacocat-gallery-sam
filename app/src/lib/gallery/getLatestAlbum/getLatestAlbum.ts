@@ -1,6 +1,6 @@
 import { QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
-import { AlbumThumbnail, ImageItem } from '../galleryTypes';
+import type { AlbumThumbnail, ImageItem } from '../galleryTypes';
 import { toAlbumPath } from '../../gallery_path_utils/galleryPathUtils';
 import { getItem } from '../../dynamo_utils/ddbGet';
 import { ddbDocClient } from '../../dynamo_utils/ddbClient';

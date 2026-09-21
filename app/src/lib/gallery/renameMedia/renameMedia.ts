@@ -14,7 +14,7 @@ import { itemExists } from '../itemExists/itemExists';
 import { copyOriginal, copyDerivedAssets } from '../../s3_utils/s3copy';
 import { deleteOriginalAndDerivativesForMediaItem } from '../../s3_utils/s3delete';
 import { getFullItemFromDynamoDB } from '../../dynamo_utils/ddbGet';
-import { MediaItem } from '../galleryTypes';
+import type { MediaItem } from '../galleryTypes';
 import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /**

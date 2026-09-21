@@ -1,4 +1,5 @@
-import { createRedisSearchClient, RedisClient } from '../../../lib/redis_utils/redisClientUtils';
+import type { RedisClient } from '../../../lib/redis_utils/redisClientUtils';
+import { createRedisSearchClient } from '../../../lib/redis_utils/redisClientUtils';
 import { waitFor } from './waitFor';
 
 let client: Promise<RedisClient> | undefined;

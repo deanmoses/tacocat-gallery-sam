@@ -1,11 +1,5 @@
-import {
-    syncRedis,
-    initRedis,
-    SyncMode,
-    SyncResult,
-    SyncErrorResult,
-    InitResult,
-} from '../../lib/gallery/syncRedis/syncRedis';
+import type { SyncMode, SyncResult, SyncErrorResult, InitResult } from '../../lib/gallery/syncRedis/syncRedis';
+import { syncRedis, initRedis } from '../../lib/gallery/syncRedis/syncRedis';
 
 /** Event shape for direct Lambda invocation */
 export interface SyncRedisEvent {

@@ -1,4 +1,4 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import type { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { NotFoundException } from './NotFoundException';
 import { BadRequestException } from './BadRequestException';
 import { UnauthorizedException } from './UnauthorizedException';

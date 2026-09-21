@@ -1,5 +1,6 @@
-import { EventBridgeHandler } from 'aws-lambda';
-import { handleVideoTranscodingComplete, MediaConvertJobStateChangeEvent } from './videoTranscodingComplete';
+import type { EventBridgeHandler } from 'aws-lambda';
+import type { MediaConvertJobStateChangeEvent } from './videoTranscodingComplete';
+import { handleVideoTranscodingComplete } from './videoTranscodingComplete';
 
 /**
  * Lambda handler for video transcoding completion events.

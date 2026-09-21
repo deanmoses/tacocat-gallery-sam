@@ -1,5 +1,6 @@
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, BatchGetCommand, BatchGetCommandInput } from '@aws-sdk/lib-dynamodb';
+import type { BatchGetCommandInput } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, BatchGetCommand } from '@aws-sdk/lib-dynamodb';
 import { getErrors } from './getErrors';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 

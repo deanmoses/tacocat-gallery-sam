@@ -1,4 +1,4 @@
-import { APIGatewayProxyEvent, Context } from 'aws-lambda';
+import type { APIGatewayProxyEvent, Context } from 'aws-lambda';
 import { handler } from './getAlbumLambda';
 import { getAlbumAndChildren } from '../../lib/gallery/getAlbum/getAlbum';
 import { setVerifierForTesting } from '../../lib/lambda_utils/AuthorizationHelpers';

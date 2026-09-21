@@ -3,7 +3,7 @@ import { setImageAsParentAlbumThumbnailIfNoneExists } from '../../lib/gallery/se
 import { getParentFromPath, isValidImagePath } from '../../lib/gallery_path_utils/galleryPathUtils';
 import { createAlbumNoThrow } from '../../lib/gallery/createAlbum/createAlbum';
 import { upsertImage } from '../../lib/gallery/upsertImage/upsertImage';
-import { ImageCreateRequest, Size } from '../../lib/gallery/galleryTypes';
+import type { ImageCreateRequest, Size } from '../../lib/gallery/galleryTypes';
 import { getGalleryAppDomain } from '../../lib/lambda_utils/Env';
 import { revertS3Version } from '../../lib/s3_utils/s3revertVersion';
 import { recordMediaProcessingError } from '../../lib/dynamo_utils/recordError';

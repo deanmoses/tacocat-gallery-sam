@@ -1,5 +1,5 @@
-import { ImageItem, VideoItem } from '../gallery/galleryTypes';
-import { RedisImageItem, RedisVideoItem } from './redisTypes';
+import type { ImageItem, VideoItem } from '../gallery/galleryTypes';
+import type { RedisImageItem, RedisVideoItem } from './redisTypes';
 import { toRedisItem, toSearchableItemName } from './toRedisFromDynamo';
 
 describe('searchable filenames', () => {

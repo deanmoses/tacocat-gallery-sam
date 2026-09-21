@@ -1,4 +1,5 @@
-import { handler, SyncRedisEvent } from './syncRedisLambda';
+import type { SyncRedisEvent } from './syncRedisLambda';
+import { handler } from './syncRedisLambda';
 
 describe('syncRedisLambda', () => {
     describe('direct invoke mode validation', () => {

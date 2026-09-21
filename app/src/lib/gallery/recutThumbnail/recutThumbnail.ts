@@ -1,4 +1,4 @@
-import { Rectangle } from '../../../lambdas/generateDerivedImage/focusCrop';
+import type { Rectangle } from '../../../lambdas/generateDerivedImage/focusCrop';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { NotFoundException } from '../../lambda_utils/NotFoundException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
@@ -6,7 +6,7 @@ import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import { getParentAndNameFromPath, isValidMediaPath } from '../../gallery_path_utils/galleryPathUtils';
 import { getItem } from '../../dynamo_utils/ddbGet';
-import { ImageItem, Size } from '../galleryTypes';
+import type { ImageItem, Size } from '../galleryTypes';
 import { ServerException } from '../../lambda_utils/ServerException';
 import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 

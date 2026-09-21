@@ -1,4 +1,5 @@
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import type { S3Client } from '@aws-sdk/client-s3';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { fromPathToS3OriginalBucketKeyForUpload } from '../../s3_utils/s3path';
 import { getOriginalImagesBucketName } from '../../lambda_utils/Env';
 import {

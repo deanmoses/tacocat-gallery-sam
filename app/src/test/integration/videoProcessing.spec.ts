@@ -1,5 +1,5 @@
 import { deleteMedia } from '../../lib/gallery/deleteMedia/deleteMedia';
-import { VideoItem } from '../../lib/gallery/galleryTypes';
+import type { VideoItem } from '../../lib/gallery/galleryTypes';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { findMedia } from '../../lib/gallery_client/AlbumObject';
 import { getFullItemFromDynamoDB } from '../../lib/dynamo_utils/ddbGet';

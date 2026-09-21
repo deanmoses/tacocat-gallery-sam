@@ -6,7 +6,7 @@ import {
     toPathFromItem,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
-import { Album, AlbumItem, GalleryItem, NavInfo, Navigable } from '../galleryTypes';
+import type { Album, AlbumItem, GalleryItem, NavInfo, Navigable } from '../galleryTypes';
 import { getChildItems, getItem } from '../../dynamo_utils/ddbGet';
 import { augmentAlbumThumbnailsWithImageInfo } from '../../dynamo_utils/albumThumbnailHelper';
 

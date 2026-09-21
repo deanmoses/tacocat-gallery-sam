@@ -1,11 +1,13 @@
-import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
+import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { SCHEMA_FIELD_TYPE } from 'redis';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
 import { toRedisItem, toPath } from '../../redis_utils/toRedisFromDynamo';
-import { RedisClient, createRedisWriteClient, SEARCH_INDEX_NAME } from '../../redis_utils/redisClientUtils';
+import type { RedisClient } from '../../redis_utils/redisClientUtils';
+import { createRedisWriteClient, SEARCH_INDEX_NAME } from '../../redis_utils/redisClientUtils';
 import { saveToRedis } from '../../redis_utils/redisMset';
-import { GalleryItem } from '../galleryTypes';
-import { RedisGalleryItem } from '../../redis_utils/redisTypes';
+import type { GalleryItem } from '../galleryTypes';
+import type { RedisGalleryItem } from '../../redis_utils/redisTypes';
 import { ddbDocClient } from '../../dynamo_utils/ddbClient';
 
 /** Sync mode: diagnose (read-only), fix (write corrections), or init (create index) */
