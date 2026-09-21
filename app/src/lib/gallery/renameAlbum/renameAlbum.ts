@@ -7,6 +7,7 @@ import {
     isValidDayAlbumName,
     isValidYearAlbumPath,
     toAlbumPath,
+    toMediaPath,
 } from '../../gallery_path_utils/galleryPathUtils';
 import { BadRequestException } from '../../lambda_utils/BadRequestException';
 import { getDynamoDbTableName } from '../../lambda_utils/Env';
@@ -122,7 +123,7 @@ async function moveAlbumInDynamoDB(
     const children = await getFullChildrenFromDynamoDB(oldAlbumPath);
     if (!!children) {
         children.forEach((child) => {
-            const mediaPath = newAlbumPath + child.itemName;
+            const mediaPath = toMediaPath(newAlbumPath, child.itemName);
             const newVersionId = newVersionIds.get(mediaPath);
             if (!newVersionId) {
                 console.error({
