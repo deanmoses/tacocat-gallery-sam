@@ -1,14 +1,14 @@
 import fs from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
-import { GetObjectCommand, HeadObjectCommand, NotFound, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, HeadObjectCommand, NotFound, PutObjectCommand } from '@aws-sdk/client-s3';
 import mime from 'mime';
 import { isValidMediaPathForUpload } from '../../../lib/gallery_path_utils/galleryPathUtils';
 import { getDerivedImagesBucketName, getOriginalImagesBucketName } from '../../../lib/lambda_utils/Env';
+import { s3Client } from '../../../lib/s3_utils/s3Client';
 import { fromPathToS3OriginalBucketKeyForUpload } from '../../../lib/s3_utils/s3path';
 import { waitFor } from './waitFor';
 
-const s3 = new S3Client({});
 const dataDir = path.resolve(__dirname, '..', '..', 'data');
 
 /**
@@ -23,7 +23,7 @@ export async function uploadMedia(fixture: string, mediaPath: string): Promise<s
     if (!isValidMediaPathForUpload(mediaPath)) throw new Error(`Invalid media path for upload: [${mediaPath}]`);
     const filePath = path.join(dataDir, fixture);
     if (!fs.existsSync(filePath)) throw new Error(`No test fixture at [${filePath}]`);
-    const response = await s3.send(
+    const response = await s3Client.send(
         new PutObjectCommand({
             Bucket: getOriginalImagesBucketName(),
             Key: fromPathToS3OriginalBucketKeyForUpload(mediaPath),
@@ -42,7 +42,7 @@ export async function s3ObjectExists(bucket: string, key: string): Promise<boole
 /** The object's metadata, or undefined if there is no such object */
 export async function headObject(bucket: string, key: string): Promise<{ contentType?: string } | undefined> {
     try {
-        const response = await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+        const response = await s3Client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
         return { contentType: response.ContentType };
     } catch (e) {
         if (e instanceof NotFound) return undefined;
@@ -61,7 +61,7 @@ export function derivedExists(derivedPath: string): Promise<boolean> {
 }
 
 export async function downloadOriginal(mediaPath: string): Promise<Buffer> {
-    const response = await s3.send(
+    const response = await s3Client.send(
         new GetObjectCommand({ Bucket: getOriginalImagesBucketName(), Key: mediaPath.substring(1) }),
     );
     return Buffer.concat(await (response.Body as Readable).toArray());

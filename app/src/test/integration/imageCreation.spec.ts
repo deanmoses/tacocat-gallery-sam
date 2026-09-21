@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { deleteAlbum } from '../../lib/gallery/deleteAlbum/deleteAlbum';
 import { deleteMedia } from '../../lib/gallery/deleteMedia/deleteMedia';
 import { getAlbum } from '../../lib/gallery/getAlbum/getAlbum';
+import { search } from '../../lib/gallery/search/search';
 import { itemExists } from '../../lib/gallery/itemExists/itemExists';
 import { findMedia, findSubAlbum } from '../../lib/gallery_client/AlbumObject';
 import { getNameFromPath } from '../../lib/gallery_path_utils/galleryPathUtils';
@@ -9,6 +10,7 @@ import { cleanUpYear, getAlbumOrFail, setUpAlbumWithImages } from './helpers/fix
 import { waitForRedisItem, waitForRedisItemGone } from './helpers/redis';
 import { originalExists } from './helpers/s3';
 import { TEST_YEARS } from './helpers/testYears';
+import { waitFor } from './helpers/waitFor';
 
 const yearPath = TEST_YEARS.imageCreation;
 const albumPath = `${yearPath}09-02/`;
@@ -45,6 +47,18 @@ describe('after uploading an image into an album that did not exist', () => {
     });
 
     test('the image synced to Redis', () => waitForRedisItem(imagePath));
+
+    test('a title search within the year finds the image', async () => {
+        // Every suite uploads this fixture, so the year keeps the others out
+        const year = getNameFromPath(yearPath);
+        await waitFor(
+            async () => {
+                const results = await search({ terms: 'Image Title', oldestYear: year, newestYear: year });
+                return results.items.some((item) => item.path === imagePath);
+            },
+            { description: `search to find [${imagePath}]` },
+        );
+    });
 
     test('the album cannot be deleted while it has children', async () => {
         await expect(deleteAlbum(albumPath)).rejects.toThrow(/child/i);

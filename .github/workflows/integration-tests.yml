@@ -82,6 +82,8 @@ jobs:
                   echo "derived_image_domain=$DOMAIN" >> "$GITHUB_OUTPUT"
 
             - name: Run integration tests
+              # `npm run test:integration` also runs tsc, which the build job this
+              # one follows already did. Run Jest alone.
               working-directory: app
               env:
                   GALLERY_ITEM_DDB_TABLE: tacocat-gallery-sam-test-items
@@ -94,4 +96,4 @@ jobs:
                   REDIS_WRITE_PASSWORD: ${{ secrets.REDIS_TEST_WRITE_PASSWORD }}
                   REDIS_SEARCH_USERNAME: ${{ secrets.REDIS_TEST_SEARCH_USERNAME }}
                   REDIS_SEARCH_PASSWORD: ${{ secrets.REDIS_TEST_SEARCH_PASSWORD }}
-              run: npm run test:integration
+              run: npm run test:integration:jest
