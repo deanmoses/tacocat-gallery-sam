@@ -1274,7 +1274,7 @@ describe('toPathFromKey', () => {
     });
 
     test('a missing part throws', () => {
-        expect(() => toPathFromKey(undefined, '12-31')).toThrow();
-        expect(() => toPathFromKey('/2001/', undefined)).toThrow();
+        expect(() => toPathFromKey(undefined, '12-31')).toThrow(/parentPath/);
+        expect(() => toPathFromKey('/2001/', undefined)).toThrow(/itemName/);
     });
 });

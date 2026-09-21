@@ -83,7 +83,6 @@ export default defineConfig(
             'jest/no-conditional-expect': 'off',
             'jest/no-unnecessary-assertion': 'off',
             'jest/prefer-called-with': 'off',
-            'jest/require-to-throw-message': 'off',
         },
     },
     {
