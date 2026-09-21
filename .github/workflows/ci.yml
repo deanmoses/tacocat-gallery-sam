@@ -32,7 +32,7 @@ jobs:
               with:
                   persist-credentials: false
                   fetch-depth: 0 # Required for paths-filter to compare commits on push
-            - uses: dorny/paths-filter@v4
+            - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
               id: filter
               with:
                   predicate-quantifier: 'every'
