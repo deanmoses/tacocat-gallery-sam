@@ -117,6 +117,7 @@ export default defineConfig(
             '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
             '@typescript-eslint/dot-notation': 'error',
             '@typescript-eslint/prefer-optional-chain': 'error',
+            'no-new': 'error',
         },
     },
 );

@@ -82,7 +82,8 @@ test('Should succeed for JPEG', async () => {
     const urls = await generateUploadUrls('/2001/12-31/', ['/2001/12-31/image.jpg']);
     const url = urls['/2001/12-31/image.jpg'];
     if (!url) throw new Error(`No URL for /2001/12-31/image.jpg`);
-    new URL(url); // Throws if invalid URL
+
+    expect(() => new URL(url)).not.toThrow();
 
     expect(mockDDBClient.calls()).toHaveLength(1);
     expect(mockS3Client.calls()).toHaveLength(0); // Shows that generating presigned URLs don't involve a call to S3
@@ -117,8 +118,8 @@ describe('Video uploads', () => {
 
         expect(Object.keys(urls)).toHaveLength(3);
 
-        new URL(urls['/2001/12-31/photo.jpg']);
-        new URL(urls['/2001/12-31/clip.mp4']);
-        new URL(urls['/2001/12-31/movie.mov']);
+        expect(() => new URL(urls['/2001/12-31/photo.jpg'])).not.toThrow();
+        expect(() => new URL(urls['/2001/12-31/clip.mp4'])).not.toThrow();
+        expect(() => new URL(urls['/2001/12-31/movie.mov'])).not.toThrow();
     });
 });
