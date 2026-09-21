@@ -40,8 +40,8 @@ async function includedUnpublished(): Promise<boolean> {
 
 describe('getAlbum handler', () => {
     beforeEach(() => {
-        jest.spyOn(console, 'info').mockImplementation(() => undefined);
-        jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+        jest.spyOn(console, 'info').mockReturnValue(undefined);
+        jest.spyOn(console, 'warn').mockReturnValue(undefined);
         mockGetAlbumAndChildren.mockResolvedValue(ALBUM);
     });
 

@@ -14,20 +14,24 @@ async function errorMessageOf(response: Response): Promise<string | undefined> {
 }
 
 describe('without credentials', () => {
-    test('the root album is readable', async () => {
+    it('the root album is readable', async () => {
         const response = await fetch(`${api}/album`);
+
         expect(response.status).toBe(200);
+
         const album = (await response.json()) as { path?: string; children?: unknown[] };
+
         expect(album.path).toBe('/');
         expect(Array.isArray(album.children)).toBe(true);
     });
 
-    test('an album that does not exist is a 404', async () => {
+    it('an album that does not exist is a 404', async () => {
         const response = await fetch(`${api}/album/1600/01-01/`);
+
         expect(response.status).toBe(404);
     });
 
-    test.each([
+    it.each([
         ['PUT', '/album/1600/01-01/'],
         ['PATCH', '/album/1600/01-01/'],
         ['DELETE', '/album/1600/01-01/'],
@@ -40,6 +44,7 @@ describe('without credentials', () => {
         ['POST', '/presigned/1600/01-01/'],
     ])('%s %s is rejected as unauthorized', async (method, path) => {
         const response = await fetch(`${api}${path}`, { method, ...jsonBody });
+
         expect(response.status).toBe(401);
         await expect(errorMessageOf(response)).resolves.toMatch(/unauthorized/i);
     });

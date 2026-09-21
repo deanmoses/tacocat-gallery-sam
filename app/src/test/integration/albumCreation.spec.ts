@@ -31,18 +31,19 @@ test('rejects an unknown attribute', async () => {
 describe('a new album', () => {
     beforeAll(() => createAlbum(albumPath));
 
-    test('exists', async () => {
+    it('exists', async () => {
         await expect(itemExists(albumPath)).resolves.toBe(true);
     });
 
-    test('is hidden from readers of published albums', async () => {
+    it('is hidden from readers of published albums', async () => {
         await expect(getAlbumAndChildren(albumPath)).resolves.toBeUndefined();
     });
 
-    test('is empty and unpublished when read with unpublished albums included', async () => {
+    it('is empty and unpublished when read with unpublished albums included', async () => {
         const album = await getAlbumOrFail(albumPath, true);
         const { parent, name } = getParentAndNameFromPath(albumPath);
-        expect(album.children).toEqual([]);
+
+        expect(album.children).toStrictEqual([]);
         expect(album.itemName).toBe(name);
         expect(album.parentPath).toBe(parent);
         expect(album.path).toBe(albumPath);
@@ -51,32 +52,33 @@ describe('a new album', () => {
         expect(album.thumbnail).toBeUndefined();
     });
 
-    test('cannot be created again', async () => {
+    it('cannot be created again', async () => {
         await expect(createAlbum(albumPath)).rejects.toThrow(/exists/i);
     });
 
-    test('syncs to Redis', () => waitForRedisItem(albumPath));
+    it('syncs to Redis', () => waitForRedisItem(albumPath));
 });
 
 describe('after publishing the album', () => {
     beforeAll(() => updateAlbum(albumPath, { published: true }));
 
-    test('it is visible to readers of published albums', async () => {
+    it('is visible to readers of published albums', async () => {
         const album = await getAlbumOrFail(albumPath);
+
         expect(album.path).toBe(albumPath);
         expect(album.published).toBe(true);
-        expect(album.children).toEqual([]);
+        expect(album.children).toStrictEqual([]);
     });
 });
 
 describe('after deleting the album', () => {
     beforeAll(() => deleteAlbum(albumPath));
 
-    test('it is gone', async () => {
+    it('is gone', async () => {
         await expect(itemExists(albumPath)).resolves.toBe(false);
     });
 
-    test('it is removed from Redis', () => waitForRedisItemGone(albumPath));
+    it('is removed from Redis', () => waitForRedisItemGone(albumPath));
 });
 
 describe('an album created with attributes', () => {
@@ -84,9 +86,10 @@ describe('an album created with attributes', () => {
         createAlbum(albumWithAttributesPath, { description: 'Description 1', summary: 'Summary 1', published: true }),
     );
 
-    test('has them', async () => {
+    it('has them', async () => {
         const album = await getAlbumOrFail(albumWithAttributesPath);
         assert(album.children);
+
         expect(album.children).toHaveLength(0);
         expect(album.path).toBe(albumWithAttributesPath);
         expect(album.description).toBe('Description 1');

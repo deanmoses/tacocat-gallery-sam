@@ -3,8 +3,9 @@ import { MetadataExtractionError } from './extractImageMetadata';
 import * as extractMetadata from './extractImageMetadata';
 import * as revertS3 from '../../lib/s3_utils/s3revertVersion';
 import * as recordError from '../../lib/dynamo_utils/recordError';
+import * as createAlbum from '../../lib/gallery/createAlbum/createAlbum';
 
-jest.mock('./extractImageMetadata', () => {
+jest.mock<typeof import('./extractImageMetadata')>('./extractImageMetadata', () => {
     const actual = jest.requireActual<typeof import('./extractImageMetadata')>('./extractImageMetadata');
     return {
         ...actual,
@@ -13,23 +14,19 @@ jest.mock('./extractImageMetadata', () => {
 });
 jest.mock('../../lib/s3_utils/s3revertVersion');
 jest.mock('../../lib/dynamo_utils/recordError');
-jest.mock('../../lib/gallery/createAlbum/createAlbum', () => ({
-    createAlbumNoThrow: jest.fn().mockResolvedValue(false),
-}));
+jest.mock('../../lib/gallery/createAlbum/createAlbum');
 
-const mockExtractImageMetadata = extractMetadata.extractImageMetadata as jest.MockedFunction<
-    typeof extractMetadata.extractImageMetadata
->;
-const mockRevertS3Version = revertS3.revertS3Version as jest.MockedFunction<typeof revertS3.revertS3Version>;
-const mockRecordError = recordError.recordMediaProcessingError as jest.MockedFunction<
-    typeof recordError.recordMediaProcessingError
->;
+const mockExtractImageMetadata = jest.mocked(extractMetadata.extractImageMetadata);
+const mockRevertS3Version = jest.mocked(revertS3.revertS3Version);
+const mockRecordError = jest.mocked(recordError.recordMediaProcessingError);
+const mockCreateAlbumNoThrow = jest.mocked(createAlbum.createAlbumNoThrow);
 
 beforeEach(() => {
     jest.clearAllMocks();
     mockExtractImageMetadata.mockResolvedValue({ title: 'Test', dimensions: { width: 100, height: 100 } });
     mockRevertS3Version.mockResolvedValue(true);
     mockRecordError.mockResolvedValue(true);
+    mockCreateAlbumNoThrow.mockResolvedValue(false);
 });
 
 describe('processImageUpload()', () => {
@@ -52,14 +49,14 @@ describe('processImageUpload()', () => {
         ];
 
         s3keys.forEach((s3key) => {
-            test(`S3 key should be invalid: [${s3key}]`, async () => {
+            it(`S3 key should be invalid: [${s3key}]`, async () => {
                 await expect(processImageUpload('bucket', s3key, 'FAKE_VERSION_ID')).rejects.toThrow(/invalid/i);
             });
         });
     });
 
     describe('Metadata extraction error handling', () => {
-        test('Records error and reverts S3 version on MetadataExtractionError', async () => {
+        it('Records error and reverts S3 version on MetadataExtractionError', async () => {
             const metadataError = new MetadataExtractionError('Corrupt file');
             mockExtractImageMetadata.mockRejectedValue(metadataError);
 
@@ -72,7 +69,7 @@ describe('processImageUpload()', () => {
             expect(mockRevertS3Version).toHaveBeenCalledWith('test-bucket', '2024/06-15/photo.jpg', 'version123');
         });
 
-        test('Does not throw on MetadataExtractionError (returns normally)', async () => {
+        it('Does not throw on MetadataExtractionError (returns normally)', async () => {
             const metadataError = new MetadataExtractionError('Corrupt file');
             mockExtractImageMetadata.mockRejectedValue(metadataError);
 
@@ -81,7 +78,7 @@ describe('processImageUpload()', () => {
             ).resolves.toBeUndefined();
         });
 
-        test('Propagates non-MetadataExtractionError errors for retry', async () => {
+        it('Propagates non-MetadataExtractionError errors for retry', async () => {
             const s3Error = new Error('S3 connection failed');
             mockExtractImageMetadata.mockRejectedValue(s3Error);
 

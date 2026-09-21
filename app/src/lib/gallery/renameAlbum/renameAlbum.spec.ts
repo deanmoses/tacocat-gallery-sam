@@ -28,10 +28,10 @@ describe('Invalid existing album paths', () => {
         '/2000/12-31/image.jpg', // image, not album
     ];
     paths.forEach((path) => {
-        test(`Invalid: [${path}]`, async () => {
+        it(`Invalid: [${path}]`, async () => {
             await expect(renameAlbum(path, '01-01')).rejects.toThrow(/invalid|malformed/i);
-            expect(mockDDBClient.calls().length).toBe(0);
-            expect(mockS3Client.calls().length).toBe(0);
+            expect(mockDDBClient.calls()).toHaveLength(0);
+            expect(mockS3Client.calls()).toHaveLength(0);
         });
     });
 });
@@ -53,10 +53,10 @@ describe('Invalid new name', () => {
         '/2000/12-31/image.jpg', // image, not album
     ];
     newDayAlbumNames.forEach((newDayAlbumName) => {
-        test(`Invalid: [${newDayAlbumName}]`, async () => {
+        it(`Invalid: [${newDayAlbumName}]`, async () => {
             await expect(renameAlbum('/2001/12-31/', newDayAlbumName)).rejects.toThrow(/invalid|malformed/i);
-            expect(mockDDBClient.calls().length).toBe(0);
-            expect(mockS3Client.calls().length).toBe(0);
+            expect(mockDDBClient.calls()).toHaveLength(0);
+            expect(mockS3Client.calls()).toHaveLength(0);
         });
     });
 });
@@ -68,10 +68,10 @@ test('Cannot rename root album', async () => {
 describe('Cannot rename year albums', () => {
     const paths = ['/2001/', '/2020/'];
     paths.forEach((path) => {
-        test(`Invalid: [${path}]`, async () => {
+        it(`Invalid: [${path}]`, async () => {
             await expect(renameAlbum(path, '01-01')).rejects.toThrow(/year/i);
-            expect(mockDDBClient.calls().length).toBe(0);
-            expect(mockS3Client.calls().length).toBe(0);
+            expect(mockDDBClient.calls()).toHaveLength(0);
+            expect(mockS3Client.calls()).toHaveLength(0);
         });
     });
 });

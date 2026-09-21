@@ -14,16 +14,16 @@ afterEach(() => {
 });
 
 describe('getErrors()', () => {
-    test('Throws BadRequestException for empty input array', async () => {
+    it('Throws BadRequestException for empty input array', async () => {
         await expect(getErrors([])).rejects.toThrow(BadRequestException);
     });
 
-    test('Throws BadRequestException for invalid path', async () => {
+    it('Throws BadRequestException for invalid path', async () => {
         await expect(getErrors(['invalid-path'])).rejects.toThrow(BadRequestException);
         await expect(getErrors(['/not/a/valid/path.jpg'])).rejects.toThrow(BadRequestException);
     });
 
-    test('Returns empty object when no errors found', async () => {
+    it('Returns empty object when no errors found', async () => {
         mockDocClient.on(BatchGetCommand).resolves({
             Responses: {
                 'test-errors': [],
@@ -31,10 +31,11 @@ describe('getErrors()', () => {
         });
 
         const result = await getErrors(['/2001/12-31/video.mp4']);
-        expect(result).toEqual({ errors: {} });
+
+        expect(result).toStrictEqual({ errors: {} });
     });
 
-    test('Returns errors for paths that have errors', async () => {
+    it('Returns errors for paths that have errors', async () => {
         mockDocClient.on(BatchGetCommand).resolves({
             Responses: {
                 'test-errors': [
@@ -46,7 +47,7 @@ describe('getErrors()', () => {
 
         const result = await getErrors(['/2001/12-31/video.mp4', '/2001/12-31/video2.avi', '/2001/12-31/video3.mov']);
 
-        expect(result).toEqual({
+        expect(result).toStrictEqual({
             errors: {
                 '/2001/12-31/video.mp4': 'Unsupported codec',
                 '/2001/12-31/video2.avi': 'File corrupted',
@@ -54,7 +55,7 @@ describe('getErrors()', () => {
         });
     });
 
-    test('Returns only paths with errors, omits successful ones', async () => {
+    it('Returns only paths with errors, omits successful ones', async () => {
         mockDocClient.on(BatchGetCommand).resolves({
             Responses: {
                 'test-errors': [
@@ -73,14 +74,14 @@ describe('getErrors()', () => {
             '/2001/12-31/another-success.avi',
         ]);
 
-        expect(result).toEqual({
+        expect(result).toStrictEqual({
             errors: {
                 '/2001/12-31/failed.mp4': 'Transcoding failed',
             },
         });
     });
 
-    test('Handles large batches by splitting into chunks of 100', async () => {
+    it('Handles large batches by splitting into chunks of 100', async () => {
         // Create 150 paths
         const paths = Array.from({ length: 150 }, (_, i) => `/2001/12-31/video${i}.mp4`);
 
@@ -114,6 +115,6 @@ describe('getErrors()', () => {
         expect(batchCallCount).toBe(2);
         expect(result.errors['/2001/12-31/video0.mp4']).toBe('Error for /2001/12-31/video0.mp4');
         expect(result.errors['/2001/12-31/video149.mp4']).toBe('Error for /2001/12-31/video149.mp4');
-        expect(Object.keys(result.errors).length).toBe(2);
+        expect(Object.keys(result.errors)).toHaveLength(2);
     });
 });

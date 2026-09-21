@@ -38,10 +38,11 @@ test('rejects an image that does not exist', async () => {
 describe('after setting the day album thumbnail', () => {
     beforeAll(() => setAlbumThumbnail(albumPath, imagePath));
 
-    test('the year listing shows it on the day album, with a version and no crop', async () => {
+    it('the year listing shows it on the day album, with a version and no crop', async () => {
         const thumbnail = await thumbnailInListing(yearPath, albumPath);
+
         expect(thumbnail.path).toBe(imagePath);
-        expect(thumbnail.versionId).toBeDefined();
+        expect(thumbnail.versionId).toStrictEqual(expect.any(String));
         expect(thumbnail.crop).toBeUndefined();
     });
 });
@@ -49,14 +50,16 @@ describe('after setting the day album thumbnail', () => {
 describe('after setting the year album thumbnail', () => {
     beforeAll(() => setAlbumThumbnail(yearPath, imagePath));
 
-    test('the year album has it', async () => {
+    it('the year album has it', async () => {
         const year = await getAlbum(yearPath);
+
         expect(year?.thumbnail?.path).toBe(imagePath);
         expect(year?.thumbnail?.crop).toBeUndefined();
     });
 
-    test('the root listing shows it on the year', async () => {
+    it('the root listing shows it on the year', async () => {
         const thumbnail = await thumbnailInListing('/', yearPath);
+
         expect(thumbnail.path).toBe(imagePath);
         expect(thumbnail.crop).toBeUndefined();
     });
@@ -65,32 +68,36 @@ describe('after setting the year album thumbnail', () => {
 describe('after recutting the thumbnail', () => {
     beforeAll(() => recutThumbnail(imagePath, cropInPct));
 
-    test('the year listing shows the crop on the day album', async () => {
+    it('the year listing shows the crop on the day album', async () => {
         const thumbnail = await thumbnailInListing(yearPath, albumPath);
+
         expect(thumbnail.path).toBe(imagePath);
-        expect(thumbnail.crop).toEqual(cropInPx);
+        expect(thumbnail.crop).toStrictEqual(cropInPx);
     });
 
-    test('the root listing shows the crop on the year', async () => {
+    it('the root listing shows the crop on the year', async () => {
         const thumbnail = await thumbnailInListing('/', yearPath);
+
         expect(thumbnail.path).toBe(imagePath);
-        expect(thumbnail.crop).toEqual(cropInPx);
+        expect(thumbnail.crop).toStrictEqual(cropInPx);
     });
 
     // Known gap: a recut is stored on the image, and only child listings look it up.
     // Reading the album itself returns the thumbnail entry as it was when it was set.
     // This flips to a failure when the gap is closed, which is the cue to drop `.failing`.
-    test.failing('the year album read directly shows the crop', async () => {
+    it.failing('the year album read directly shows the crop', async () => {
         const year = await getAlbum(yearPath);
-        expect(year?.thumbnail?.crop).toEqual(cropInPx);
+
+        expect(year?.thumbnail?.crop).toStrictEqual(cropInPx);
     });
 });
 
 describe('after deleting the image', () => {
     beforeAll(() => deleteMedia(imagePath));
 
-    test('the day and year albums no longer have a thumbnail', async () => {
+    it('the day and year albums no longer have a thumbnail', async () => {
         const [album, year] = await Promise.all([getAlbum(albumPath), getAlbum(yearPath)]);
+
         expect(album?.thumbnail).toBeUndefined();
         expect(year?.thumbnail).toBeUndefined();
     });

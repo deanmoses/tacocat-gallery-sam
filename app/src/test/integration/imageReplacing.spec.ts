@@ -24,21 +24,25 @@ beforeAll(async () => {
 afterAll(() => cleanUpYear(yearPath));
 
 describe('the first uploads', () => {
-    test('the image with metadata has it', async () => {
+    it('the image with metadata has it', async () => {
         const image = await getMediaOrFail(fullPath);
+
         expect(image.title).toBe('Version 1');
         expect(image.description).toBe('Version one.');
-        expect(image.tags?.sort()).toEqual(['animal', 'boar', 'frog', 'v1']);
+        expect(image.tags?.sort()).toStrictEqual(['animal', 'boar', 'frog', 'v1']);
+
         assert(image.versionId, `[${fullPath}] has no versionId`);
         fullVersion1 = image.versionId;
         fullUpdatedOn1 = image.updatedOn;
     });
 
-    test('the image without metadata has none', async () => {
+    it('the image without metadata has none', async () => {
         const image = await getMediaOrFail(barePath);
+
         expect(image.title).toBeUndefined();
         expect(image.description).toBeUndefined();
-        expect(image.tags ?? []).toEqual([]);
+        expect(image.tags ?? []).toStrictEqual([]);
+
         assert(image.versionId, `[${barePath}] has no versionId`);
         bareVersion1 = image.versionId;
     });
@@ -53,20 +57,22 @@ describe('after uploading a second version of each', () => {
         await Promise.all([waitForMediaVersion(fullPath, fullVersion2), waitForMediaVersion(barePath, bareVersion2)]);
     });
 
-    test('the image with metadata keeps its title and description and merges its tags', async () => {
+    it('the image with metadata keeps its title and description and merges its tags', async () => {
         const image = await getMediaOrFail(fullPath);
+
         expect(image.title).toBe('Version 1');
         expect(image.description).toBe('Version one.');
-        expect(image.tags?.sort()).toEqual(['animal', 'boar', 'frog', 'v1', 'v2']);
+        expect(image.tags?.sort()).toStrictEqual(['animal', 'boar', 'frog', 'v1', 'v2']);
         expect(image.versionId).not.toBe(fullVersion1);
         expect(image.updatedOn).not.toBe(fullUpdatedOn1);
     });
 
-    test('the image without metadata takes the new metadata', async () => {
+    it('the image without metadata takes the new metadata', async () => {
         const image = await getMediaOrFail(barePath);
+
         expect(image.title).toBe('Version 2');
         expect(image.description).toBe('Version two.');
-        expect(image.tags?.sort()).toEqual(['forest', 'v2']);
+        expect(image.tags?.sort()).toStrictEqual(['forest', 'v2']);
         expect(image.versionId).not.toBe(bareVersion1);
     });
 });

@@ -25,6 +25,7 @@ function expectSharedHeaders(response: Response): void {
     for (const [name, value] of Object.entries(SHARED_HEADERS)) {
         expect(response.headers.get(name)).toBe(value);
     }
+
     // CloudFront writes includeSubDomains in its own casing; preload must stay off
     expect(response.headers.get('strict-transport-security')).toMatch(/^max-age=31536000; includeSubDomains$/i);
 }
@@ -39,29 +40,38 @@ afterAll(() => cleanUpYear(yearPath));
 
 test('robots.txt allows crawling and disallows AI training bots', async () => {
     const response = await fetch(`${cdn}/robots.txt`, { cache: 'no-store' });
+
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toMatch(/^text\/plain/);
+
     const body = await response.text();
+
     expect(body.startsWith('User-agent: *\nAllow: /\n\n')).toBe(true);
     expect(body.endsWith('\nDisallow: /\n')).toBe(true);
     expect(body).toMatch(/^User-agent: GPTBot$/m);
     expect(body).toMatch(/^User-agent: Google-Extended$/m);
     // Exactly one Disallow, and it belongs to the bot group, not the wildcard group
     expect(body.match(/^Disallow:/gm)).toHaveLength(1);
+
     expectSharedHeaders(response);
 });
 
 test('an original image carries the crawler and security headers', async () => {
     const response = await fetch(`${cdn}${imagePath}`, { cache: 'no-store' });
+
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('image/jpeg');
+
     expectSharedHeaders(response);
 });
 
 test('a derived image carries the crawler and security headers plus immutable caching', async () => {
     const response = await fetch(`${cdn}/i${imagePath}?version=${versionId}&size=45x45`, { cache: 'no-store' });
+
     expect(response.status).toBe(200);
+
     expectSharedHeaders(response);
+
     expect(response.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
 });
 
@@ -69,12 +79,15 @@ test('the derived image Lambda URL cannot be called directly', async () => {
     // AuthType AWS_IAM: only CloudFront, signing via its Origin Access Control, may invoke it
     const url = `https://${getDerivedImageGeneratorDomain()}/i${imagePath}/${versionId}/45x45`;
     const response = await fetch(url, { cache: 'no-store' });
+
     expect(response.status).toBe(403);
 });
 
 test('the video behavior carries the headers even on a function-generated error', async () => {
     // No version: the URL-rewrite CloudFront Function answers 400 itself, never reaching an origin
     const response = await fetch(`${cdn}/v${albumPath}nonexistent.mp4`, { cache: 'no-store' });
+
     expect(response.status).toBe(400);
+
     expectSharedHeaders(response);
 });

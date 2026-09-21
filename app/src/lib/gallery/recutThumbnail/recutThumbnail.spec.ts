@@ -12,13 +12,15 @@ afterEach(() => {
 describe('Invalid Image Path', () => {
     const crop: Rectangle = { x: 0, y: 0, width: 200, height: 200 };
 
-    test('blank image path', async () => {
+    it('blank image path', async () => {
         const imagePath = '';
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*path/i);
     });
 
-    test('malformed image path', async () => {
+    it('malformed image path', async () => {
         const imagePath = '/2001/12-31/';
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*path/i);
     });
 });
@@ -26,58 +28,69 @@ describe('Invalid Image Path', () => {
 describe('Invalid Crop', () => {
     const imagePath = '/2001/12-31/image.jpg';
 
-    test('empty crop', async () => {
+    it('empty crop', async () => {
         const crop = {} as unknown as Rectangle;
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid/i);
     });
 
-    test('missing x', async () => {
+    it('missing x', async () => {
         const crop = { y: 0, width: 200, height: 200 } as unknown as Rectangle;
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*x/i);
     });
 
-    test('missing y', async () => {
+    it('missing y', async () => {
         const crop = { x: 0, width: 200, height: 200 } as unknown as Rectangle;
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*y/i);
     });
 
-    test('missing width', async () => {
+    it('missing width', async () => {
         const crop = { x: 0, y: 0, height: 200 } as unknown as Rectangle;
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*width/i);
     });
 
-    test('blank x', async () => {
+    it('blank x', async () => {
         const crop = { x: '', y: 0, width: 100, height: 100 } as unknown as Rectangle;
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*x/i);
     });
 
-    test('negative x', async () => {
+    it('negative x', async () => {
         const crop = { x: -1, y: 0, width: 100, height: 100 };
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*x/i);
     });
 
-    test('height > 100%', async () => {
+    it('height > 100%', async () => {
         const crop = { x: 1.1, y: 0, width: 100, height: 101 };
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*height/i);
     });
 
-    test('width > 100%', async () => {
+    it('width > 100%', async () => {
         const crop = { x: 1.1, y: 0, width: 200, height: 100 };
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*width/i);
     });
 
-    test('non-numeric x', async () => {
+    it('non-numeric x', async () => {
         const crop = { x: 'a', y: 0, width: 100, height: 100 } as unknown as Rectangle;
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*x/i);
     });
 
-    test('string integer x', async () => {
+    it('string integer x', async () => {
         const crop = { x: '1', y: 0, width: 100, height: 100 } as unknown as Rectangle;
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*x/i);
     });
 
-    test('string zero x', async () => {
+    it('string zero x', async () => {
         const crop = { x: '0', y: 0, width: 100, height: 100 } as unknown as Rectangle;
+
         await expect(recutThumbnail(imagePath, crop)).rejects.toThrow(/invalid.*x/i);
     });
 });
@@ -87,8 +100,11 @@ test('Save Crop', async () => {
     // Mock out the AWS method to get the image dimensions
     mockDocClient.on(GetCommand).resolves({ Item: { dimensions: { width: 1000, height: 1000 } } });
     await recutThumbnail('/2001/12-31/image.jpg', crop);
-    expect(mockDocClient.commandCalls(UpdateCommand).length).toBe(1);
+
+    expect(mockDocClient.commandCalls(UpdateCommand)).toHaveLength(1);
+
     const x = mockDocClient.commandCalls(UpdateCommand)[0].args[0].input;
+
     expect(x?.Key?.parentPath).toBe('/2001/12-31/');
     expect(x?.Key?.itemName).toBe('image.jpg');
 });
@@ -109,16 +125,11 @@ describe('Convert from % to absolute crop', () => {
         },
     ];
 
-    inputs.forEach((input) => {
-        test(input.name, () => {
-            const crop = toPixelsFromPctCrop(input.pct, input.pixels);
-            expect(crop).toEqual(input.expected);
-        });
+    it.each(inputs)('$name', ({ pct, pixels, expected }) => {
+        expect(toPixelsFromPctCrop(pct, pixels)).toStrictEqual(expected);
     });
 
-    // TODO: implement the code to make this test pass
-    test.skip('Invalid: if height is 100% then y must be 0 THIS FAIL IS VALID', () => {
-        const crop = toPixelsFromPctCrop({ x: 0, y: 10.3, width: 100, height: 100 }, { width: 1000, height: 750 });
-        expect(crop).toEqual({ x: 0, y: 0, width: 1000, height: 1000 });
-    });
+    // toPixelsFromPctCrop({ x: 0, y: 10.3, width: 100, height: 100 }, { width: 1000, height: 750 })
+    // should give { x: 0, y: 0, width: 1000, height: 1000 }: a full-height crop cannot start below the top
+    it.todo('a 100% height crop with a nonzero y is clamped to y = 0');
 });

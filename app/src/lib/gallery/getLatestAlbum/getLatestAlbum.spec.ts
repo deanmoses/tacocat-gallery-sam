@@ -39,18 +39,20 @@ test('Get Latest Album', async () => {
     });
     const album = await getLatestAlbum();
     if (!album) throw new Error('Got no latest album');
+
     expect(album.path).toBe('/2001/12-31/');
     expect(album.parentPath).toBe(parentPath);
     expect(album.itemName).toBe(itemName);
     expect(album.updatedOn).toBe(updatedOn);
     expect(album.thumbnail?.path).toBe(thumbnailPath);
     expect(album.thumbnail?.versionId).toBe(versionId);
-    expect(album.thumbnail?.crop).toEqual(crop);
+    expect(album.thumbnail?.crop).toStrictEqual(crop);
 });
 
 test('Get Nonexistent Latest Album', async () => {
     // Mock out the AWS method that finds the latest album
     mockDocClient.on(QueryCommand).resolves({ Items: [] });
     const result = await getLatestAlbum();
+
     expect(result).toBeUndefined();
 });

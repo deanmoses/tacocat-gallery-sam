@@ -85,7 +85,7 @@ function createCompleteEvent(
 
 describe('handleVideoTranscodingComplete()', () => {
     describe('On COMPLETE', () => {
-        test('Writes DynamoDB record with correct fields', async () => {
+        it('Writes DynamoDB record with correct fields', async () => {
             mockMediaConvert.on(GetJobCommand).resolves({
                 Job: {
                     OutputGroupDetails: [
@@ -107,15 +107,18 @@ describe('handleVideoTranscodingComplete()', () => {
             await handleVideoTranscodingComplete(createCompleteEvent());
 
             const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+
             expect(updateCalls.length).toBeGreaterThanOrEqual(1);
 
             // Find the video record update
             const videoUpdate = updateCalls.find(
                 (call) => call.args[0].input.ExpressionAttributeValues?.[':mediaType'] === 'video',
             );
+
             expect(videoUpdate).toBeDefined();
 
             const input = videoUpdate?.args[0].input;
+
             expect(input?.Key?.parentPath).toBe('/2024/06-15/');
             expect(input?.Key?.itemName).toBe('video.mp4');
             expect(input?.ExpressionAttributeValues?.[':itemType']).toBe('image'); // itemType is 'image' for all media
@@ -123,11 +126,11 @@ describe('handleVideoTranscodingComplete()', () => {
             // No :id field - path-based storage
             expect(input?.ExpressionAttributeValues?.[':id']).toBeUndefined();
             expect(input?.ExpressionAttributeValues?.[':versionId']).toBe(VERSION_ID);
-            expect(input?.ExpressionAttributeValues?.[':dimensions']).toEqual({ width: 1920, height: 1080 });
+            expect(input?.ExpressionAttributeValues?.[':dimensions']).toStrictEqual({ width: 1920, height: 1080 });
             expect(input?.ExpressionAttributeValues?.[':duration']).toBe(120);
         });
 
-        test('Extracts duration and dimensions from job metadata', async () => {
+        it('Extracts duration and dimensions from job metadata', async () => {
             mockMediaConvert.on(GetJobCommand).resolves({
                 Job: {
                     OutputGroupDetails: [
@@ -153,11 +156,12 @@ describe('handleVideoTranscodingComplete()', () => {
                 (call) => call.args[0].input.ExpressionAttributeValues?.[':mediaType'] === 'video',
             );
             const values = videoUpdate?.args[0].input.ExpressionAttributeValues;
-            expect(values?.[':dimensions']).toEqual({ width: 3840, height: 2160 });
+
+            expect(values?.[':dimensions']).toStrictEqual({ width: 3840, height: 2160 });
             expect(values?.[':duration']).toBe(300);
         });
 
-        test('Handles Lambda retry when rename already completed (idempotent)', async () => {
+        it('Handles Lambda retry when rename already completed (idempotent)', async () => {
             // Simulate retry: destination files already exist from previous invocation
             // Override the default HeadObjectCommand mocks - all files exist (destinations exist, sources may be gone)
             mockS3Client.on(HeadObjectCommand).resolves({ ContentType: 'video/mp4' }); // All files exist
@@ -182,21 +186,24 @@ describe('handleVideoTranscodingComplete()', () => {
 
             // Should NOT have called CopyObjectCommand (destinations already exist)
             const copyCalls = mockS3Client.commandCalls(CopyObjectCommand);
-            expect(copyCalls.length).toBe(0);
+
+            expect(copyCalls).toHaveLength(0);
 
             // Should still call DeleteObjectCommand to clean up any remaining source files
             const deleteCalls = mockS3Client.commandCalls(DeleteObjectCommand);
             const derivedDeletes = deleteCalls.filter((call) => call.args[0].input.Bucket === 'test-derived-bucket');
-            expect(derivedDeletes.length).toBe(2); // video and poster source files
+
+            expect(derivedDeletes).toHaveLength(2); // video and poster source files
 
             // DynamoDB record should still be written
             const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+
             expect(updateCalls.length).toBeGreaterThanOrEqual(1);
         });
     });
 
     describe('On ERROR', () => {
-        test('Writes to error table', async () => {
+        it('Writes to error table', async () => {
             const event = createCompleteEvent({
                 status: 'ERROR',
                 errorMessage: 'Unsupported codec',
@@ -206,16 +213,18 @@ describe('handleVideoTranscodingComplete()', () => {
 
             const putCalls = mockDocClient.commandCalls(PutCommand);
             const errorPut = putCalls.find((call) => call.args[0].input.TableName === 'test-error-table');
+
             expect(errorPut).toBeDefined();
 
             const item = errorPut?.args[0].input.Item;
+
             expect(item?.path).toBe(VIDEO_PATH);
             expect(item?.errorType).toBe('media_processing');
             expect(item?.errorMessage).toBe('Unsupported codec');
             expect(item?.ttl).toBeDefined();
         });
 
-        test('Reverts original file to previous version', async () => {
+        it('Reverts original file to previous version', async () => {
             const event = createCompleteEvent({
                 status: 'ERROR',
                 errorMessage: 'Transcoding failed',
@@ -225,12 +234,13 @@ describe('handleVideoTranscodingComplete()', () => {
 
             const deleteCalls = mockS3Client.commandCalls(DeleteObjectCommand);
             const originalDelete = deleteCalls.find((call) => call.args[0].input.Bucket === 'test-original-bucket');
+
             expect(originalDelete).toBeDefined();
             expect(originalDelete?.args[0].input.Key).toBe('2024/06-15/video.mp4');
             expect(originalDelete?.args[0].input.VersionId).toBe(VERSION_ID); // Uses specific version
         });
 
-        test('Deletes partial outputs from derived bucket', async () => {
+        it('Deletes partial outputs from derived bucket', async () => {
             mockS3Client.on(ListObjectsV2Command).resolves({
                 Contents: [
                     { Key: `${BASE_PREFIX}/video_transcoded.mp4` },
@@ -247,16 +257,18 @@ describe('handleVideoTranscodingComplete()', () => {
 
             const listCalls = mockS3Client.commandCalls(ListObjectsV2Command);
             const derivedListCall = listCalls.find((call) => call.args[0].input.Bucket === 'test-derived-bucket');
+
             expect(derivedListCall?.args[0].input.Prefix).toBe(`${BASE_PREFIX}/`);
 
             const deleteCalls = mockS3Client.commandCalls(DeleteObjectCommand);
             const derivedDeletes = deleteCalls.filter((call) => call.args[0].input.Bucket === 'test-derived-bucket');
-            expect(derivedDeletes.length).toBe(2);
+
+            expect(derivedDeletes).toHaveLength(2);
         });
     });
 
     describe('On CANCELED', () => {
-        test('Handles same as ERROR', async () => {
+        it('Handles same as ERROR', async () => {
             const event = createCompleteEvent({
                 status: 'CANCELED',
             });
@@ -266,13 +278,14 @@ describe('handleVideoTranscodingComplete()', () => {
             // Should write to error table
             const putCalls = mockDocClient.commandCalls(PutCommand);
             const errorPut = putCalls.find((call) => call.args[0].input.TableName === 'test-error-table');
+
             expect(errorPut).toBeDefined();
             expect(errorPut?.args[0].input.Item?.errorMessage).toContain('canceled');
         });
     });
 
     describe('Edge cases', () => {
-        test('Handles missing userMetadata gracefully', async () => {
+        it('Handles missing userMetadata gracefully', async () => {
             const event = createCompleteEvent();
             event.detail.userMetadata = undefined;
 
@@ -281,10 +294,11 @@ describe('handleVideoTranscodingComplete()', () => {
 
             // Should not write any records
             const putCalls = mockDocClient.commandCalls(PutCommand);
-            expect(putCalls.length).toBe(0);
+
+            expect(putCalls).toHaveLength(0);
         });
 
-        test('Handles partial userMetadata gracefully', async () => {
+        it('Handles partial userMetadata gracefully', async () => {
             const event = createCompleteEvent();
             event.detail.userMetadata = { path: VIDEO_PATH }; // missing versionId
 
@@ -293,12 +307,13 @@ describe('handleVideoTranscodingComplete()', () => {
 
             // Should not write any records
             const putCalls = mockDocClient.commandCalls(PutCommand);
-            expect(putCalls.length).toBe(0);
+
+            expect(putCalls).toHaveLength(0);
         });
     });
 
     describe('Content type verification', () => {
-        test('Treats wrong video content type as failure', async () => {
+        it('Treats wrong video content type as failure', async () => {
             // Override to return wrong content type for video
             mockS3Client
                 .on(HeadObjectCommand, { Key: `${BASE_PREFIX}/video_transcoded.mp4` })
@@ -309,6 +324,7 @@ describe('handleVideoTranscodingComplete()', () => {
             // Should write to error table
             const putCalls = mockDocClient.commandCalls(PutCommand);
             const errorPut = putCalls.find((call) => call.args[0].input.TableName === 'test-error-table');
+
             expect(errorPut).toBeDefined();
             expect(errorPut?.args[0].input.Item?.errorMessage).toContain('wrong content type');
             expect(errorPut?.args[0].input.Item?.errorMessage).toContain('video/*');
@@ -318,10 +334,11 @@ describe('handleVideoTranscodingComplete()', () => {
             const videoUpdate = updateCalls.find(
                 (call) => call.args[0].input.ExpressionAttributeValues?.[':mediaType'] === 'video',
             );
+
             expect(videoUpdate).toBeUndefined();
         });
 
-        test('Treats wrong poster content type as failure', async () => {
+        it('Treats wrong poster content type as failure', async () => {
             // Override to return wrong content type for poster
             mockS3Client
                 .on(HeadObjectCommand, { Key: `${BASE_PREFIX}/video_poster.0000000.jpg` })
@@ -332,12 +349,13 @@ describe('handleVideoTranscodingComplete()', () => {
             // Should write to error table
             const putCalls = mockDocClient.commandCalls(PutCommand);
             const errorPut = putCalls.find((call) => call.args[0].input.TableName === 'test-error-table');
+
             expect(errorPut).toBeDefined();
             expect(errorPut?.args[0].input.Item?.errorMessage).toContain('wrong content type');
             expect(errorPut?.args[0].input.Item?.errorMessage).toContain('image/*');
         });
 
-        test('Treats missing source video as failure', async () => {
+        it('Treats missing source video as failure', async () => {
             // Override to return NotFound for video source
             mockS3Client
                 .on(HeadObjectCommand, { Key: `${BASE_PREFIX}/video_transcoded.mp4` })
@@ -348,11 +366,12 @@ describe('handleVideoTranscodingComplete()', () => {
             // Should write to error table
             const putCalls = mockDocClient.commandCalls(PutCommand);
             const errorPut = putCalls.find((call) => call.args[0].input.TableName === 'test-error-table');
+
             expect(errorPut).toBeDefined();
             expect(errorPut?.args[0].input.Item?.errorMessage).toContain('not found');
         });
 
-        test('Deletes partial outputs on content type failure', async () => {
+        it('Deletes partial outputs on content type failure', async () => {
             mockS3Client.on(ListObjectsV2Command).resolves({
                 Contents: [
                     { Key: `${BASE_PREFIX}/video_transcoded.mp4` },
@@ -370,10 +389,11 @@ describe('handleVideoTranscodingComplete()', () => {
             // Should delete partial outputs
             const deleteCalls = mockS3Client.commandCalls(DeleteObjectCommand);
             const derivedDeletes = deleteCalls.filter((call) => call.args[0].input.Bucket === 'test-derived-bucket');
-            expect(derivedDeletes.length).toBe(2);
+
+            expect(derivedDeletes).toHaveLength(2);
         });
 
-        test('Reverts original file on content type failure', async () => {
+        it('Reverts original file on content type failure', async () => {
             // Wrong content type triggers failure
             mockS3Client
                 .on(HeadObjectCommand, { Key: `${BASE_PREFIX}/video_transcoded.mp4` })
@@ -384,6 +404,7 @@ describe('handleVideoTranscodingComplete()', () => {
             // Should revert original file
             const deleteCalls = mockS3Client.commandCalls(DeleteObjectCommand);
             const originalDelete = deleteCalls.find((call) => call.args[0].input.Bucket === 'test-original-bucket');
+
             expect(originalDelete).toBeDefined();
             expect(originalDelete?.args[0].input.Key).toBe('2024/06-15/video.mp4');
             expect(originalDelete?.args[0].input.VersionId).toBe(VERSION_ID);

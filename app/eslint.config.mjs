@@ -6,6 +6,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 import eslintConfigPrettier from 'eslint-config-prettier';
 import eslintPluginPrettier from 'eslint-plugin-prettier/recommended';
+import jest from 'eslint-plugin-jest';
 
 export default defineConfig(
     eslint.configs.recommended,
@@ -41,6 +42,36 @@ export default defineConfig(
         files: ['**/*.js'],
         languageOptions: {
             sourceType: 'commonjs',
+        },
+    },
+    {
+        // Every jest rule is on unless listed here, so a plugin upgrade turns its
+        // new rules on too.
+        files: ['**/*.spec.ts', 'app/jest.*.ts', 'app/src/test/**/*.ts'],
+        extends: [jest.configs['flat/all']],
+        rules: {
+            // The jest rule of the same name knows `expect(obj.method)` is safe
+            '@typescript-eslint/unbound-method': 'off',
+            'jest/unbound-method': 'error',
+            // The integration suites' waitFor* helpers poll and throw on timeout
+            'jest/expect-expect': ['error', { assertFunctionNames: ['expect', 'waitFor*'] }],
+
+            // Poor fits for these suites. Titles name their input, so they
+            // start however the input does; a suite builds one input and
+            // checks every field of the result; hooks reset the SDK mocks;
+            // setup that is not a mock belongs at module level.
+            'jest/prefer-lowercase-title': 'off',
+            'jest/max-expects': 'off',
+            'jest/prefer-expect-assertions': 'off',
+            'jest/no-hooks': 'off',
+            'jest/require-hook': 'off',
+            'jest/require-top-level-describe': 'off',
+            'jest/prefer-importing-jest-globals': 'off',
+
+            // Suites narrow with if-and-throw and branch on their inputs;
+            // neither rule has a fixer, so each site is a hand rewrite.
+            'jest/no-conditional-in-test': 'off',
+            'jest/prefer-ending-with-an-expect': 'off',
         },
     },
     {

@@ -32,36 +32,36 @@ describe('Invalid Paths', () => {
         '/2000/12-31/image', // no extension
     ];
     paths.forEach((path) => {
-        test(`Path should be invalid: [${path}]`, async () => {
+        it(`Path should be invalid: [${path}]`, async () => {
             await expect(deleteMedia(path)).rejects.toThrow(/malformed/i);
-            expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(0);
+            expect(mockDocClient.commandCalls(DeleteCommand)).toHaveLength(0);
         });
     });
 });
 
 test('Delete Image That Exists', async () => {
-    expect.assertions(2);
+    expect.assertions(1);
 
     // Mock the AWS calls
     mockDocClient.on(DeleteCommand).resolves({});
     mockS3Client.on(ListObjectsV2Command).resolves(listResponseWithItems);
     mockS3Client.on(DeleteObjectsCommand).resolves(deleteObjectsResponseWithItems);
-    const result = await deleteMedia('/2001/12-31/image.jpg');
-    expect(result).toBeUndefined();
-    expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(1);
+    await deleteMedia('/2001/12-31/image.jpg');
+
+    expect(mockDocClient.commandCalls(DeleteCommand)).toHaveLength(1);
 });
 
 test('Delete Nonexistent Image', async () => {
-    expect.assertions(2);
+    expect.assertions(1);
 
     // Mock the AWS calls
     mockDocClient.on(DeleteCommand).resolves({});
     mockS3Client.on(ListObjectsV2Command).resolves({
         KeyCount: 0,
     });
-    const result = await deleteMedia('/1899/01-01/image.jpg');
-    expect(result).toBeUndefined();
-    expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(1);
+    await deleteMedia('/1899/01-01/image.jpg');
+
+    expect(mockDocClient.commandCalls(DeleteCommand)).toHaveLength(1);
 });
 
 const listResponseWithItems: ListObjectsV2CommandOutput = {
@@ -156,9 +156,9 @@ describe('Video Delete', () => {
             '/2000/12-31/', // album, not video
         ];
         invalidPaths.forEach((path) => {
-            test(`Path should be invalid: [${path}]`, async () => {
+            it(`Path should be invalid: [${path}]`, async () => {
                 await expect(deleteMedia(path)).rejects.toThrow(/malformed/i);
-                expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(0);
+                expect(mockDocClient.commandCalls(DeleteCommand)).toHaveLength(0);
             });
         });
     });
@@ -166,13 +166,13 @@ describe('Video Delete', () => {
     describe('Valid Video Extensions Accepted', () => {
         const validExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v', '3gp', 'mpg', 'mpeg'];
         validExtensions.forEach((ext) => {
-            test(`Delete Video with .${ext} extension`, async () => {
+            it(`Delete Video with .${ext} extension`, async () => {
                 // Mock the AWS calls
                 mockDocClient.on(DeleteCommand).resolves({});
                 mockS3Client.on(ListObjectsV2Command).resolves({ KeyCount: 0 });
-                const result = await deleteMedia(`/2001/12-31/video.${ext}`);
-                expect(result).toBeUndefined();
-                expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(1);
+                await deleteMedia(`/2001/12-31/video.${ext}`);
+
+                expect(mockDocClient.commandCalls(DeleteCommand)).toHaveLength(1);
             });
         });
     });

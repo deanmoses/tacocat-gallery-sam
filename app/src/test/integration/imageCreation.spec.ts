@@ -25,30 +25,32 @@ beforeAll(async () => {
 afterAll(() => cleanUpYear(yearPath));
 
 describe('after uploading an image into an album that did not exist', () => {
-    test('the day and year albums were created', async () => {
+    it('the day and year albums were created', async () => {
         await expect(itemExists(albumPath)).resolves.toBe(true);
         await expect(itemExists(yearPath)).resolves.toBe(true);
     });
 
-    test('the album lists the image with its embedded metadata', async () => {
+    it('the album lists the image with its embedded metadata', async () => {
         const image = findMedia(await getAlbumOrFail(albumPath), imageName);
         assert(image, `Album [${albumPath}] does not contain [${imageName}]`);
+
         expect(image.parentPath).toBe(albumPath);
-        expect(image.versionId).toBeDefined();
+        expect(image.versionId).toStrictEqual(expect.any(String));
         expect(image.title).toBe('Image Title');
-        expect(image.tags?.sort()).toEqual(['test1', 'test2', 'test3']);
+        expect(image.tags?.sort()).toStrictEqual(['test1', 'test2', 'test3']);
     });
 
-    test('the image became the album thumbnail', async () => {
+    it('the image became the album thumbnail', async () => {
         const album = findSubAlbum(await getAlbumOrFail(yearPath), getNameFromPath(albumPath));
         assert(album, `Year [${yearPath}] does not list [${albumPath}]`);
+
         expect(album.thumbnail?.path).toBe(imagePath);
         expect(album.thumbnail?.versionId).toBeDefined();
     });
 
-    test('the image synced to Redis', () => waitForRedisItem(imagePath));
+    it('the image synced to Redis', () => waitForRedisItem(imagePath));
 
-    test('a title search within the year finds the image', async () => {
+    it('a title search within the year finds the image', async () => {
         // Every suite uploads this fixture, so the year keeps the others out
         const year = getNameFromPath(yearPath);
         await waitFor(
@@ -60,7 +62,7 @@ describe('after uploading an image into an album that did not exist', () => {
         );
     });
 
-    test('the album cannot be deleted while it has children', async () => {
+    it('the album cannot be deleted while it has children', async () => {
         await expect(deleteAlbum(albumPath)).rejects.toThrow(/child/i);
     });
 });
@@ -68,19 +70,21 @@ describe('after uploading an image into an album that did not exist', () => {
 describe('after deleting the image', () => {
     beforeAll(() => deleteMedia(imagePath));
 
-    test('the album no longer lists it', async () => {
+    it('the album no longer lists it', async () => {
         const album = await getAlbumOrFail(albumPath);
+
         expect(findMedia(album, imageName)).toBeUndefined();
     });
 
-    test('the album no longer has a thumbnail', async () => {
+    it('the album no longer has a thumbnail', async () => {
         const album = await getAlbum(albumPath);
+
         expect(album?.thumbnail).toBeUndefined();
     });
 
-    test('the originals bucket no longer holds it', async () => {
+    it('the originals bucket no longer holds it', async () => {
         await expect(originalExists(imagePath)).resolves.toBe(false);
     });
 
-    test('it is removed from Redis', () => waitForRedisItemGone(imagePath));
+    it('is removed from Redis', () => waitForRedisItemGone(imagePath));
 });

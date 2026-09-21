@@ -34,31 +34,31 @@ function loadTestImage(filename: string): Buffer {
 }
 
 describe('migrateDimensions input validation', () => {
-    test('rejects invalid mode', async () => {
+    it('rejects invalid mode', async () => {
         await expect(migrateDimensions({ mode: 'invalid' as 'diagnose' | 'fix' })).rejects.toThrow(
             "Invalid mode: invalid. Must be 'diagnose' or 'fix'.",
         );
     });
 
-    test('rejects malformed image path', async () => {
+    it('rejects malformed image path', async () => {
         await expect(migrateDimensions({ mode: 'diagnose', image: 'not-a-path' })).rejects.toThrow(
             'Invalid image path: not-a-path',
         );
     });
 
-    test('rejects malformed startFrom path', async () => {
+    it('rejects malformed startFrom path', async () => {
         await expect(migrateDimensions({ mode: 'diagnose', startFrom: 'not-a-path' })).rejects.toThrow(
             'Invalid startFrom path: not-a-path',
         );
     });
 
-    test('rejects unknown fields', async () => {
+    it('rejects unknown fields', async () => {
         await expect(
             migrateDimensions({ mode: 'diagnose', unknownField: 'value' } as Parameters<typeof migrateDimensions>[0]),
         ).rejects.toThrow('Unknown field: unknownField');
     });
 
-    test('rejects both image and startFrom', async () => {
+    it('rejects both image and startFrom', async () => {
         await expect(
             migrateDimensions({
                 mode: 'diagnose',
@@ -68,18 +68,20 @@ describe('migrateDimensions input validation', () => {
         ).rejects.toThrow("Cannot specify both 'image' and 'startFrom'");
     });
 
-    test('accepts valid diagnose mode', async () => {
+    it('accepts valid diagnose mode', async () => {
         // Set up empty album response
         mockDocClient.on(QueryCommand).resolves({ Items: [] });
 
         const result = await migrateDimensions({ mode: 'diagnose' });
+
         expect(result.imagesChecked).toBe(0);
     });
 
-    test('accepts valid fix mode', async () => {
+    it('accepts valid fix mode', async () => {
         mockDocClient.on(QueryCommand).resolves({ Items: [] });
 
         const result = await migrateDimensions({ mode: 'fix' });
+
         expect(result.imagesChecked).toBe(0);
     });
 });
@@ -93,7 +95,7 @@ describe('migrateDimensions single image mode', () => {
         dimensions: { width: 300, height: 225 },
     };
 
-    test('processes single image when specified', async () => {
+    it('processes single image when specified', async () => {
         const imageBuffer = loadTestImage('FullMetadata.jpg');
 
         mockDocClient.on(QueryCommand).resolves({ Items: [mockImage] });
@@ -108,7 +110,7 @@ describe('migrateDimensions single image mode', () => {
         expect(result.albumsChecked).toBe(1);
     });
 
-    test('returns error if single image not found in DynamoDB', async () => {
+    it('returns error if single image not found in DynamoDB', async () => {
         mockDocClient.on(QueryCommand).resolves({ Items: [] });
 
         const result = await migrateDimensions({
@@ -142,7 +144,7 @@ describe('migrateDimensions diagnose mode', () => {
         dimensions: { width: 300, height: 225 },
     };
 
-    test('reports issues without writing in diagnose mode', async () => {
+    it('reports issues without writing in diagnose mode', async () => {
         const imageBuffer = loadTestImage('FullMetadata.jpg');
 
         // Mock different dimensions in DynamoDB vs S3
@@ -178,12 +180,13 @@ describe('migrateDimensions diagnose mode', () => {
 
         // Verify no UpdateCommand was sent
         const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+
         expect(updateCalls).toHaveLength(0);
     });
 });
 
 describe('migrateDimensions fix mode', () => {
-    test('fixes orientation dimension issues in fix mode', async () => {
+    it('fixes orientation dimension issues in fix mode', async () => {
         // Use the portrait orientation test image (orientation 6)
         const imageBuffer = loadTestImage('orientation/PortraitOrientation6.jpg');
 
@@ -219,10 +222,12 @@ describe('migrateDimensions fix mode', () => {
 
         // Verify UpdateCommand was called with correct dimensions
         const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+
         expect(updateCalls.length).toBeGreaterThan(0);
 
         const updateInput = updateCalls[0].args[0].input;
-        expect(updateInput.ExpressionAttributeValues?.[':dimensions']).toEqual({
+
+        expect(updateInput.ExpressionAttributeValues?.[':dimensions']).toStrictEqual({
             width: 600,
             height: 800,
         });
@@ -230,7 +235,7 @@ describe('migrateDimensions fix mode', () => {
 });
 
 describe('migrateDimensions idempotency', () => {
-    test('skips images with correct dimensions and tags', async () => {
+    it('skips images with correct dimensions and tags', async () => {
         const imageBuffer = loadTestImage('FullMetadata.jpg');
 
         // FullMetadata.jpg is 300x225 with orientation 1 and tags ['halloween', 'dog', 'parade']
@@ -258,20 +263,23 @@ describe('migrateDimensions idempotency', () => {
         const result = await migrateDimensions({ mode: 'fix' });
 
         expect(result.imagesChecked).toBe(1);
+
         // No dimension issues should be found
         const dimensionIssues = result.issues.filter(
             (i) => i.type === 'dimensionsOrientation' || i.type === 'dimensionsOther',
         );
+
         expect(dimensionIssues).toHaveLength(0);
 
         // No updates should have been made
         const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+
         expect(updateCalls).toHaveLength(0);
     });
 });
 
 describe('migrateDimensions orientation logic', () => {
-    test('swaps dimensions only for orientation 5-8', async () => {
+    it('swaps dimensions only for orientation 5-8', async () => {
         // Use orientation 6 test image
         const imageBuffer = loadTestImage('orientation/PortraitOrientation6.jpg');
 
@@ -303,11 +311,12 @@ describe('migrateDimensions orientation logic', () => {
 
         // Should detect orientation issue and fix it
         const orientationIssues = result.issues.filter((i) => i.type === 'dimensionsOrientation');
+
         expect(orientationIssues.length).toBeGreaterThan(0);
         expect(orientationIssues[0].fixed).toBe(true);
     });
 
-    test('does not swap for orientation 1 (normal)', async () => {
+    it('does not swap for orientation 1 (normal)', async () => {
         // Use a normal orientation image
         const imageBuffer = loadTestImage('FullMetadata.jpg');
 
@@ -337,12 +346,13 @@ describe('migrateDimensions orientation logic', () => {
 
         // No orientation issues should be detected
         const orientationIssues = result.issues.filter((i) => i.type === 'dimensionsOrientation');
+
         expect(orientationIssues).toHaveLength(0);
     });
 });
 
 describe('migrateDimensions validation checks', () => {
-    test('detects missing S3 image', async () => {
+    it('detects missing S3 image', async () => {
         const mockYearAlbum: AlbumItem = { parentPath: '/', itemName: '2024', itemType: 'album' };
         const mockDayAlbum: AlbumItem = { parentPath: '/2024/', itemName: '01-15', itemType: 'album' };
         const mockImage: ImageItem = {
@@ -368,11 +378,13 @@ describe('migrateDimensions validation checks', () => {
         const result = await migrateDimensions({ mode: 'diagnose' });
 
         expect(result.imagesChecked).toBe(1);
+
         const missingIssues = result.issues.filter((i) => i.type === 'missingFromS3');
+
         expect(missingIssues).toHaveLength(1);
     });
 
-    test('detects invalid versionId', async () => {
+    it('detects invalid versionId', async () => {
         const mockYearAlbum: AlbumItem = { parentPath: '/', itemName: '2024', itemType: 'album' };
         const mockDayAlbum: AlbumItem = { parentPath: '/2024/', itemName: '01-15', itemType: 'album' };
         const mockImage: ImageItem = {
@@ -398,12 +410,13 @@ describe('migrateDimensions validation checks', () => {
         const result = await migrateDimensions({ mode: 'diagnose' });
 
         const versionIssues = result.issues.filter((i) => i.type === 'versionIdInvalid');
+
         expect(versionIssues).toHaveLength(1);
     });
 });
 
 describe('migrateDimensions fail-fast', () => {
-    test('stops after 20 non-orientation issues', async () => {
+    it('stops after 20 non-orientation issues', async () => {
         const mockYearAlbum: AlbumItem = { parentPath: '/', itemName: '2024', itemType: 'album' };
         const mockDayAlbum: AlbumItem = { parentPath: '/2024/', itemName: '01-15', itemType: 'album' };
 
@@ -437,7 +450,7 @@ describe('migrateDimensions fail-fast', () => {
         expect(result.issues.length).toBeLessThanOrEqual(30); // Allow for chunk completion
     });
 
-    test('returns correct startFrom path on fail-fast', async () => {
+    it('returns correct startFrom path on fail-fast', async () => {
         const mockYearAlbum: AlbumItem = { parentPath: '/', itemName: '2024', itemType: 'album' };
         const mockDayAlbum: AlbumItem = { parentPath: '/2024/', itemName: '01-15', itemType: 'album' };
 
@@ -469,7 +482,7 @@ describe('migrateDimensions fail-fast', () => {
 });
 
 describe('migrateDimensions resume from image', () => {
-    test('startFrom skips newer albums and earlier images', async () => {
+    it('startFrom skips newer albums and earlier images', async () => {
         const mockYearAlbums: AlbumItem[] = [
             { parentPath: '/', itemName: '2024', itemType: 'album' },
             { parentPath: '/', itemName: '2023', itemType: 'album' },
@@ -531,7 +544,7 @@ describe('migrateDimensions resume from image', () => {
 });
 
 describe('migrateDimensions result structure', () => {
-    test('includes resumption path on any stop', async () => {
+    it('includes resumption path on any stop', async () => {
         mockDocClient.on(QueryCommand).resolves({ Items: [] });
 
         const result = await migrateDimensions({ mode: 'diagnose' });
@@ -548,7 +561,7 @@ describe('migrateDimensions result structure', () => {
 });
 
 describe('migrateDimensions versionId handling', () => {
-    test('skips versionId check if DynamoDB versionId is empty', async () => {
+    it('skips versionId check if DynamoDB versionId is empty', async () => {
         const imageBuffer = loadTestImage('FullMetadata.jpg');
 
         const mockYearAlbum: AlbumItem = { parentPath: '/', itemName: '2024', itemType: 'album' };
@@ -577,12 +590,13 @@ describe('migrateDimensions versionId handling', () => {
 
         // Should not report versionId mismatch when DynamoDB has no versionId
         const versionIssues = result.issues.filter((i) => i.type === 'versionIdInvalid');
+
         expect(versionIssues).toHaveLength(0);
     });
 });
 
 describe('migrateDimensions tags fixing', () => {
-    test('detects tag mismatch in diagnose mode', async () => {
+    it('detects tag mismatch in diagnose mode', async () => {
         // FullMetadata.jpg has tags ['halloween', 'dog', 'parade']
         const imageBuffer = loadTestImage('FullMetadata.jpg');
 
@@ -612,17 +626,20 @@ describe('migrateDimensions tags fixing', () => {
         const result = await migrateDimensions({ mode: 'diagnose' });
 
         expect(result.imagesChecked).toBe(1);
+
         const tagIssues = result.issues.filter((i) => i.type === 'tagsMismatch');
+
         expect(tagIssues).toHaveLength(1);
         expect(tagIssues[0].details).toContain('old-tag');
         expect(tagIssues[0].details).toContain('halloween');
 
         // Should NOT have called UpdateCommand in diagnose mode
         const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+
         expect(updateCalls).toHaveLength(0);
     });
 
-    test('merges S3 tags into DDB tags in fix mode', async () => {
+    it('merges S3 tags into DDB tags in fix mode', async () => {
         // FullMetadata.jpg has tags ['halloween', 'dog', 'parade']
         const imageBuffer = loadTestImage('FullMetadata.jpg');
 
@@ -657,25 +674,30 @@ describe('migrateDimensions tags fixing', () => {
         expect(result.issuesFixed).toBeGreaterThanOrEqual(1);
 
         const tagIssues = result.issues.filter((i) => i.type === 'tagsMismatch');
+
         expect(tagIssues).toHaveLength(1);
         expect(tagIssues[0].fixed).toBe(true);
 
         // Verify UpdateCommand was called with merged tags (existing + S3)
         const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+
         expect(updateCalls.length).toBeGreaterThan(0);
 
         // Find the tags update call
         const tagsUpdateCall = updateCalls.find((call) => call.args[0].input.UpdateExpression?.includes('tags'));
+
         expect(tagsUpdateCall).toBeDefined();
+
         // Should contain both existing DDB tag and S3 tags
         const savedTags = tagsUpdateCall?.args[0].input.ExpressionAttributeValues?.[':tags'] as string[];
+
         expect(savedTags).toContain('existing-tag');
         expect(savedTags).toContain('halloween');
         expect(savedTags).toContain('dog');
         expect(savedTags).toContain('parade');
     });
 
-    test('skips images with matching tags', async () => {
+    it('skips images with matching tags', async () => {
         // FullMetadata.jpg has tags ['halloween', 'dog', 'parade']
         const imageBuffer = loadTestImage('FullMetadata.jpg');
 
@@ -705,15 +727,18 @@ describe('migrateDimensions tags fixing', () => {
         const result = await migrateDimensions({ mode: 'fix' });
 
         expect(result.imagesChecked).toBe(1);
+
         const tagIssues = result.issues.filter((i) => i.type === 'tagsMismatch');
+
         expect(tagIssues).toHaveLength(0);
 
         // No updates should have been made
         const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+
         expect(updateCalls).toHaveLength(0);
     });
 
-    test('fixes empty DDB tags when S3 has tags', async () => {
+    it('fixes empty DDB tags when S3 has tags', async () => {
         // FullMetadata.jpg has tags ['halloween', 'dog', 'parade']
         const imageBuffer = loadTestImage('FullMetadata.jpg');
 
@@ -745,17 +770,20 @@ describe('migrateDimensions tags fixing', () => {
         const result = await migrateDimensions({ mode: 'fix' });
 
         expect(result.imagesChecked).toBe(1);
+
         const tagIssues = result.issues.filter((i) => i.type === 'tagsMismatch');
+
         expect(tagIssues).toHaveLength(1);
         expect(tagIssues[0].fixed).toBe(true);
 
         // Verify UpdateCommand was called
         const updateCalls = mockDocClient.commandCalls(UpdateCommand);
         const tagsUpdateCall = updateCalls.find((call) => call.args[0].input.UpdateExpression?.includes('tags'));
+
         expect(tagsUpdateCall).toBeDefined();
     });
 
-    test('skips when DDB has all S3 tags plus extras', async () => {
+    it('skips when DDB has all S3 tags plus extras', async () => {
         // FullMetadata.jpg has tags ['halloween', 'dog', 'parade']
         const imageBuffer = loadTestImage('FullMetadata.jpg');
 
@@ -785,12 +813,15 @@ describe('migrateDimensions tags fixing', () => {
         const result = await migrateDimensions({ mode: 'fix' });
 
         expect(result.imagesChecked).toBe(1);
+
         // Should NOT report a tag mismatch - DDB already has all S3 tags
         const tagIssues = result.issues.filter((i) => i.type === 'tagsMismatch');
+
         expect(tagIssues).toHaveLength(0);
 
         // No updates should have been made
         const updateCalls = mockDocClient.commandCalls(UpdateCommand);
+
         expect(updateCalls).toHaveLength(0);
     });
 });

@@ -45,38 +45,39 @@ beforeAll(async () => {
 afterAll(() => cleanUpYear(yearPath));
 
 describe('after uploading a video into an album that did not exist', () => {
-    test('the day and year albums were created', async () => {
+    it('the day and year albums were created', async () => {
         await expect(itemExists(albumPath)).resolves.toBe(true);
         await expect(itemExists(yearPath)).resolves.toBe(true);
     });
 
-    test('the album lists the video', async () => {
+    it('the album lists the video', async () => {
         const listed = findMedia(await getAlbumOrFail(albumPath), videoName);
+
         expect(listed?.parentPath).toBe(albumPath);
         expect(listed?.versionId).toBe(video.versionId);
     });
 
-    test('the derived bucket holds the transcoded video as MP4', async () => {
-        await expect(transcodedVideo()).resolves.toEqual({ contentType: 'video/mp4' });
+    it('the derived bucket holds the transcoded video as MP4', async () => {
+        await expect(transcodedVideo()).resolves.toStrictEqual({ contentType: 'video/mp4' });
     });
 
-    test('the derived bucket holds the poster as JPEG', async () => {
-        await expect(poster()).resolves.toEqual({ contentType: 'image/jpeg' });
+    it('the derived bucket holds the poster as JPEG', async () => {
+        await expect(poster()).resolves.toStrictEqual({ contentType: 'image/jpeg' });
     });
 });
 
 describe('after deleting the video', () => {
     beforeAll(() => deleteMedia(videoPath));
 
-    test('the album no longer lists it', async () => {
+    it('the album no longer lists it', async () => {
         expect(findMedia(await getAlbumOrFail(albumPath), videoName)).toBeUndefined();
     });
 
-    test('the originals bucket no longer holds it', async () => {
+    it('the originals bucket no longer holds it', async () => {
         await expect(originalExists(videoPath)).resolves.toBe(false);
     });
 
-    test('the derived bucket no longer holds the transcoded video or the poster', async () => {
+    it('the derived bucket no longer holds the transcoded video or the poster', async () => {
         await expect(transcodedVideo()).resolves.toBeUndefined();
         await expect(poster()).resolves.toBeUndefined();
     });

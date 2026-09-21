@@ -22,9 +22,9 @@ describe('Invalid Paths', () => {
         '/2000/12-31/image.jpg',
     ];
     paths.forEach((path) => {
-        test(`Path should be invalid: [${path}]`, async () => {
+        it(`Path should be invalid: [${path}]`, async () => {
             await expect(deleteAlbum(path)).rejects.toThrow(/malformed/i);
-            expect(mockDocClient.commandCalls(DeleteCommand).length).toBe(0);
+            expect(mockDocClient.commandCalls(DeleteCommand)).toHaveLength(0);
         });
     });
 });
@@ -34,8 +34,9 @@ test('Delete Album', async () => {
 
     // Mock the AWS method
     mockDocClient.on(DeleteCommand).resolves({});
-    const result = await deleteAlbum('/2001/');
-    expect(result).toBeUndefined();
+    await deleteAlbum('/2001/');
+
+    expect(mockDocClient.commandCalls(DeleteCommand)).toHaveLength(1);
 });
 
 test('Delete Nonexistent Album', async () => {
@@ -43,6 +44,7 @@ test('Delete Nonexistent Album', async () => {
 
     // Mock the AWS method
     mockDocClient.on(DeleteCommand).resolves({});
-    const result = await deleteAlbum('/1899/01-01/');
-    expect(result).toBeUndefined();
+    await deleteAlbum('/1899/01-01/');
+
+    expect(mockDocClient.commandCalls(DeleteCommand)).toHaveLength(1);
 });

@@ -22,13 +22,15 @@ beforeEach(() => {
 });
 
 describe('processVideoUpload()', () => {
-    test('Creates MediaConvert job for valid video upload', async () => {
+    it('Creates MediaConvert job for valid video upload', async () => {
         await processVideoUpload('test-bucket', '2024/06-15/video.mp4', 'version123');
 
         const createJobCalls = mockMediaConvert.commandCalls(CreateJobCommand);
-        expect(createJobCalls.length).toBe(1);
+
+        expect(createJobCalls).toHaveLength(1);
 
         const jobInput = createJobCalls[0].args[0].input;
+
         expect(jobInput.Role).toBe('arn:aws:iam::123456789012:role/MediaConvertRole');
         expect(jobInput.UserMetadata?.source).toBe('test-derived-bucket'); // For EventBridge filtering
         expect(jobInput.UserMetadata?.path).toBe('/2024/06-15/video.mp4');
@@ -37,7 +39,7 @@ describe('processVideoUpload()', () => {
         expect(jobInput.UserMetadata?.id).toBeUndefined();
     });
 
-    test('Passes correct S3 paths to MediaConvert job', async () => {
+    it('Passes correct S3 paths to MediaConvert job', async () => {
         await processVideoUpload('test-bucket', '2024/06-15/my-video.mov', 'version456');
 
         const createJobCalls = mockMediaConvert.commandCalls(CreateJobCommand);
@@ -46,7 +48,7 @@ describe('processVideoUpload()', () => {
         expect(jobInput.Settings?.Inputs?.[0]?.FileInput).toBe('s3://test-bucket/2024/06-15/my-video.mov');
     });
 
-    test('Uses path-based output location', async () => {
+    it('Uses path-based output location', async () => {
         await processVideoUpload('test-bucket', '2024/06-15/video.mp4', 'version123');
 
         const createJobCalls = mockMediaConvert.commandCalls(CreateJobCommand);
@@ -54,46 +56,49 @@ describe('processVideoUpload()', () => {
 
         // Output should be path-based: i/<path>/<versionId>/
         const mp4OutputGroup = jobInput.Settings?.OutputGroups?.find((g) => g.Name === 'MP4 Output');
+
         expect(mp4OutputGroup?.OutputGroupSettings?.FileGroupSettings?.Destination).toBe(
             's3://test-derived-bucket/i/2024/06-15/video.mp4/version123/',
         );
     });
 
-    test('Throws error for invalid video path', async () => {
+    it('Throws error for invalid video path', async () => {
         await expect(processVideoUpload('test-bucket', 'invalid-path.mp4', 'version123')).rejects.toThrow(
             'invalid video path',
         );
     });
 
-    test('Throws error for missing bucket', async () => {
+    it('Throws error for missing bucket', async () => {
         await expect(processVideoUpload('', '2024/06-15/video.mp4', 'version123')).rejects.toThrow('invalid bucket');
     });
 
-    test('Throws error for missing versionId', async () => {
+    it('Throws error for missing versionId', async () => {
         await expect(processVideoUpload('test-bucket', '2024/06-15/video.mp4', undefined)).rejects.toThrow(
             'missing versionId',
         );
     });
 
-    test('Configures MP4 output with H.264 codec', async () => {
+    it('Configures MP4 output with H.264 codec', async () => {
         await processVideoUpload('test-bucket', '2024/06-15/video.mp4', 'version123');
 
         const createJobCalls = mockMediaConvert.commandCalls(CreateJobCommand);
         const jobInput = createJobCalls[0].args[0].input;
 
         const mp4OutputGroup = jobInput.Settings?.OutputGroups?.find((g) => g.Name === 'MP4 Output');
+
         expect(mp4OutputGroup).toBeDefined();
         expect(mp4OutputGroup?.Outputs?.[0]?.VideoDescription?.CodecSettings?.Codec).toBe('H_264');
         expect(mp4OutputGroup?.Outputs?.[0]?.ContainerSettings?.Container).toBe('MP4');
     });
 
-    test('Configures thumbnail/poster output', async () => {
+    it('Configures thumbnail/poster output', async () => {
         await processVideoUpload('test-bucket', '2024/06-15/video.mp4', 'version123');
 
         const createJobCalls = mockMediaConvert.commandCalls(CreateJobCommand);
         const jobInput = createJobCalls[0].args[0].input;
 
         const thumbnailOutputGroup = jobInput.Settings?.OutputGroups?.find((g) => g.Name === 'Thumbnail Output');
+
         expect(thumbnailOutputGroup).toBeDefined();
         expect(thumbnailOutputGroup?.Outputs?.[0]?.VideoDescription?.CodecSettings?.Codec).toBe('FRAME_CAPTURE');
     });

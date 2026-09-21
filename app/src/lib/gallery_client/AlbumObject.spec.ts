@@ -27,23 +27,28 @@ describe('findMedia()', () => {
 
     it('should find image that exists', () => {
         let album = findMedia(albumWithMultipleChildren, 'image1.jpg');
+
         expect(album).toBeDefined();
-        expect(album?.itemName).toEqual('image1.jpg');
+        expect(album?.itemName).toBe('image1.jpg');
 
         album = findMedia(albumWithMultipleChildren, 'image2.jpg');
+
         expect(album).toBeDefined();
-        expect(album?.itemName).toEqual('image2.jpg');
+        expect(album?.itemName).toBe('image2.jpg');
 
         album = findMedia(albumWithMultipleChildren, 'image3.jpg');
+
         expect(album).toBeDefined();
-        expect(album?.itemName).toEqual('image3.jpg');
+        expect(album?.itemName).toBe('image3.jpg');
     });
 
     it("shouldn't find image that doesn't exist", () => {
         let album = findMedia(albumWithMultipleChildren, 'image_not_found.jpg');
+
         expect(album).toBeUndefined();
 
         album = findMedia(albumWithoutChildren, 'image_not_found.jpg');
+
         expect(album).toBeUndefined();
     });
 });

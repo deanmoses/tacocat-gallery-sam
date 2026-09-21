@@ -10,7 +10,7 @@ beforeEach(() => {
 });
 
 describe('copyDerivedAssets', () => {
-    test('copies all objects from old prefix to new prefix', async () => {
+    it('copies all objects from old prefix to new prefix', async () => {
         mockS3Client.on(ListObjectsV2Command).resolves({
             Contents: [
                 { Key: 'i/2001/12-31/video.mp4/oldVersion/video-transcoded' },
@@ -22,18 +22,21 @@ describe('copyDerivedAssets', () => {
         await copyDerivedAssets('/2001/12-31/video.mp4', '/2001/12-31/newvideo.mp4', 'oldVersion', 'newVersion');
 
         const listCalls = mockS3Client.commandCalls(ListObjectsV2Command);
-        expect(listCalls.length).toBe(1);
+
+        expect(listCalls).toHaveLength(1);
         expect(listCalls[0].args[0].input.Prefix).toBe('i/2001/12-31/video.mp4/oldVersion/');
 
         const copyCalls = mockS3Client.commandCalls(CopyObjectCommand);
-        expect(copyCalls.length).toBe(2);
+
+        expect(copyCalls).toHaveLength(2);
 
         const copyDestinations = copyCalls.map((call) => call.args[0].input.Key);
+
         expect(copyDestinations).toContain('i/2001/12-31/newvideo.mp4/newVersion/video-transcoded');
         expect(copyDestinations).toContain('i/2001/12-31/newvideo.mp4/newVersion/video-poster');
     });
 
-    test('handles image thumbnails', async () => {
+    it('handles image thumbnails', async () => {
         mockS3Client.on(ListObjectsV2Command).resolves({
             Contents: [
                 { Key: 'i/2001/12-31/image.jpg/oldVersion/200' },
@@ -46,15 +49,17 @@ describe('copyDerivedAssets', () => {
         await copyDerivedAssets('/2001/12-31/image.jpg', '/2001/12-31/newimage.jpg', 'oldVersion', 'newVersion');
 
         const copyCalls = mockS3Client.commandCalls(CopyObjectCommand);
-        expect(copyCalls.length).toBe(3);
+
+        expect(copyCalls).toHaveLength(3);
 
         const copyDestinations = copyCalls.map((call) => call.args[0].input.Key);
+
         expect(copyDestinations).toContain('i/2001/12-31/newimage.jpg/newVersion/200');
         expect(copyDestinations).toContain('i/2001/12-31/newimage.jpg/newVersion/400');
         expect(copyDestinations).toContain('i/2001/12-31/newimage.jpg/newVersion/webp/200');
     });
 
-    test('handles no derived assets gracefully', async () => {
+    it('handles no derived assets gracefully', async () => {
         mockS3Client.on(ListObjectsV2Command).resolves({
             Contents: [],
         });
@@ -64,20 +69,22 @@ describe('copyDerivedAssets', () => {
 
         // Should not have called CopyObjectCommand
         const copyCalls = mockS3Client.commandCalls(CopyObjectCommand);
-        expect(copyCalls.length).toBe(0);
+
+        expect(copyCalls).toHaveLength(0);
     });
 
-    test('handles undefined Contents gracefully', async () => {
+    it('handles undefined Contents gracefully', async () => {
         mockS3Client.on(ListObjectsV2Command).resolves({});
 
         // Should not throw
         await copyDerivedAssets('/2001/12-31/image.jpg', '/2001/12-31/newimage.jpg', 'oldVersion', 'newVersion');
 
         const copyCalls = mockS3Client.commandCalls(CopyObjectCommand);
-        expect(copyCalls.length).toBe(0);
+
+        expect(copyCalls).toHaveLength(0);
     });
 
-    test('skips objects without Key', async () => {
+    it('skips objects without Key', async () => {
         mockS3Client.on(ListObjectsV2Command).resolves({
             Contents: [{ Key: 'i/2001/12-31/image.jpg/oldVersion/200' }, { Key: undefined }, {}],
         });
@@ -87,6 +94,7 @@ describe('copyDerivedAssets', () => {
 
         // Only one copy should be made (the one with a valid Key)
         const copyCalls = mockS3Client.commandCalls(CopyObjectCommand);
-        expect(copyCalls.length).toBe(1);
+
+        expect(copyCalls).toHaveLength(1);
     });
 });

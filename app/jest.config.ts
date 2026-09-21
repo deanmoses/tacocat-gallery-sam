@@ -26,7 +26,8 @@ const config: Config = {
             displayName: 'unit',
             testMatch: ['<rootDir>/src/**/*.spec.ts'],
             testPathIgnorePatterns: ['/node_modules/', '/src/test/integration/'],
-            setupFiles: ['<rootDir>/jest.setup.unit.ts'],
+            // After env, so the file can register the aws-sdk-client-mock matchers on expect
+            setupFilesAfterEnv: ['<rootDir>/jest.setup.unit.ts'],
         },
         {
             ...baseConfig,

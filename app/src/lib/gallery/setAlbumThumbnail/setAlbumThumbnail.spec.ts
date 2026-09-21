@@ -9,34 +9,38 @@ afterEach(() => {
 });
 
 describe('Invalid Input', () => {
-    test('blank album path', async () => {
+    it('blank album path', async () => {
         const albumPath = '';
         const imagePath = '/2001/12-31/image.jpg';
+
         await expect(setAlbumThumbnail(albumPath, imagePath)).rejects.toThrow(/invalid.*album/i);
     });
 
-    test('root album path', async () => {
+    it('root album path', async () => {
         const albumPath = '/';
         const imagePath = '/2001/12-31/image.jpg';
+
         await expect(setAlbumThumbnail(albumPath, imagePath)).rejects.toThrow(/root/i);
     });
 
-    test('malformed image path', async () => {
+    it('malformed image path', async () => {
         const albumPath = '/2001/12-31/';
         const imagePath = '/2001/12-31/';
+
         await expect(setAlbumThumbnail(albumPath, imagePath)).rejects.toThrow(/invalid.*media/i);
     });
 
-    test('blank image path', async () => {
+    it('blank image path', async () => {
         const albumPath = '/2001/12-31/';
         const imagePath = '';
+
         await expect(setAlbumThumbnail(albumPath, imagePath)).rejects.toThrow(/invalid.*media/i);
     });
 });
 
 describe('Valid Input', () => {
-    test('Basic success path', async () => {
-        expect.assertions(8);
+    it('Basic success path', async () => {
+        expect.assertions(5);
 
         const albumPath = '/2001/12-31/';
         const imagePath = '/2001/12-31/image.jpg';
@@ -52,23 +56,18 @@ describe('Valid Input', () => {
         expect(thumbWasReplaced).toBe(true);
 
         // did the expected mocks get called?
-        const getCalls = mockDocClient.commandCalls(GetCommand);
-        expect(getCalls.length).toBe(2);
-        const imageGetCall = getCalls[1].args[0];
-        expect(imageGetCall.input.Key?.parentPath).toEqual('/2001/12-31/');
-        expect(imageGetCall.input.Key?.itemName).toEqual('image.jpg');
-        const transactCalls = mockDocClient.commandCalls(UpdateCommand);
-        expect(transactCalls.length).toBe(1);
-        expect(transactCalls).toBeDefined();
-        const updateCommand = transactCalls[0].args[0].input;
-        expect(updateCommand).toBeDefined();
-        if (!!updateCommand) {
-            expect(updateCommand?.ConditionExpression).not.toContain('attribute_not_exists');
-        }
+        expect(mockDocClient).toHaveReceivedCommandTimes(GetCommand, 2);
+        expect(mockDocClient).toHaveReceivedNthSpecificCommandWith(2, GetCommand, {
+            Key: { parentPath: '/2001/12-31/', itemName: 'image.jpg' },
+        });
+        expect(mockDocClient).toHaveReceivedCommandTimes(UpdateCommand, 1);
+        expect(mockDocClient).not.toHaveReceivedCommandWith(UpdateCommand, {
+            ConditionExpression: expect.stringContaining('attribute_not_exists'),
+        });
     });
 
-    test("Don't replace thumbnail", async () => {
-        expect.assertions(8);
+    it("Don't replace thumbnail", async () => {
+        expect.assertions(5);
 
         const albumPath = '/2001/12-31/';
         const imagePath = '/2001/12-31/anotherImage.jpg';
@@ -89,22 +88,17 @@ describe('Valid Input', () => {
         expect(thumbWasReplaced).toBe(true);
 
         // did the expected mocks get called?
-        const getCalls = mockDocClient.commandCalls(GetCommand);
-        expect(getCalls.length).toBe(2);
-        const imageGetCall = getCalls[1].args[0];
-        expect(imageGetCall.input.Key?.parentPath).toEqual('/2001/12-31/');
-        expect(imageGetCall.input.Key?.itemName).toEqual('anotherImage.jpg');
-        const transactCalls = mockDocClient.commandCalls(UpdateCommand);
-        expect(transactCalls).toBeDefined();
-        expect(transactCalls.length).toBe(1);
-        const updateCommand = transactCalls[0].args[0].input;
-        expect(updateCommand).toBeDefined();
-        if (!!updateCommand) {
-            expect(updateCommand?.ConditionExpression).toContain('attribute_not_exists');
-        }
+        expect(mockDocClient).toHaveReceivedCommandTimes(GetCommand, 2);
+        expect(mockDocClient).toHaveReceivedNthSpecificCommandWith(2, GetCommand, {
+            Key: { parentPath: '/2001/12-31/', itemName: 'anotherImage.jpg' },
+        });
+        expect(mockDocClient).toHaveReceivedCommandTimes(UpdateCommand, 1);
+        expect(mockDocClient).toHaveReceivedCommandWith(UpdateCommand, {
+            ConditionExpression: expect.stringContaining('attribute_not_exists'),
+        });
     });
 
-    test('Album does not exist', async () => {
+    it('Album does not exist', async () => {
         expect.assertions(1);
 
         const imagePath = '/1899/12-31/anotherImage.jpg';
@@ -116,8 +110,8 @@ describe('Valid Input', () => {
         await expect(setImageAsParentAlbumThumbnailIfNoneExists(imagePath)).rejects.toThrow(/album.*not.*found/i);
     });
 
-    test('setImageAsParentAlbumThumbnailIfNoneExists()', async () => {
-        expect.assertions(8);
+    it('setImageAsParentAlbumThumbnailIfNoneExists()', async () => {
+        expect.assertions(5);
 
         const imagePath = '/2001/12-31/anotherImage.jpg';
 
@@ -133,18 +127,13 @@ describe('Valid Input', () => {
         expect(thumbWasReplaced).toBe(true);
 
         // did the expected mocks get called?
-        const getCalls = mockDocClient.commandCalls(GetCommand);
-        expect(getCalls.length).toBe(2);
-        const imageGetCall = getCalls[1].args[0];
-        expect(imageGetCall.input.Key?.parentPath).toEqual('/2001/12-31/');
-        expect(imageGetCall.input.Key?.itemName).toEqual('anotherImage.jpg');
-        const transactCalls = mockDocClient.commandCalls(UpdateCommand);
-        expect(transactCalls).toBeDefined();
-        expect(transactCalls.length).toBe(1);
-        const updateCommand = transactCalls[0].args[0].input;
-        expect(updateCommand).toBeDefined();
-        if (!!updateCommand) {
-            expect(updateCommand?.ConditionExpression).toContain('attribute_not_exists');
-        }
+        expect(mockDocClient).toHaveReceivedCommandTimes(GetCommand, 2);
+        expect(mockDocClient).toHaveReceivedNthSpecificCommandWith(2, GetCommand, {
+            Key: { parentPath: '/2001/12-31/', itemName: 'anotherImage.jpg' },
+        });
+        expect(mockDocClient).toHaveReceivedCommandTimes(UpdateCommand, 1);
+        expect(mockDocClient).toHaveReceivedCommandWith(UpdateCommand, {
+            ConditionExpression: expect.stringContaining('attribute_not_exists'),
+        });
     });
 });

@@ -24,31 +24,31 @@ beforeAll(async () => {
 afterAll(() => cleanUpYear(yearPath));
 
 describe('after uploading a HEIC', () => {
-    test('the album was created', async () => {
+    it('the album was created', async () => {
         await expect(itemExists(albumPath)).resolves.toBe(true);
     });
 
-    test('the originals bucket holds the converted JPEG', async () => {
+    it('the originals bucket holds the converted JPEG', async () => {
         await expect(originalExists(jpegPath)).resolves.toBe(true);
     });
 
-    test('the item is stored under the JPEG path with the JPEG version', () => {
+    it('the item is stored under the JPEG path with the JPEG version', () => {
         expect(image.parentPath).toBe(albumPath);
         expect(image.itemName).toBe('heictest.jpg');
         expect(image.versionId).toBeTruthy();
     });
 
-    test('the dimensions survived conversion', () => {
-        expect(image.dimensions).toEqual({ width: 4032, height: 3024 });
+    it('the dimensions survived conversion', () => {
+        expect(image.dimensions).toStrictEqual({ width: 4032, height: 3024 });
     });
 
-    test('the XMP metadata survived conversion', () => {
+    it('the XMP metadata survived conversion', () => {
         expect(image.title).toBe('Test Image Title');
         expect(image.description).toBe('Test description');
-        expect(image.tags?.sort()).toEqual(['test1', 'test2', 'test3']);
+        expect(image.tags?.sort()).toStrictEqual(['test1', 'test2', 'test3']);
     });
 
-    test('the JPEG file itself carries all the metadata of the HEIC', async () => {
+    it('the JPEG file itself carries all the metadata of the HEIC', async () => {
         // The JPEG stands in for the original in Google Photos, Apple Photos and the like,
         // so everything Adobe Bridge wrote to the HEIC has to be in the file, not just in DynamoDB
         const tags = await ExifReader.load(await downloadOriginal(jpegPath), { expanded: true, async: true });
@@ -61,6 +61,7 @@ describe('after uploading a HEIC', () => {
                 tags.iptc?.['Caption/Abstract']?.description ??
                 tags.exif?.ImageDescription?.description,
         ).toBe('Test description');
+
         const xmpSubject = tags.xmp?.subject?.value;
         const iptcKeywords = tags.iptc?.Keywords;
         const keywords = Array.isArray(xmpSubject)
@@ -68,7 +69,8 @@ describe('after uploading a HEIC', () => {
             : Array.isArray(iptcKeywords)
               ? iptcKeywords.map((item) => item.description)
               : [];
-        expect(keywords.sort()).toEqual(['test1', 'test2', 'test3']);
+
+        expect(keywords.sort()).toStrictEqual(['test1', 'test2', 'test3']);
         expect(tags.xmp?.DateCreated?.description).toMatch(/^2026-01-08/);
         expect(tags.xmp?.City?.description).toBe('Anytown');
         expect(tags.xmp?.State?.description).toBe('NY');
