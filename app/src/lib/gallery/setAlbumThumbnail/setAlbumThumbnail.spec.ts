@@ -62,9 +62,7 @@ describe('Valid Input', () => {
         expect(transactCalls).toBeDefined();
         const updateCommand = transactCalls[0].args[0].input;
         expect(updateCommand).toBeDefined();
-        if (!!updateCommand) {
-            expect(updateCommand?.ConditionExpression).not.toContain('attribute_not_exists');
-        }
+        expect(updateCommand.ConditionExpression).not.toContain('attribute_not_exists');
     });
 
     test("Don't replace thumbnail", async () => {
@@ -99,9 +97,7 @@ describe('Valid Input', () => {
         expect(transactCalls.length).toBe(1);
         const updateCommand = transactCalls[0].args[0].input;
         expect(updateCommand).toBeDefined();
-        if (!!updateCommand) {
-            expect(updateCommand?.ConditionExpression).toContain('attribute_not_exists');
-        }
+        expect(updateCommand.ConditionExpression).toContain('attribute_not_exists');
     });
 
     test('Album does not exist', async () => {
@@ -143,8 +139,6 @@ describe('Valid Input', () => {
         expect(transactCalls.length).toBe(1);
         const updateCommand = transactCalls[0].args[0].input;
         expect(updateCommand).toBeDefined();
-        if (!!updateCommand) {
-            expect(updateCommand?.ConditionExpression).toContain('attribute_not_exists');
-        }
+        expect(updateCommand.ConditionExpression).toContain('attribute_not_exists');
     });
 });
