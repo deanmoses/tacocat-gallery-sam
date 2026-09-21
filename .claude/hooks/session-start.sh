@@ -2,14 +2,15 @@
 # Prepare a Claude Code on the web session: select the Node version .nvmrc pins,
 # install dependencies, and put the pinned esbuild on PATH for `sam build`.
 #
-# The Node version is the point. app/package.json sets engines.node to >=24 <25,
-# and the cloud image ships an older Node. npm only warns about the engine
-# mismatch and installs anyway, which does quiet damage: the npm bundled with
-# Node 22 rewrites package-lock.json, stripping the `libc` fields that newer npm
-# records for optional platform-specific packages, so an unrelated change
-# arrives with a few dozen lines of lockfile churn. The Sharp layer needs the
-# pinned Node for a second reason: its BuildMethod is nodejs24.x, so `sam build`
-# shells out to whatever npm is on PATH to install linux-arm64 binaries.
+# The Node version is the point. app/package.json sets engines.node to >=24 <25
+# and app/.npmrc makes that strict, so on the older Node the cloud image ships
+# `npm install` refuses to run at all. Forcing it through would do quiet damage:
+# the npm bundled with Node 22 rewrites package-lock.json, stripping the `libc`
+# fields that newer npm records for optional platform-specific packages, so an
+# unrelated change arrives with a few dozen lines of lockfile churn. The Sharp
+# layer needs the pinned Node for a second reason: its BuildMethod is
+# nodejs24.x, so `sam build` shells out to whatever npm is on PATH to install
+# linux-arm64 binaries.
 #
 # Registered as a SessionStart hook in .claude/settings.json. The timeout there
 # has to stay comfortably above the worst cold-start total -- a cold image
