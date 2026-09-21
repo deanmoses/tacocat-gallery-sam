@@ -89,8 +89,8 @@ test.each([
     '/i/2001/12-31/image.jpg/VERSIONID/400x300/crop=1,2,3,4',
 ])('should extract id and version from %p', (path) => {
     const r = parseUrlPath(path);
-    expect(r.id).toEqual('2001/12-31/image.jpg');
-    expect(r.versionId).toEqual('VERSIONID');
+    expect(r.id).toBe('2001/12-31/image.jpg');
+    expect(r.versionId).toBe('VERSIONID');
     expect(r).not.toHaveProperty('error');
 });
 
@@ -179,13 +179,13 @@ test('should ignore empty segments #2', () => {
 
 test('should extract quality parameter', () => {
     const { quality, error } = parseUrlPath('/i/2001/12-31/image.jpg/VERSIONID/q=50');
-    expect(quality).toEqual(50);
+    expect(quality).toBe(50);
     expect(error).toBeUndefined();
 });
 
 test('should extract background parameter', () => {
     const { background, error } = parseUrlPath('/i/2001/12-31/image.jpg/VERSIONID/bg=ff0000/q=50');
-    expect(background).toEqual('#ff0000');
+    expect(background).toBe('#ff0000');
     expect(error).toBeUndefined();
 });
 
@@ -196,10 +196,10 @@ describe('video paths', () => {
         (ext) => {
             const path = `/i/2001/12-31/video.${ext}/VERSIONID/400x300`;
             const result = parseUrlPath(path);
-            expect(result.id).toEqual(`2001/12-31/video.${ext}`);
-            expect(result.versionId).toEqual('VERSIONID');
-            expect(result.width).toEqual(400);
-            expect(result.height).toEqual(300);
+            expect(result.id).toBe(`2001/12-31/video.${ext}`);
+            expect(result.versionId).toBe('VERSIONID');
+            expect(result.width).toBe(400);
+            expect(result.height).toBe(300);
             expect(result.error).toBeUndefined();
         },
     );
@@ -207,12 +207,12 @@ describe('video paths', () => {
     it('should parse video path with all parameters', () => {
         const path = '/i/2001/12-31/video.mp4/VERSIONID/webp/400x300/q=80';
         const result = parseUrlPath(path);
-        expect(result.id).toEqual('2001/12-31/video.mp4');
-        expect(result.versionId).toEqual('VERSIONID');
-        expect(result.format).toEqual('webp');
-        expect(result.width).toEqual(400);
-        expect(result.height).toEqual(300);
-        expect(result.quality).toEqual(80);
+        expect(result.id).toBe('2001/12-31/video.mp4');
+        expect(result.versionId).toBe('VERSIONID');
+        expect(result.format).toBe('webp');
+        expect(result.width).toBe(400);
+        expect(result.height).toBe(300);
+        expect(result.quality).toBe(80);
         expect(result.error).toBeUndefined();
     });
 });
