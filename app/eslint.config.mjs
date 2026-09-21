@@ -85,7 +85,6 @@ export default defineConfig(
             'jest/no-unnecessary-assertion': 'off',
             'jest/no-untyped-mock-factory': 'off',
             'jest/prefer-called-with': 'off',
-            'jest/prefer-comparison-matcher': 'off',
             'jest/prefer-jest-mocked': 'off',
             'jest/prefer-mock-return-shorthand': 'off',
             'jest/require-to-throw-message': 'off',

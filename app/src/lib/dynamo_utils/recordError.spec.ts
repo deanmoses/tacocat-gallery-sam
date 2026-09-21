@@ -12,9 +12,9 @@ beforeEach(() => {
 
 describe('recordError()', () => {
     test('Writes error to error table with correct fields', async () => {
-        const beforeTime = new Date().toISOString();
+        const beforeTime = Date.now();
         const result = await recordError(ErrorType.MediaProcessing, '/2024/06-15/photo.jpg', 'Test error message');
-        const afterTime = new Date().toISOString();
+        const afterTime = Date.now();
 
         expect(result).toBe(true);
 
@@ -25,8 +25,9 @@ describe('recordError()', () => {
         expect(item?.path).toBe('/2024/06-15/photo.jpg');
         expect(item?.errorType).toBe('media_processing');
         expect(item?.errorMessage).toBe('Test error message');
-        expect(item?.timestamp >= beforeTime).toBe(true);
-        expect(item?.timestamp <= afterTime).toBe(true);
+        const timestamp = Date.parse(item?.timestamp as string);
+        expect(timestamp).toBeGreaterThanOrEqual(beforeTime);
+        expect(timestamp).toBeLessThanOrEqual(afterTime);
         // TTL should be ~24 hours from now
         const expectedTtl = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
         expect(item?.ttl).toBeGreaterThan(expectedTtl - 10);
