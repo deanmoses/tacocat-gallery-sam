@@ -397,7 +397,7 @@ describe('syncRedis', () => {
 
         // Verify ExclusiveStartKey was passed
         const calls = mockDocClient.commandCalls(ScanCommand);
-        expect(calls[0].args[0].input.ExclusiveStartKey).toEqual(startKey);
+        expect(calls[0].args[0].input.ExclusiveStartKey).toStrictEqual(startKey);
     });
 
     it('returns duration in result', async () => {

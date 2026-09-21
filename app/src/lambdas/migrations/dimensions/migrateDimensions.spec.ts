@@ -222,7 +222,7 @@ describe('migrateDimensions fix mode', () => {
         expect(updateCalls.length).toBeGreaterThan(0);
 
         const updateInput = updateCalls[0].args[0].input;
-        expect(updateInput.ExpressionAttributeValues?.[':dimensions']).toEqual({
+        expect(updateInput.ExpressionAttributeValues?.[':dimensions']).toStrictEqual({
             width: 600,
             height: 800,
         });

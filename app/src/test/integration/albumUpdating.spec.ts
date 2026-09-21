@@ -35,7 +35,7 @@ test('rejects an unknown attribute', async () => {
 describe('a freshly created album', () => {
     it('has no attributes set', async () => {
         const album = await getAlbumOrFail(albumPath, true);
-        expect(album.children).toEqual([]);
+        expect(album.children).toStrictEqual([]);
         expect(album.description).toBeUndefined();
         expect(album.summary).toBeUndefined();
         expect(album.published).toBeUndefined();

@@ -52,7 +52,7 @@ test.each([
     const updates = mockDocClient.commandCalls(UpdateCommand);
     expect(updates).toHaveLength(1);
     const input = updates[0].args[0].input;
-    expect(input.Key).toEqual({ parentPath: yearAlbumPath, itemName: '12-31' });
+    expect(input.Key).toStrictEqual({ parentPath: yearAlbumPath, itemName: '12-31' });
     expect(input.ConditionExpression).toMatch(/attribute_exists/);
     expect(input.UpdateExpression).toMatch(/updatedOn/);
     for (const [field, value] of Object.entries(attrs)) {
@@ -83,13 +83,13 @@ describe('publishing a day album', () => {
         expect(items).toHaveLength(2);
 
         const check = items[0].ConditionCheck;
-        expect(check?.Key).toEqual({ parentPath: '/', itemName: '2001' });
+        expect(check?.Key).toStrictEqual({ parentPath: '/', itemName: '2001' });
         expect(check?.ConditionExpression).toMatch(/#published = :published/);
-        expect(check?.ExpressionAttributeNames).toEqual({ '#published': 'published' });
-        expect(check?.ExpressionAttributeValues).toEqual({ ':published': true });
+        expect(check?.ExpressionAttributeNames).toStrictEqual({ '#published': 'published' });
+        expect(check?.ExpressionAttributeValues).toStrictEqual({ ':published': true });
 
         const update = items[1].Update;
-        expect(update?.Key).toEqual({ parentPath: yearAlbumPath, itemName: '12-31' });
+        expect(update?.Key).toStrictEqual({ parentPath: yearAlbumPath, itemName: '12-31' });
         expect(update?.ConditionExpression).toMatch(/attribute_exists/);
         expect(update?.ExpressionAttributeValues).toHaveProperty(':published', true);
     });
@@ -115,7 +115,7 @@ describe('publishing a day album', () => {
             updateAlbum(albumPath, { description: 'Description 2', summary: 'Summary 2', published: true }),
         ).resolves.not.toThrow();
         const update = mockDocClient.commandCalls(TransactWriteCommand)[0].args[0].input.TransactItems?.[1].Update;
-        expect(update?.ExpressionAttributeValues).toEqual(
+        expect(update?.ExpressionAttributeValues).toStrictEqual(
             expect.objectContaining({ ':description': 'Description 2', ':summary': 'Summary 2', ':published': true }),
         );
     });

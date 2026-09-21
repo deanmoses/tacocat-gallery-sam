@@ -110,7 +110,7 @@ describe('Convert from % to absolute crop', () => {
     ];
 
     it.each(inputs)('$name', ({ pct, pixels, expected }) => {
-        expect(toPixelsFromPctCrop(pct, pixels)).toEqual(expected);
+        expect(toPixelsFromPctCrop(pct, pixels)).toStrictEqual(expected);
     });
 
     // toPixelsFromPctCrop({ x: 0, y: 10.3, width: 100, height: 100 }, { width: 1000, height: 750 })

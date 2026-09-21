@@ -64,8 +64,8 @@ describe('selectMetadata', () => {
             const md = selectMetadata(tags);
             expect(md.title).toBe(image.title);
             expect(md.description).toBe(image.description);
-            expect(md.tags).toEqual(image.tags);
-            expect(md.dimensions).toEqual(image.dimensions);
+            expect(md.tags).toStrictEqual(image.tags);
+            expect(md.dimensions).toStrictEqual(image.dimensions);
         });
     });
 });
@@ -77,7 +77,7 @@ describe('process png', () => {
         const tags = await ExifReader.load(filePath, { expanded: true, async: true });
         console.dir(tags, { depth: null });
         const md = selectMetadata(tags);
-        expect(md.dimensions).toEqual({ height: 212, width: 220 });
+        expect(md.dimensions).toStrictEqual({ height: 212, width: 220 });
     });
     it('windows png', async () => {
         const filePath = path.resolve(__dirname, '..', '..', 'test/data/images/pngWindows.png');
@@ -85,7 +85,7 @@ describe('process png', () => {
         const tags = await ExifReader.load(filePath, { expanded: true, async: true });
         console.dir(tags, { depth: null });
         const md = selectMetadata(tags);
-        expect(md.dimensions).toEqual({ height: 843, width: 1500 });
+        expect(md.dimensions).toStrictEqual({ height: 843, width: 1500 });
     });
 });
 
@@ -96,7 +96,7 @@ describe('process gif', () => {
         const tags = await ExifReader.load(filePath, { expanded: true, async: true });
         console.dir(tags, { depth: null });
         const md = selectMetadata(tags);
-        expect(md.dimensions).toEqual({ height: 240, width: 360 });
+        expect(md.dimensions).toStrictEqual({ height: 240, width: 360 });
     });
 });
 
@@ -116,7 +116,7 @@ describe('EXIF orientation handling', () => {
         const md = selectMetadata(tags);
 
         // Dimensions should be swapped due to orientation 6
-        expect(md.dimensions).toEqual({ width: 600, height: 800 });
+        expect(md.dimensions).toStrictEqual({ width: 600, height: 800 });
     });
 
     it('Orientation 1 (normal) should NOT swap dimensions', async () => {
@@ -131,7 +131,7 @@ describe('EXIF orientation handling', () => {
         const md = selectMetadata(tags);
 
         // Dimensions should NOT be swapped
-        expect(md.dimensions).toEqual({ width: 300, height: 225 });
+        expect(md.dimensions).toStrictEqual({ width: 300, height: 225 });
     });
 
     it('No orientation metadata should NOT swap dimensions', async () => {
@@ -146,7 +146,7 @@ describe('EXIF orientation handling', () => {
         const md = selectMetadata(tags);
 
         // Dimensions should NOT be swapped
-        expect(md.dimensions).toEqual({ width: 220, height: 212 });
+        expect(md.dimensions).toStrictEqual({ width: 220, height: 212 });
     });
 });
 
@@ -159,8 +159,8 @@ describe('process heic (XMP metadata)', () => {
         const md = selectMetadata(tags);
         expect(md.title).toBe('Test Image Title');
         expect(md.description).toBe('Test description');
-        expect(md.tags).toEqual(['test1', 'test2', 'test3']);
-        expect(md.dimensions).toEqual({ height: 3024, width: 4032 });
+        expect(md.tags).toStrictEqual(['test1', 'test2', 'test3']);
+        expect(md.dimensions).toStrictEqual({ height: 3024, width: 4032 });
     });
 
     it('NoDescriptionOrKeywordsOrCopyrightHeic.heic', async () => {
@@ -177,6 +177,6 @@ describe('process heic (XMP metadata)', () => {
         expect(md.title).toBe('Test Image Title');
         expect(md.description).toBeUndefined();
         expect(md.tags).toBeUndefined();
-        expect(md.dimensions).toEqual({ height: 3024, width: 4032 });
+        expect(md.dimensions).toStrictEqual({ height: 3024, width: 4032 });
     });
 });

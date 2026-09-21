@@ -29,7 +29,7 @@ function eventWithBody(body: string | null): APIGatewayProxyEvent {
 
 describe('getBodyAsObject()', () => {
     it('parses a JSON object', () => {
-        expect(getBodyAsObject(eventWithBody('{"newName":"felix.jpg"}'))).toEqual({ newName: 'felix.jpg' });
+        expect(getBodyAsObject(eventWithBody('{"newName":"felix.jpg"}'))).toStrictEqual({ newName: 'felix.jpg' });
     });
 
     it.each([
@@ -46,7 +46,9 @@ describe('getBodyAsObject()', () => {
 
 describe('getBodyAsStringArray()', () => {
     it('parses an array of strings', () => {
-        expect(getBodyAsStringArray(eventWithBody('["/2001/12-31/felix.jpg"]'))).toEqual(['/2001/12-31/felix.jpg']);
+        expect(getBodyAsStringArray(eventWithBody('["/2001/12-31/felix.jpg"]'))).toStrictEqual([
+            '/2001/12-31/felix.jpg',
+        ]);
     });
 
     it.each([
@@ -60,7 +62,7 @@ describe('getBodyAsStringArray()', () => {
 
 describe('getBodyAsAttributes()', () => {
     it('accepts strings and booleans', () => {
-        expect(getBodyAsAttributes(eventWithBody('{"description":"Felix","published":true}'))).toEqual({
+        expect(getBodyAsAttributes(eventWithBody('{"description":"Felix","published":true}'))).toStrictEqual({
             description: 'Felix',
             published: true,
         });
@@ -107,7 +109,7 @@ describe('getNumberField()', () => {
 
 describe('getStringArrayField()', () => {
     it('returns the array', () => {
-        expect(getStringArrayField({ paths: ['/2001/'] }, 'paths')).toEqual(['/2001/']);
+        expect(getStringArrayField({ paths: ['/2001/'] }, 'paths')).toStrictEqual(['/2001/']);
     });
 
     it.each([

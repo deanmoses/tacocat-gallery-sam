@@ -7,11 +7,11 @@ import { getImageSize, limitedRegion, optimizeImage, type ImageFormat } from './
 describe('getImageSize', () => {
     it.each([undefined, 1, 2, 3, 4])('should return normal image size for orientation %p', (orientation) => {
         const size = getImageSize({ width: 400, height: 300, orientation } as sharp.Metadata);
-        expect(size).toEqual({ width: 400, height: 300 });
+        expect(size).toStrictEqual({ width: 400, height: 300 });
     });
     it.each([5, 6, 7, 8])('should return rotated image size for orientation %p', (orientation) => {
         const size = getImageSize({ width: 400, height: 300, orientation } as sharp.Metadata);
-        expect(size).toEqual({ width: 300, height: 400 });
+        expect(size).toStrictEqual({ width: 300, height: 400 });
     });
 });
 
@@ -21,14 +21,14 @@ describe('limitedRegion', () => {
             { x: 0, y: 1012.5, width: 5400, height: 3037.5 }, // not fractional height that can lead to rounding errors
             { width: 5400, height: 4050 },
         );
-        expect(region).toEqual({ left: 0, top: 1013, width: 5400, height: 3037 });
+        expect(region).toStrictEqual({ left: 0, top: 1013, width: 5400, height: 3037 });
     });
     it(`should limit a region to fit into the given image size`, () => {
         const region = limitedRegion(
             { x: -1, y: -1, width: 102, height: 202 }, // not fractional height that can lead to rounding errors
             { width: 100, height: 200 },
         );
-        expect(region).toEqual({ left: 0, top: 0, width: 100, height: 200 });
+        expect(region).toStrictEqual({ left: 0, top: 0, width: 100, height: 200 });
     });
 });
 
@@ -80,7 +80,7 @@ describe('optimizeImage animation', () => {
         const { pages, delay, loop } = await sharpLib(buffer, { animated: true }).metadata();
         expect(format).toBe('webp');
         expect(pages).toBe(4);
-        expect(delay).toEqual([40, 250, 60, 500]);
+        expect(delay).toStrictEqual([40, 250, 60, 500]);
         expect(loop).toBe(3);
     });
 });

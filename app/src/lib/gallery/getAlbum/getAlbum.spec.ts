@@ -108,7 +108,7 @@ describe('getAlbumAndChildren()', () => {
             .resolves({ Items: mockDayAlbums, Count: mockDayAlbums.length });
         const album = await getAlbumAndChildren('/2001/', includeUnpublishedAlbums);
         if (!album) throw new Error('Did not receive album');
-        expect(album.children?.map((child) => child.itemName)).toEqual(['01-01', '01-02', '01-04']);
+        expect(album.children?.map((child) => child.itemName)).toStrictEqual(['01-01', '01-02', '01-04']);
     });
 
     it.each([
@@ -123,7 +123,7 @@ describe('getAlbumAndChildren()', () => {
             .resolves({ Items: mockDayAlbums, Count: mockDayAlbums.length });
         const album = await getAlbumAndChildren('/2001/', includeUnpublishedAlbums);
         if (!album) throw new Error('Did not receive album');
-        expect(album.children?.map((child) => child.itemName)).toEqual(['01-01', '01-02', '01-03', '01-04']);
+        expect(album.children?.map((child) => child.itemName)).toStrictEqual(['01-01', '01-02', '01-03', '01-04']);
     });
 
     it('Guest should be able to get root album', async () => {

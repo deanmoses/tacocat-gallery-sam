@@ -57,11 +57,11 @@ describe('after uploading a video into an album that did not exist', () => {
     });
 
     it('the derived bucket holds the transcoded video as MP4', async () => {
-        await expect(transcodedVideo()).resolves.toEqual({ contentType: 'video/mp4' });
+        await expect(transcodedVideo()).resolves.toStrictEqual({ contentType: 'video/mp4' });
     });
 
     it('the derived bucket holds the poster as JPEG', async () => {
-        await expect(poster()).resolves.toEqual({ contentType: 'image/jpeg' });
+        await expect(poster()).resolves.toStrictEqual({ contentType: 'image/jpeg' });
     });
 });
 

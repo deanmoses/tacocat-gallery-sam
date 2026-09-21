@@ -42,7 +42,7 @@ describe('a new album', () => {
     it('is empty and unpublished when read with unpublished albums included', async () => {
         const album = await getAlbumOrFail(albumPath, true);
         const { parent, name } = getParentAndNameFromPath(albumPath);
-        expect(album.children).toEqual([]);
+        expect(album.children).toStrictEqual([]);
         expect(album.itemName).toBe(name);
         expect(album.parentPath).toBe(parent);
         expect(album.path).toBe(albumPath);
@@ -65,7 +65,7 @@ describe('after publishing the album', () => {
         const album = await getAlbumOrFail(albumPath);
         expect(album.path).toBe(albumPath);
         expect(album.published).toBe(true);
-        expect(album.children).toEqual([]);
+        expect(album.children).toStrictEqual([]);
     });
 });
 

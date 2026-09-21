@@ -738,7 +738,7 @@ describe('albumPathToDate', () => {
     ];
     inputs.forEach((input) => {
         it(`In: [${input.in}] Out: [${input.out.toDateString()}]`, () => {
-            expect(albumPathToDate(input.in)).toEqual(input.out);
+            expect(albumPathToDate(input.in)).toStrictEqual(input.out);
         });
     });
 });
@@ -1207,7 +1207,7 @@ describe('pathToDate', () => {
     ];
     albumInputs.forEach((input) => {
         it(`Album [${input.in}] -> [${input.out.toDateString()}]`, () => {
-            expect(pathToDate(input.in)).toEqual(input.out);
+            expect(pathToDate(input.in)).toStrictEqual(input.out);
         });
     });
 
@@ -1218,7 +1218,7 @@ describe('pathToDate', () => {
     ];
     mediaInputs.forEach((input) => {
         it(`Media [${input.in}] -> [${input.out.toDateString()}]`, () => {
-            expect(pathToDate(input.in)).toEqual(input.out);
+            expect(pathToDate(input.in)).toStrictEqual(input.out);
         });
     });
 });

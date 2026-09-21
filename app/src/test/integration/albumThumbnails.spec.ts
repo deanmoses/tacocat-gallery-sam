@@ -41,7 +41,7 @@ describe('after setting the day album thumbnail', () => {
     it('the year listing shows it on the day album, with a version and no crop', async () => {
         const thumbnail = await thumbnailInListing(yearPath, albumPath);
         expect(thumbnail.path).toBe(imagePath);
-        expect(thumbnail.versionId).toEqual(expect.any(String));
+        expect(thumbnail.versionId).toStrictEqual(expect.any(String));
         expect(thumbnail.crop).toBeUndefined();
     });
 });
@@ -68,13 +68,13 @@ describe('after recutting the thumbnail', () => {
     it('the year listing shows the crop on the day album', async () => {
         const thumbnail = await thumbnailInListing(yearPath, albumPath);
         expect(thumbnail.path).toBe(imagePath);
-        expect(thumbnail.crop).toEqual(cropInPx);
+        expect(thumbnail.crop).toStrictEqual(cropInPx);
     });
 
     it('the root listing shows the crop on the year', async () => {
         const thumbnail = await thumbnailInListing('/', yearPath);
         expect(thumbnail.path).toBe(imagePath);
-        expect(thumbnail.crop).toEqual(cropInPx);
+        expect(thumbnail.crop).toStrictEqual(cropInPx);
     });
 
     // Known gap: a recut is stored on the image, and only child listings look it up.
@@ -82,7 +82,7 @@ describe('after recutting the thumbnail', () => {
     // This flips to a failure when the gap is closed, which is the cue to drop `.failing`.
     it.failing('the year album read directly shows the crop', async () => {
         const year = await getAlbum(yearPath);
-        expect(year?.thumbnail?.crop).toEqual(cropInPx);
+        expect(year?.thumbnail?.crop).toStrictEqual(cropInPx);
     });
 });
 

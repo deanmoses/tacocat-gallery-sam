@@ -39,13 +39,13 @@ describe('after uploading a HEIC', () => {
     });
 
     it('the dimensions survived conversion', () => {
-        expect(image.dimensions).toEqual({ width: 4032, height: 3024 });
+        expect(image.dimensions).toStrictEqual({ width: 4032, height: 3024 });
     });
 
     it('the XMP metadata survived conversion', () => {
         expect(image.title).toBe('Test Image Title');
         expect(image.description).toBe('Test description');
-        expect(image.tags?.sort()).toEqual(['test1', 'test2', 'test3']);
+        expect(image.tags?.sort()).toStrictEqual(['test1', 'test2', 'test3']);
     });
 
     it('the JPEG file itself carries all the metadata of the HEIC', async () => {
@@ -68,7 +68,7 @@ describe('after uploading a HEIC', () => {
             : Array.isArray(iptcKeywords)
               ? iptcKeywords.map((item) => item.description)
               : [];
-        expect(keywords.sort()).toEqual(['test1', 'test2', 'test3']);
+        expect(keywords.sort()).toStrictEqual(['test1', 'test2', 'test3']);
         expect(tags.xmp?.DateCreated?.description).toMatch(/^2026-01-08/);
         expect(tags.xmp?.City?.description).toBe('Anytown');
         expect(tags.xmp?.State?.description).toBe('NY');

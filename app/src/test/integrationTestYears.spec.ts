@@ -26,7 +26,7 @@ test.each(suites)('%s uses only its own year', (file) => {
     const suite = file.replace(/\.spec\.ts$/, '');
     const source = fs.readFileSync(path.join(integrationDir, file), 'utf8');
     const registryReferences = [...source.matchAll(/TEST_YEARS\.(\w+)/g)].map((m) => m[1]);
-    expect(new Set(registryReferences)).toEqual(new Set(registryReferences.length ? [suite] : []));
+    expect(new Set(registryReferences)).toStrictEqual(new Set(registryReferences.length ? [suite] : []));
     // Test years are registered, never spelled out in a suite
     expect(source.match(/'\/1[67]\d\d\//g)).toBeNull();
 });

@@ -45,7 +45,7 @@ test('Get Latest Album', async () => {
     expect(album.updatedOn).toBe(updatedOn);
     expect(album.thumbnail?.path).toBe(thumbnailPath);
     expect(album.thumbnail?.versionId).toBe(versionId);
-    expect(album.thumbnail?.crop).toEqual(crop);
+    expect(album.thumbnail?.crop).toStrictEqual(crop);
 });
 
 test('Get Nonexistent Latest Album', async () => {

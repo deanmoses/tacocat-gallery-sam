@@ -28,7 +28,7 @@ describe('the first uploads', () => {
         const image = await getMediaOrFail(fullPath);
         expect(image.title).toBe('Version 1');
         expect(image.description).toBe('Version one.');
-        expect(image.tags?.sort()).toEqual(['animal', 'boar', 'frog', 'v1']);
+        expect(image.tags?.sort()).toStrictEqual(['animal', 'boar', 'frog', 'v1']);
         assert(image.versionId, `[${fullPath}] has no versionId`);
         fullVersion1 = image.versionId;
         fullUpdatedOn1 = image.updatedOn;
@@ -38,7 +38,7 @@ describe('the first uploads', () => {
         const image = await getMediaOrFail(barePath);
         expect(image.title).toBeUndefined();
         expect(image.description).toBeUndefined();
-        expect(image.tags ?? []).toEqual([]);
+        expect(image.tags ?? []).toStrictEqual([]);
         assert(image.versionId, `[${barePath}] has no versionId`);
         bareVersion1 = image.versionId;
     });
@@ -57,7 +57,7 @@ describe('after uploading a second version of each', () => {
         const image = await getMediaOrFail(fullPath);
         expect(image.title).toBe('Version 1');
         expect(image.description).toBe('Version one.');
-        expect(image.tags?.sort()).toEqual(['animal', 'boar', 'frog', 'v1', 'v2']);
+        expect(image.tags?.sort()).toStrictEqual(['animal', 'boar', 'frog', 'v1', 'v2']);
         expect(image.versionId).not.toBe(fullVersion1);
         expect(image.updatedOn).not.toBe(fullUpdatedOn1);
     });
@@ -66,7 +66,7 @@ describe('after uploading a second version of each', () => {
         const image = await getMediaOrFail(barePath);
         expect(image.title).toBe('Version 2');
         expect(image.description).toBe('Version two.');
-        expect(image.tags?.sort()).toEqual(['forest', 'v2']);
+        expect(image.tags?.sort()).toStrictEqual(['forest', 'v2']);
         expect(image.versionId).not.toBe(bareVersion1);
     });
 });

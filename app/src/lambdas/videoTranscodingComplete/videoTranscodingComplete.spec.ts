@@ -123,7 +123,7 @@ describe('handleVideoTranscodingComplete()', () => {
             // No :id field - path-based storage
             expect(input?.ExpressionAttributeValues?.[':id']).toBeUndefined();
             expect(input?.ExpressionAttributeValues?.[':versionId']).toBe(VERSION_ID);
-            expect(input?.ExpressionAttributeValues?.[':dimensions']).toEqual({ width: 1920, height: 1080 });
+            expect(input?.ExpressionAttributeValues?.[':dimensions']).toStrictEqual({ width: 1920, height: 1080 });
             expect(input?.ExpressionAttributeValues?.[':duration']).toBe(120);
         });
 
@@ -153,7 +153,7 @@ describe('handleVideoTranscodingComplete()', () => {
                 (call) => call.args[0].input.ExpressionAttributeValues?.[':mediaType'] === 'video',
             );
             const values = videoUpdate?.args[0].input.ExpressionAttributeValues;
-            expect(values?.[':dimensions']).toEqual({ width: 3840, height: 2160 });
+            expect(values?.[':dimensions']).toStrictEqual({ width: 3840, height: 2160 });
             expect(values?.[':duration']).toBe(300);
         });
 

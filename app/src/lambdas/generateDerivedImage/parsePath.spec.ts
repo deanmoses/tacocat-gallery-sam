@@ -132,7 +132,7 @@ test.each([
     ['jpeg', '/i/2001/12-31/image.jpg/VERSIONID/jpeg/400x300'],
 ])('should extract image type %p from from path %p', (expectedType, path) => {
     const { format, error } = parseUrlPath(path);
-    expect(format).toEqual(expectedType);
+    expect(format).toStrictEqual(expectedType);
     expect(error).toBeUndefined();
 });
 
@@ -141,28 +141,28 @@ test.each([
     [{ width: 200, height: NaN }, '/i/2001/12-31/image.jpg/VERSIONID/jpeg/200x'],
     [{ width: NaN, height: 300 }, '/i/2001/12-31/image.jpg/VERSIONID/jpeg/x300'],
     [{ width: 400, height: 300 }, '/i/2001/12-31/image.jpg/VERSIONID/jpeg/400x300'],
-    [{}, '/i/2001/12-31/image.jpg/VERSIONID/jpeg'],
+    [{ width: undefined, height: undefined }, '/i/2001/12-31/image.jpg/VERSIONID/jpeg'],
 ])('should extract dimensions %p from from path %p', (expectedDimension, path) => {
     const { width, height, error } = parseUrlPath(path);
-    expect({ width, height }).toEqual(expectedDimension);
+    expect({ width, height }).toStrictEqual(expectedDimension);
     expect(error).toBeUndefined();
 });
 
 test('should extract focus point', () => {
     const { focus, error } = parseUrlPath('/i/2001/12-31/image.jpg/VERSIONID/fp=200,100');
-    expect(focus).toEqual({ x: 200, y: 100 });
+    expect(focus).toStrictEqual({ x: 200, y: 100 });
     expect(error).toBeUndefined();
 });
 
 test('should extract crop rectangle', () => {
     const { crop, error } = parseUrlPath('/i/2001/12-31/image.jpg/VERSIONID/fp=200,100/crop=10,20,30,40');
-    expect(crop).toEqual({ x: 10, y: 20, width: 30, height: 40 });
+    expect(crop).toStrictEqual({ x: 10, y: 20, width: 30, height: 40 });
     expect(error).toBeUndefined();
 });
 
 test('should ignore empty segments', () => {
     const params = parseUrlPath('/i/2001/12-31/image.jpg/VERSIONID/fp=200,100///100x200/');
-    expect(params).toEqual({
+    expect(params).toStrictEqual({
         id: '2001/12-31/image.jpg',
         versionId: 'VERSIONID',
         focus: { x: 200, y: 100 },
@@ -173,7 +173,7 @@ test('should ignore empty segments', () => {
 
 test('should ignore empty segments #2', () => {
     const { crop, error } = parseUrlPath('/i/2001/12-31/image.jpg/VERSIONID///crop=10,20,30,40');
-    expect(crop).toEqual({ x: 10, y: 20, width: 30, height: 40 });
+    expect(crop).toStrictEqual({ x: 10, y: 20, width: 30, height: 40 });
     expect(error).toBeUndefined();
 });
 

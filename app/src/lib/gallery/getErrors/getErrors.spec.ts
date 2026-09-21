@@ -31,7 +31,7 @@ describe('getErrors()', () => {
         });
 
         const result = await getErrors(['/2001/12-31/video.mp4']);
-        expect(result).toEqual({ errors: {} });
+        expect(result).toStrictEqual({ errors: {} });
     });
 
     it('Returns errors for paths that have errors', async () => {
@@ -46,7 +46,7 @@ describe('getErrors()', () => {
 
         const result = await getErrors(['/2001/12-31/video.mp4', '/2001/12-31/video2.avi', '/2001/12-31/video3.mov']);
 
-        expect(result).toEqual({
+        expect(result).toStrictEqual({
             errors: {
                 '/2001/12-31/video.mp4': 'Unsupported codec',
                 '/2001/12-31/video2.avi': 'File corrupted',
@@ -73,7 +73,7 @@ describe('getErrors()', () => {
             '/2001/12-31/another-success.avi',
         ]);
 
-        expect(result).toEqual({
+        expect(result).toStrictEqual({
             errors: {
                 '/2001/12-31/failed.mp4': 'Transcoding failed',
             },

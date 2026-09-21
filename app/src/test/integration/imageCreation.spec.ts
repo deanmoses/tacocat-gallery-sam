@@ -34,9 +34,9 @@ describe('after uploading an image into an album that did not exist', () => {
         const image = findMedia(await getAlbumOrFail(albumPath), imageName);
         assert(image, `Album [${albumPath}] does not contain [${imageName}]`);
         expect(image.parentPath).toBe(albumPath);
-        expect(image.versionId).toEqual(expect.any(String));
+        expect(image.versionId).toStrictEqual(expect.any(String));
         expect(image.title).toBe('Image Title');
-        expect(image.tags?.sort()).toEqual(['test1', 'test2', 'test3']);
+        expect(image.tags?.sort()).toStrictEqual(['test1', 'test2', 'test3']);
     });
 
     it('the image became the album thumbnail', async () => {

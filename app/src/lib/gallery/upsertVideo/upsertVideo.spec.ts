@@ -36,7 +36,7 @@ describe('upsertVideo DynamoDB write', () => {
         const updateInput = mockDocClient.commandCalls(UpdateCommand)?.[0]?.args[0]?.input;
         if (!updateInput) throw new Error('No update command');
 
-        expect(updateInput.Key).toEqual({
+        expect(updateInput.Key).toStrictEqual({
             parentPath: '/2001/12-31/',
             itemName: 'video.mp4',
         });
@@ -45,9 +45,9 @@ describe('upsertVideo DynamoDB write', () => {
         expect(updateInput.ExpressionAttributeValues?.[':mediaType']).toBe('video');
         // No :id field - path-based storage
         expect(updateInput.ExpressionAttributeValues?.[':id']).toBeUndefined();
-        expect(updateInput.ExpressionAttributeValues?.[':versionId']).toEqual(versionId);
-        expect(updateInput.ExpressionAttributeValues?.[':dimensions']).toEqual(dimensions);
-        expect(updateInput.ExpressionAttributeValues?.[':duration']).toEqual(duration);
+        expect(updateInput.ExpressionAttributeValues?.[':versionId']).toStrictEqual(versionId);
+        expect(updateInput.ExpressionAttributeValues?.[':dimensions']).toStrictEqual(dimensions);
+        expect(updateInput.ExpressionAttributeValues?.[':duration']).toStrictEqual(duration);
         expect(updateInput.ExpressionAttributeValues?.[':updatedOn']).toBeDefined();
     });
 

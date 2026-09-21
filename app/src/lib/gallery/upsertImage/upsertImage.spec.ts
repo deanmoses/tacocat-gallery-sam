@@ -53,19 +53,19 @@ describe('mergeTags', () => {
     });
 
     it('existing only returns existing', () => {
-        expect(mergeTags(['A', 'B'], undefined)).toEqual(['A', 'B']);
+        expect(mergeTags(['A', 'B'], undefined)).toStrictEqual(['A', 'B']);
     });
 
     it('incoming only returns incoming', () => {
-        expect(mergeTags(undefined, ['A', 'B'])).toEqual(['A', 'B']);
+        expect(mergeTags(undefined, ['A', 'B'])).toStrictEqual(['A', 'B']);
     });
 
     it('merges and deduplicates', () => {
-        expect(mergeTags(['A'], ['A', 'B'])).toEqual(['A', 'B']);
+        expect(mergeTags(['A'], ['A', 'B'])).toStrictEqual(['A', 'B']);
     });
 
     it('filters empty strings', () => {
-        expect(mergeTags(['', 'A', '  '], ['B', ''])).toEqual(['A', 'B']);
+        expect(mergeTags(['', 'A', '  '], ['B', ''])).toStrictEqual(['A', 'B']);
     });
 
     it('empty arrays return undefined', () => {
@@ -97,7 +97,7 @@ describe('upsertImage tags', () => {
         const updateInput = mockDocClient.commandCalls(UpdateCommand)?.[0]?.args[0]?.input;
         if (!updateInput) throw new Error('No update command');
         expect(updateInput.UpdateExpression).toContain('tags = :tags');
-        expect(updateInput.ExpressionAttributeValues?.[':tags']).toEqual(['A', 'B']);
+        expect(updateInput.ExpressionAttributeValues?.[':tags']).toStrictEqual(['A', 'B']);
     });
 
     it('existing preserved when incoming empty', async () => {
@@ -108,6 +108,6 @@ describe('upsertImage tags', () => {
         // When incoming is empty, merged result is just existing ['A']
         // So tags SHOULD be in the update expression
         expect(updateInput.UpdateExpression).toContain('tags = :tags');
-        expect(updateInput.ExpressionAttributeValues?.[':tags']).toEqual(['A']);
+        expect(updateInput.ExpressionAttributeValues?.[':tags']).toStrictEqual(['A']);
     });
 });

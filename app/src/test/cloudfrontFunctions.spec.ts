@@ -119,7 +119,7 @@ function errorMessage(response: ViewerResponse): string {
 }
 
 test('every CloudFront Function in the template has tests here', () => {
-    expect([...functions.keys()].sort()).toEqual([
+    expect([...functions.keys()].sort()).toStrictEqual([
         'DerivedImagesUrlRewriteFunction',
         'RobotsTxtFunction',
         'VideoPlaybackUrlRewriteFunction',
@@ -149,7 +149,7 @@ describe('RobotsTxtFunction', () => {
         const body = (response.body as { data: string }).data;
         const bots = [...body.matchAll(/^User-agent: (?!\*)(.+)$/gm)].map((m) => m[1]);
         const sorted = [...bots].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-        expect(bots).toEqual(sorted);
+        expect(bots).toStrictEqual(sorted);
         expect(new Set(bots).size).toBe(bots.length);
     });
 
@@ -165,7 +165,7 @@ describe('VideoPlaybackUrlRewriteFunction', () => {
     it('rewrites to the transcoded video under the derived images path', () => {
         const result = asRequest(handler({ request: request('/v/2024/06-15/video.mp4', { version: 'abc123' }) }));
         expect(result.uri).toBe('/i/2024/06-15/video.mp4/abc123/video-transcoded');
-        expect(result.querystring).toEqual({});
+        expect(result.querystring).toStrictEqual({});
     });
 
     it('rejects a request without a version', () => {
@@ -184,7 +184,7 @@ describe('DerivedImagesUrlRewriteFunction', () => {
             handler({ request: request('/i/2024/06-15/image.jpg', { version: 'abc123', size: '200x200' }) }),
         );
         expect(result.uri).toBe('/i/2024/06-15/image.jpg/abc123/200x200');
-        expect(result.querystring).toEqual({});
+        expect(result.querystring).toStrictEqual({});
     });
 
     it('appends the crop after the size', () => {

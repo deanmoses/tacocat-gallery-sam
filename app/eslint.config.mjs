@@ -72,7 +72,6 @@ export default defineConfig(
             // Turning any of these on is a mechanical rewrite of most suites.
             'jest/no-conditional-in-test': 'off',
             'jest/prefer-ending-with-an-expect': 'off',
-            'jest/prefer-strict-equal': 'off',
 
             // Blank-line placement is Prettier's job
             'jest/padding-around-all': 'off',

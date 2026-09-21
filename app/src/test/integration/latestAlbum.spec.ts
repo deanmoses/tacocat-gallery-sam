@@ -70,7 +70,7 @@ describe('after recutting the thumbnail', () => {
     it('the latest album shows the crop', async () => {
         const album = await latestAlbum();
         expect(album.thumbnail?.path).toBe(imagePath);
-        expect(album.thumbnail?.crop).toEqual(cropInPx);
+        expect(album.thumbnail?.crop).toStrictEqual(cropInPx);
     });
 });
 

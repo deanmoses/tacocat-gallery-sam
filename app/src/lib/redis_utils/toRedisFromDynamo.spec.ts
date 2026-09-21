@@ -45,7 +45,7 @@ test('convert image', () => {
         },
         tags: ['photo', 'image', 'picture'],
     };
-    expect(toRedisItem(awsImageItem)).toEqual(redisImageItem);
+    expect(toRedisItem(awsImageItem)).toStrictEqual(redisImageItem);
 });
 
 test('convert video', () => {
@@ -80,7 +80,7 @@ test('convert video', () => {
         title: 'Beach Day',
         tags: ['movie', 'video', 'clip'],
     };
-    expect(toRedisItem(awsVideoItem)).toEqual(redisVideoItem);
+    expect(toRedisItem(awsVideoItem)).toStrictEqual(redisVideoItem);
 });
 
 test('convert video with zero duration', () => {
