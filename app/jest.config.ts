@@ -18,6 +18,8 @@ const baseConfig = {
 
 const config: Config = {
     collectCoverage: false,
+    // Report every source file, not only the ones a test happens to import
+    collectCoverageFrom: ['src/**/*.ts', '!src/**/*.spec.ts', '!src/test/**'],
     coverageDirectory: 'coverage',
     coverageProvider: 'v8',
     projects: [
