@@ -171,11 +171,9 @@ function getPrevAndNext(path: string, peers: GalleryItem[], includeUnpublishedAl
                 }
             }
             // else we're past the current item and searching for the next published album
-            else {
-                if (peer.itemType === 'image' || includeUnpublishedAlbums || ('published' in peer && peer.published)) {
-                    nav.next = itemNav(peer);
-                    return true; // functions as a break, stops the execution of some()
-                }
+            else if (peer.itemType === 'image' || includeUnpublishedAlbums || ('published' in peer && peer.published)) {
+                nav.next = itemNav(peer);
+                return true; // functions as a break, stops the execution of some()
             }
             return false; // keep scanning
         });

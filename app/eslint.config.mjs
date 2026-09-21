@@ -120,6 +120,7 @@ export default defineConfig(
             'no-new': 'error',
             '@typescript-eslint/array-type': 'error',
             '@typescript-eslint/no-inferrable-types': 'error',
+            'no-lonely-if': 'error',
         },
     },
 );
