@@ -22,8 +22,8 @@ else
     echo "Warning: gitleaks not installed, skipping secret scan"
 fi
 
-# Shell and GitHub Actions linting. Both are enforced in CI; these are just an
-# early warning for devs who have the tools installed.
+# Shell, GitHub Actions and CloudFormation linting. All are enforced in CI;
+# these are just an early warning for devs who have the tools installed.
 if command -v shellcheck >/dev/null 2>&1; then
     shellcheck scripts/*.sh .claude/hooks/*.sh .husky/pre-commit
 else
@@ -34,6 +34,12 @@ if command -v actionlint >/dev/null 2>&1; then
     actionlint
 else
     echo "Warning: actionlint not installed, skipping GitHub Actions lint"
+fi
+
+if command -v sam >/dev/null 2>&1; then
+    sam validate --lint
+else
+    echo "Warning: sam not installed, skipping CloudFormation lint"
 fi
 
 # Format and lint staged files only
