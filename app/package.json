@@ -11,6 +11,7 @@
         "test": "tsc & TSC=$!; jest --selectProjects=unit --silent; JEST=$?; wait $TSC && exit $JEST",
         "test:verbose": "tsc & TSC=$!; jest --selectProjects=unit; JEST=$?; wait $TSC && exit $JEST",
         "test:jest": "jest --selectProjects=unit --silent",
+        "test:coverage": "jest --selectProjects=unit --silent --coverage",
         "test:integration": "tsc & TSC=$!; jest --selectProjects=integration --silent --maxWorkers=8; JEST=$?; wait $TSC && exit $JEST",
         "test:integration:jest": "jest --selectProjects=integration --silent --maxWorkers=8",
         "test:all": "npm run compile && jest",

@@ -52,6 +52,7 @@ All commands run from the `app/` directory unless noted:
 # Testing and linting
 npm test              # unit tests with silent console output
 npm run test:verbose  # unit tests with console output. Use for debugging only, this gets pretty noisy
+npm run test:coverage # unit tests + coverage. Reports every source file, so one with no test shows up at 0%
 npm run test:integration  # integration tests (requires AWS credentials)
 npm run test:all      # all tests (unit + integration)
 npm run lint          # ESLint, check only (fails on violations)
