@@ -34,7 +34,7 @@ export async function setUpAlbumWithImages(
     { publish = true } = {},
 ): Promise<Record<string, string>> {
     assert(isValidDayAlbumPath(albumPath), `Invalid day album path [${albumPath}]`);
-    // Concurrent uploads are safe, but which image the Lambda then picks as the album thumbnail is arbitrary
+    // With the uploads overlapping, which image the Lambda picks as the album thumbnail is arbitrary
     const versionIds = Object.fromEntries(
         await Promise.all(
             Object.entries(images).map(async ([imageName, fixture]) => {

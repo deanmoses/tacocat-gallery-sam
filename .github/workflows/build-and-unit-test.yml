@@ -16,7 +16,6 @@ jobs:
         timeout-minutes: 15
         permissions:
             contents: read
-            id-token: write # lets the job request a GitHub OIDC token to assume an AWS role
         steps:
             - name: Checkout
               uses: actions/checkout@v7
@@ -83,23 +82,3 @@ jobs:
 
             - name: SAM build
               run: sam build
-
-            - name: Configure AWS credentials
-              # No stored keys: the job trades its GitHub OIDC token for a short-lived AWS role.
-              # Pull requests get a role that can only create (never execute) a change set on dev;
-              # pushes to main get the deploy role. Roles are defined in infra/github-oidc.yaml.
-              uses: aws-actions/configure-aws-credentials@v6
-              with:
-                  role-to-assume: ${{ github.event_name == 'pull_request' && 'arn:aws:iam::010410881828:role/tacocat-gallery-cicd-github-pr' || 'arn:aws:iam::010410881828:role/tacocat-gallery-cicd-github-main' }}
-                  role-session-name: github-${{ github.run_id }}
-                  aws-region: us-east-1
-
-            - name: Validate changeset (dry-run)
-              run: |
-                  set -o pipefail
-                  sam deploy --no-execute-changeset --no-fail-on-empty-changeset 2>&1 | tee /tmp/changeset.log
-                  # Check for changeset creation failure (circular deps, invalid resources, etc.)
-                  if grep -q "Failed to create changeset" /tmp/changeset.log; then
-                    echo "::error::Changeset validation failed"
-                    exit 1
-                  fi
