@@ -18,7 +18,6 @@
         "lint:fix": "cd .. && eslint . --config app/eslint.config.mjs --fix",
         "lint:md": "cd .. && markdownlint-cli2",
         "lint:cfn": "cd .. && sam validate --lint",
-        "lint:cf": "cd .. && scripts/lint-cloudfront-functions.sh",
         "lint:shell": "cd .. && shellcheck scripts/*.sh .claude/hooks/*.sh .husky/pre-commit",
         "lint:actions": "cd .. && actionlint",
         "format": "cd .. && prettier --write .",
