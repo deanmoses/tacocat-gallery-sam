@@ -68,7 +68,7 @@ async function createMediaConvertJob(
     versionId: string,
     videoPath: string,
 ): Promise<void> {
-    const client = await getMediaConvertClient();
+    const client = getMediaConvertClient();
 
     const roleArn = getMediaConvertRoleArn();
     const derivedBucket = getDerivedImagesBucketName();

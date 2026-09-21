@@ -1600,7 +1600,6 @@ Resources:
             - Effect: Allow
               Action:
                 - mediaconvert:CreateJob
-                - mediaconvert:DescribeEndpoints
               Resource: '*'
             - Effect: Allow
               Action:
@@ -1681,7 +1680,6 @@ Resources:
             - Effect: Allow
               Action:
                 - mediaconvert:GetJob
-                - mediaconvert:DescribeEndpoints
               Resource: '*'
     Metadata:
       BuildMethod: esbuild
