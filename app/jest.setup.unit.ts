@@ -6,6 +6,9 @@
  * values ensure tests can run in any environment without external config.
  */
 
+// Adds toHaveReceivedCommand and friends to expect() for aws-sdk-client-mock
+import 'aws-sdk-client-mock-jest';
+
 // AWS SDK requires these even when all calls are mocked
 process.env.AWS_REGION ??= 'us-east-1';
 process.env.AWS_ACCESS_KEY_ID ??= 'no-such-id';
