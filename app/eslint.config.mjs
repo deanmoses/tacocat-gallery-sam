@@ -53,6 +53,8 @@ export default defineConfig(
             // The jest rule of the same name knows `expect(obj.method)` is safe
             '@typescript-eslint/unbound-method': 'off',
             'jest/unbound-method': 'error',
+            // The integration suites' waitFor* helpers poll and throw on timeout
+            'jest/expect-expect': ['error', { assertFunctionNames: ['expect', 'waitFor*'] }],
 
             // Both `it` and `test` are in use
             'jest/consistent-test-it': 'off',
@@ -79,7 +81,6 @@ export default defineConfig(
             'jest/padding-around-test-blocks': 'off',
 
             // Each of these is switched on by its own commit
-            'jest/expect-expect': 'off',
             'jest/no-unnecessary-assertion': 'off',
         },
     },

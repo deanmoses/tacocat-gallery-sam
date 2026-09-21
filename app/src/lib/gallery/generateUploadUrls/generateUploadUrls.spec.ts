@@ -90,9 +90,7 @@ it('Should succeed for JPEG', async () => {
 it('Should succeed for HEIC', async () => {
     mockDDBClient.on(GetCommand).resolves({ Item: { itemName: '12-31' } }); // Mock DDB to get album
     const urls = await generateUploadUrls('/2001/12-31/', ['/2001/12-31/image.heic']);
-    const url = urls['/2001/12-31/image.heic'];
-    if (!url) throw new Error(`No URL for /2001/12-31/image.heic`);
-    new URL(url); // Throws if invalid URL
+    expect(() => new URL(urls['/2001/12-31/image.heic'])).not.toThrow();
 });
 
 describe('Video uploads', () => {
@@ -102,9 +100,7 @@ describe('Video uploads', () => {
         it(`Should succeed for .${ext} video`, async () => {
             mockDDBClient.on(GetCommand).resolves({ Item: { itemName: '12-31' } });
             const urls = await generateUploadUrls('/2001/12-31/', [`/2001/12-31/video.${ext}`]);
-            const url = urls[`/2001/12-31/video.${ext}`];
-            if (!url) throw new Error(`No URL for /2001/12-31/video.${ext}`);
-            new URL(url); // Throws if invalid URL
+            expect(() => new URL(urls[`/2001/12-31/video.${ext}`])).not.toThrow();
         });
     });
 

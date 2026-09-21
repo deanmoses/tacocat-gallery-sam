@@ -49,8 +49,7 @@ describe('getAlbum()', () => {
                 updatedOn: uploadTimeStamp,
             } satisfies AlbumItem,
         });
-        const result = await getAlbum(albumPath, includeUnpublishedAlbums);
-        if (result) throw new Error('Expected to not retrieve album');
+        await expect(getAlbum(albumPath, includeUnpublishedAlbums)).resolves.toBeUndefined();
     });
 
     test('Admin should be able to retrieve unpublished day album', async () => {
@@ -77,8 +76,7 @@ describe('getAlbum()', () => {
     });
 
     test('Guest should be able to get root album', async () => {
-        const result = await getAlbum('/');
-        if (!result) throw new Error('Did not receive album');
+        await expect(getAlbum('/')).resolves.toBeDefined();
     });
 });
 
@@ -110,10 +108,7 @@ describe('getAlbumAndChildren()', () => {
             .resolves({ Items: mockDayAlbums, Count: mockDayAlbums.length });
         const album = await getAlbumAndChildren('/2001/', includeUnpublishedAlbums);
         if (!album) throw new Error('Did not receive album');
-        if (!findChild(album.children, '01-01')) throw new Error('Expected child 01-01');
-        if (!findChild(album.children, '01-02')) throw new Error('Expected child 01-02');
-        if (findChild(album.children, '01-03')) throw new Error('Did not expect child 01-03');
-        if (!findChild(album.children, '01-04')) throw new Error('Expected child 01-04');
+        expect(album.children?.map((child) => child.itemName)).toEqual(['01-01', '01-02', '01-04']);
     });
 
     test.each([
@@ -128,10 +123,7 @@ describe('getAlbumAndChildren()', () => {
             .resolves({ Items: mockDayAlbums, Count: mockDayAlbums.length });
         const album = await getAlbumAndChildren('/2001/', includeUnpublishedAlbums);
         if (!album) throw new Error('Did not receive album');
-        if (!findChild(album.children, '01-01')) throw new Error('Expected child 01-01');
-        if (!findChild(album.children, '01-02')) throw new Error('Expected child 01-02');
-        if (!findChild(album.children, '01-03')) throw new Error('Expected child 01-03');
-        if (!findChild(album.children, '01-04')) throw new Error('Expected child 01-04');
+        expect(album.children?.map((child) => child.itemName)).toEqual(['01-01', '01-02', '01-03', '01-04']);
     });
 
     test('Guest should be able to get root album', async () => {
@@ -171,8 +163,7 @@ describe('getAlbumAndChildren()', () => {
                 description: 'xxx',
             } satisfies AlbumItem,
         });
-        const album = await getAlbumAndChildren('/2001/01-01/');
-        if (album) throw new Error('Expected to not retrieve album');
+        await expect(getAlbumAndChildren('/2001/01-01/')).resolves.toBeUndefined();
     });
 
     test('Admin should be able to get unpublished week album', async () => {
@@ -374,7 +365,7 @@ describe('getAlbumAndChildren()', () => {
                 .on(QueryCommand, { ExpressionAttributeValues: { ':parentPath': '/2001/' } })
                 .resolves({ Items: mockDayAlbums });
             const album = await getAlbumAndChildren(`/2001/${albumName}/`);
-            if (!!album?.next) throw new Error('Not expecting a next');
+            expect(album?.next).toBeUndefined();
         });
     });
 });
