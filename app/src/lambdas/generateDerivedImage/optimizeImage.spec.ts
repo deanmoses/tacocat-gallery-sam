@@ -5,7 +5,7 @@ import path from 'path';
 import { getImageSize, limitedRegion, optimizeImage, type ImageFormat } from './optimizeImage';
 
 describe('getImageSize', () => {
-    it.each([undefined, 1, 2, 3, 4])('should return normal image size for orientation % p', (orientation) => {
+    it.each([undefined, 1, 2, 3, 4])('should return normal image size for orientation %p', (orientation) => {
         const size = getImageSize({ width: 400, height: 300, orientation } as sharp.Metadata);
         expect(size).toEqual({ width: 400, height: 300 });
     });

@@ -84,7 +84,6 @@ export default defineConfig(
             'jest/no-unnecessary-assertion': 'off',
             'jest/prefer-called-with': 'off',
             'jest/require-to-throw-message': 'off',
-            'jest/valid-title': 'off',
         },
     },
     {
