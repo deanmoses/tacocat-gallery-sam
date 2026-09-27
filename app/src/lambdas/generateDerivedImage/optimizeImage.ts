@@ -90,15 +90,20 @@ const transformImage = async (image: Uint8Array, params: TransformParams) => {
     return { buffer: await sharpImage.toBuffer(), format, sourceSize: size };
 };
 
+/** The thumbnail size the web app asks for on a screen with two device pixels per CSS pixel */
+const THUMBNAIL_2X = 400;
+
 export const getQuality = (format: ImageFormat, size: Size): number => {
     const pixels = size.width * size.height;
     if (format === 'jpeg') {
         return 85;
     } else if (format === 'webp') {
         // The 400x400 thumbnail is drawn on a 2x screen, which halves the visible size of every
-        // artifact, so it can be encoded softer. Measured on six iPhone originals: 75 is the knee,
-        // 30% fewer bytes than 85 for the same fidelity the 200x200 JPEG has, and 70 saves only 5% more.
-        return pixels < 400 * 400 ? 85 : 75;
+        // artifact, so it alone is encoded softer. Measured on six iPhone originals: 75 is the knee,
+        // 30% fewer bytes than 85 for the fidelity the 200x200 JPEG has, and 70 saves only 5% more.
+        // A larger WebP is a detail image drawn at 1x, made from a PNG or GIF source, where lossy
+        // artifacts show most.
+        return size.width === THUMBNAIL_2X && size.height === THUMBNAIL_2X ? 75 : 85;
     } else if (format === 'avif') {
         if (pixels < 400 * 400) return 55;
         if (pixels < 800 * 800) return 45;

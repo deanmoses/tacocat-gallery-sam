@@ -25,7 +25,9 @@ describe('getQuality', () => {
         { format: 'webp', width: 200, height: 200, quality: 85 },
         { format: 'webp', width: 399, height: 399, quality: 85 },
         { format: 'webp', width: 400, height: 400, quality: 75 },
-        { format: 'webp', width: 1024, height: 768, quality: 75 },
+        // A PNG or GIF source's detail image is WebP too, drawn at 1x, and stays at 85
+        { format: 'webp', width: 400, height: 300, quality: 85 },
+        { format: 'webp', width: 1024, height: 768, quality: 85 },
     ] as const)('$format at $width by $height is quality $quality', ({ format, width, height, quality }) => {
         expect(getQuality(format, { width, height })).toBe(quality);
     });
