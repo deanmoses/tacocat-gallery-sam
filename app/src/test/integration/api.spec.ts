@@ -49,6 +49,13 @@ describe('without credentials', () => {
         expect(album.path).toBe(albumPath);
     });
 
+    it("an album reaches the browser as the reader's own, checked with the server before reuse", async () => {
+        const response = await fetch(`${api}/album${albumPath}`);
+        await response.body?.cancel();
+
+        expect(response.headers.get('cache-control')).toBe('private, no-cache');
+    });
+
     it('an album that does not exist is a 404', async () => {
         const response = await fetch(`${api}/album/1600/01-01/`);
 
