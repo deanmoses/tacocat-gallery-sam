@@ -2,7 +2,7 @@ import sharpLib from 'sharp';
 import type sharp from 'sharp';
 import { readFileSync } from 'fs';
 import path from 'path';
-import { getImageSize, limitedRegion, optimizeImage, type ImageFormat } from './optimizeImage';
+import { getImageSize, getQuality, limitedRegion, optimizeImage, type ImageFormat } from './optimizeImage';
 
 describe('getImageSize', () => {
     it.each([undefined, 1, 2, 3, 4])('should return normal image size for orientation %p', (orientation) => {
@@ -15,6 +15,19 @@ describe('getImageSize', () => {
         const size = getImageSize({ width: 400, height: 300, orientation } as sharp.Metadata);
 
         expect(size).toStrictEqual({ width: 300, height: 400 });
+    });
+});
+
+describe('getQuality', () => {
+    it.each([
+        { format: 'jpeg', width: 200, height: 200, quality: 85 },
+        { format: 'jpeg', width: 400, height: 400, quality: 85 },
+        { format: 'webp', width: 200, height: 200, quality: 85 },
+        { format: 'webp', width: 399, height: 399, quality: 85 },
+        { format: 'webp', width: 400, height: 400, quality: 75 },
+        { format: 'webp', width: 1024, height: 768, quality: 75 },
+    ] as const)('$format at $width by $height is quality $quality', ({ format, width, height, quality }) => {
+        expect(getQuality(format, { width, height })).toBe(quality);
     });
 });
 

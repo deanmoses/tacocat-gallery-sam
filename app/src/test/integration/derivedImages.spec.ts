@@ -97,6 +97,33 @@ describe('after requesting a derived image', () => {
     });
 });
 
+describe('after requesting the same image as WebP', () => {
+    let response: Response;
+    let served: Buffer;
+    /** The format is part of the key, so the WebP is a separate object from the JPEG */
+    let webpDerivedPath: string;
+
+    beforeAll(async () => {
+        webpDerivedPath = `${imagePath}/${versionId}/webp/${sizeSegment}`;
+        response = await fetchDerived(`?version=${versionId}&size=${sizeSegment}&format=webp`);
+        served = Buffer.from(await response.arrayBuffer());
+        assert(response.status === 200, `Derived WebP request failed: ${response.status} ${served.toString()}`);
+    });
+
+    it('the response is a WebP', () => {
+        expect(response.headers.get('content-type')).toBe('image/webp');
+    });
+
+    it('the response decodes to the requested size', async () => {
+        await expect(dimensionsOf(served)).resolves.toStrictEqual({ format: 'webp', ...size });
+    });
+
+    it('the derived bucket holds it beside the JPEG', async () => {
+        await expect(derivedExists(webpDerivedPath)).resolves.toBe(true);
+        await expect(derivedExists(derivedPath)).resolves.toBe(true);
+    });
+});
+
 describe('after deleting the image', () => {
     beforeAll(() => deleteMedia(imagePath));
 
