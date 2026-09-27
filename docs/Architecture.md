@@ -94,7 +94,8 @@ The S3 key structure is `i/<path>/<versionId>/asset`:
 
 ```text
 i/2001/12-31/my_video.mov/<versionId>/
-├── 200x200             ← Thumbnail
+├── webp/200x200        ← Thumbnail
+├── webp/400x400        ← Thumbnail for a 2x screen
 ├── 1024                ← Detail page image
 ├── video-transcoded    ← Transcoded video
 └── video-poster        ← JPG used as source for video thumbnail and detail page
@@ -222,11 +223,12 @@ All media files are delivered to browsers via the AWS CloudFront CDN.
 
 **URL routing:**
 
-| Route   | Purpose         | Original URL                                       | S3 Key                                        |
-| ------- | --------------- | -------------------------------------------------- | --------------------------------------------- |
-| `/i/*`  | Derived images  | `/i/2024/06-15/photo.jpg?version=abc&size=200x200` | `i/2024/06-15/photo.jpg/abc/200x200`          |
-| `/v/*`  | Video playback  | `/v/2024/06-15/video.mp4?version=abc`              | `i/2024/06-15/video.mp4/abc/video-transcoded` |
-| Default | Original images | `/2024/06-15/photo.jpg`                            | `2024/06-15/photo.jpg`                        |
+| Route   | Purpose         | Original URL                                                   | S3 Key                                        |
+| ------- | --------------- | -------------------------------------------------------------- | --------------------------------------------- |
+| `/i/*`  | Derived images  | `/i/2024/06-15/photo.jpg?version=abc&size=200x200&format=webp` | `i/2024/06-15/photo.jpg/abc/webp/200x200`     |
+| `/i/*`  | Derived images  | `/i/2024/06-15/photo.jpg?version=abc&size=1024`                | `i/2024/06-15/photo.jpg/abc/1024`             |
+| `/v/*`  | Video playback  | `/v/2024/06-15/video.mp4?version=abc`                          | `i/2024/06-15/video.mp4/abc/video-transcoded` |
+| Default | Original images | `/2024/06-15/photo.jpg`                                        | `2024/06-15/photo.jpg`                        |
 
 ### CloudFront Functions
 
@@ -253,8 +255,8 @@ The system is designed such that derived content can be cached immutably, foreve
 
 Thumbnails and detail page images are generated **on-demand** the first time they're requested:
 
-1. **Browser requests thumbnail** via URL like `https://img.pix.tacocat.com/i/2024/06-15/photo.jpg?version=abc&size=200x200`
-2. **CloudFront Function rewrites** to S3 path: `i/2024/06-15/photo.jpg/abc/200x200`
+1. **Browser requests thumbnail** via URL like `https://img.pix.tacocat.com/i/2024/06-15/photo.jpg?version=abc&size=200x200&format=webp`
+2. **CloudFront Function rewrites** to S3 path: `i/2024/06-15/photo.jpg/abc/webp/200x200`
 3. **CloudFront checks cache** - if asset is already cached in CDN, return it immediately. Done!
 4. **CloudFront tries Derived bucket first** - if file exists, return it and cache in CDN. Done!
 5. **If not found**
@@ -270,6 +272,12 @@ Thumbnails and detail page images are generated **on-demand** the first time the
         5. If the image is over 5MB, it returns a 503 Service Unavailable with retry-after: 1 header
 
 This "lazy generation" approach means thumbnails are only created when actually needed, and the Lambda is only invoked once per unique thumbnail.
+
+#### Formats and quality
+
+Thumbnails are WebP: at the same quality setting it is visibly sharper than JPEG for about the same bytes. The web app asks for `format=webp` explicitly, so each format is its own S3 object and CDN cache entry with no `Accept` negotiation. It asks for 200x200 and, for a screen with two device pixels per CSS pixel, 400x400. The 400 is encoded at WebP quality 75 rather than 85 because a 2x screen halves the visible size of every artifact; measured on iPhone originals, 75 is where the bytes stop falling faster than the fidelity, about 30 KB against 42 KB at 85.
+
+The detail page's image stays JPEG, without a `format` parameter, because readers drag it into other apps, most of which cannot open a WebP.
 
 ### Crawler control and response headers
 

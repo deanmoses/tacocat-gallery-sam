@@ -817,6 +817,11 @@ Resources:
         }
 
   # CloudFront Function to rewrite URL to derived images bucket
+  # Input: /i/2024/06-15/photo.jpg?version=<versionId>&size=200x200[&format=webp][&crop=x,y,w,h]
+  # Output: /i/2024/06-15/photo.jpg/<versionId>[/webp]/200x200[/crop=x,y,w,h]
+  # The format is part of the key, so each format is its own object and cache
+  # entry and no Vary header is needed. Unknown formats are left for the Lambda
+  # to reject.
   DerivedImagesUrlRewriteFunction:
     Type: AWS::CloudFront::Function
     Properties:
@@ -828,10 +833,10 @@ Resources:
       FunctionCode: |+2
         function handler(event) {
             const r = event.request;
-            const v = r.querystring['version'], c = r.querystring['crop'], s = r.querystring['size'];
+            const v = r.querystring['version'], f = r.querystring['format'], s = r.querystring['size'], c = r.querystring['crop'];
             if (!v) return error('Missing Version');
             if (!s) return error('Missing Size');
-            r.uri += path(v) + path(s) + crop(c);
+            r.uri += path(v) + path(f) + path(s) + crop(c);
             r.querystring = {};
             return r;
         }
