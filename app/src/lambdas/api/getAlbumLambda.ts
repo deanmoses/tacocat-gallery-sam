@@ -28,7 +28,13 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
             albumPath,
             authStatus.then((status) => status === 'valid'),
         );
-        const headers = { [AUTH_STATUS_HEADER]: await authStatus };
+        const headers = {
+            [AUTH_STATUS_HEADER]: await authStatus,
+            // An admin sees albums a guest does not, so no shared cache may keep the answer, and a browser must ask
+            // again before reusing its copy. The gallery app's fetch uses the browser's cache so that it can pick up
+            // the response its page preloaded, which leaves this header as the guard against a stale album.
+            'Cache-Control': 'private, no-cache',
+        };
         if (!album) {
             return respond404NotFound(event, 'Album Not Found', headers);
         } else {

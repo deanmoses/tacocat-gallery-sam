@@ -83,4 +83,20 @@ describe('getAlbum handler', () => {
         expect(result.statusCode).toBe(404);
         expect(result.headers?.['X-Auth-Status']).toBe('invalid');
     });
+
+    it.each([
+        { name: 'an album', found: ALBUM, status: 200 },
+        { name: 'a missing album', found: undefined, status: 404 },
+    ])(
+        "marks $name as the reader's own, checked with the server before a browser reuses it",
+        async ({ found, status }) => {
+            setVerifierForTesting(accepting);
+            mockGetAlbumAndChildren.mockResolvedValue(found);
+
+            const result = await invoke(getEvent());
+
+            expect(result.statusCode).toBe(status);
+            expect(result.headers?.['Cache-Control']).toBe('private, no-cache');
+        },
+    );
 });
