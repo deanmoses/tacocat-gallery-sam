@@ -2,6 +2,8 @@
 
 Companion to [Hosting.md](Hosting.md). That page states the goals and narrows the field to two vendors; this page records what is actually true on the ground as of 2026-09-22, so the next step can be decided on facts rather than impressions. Three kinds of fact are kept apart below: what was measured from this machine and from the AWS account, what the code requires, and what each vendor's own documentation says today (each vendor claim carries a URL; anything that could not be confirmed against an official page is marked _unverified_).
 
+**Outcome, Oct 2 2026**: Cloudflare. The tests listed under _What would change the decision_ were run against a real account during the port, and their results, with the risks this page raised, are in `docs/Risks.md` of [tacocat-gallery-cloudflare](https://github.com/deanmoses/tacocat-gallery-cloudflare). The DNS move in item 9 happened on 2026-10-02 without incident.
+
 ## What the gallery actually is
 
 Pulled from the AWS account, the prod DynamoDB table and twelve days of CloudFront image logs, not from memory. The plan's working figures were close but not exact.

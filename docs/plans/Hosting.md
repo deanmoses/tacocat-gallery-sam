@@ -4,6 +4,8 @@ I want to move pix.tacocat.com off of AWS to get both a faster and simpler archi
 
 **Update Sept 22 2026**: the finalists are evaluated in [HostingDeepDive.md](./HostingDeepDive.md).
 
+**Outcome, Oct 2 2026**: Cloudflare. The gallery moved on 2026-10-02 and lives in [tacocat-gallery-cloudflare](https://github.com/deanmoses/tacocat-gallery-cloudflare). What decided it was simplicity and developer ergonomics more than speed; its `docs/Risks.md` records each risk raised here and how it was closed against the real account, and its `docs/Perf.md` the measured comparison with this site.
+
 ## Faster
 
 I want an architecture that can serve eventually consistent read requests in under 100ms globally, primarily from California, Louisiana and France. Consistent reads, database writes and media uploads can take longer, but I’d like to make those well under 1 second.
