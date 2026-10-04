@@ -1,5 +1,7 @@
 # tacocat-gallery-sam
 
+> **Archived.** This repo was the back end of [pix.tacocat.com](https://pix.tacocat.com) on AWS from December 2023 to October 2026. On 2026-10-02 the gallery moved to Cloudflare and now lives in [tacocat-gallery-cloudflare](https://github.com/deanmoses/tacocat-gallery-cloudflare), whose `docs/Risks.md` records why and how, and whose `docs/HistoryOfTacocatGallery.md` places this system among the seven the gallery has run on. Nothing here deploys any more; the AWS stacks are out of service and being torn down. The last production release was `2026v32`, which is what `main` holds. For the decision to leave AWS, start with [Hosting.md](docs/plans/Hosting.md) and [HostingDeepDive.md](docs/plans/HostingDeepDive.md); for how the system worked, [Architecture.md](docs/Architecture.md).
+
 Back end for Tacocat's photo and video gallery. Implemented using the Amazon AWS Serverless Application Model (SAM).
 
 ## Key services
